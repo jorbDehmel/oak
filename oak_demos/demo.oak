@@ -1,0 +1,192 @@
+!include(iostream, vector);
+using std:: ;
+
+// Limited use of C header files
+
+// Macro converting C definitions to Oak ones, such that the linker can merge them
+!autooak(SDL2/SDL.h);
+!include(SDL2/SDL.h);
+
+// A demo of the oak programming language
+
+/*
+In my opinion,
+`return 0`
+should work if and only if
+`print 0`
+works. Otherwise, they should both be
+`return(0);`
+and
+`print(0);`
+
+Takes after rust, but with cpp's memory management and
+some sparse stolen python keywords. Also mutable methods,
+"live" structs as in interpreted languages, runtime
+access to types (still compile-typed), and smarter macros.
+
+Oak will also have Rust-style enums.
+
+Style will be compiler-enforced, but generally memory
+management will not. You're the programmer: Make it work.
+
+A lot of the advantages are compile-time handling of
+functions.
+
+Oak files will be split at compile time into headers
+and definitions.
+
+Atomic macros:
+size!(a)    // yields the size in bytes of something
+type!(a)    // inserts the type of a directly as code
+exists!(a)  // checks compile-time existence
+str!(a)     // inserts code as a string literal
+include!(a) // includes a file
+
+Others:
+has!(a, b)  // checks runtime existence in a live
+
+Standard macros:
+println!()
+print!()
+printf!()
+
+Oak macros, denoted by a trailing !, will be compiled
+as a separate file. They will have symbols passed to
+them via command line arguments, and anything they print
+will be their output.
+*/
+
+let a: u32;
+
+live test
+{
+    Rest(self),
+    a, b, c: u32,
+}
+
+// External method definitions
+// Always allowed in lives as long as there is no previous non-mut
+// definition. Allowed in structs iff a mutable method is declared.
+
+if !(exists!(test.Get))
+{
+    let test.Get(self, index: u32) -> T
+    {
+        self.a
+    }
+}
+
+struct method_demonstration<T>
+{
+    New(self) -> $self,
+    Del(Self) -> void,
+
+    Get(self, index: u32) -> T,
+
+    Eq(self, other: $self) -> bool,
+    Neq(self, other: $self) -> bool,
+
+    Less(self, other: $self) -> bool,
+    Great(self, other: $self) -> bool,
+
+    Leq(self, other: $self) -> bool,
+    Greq(self, other: $self) -> bool,
+}
+
+let sum_test(test &what) -> u32
+{
+    what.a + what.b + what.c
+}
+
+// A demo of a smarter macro
+let shorten_var_name!(what)
+{
+    let newname: str = str!(what)[:-2];
+    let code!(newname): type(what) = what;
+}
+
+let assert!(what)
+{
+    if !(code!(what))
+    {
+        throw error("$what");
+    }
+}
+
+// Would create a new variable
+let hello: u32 = 5;
+shorten_var_name!(hello);
+
+assert!(hello == hel);
+
+// Smart generics
+struct holder<T>
+{
+    data: T,
+
+    New(this, from: &T) -> $this
+    {
+        this.data = from;
+
+        this
+    },
+
+    Get(this, index: &u32) -> T
+    {
+        data
+    },
+}
+
+let main() -> u32
+{
+    printf("Hi! %s", "String");
+
+    for (i: u32 = 0; i < 15; i++)
+    {
+        printf("%d", i);
+    }
+
+    let a: test;
+    a.a = a.b = a.c = 5;
+
+    // implicit type for self
+    let a.test($a) -> u32 = sum_test;
+
+    printf("%d", a.test());
+
+    let a.d: u32 = a.test();
+
+    let ad_type: type = $a.d;
+
+    // Dup will be of type u32
+    let dup: ad_type;
+
+    while true
+    {
+        break;
+    }
+
+    if false
+    {
+        1
+    }
+    elif false
+    {
+        2
+    }
+    else
+    {
+        printf("kitttyyy");
+    }
+
+    let pointer: *test = new test;
+
+    // Implicit arrow operator
+    pointer.a = pointer.b = pointer.c = 1;
+
+    del pointer;
+
+    0
+
+    // t falls out of scope
+}

@@ -1,0 +1,316 @@
+/*
+Jordan Dehmel
+jdehmel@outlook.com
+github.com/jorbDehmel
+2023 - present
+GPLv3 held by author
+*/
+
+#include "packages.hpp"
+
+/*
+File oak_package_info.txt:
+
+NAME = "name goes here"
+VERSION = "0.0.1"
+LICENSE = "GPLv3"
+DATE = "April 1st, 2003"
+SOURCE = "www.google.com"
+AUTHOR = "John Smith"
+EMAIL = "JSmith@gmail.com"
+ABOUT = "A demo package"
+INCLUDE = "main_include.oak"
+*/
+
+// Macros that may conflict with other files; Thus, included only in the body
+#define ssystem(command)                                                                                    \
+    {                                                                                                       \
+        printf("%s\n", string(command).c_str());                                                            \
+        system(string(command).c_str()) == 0 ? 0 : throw package_error("System call " #command " failed."); \
+    }
+
+#define sm_system(command, message)                                               \
+    {                                                                             \
+        printf("%s\n", string(command).c_str());                                  \
+        system(string(command).c_str()) == 0                                      \
+            ? 0                                                                   \
+            : throw package_error(message " (System call " #command " failed.)"); \
+    }
+
+map<string, packageInfo> packages;
+
+ostream &operator<<(ostream &strm, const packageInfo &info)
+{
+    strm << "Package '" << info.name << "'\n"
+         << "Version '" << info.version << "'\n"
+         << "License '" << info.license << "'\n"
+         << "Released '" << info.date << "'\n"
+         << "Author(s) '" << info.author << "'\n"
+         << "Email(s) '" << info.email << "'\n"
+         << "Via '" << info.source << "'\n\n"
+         << info.description << "\n\n"
+         << "Include path '/usr/include/oak/"
+         << info.name << "/" << info.toInclude << "'\n";
+
+    return strm;
+}
+
+// Remove any leading or trailing quotes
+void cleanString(string &What)
+{
+    while (What.front() == '"' || What.front() == '\'')
+    {
+        What.erase(What.begin());
+    }
+
+    while (What.back() == '"' || What.back() == '\'')
+    {
+        What.pop_back();
+    }
+
+    return;
+}
+
+packageInfo loadPackageInfo(const string &Filepath)
+{
+    system("pwd");
+
+    ifstream inp(Filepath);
+    pm_assert(inp.is_open(), "Failed to load file '" + Filepath + "'");
+
+    packageInfo toAdd;
+
+    string name, content, garbage;
+    while (!inp.eof())
+    {
+        inp >> name;
+        if (inp.eof())
+        {
+            break;
+        }
+
+        inp >> garbage;
+        pm_assert(garbage == "=", "Malformed package info file.");
+        if (inp.eof())
+        {
+            break;
+        }
+
+        inp >> content;
+
+        if (content[0] == '"' || content[0] == '\'')
+        {
+            while (content.back() != content.front())
+            {
+                inp >> garbage;
+                content += garbage;
+
+                if (inp.eof())
+                {
+                    break;
+                }
+            }
+
+            content = content.substr(1, content.size() - 2);
+        }
+
+        cleanString(content);
+
+        if (name == "NAME")
+        {
+            toAdd.name = content;
+        }
+        else if (name == "VERSION")
+        {
+            toAdd.version = content;
+        }
+        else if (name == "LICENSE")
+        {
+            toAdd.license = content;
+        }
+        else if (name == "SOURCE")
+        {
+            toAdd.source = content;
+        }
+        else if (name == "AUTHOR")
+        {
+            toAdd.author = content;
+        }
+        else if (name == "EMAIL")
+        {
+            toAdd.email = content;
+        }
+        else if (name == "ABOUT")
+        {
+            toAdd.description = content;
+        }
+        else if (name == "DATE")
+        {
+            toAdd.date = content;
+        }
+        else if (name == "INCLUDE")
+        {
+            toAdd.toInclude = content;
+        }
+        else
+        {
+            throw package_error("Invalid item '" + name + "'");
+        }
+    }
+
+    inp.close();
+
+    packages[toAdd.name] = toAdd;
+    return toAdd;
+}
+
+void savePackageInfo(const packageInfo &Info, const string &Filepath)
+{
+    ofstream out(Filepath);
+    pm_assert(out.is_open(), "Failed to open file '" + Filepath + "'");
+
+    out << "NAME = '" << Info.name << "'\n"
+        << "VERSION = '" << Info.version << "'\n"
+        << "LICENSE = '" << Info.license << "'\n"
+        << "DATE = '" << Info.date << "'\n"
+        << "AUTHOR = '" << Info.author << "'\n"
+        << "EMAIL = '" << Info.email << "'\n"
+        << "SOURCE = '" << Info.source << "'\n"
+        << "ABOUT = '" << Info.description << "'\n"
+        << "INCLUDE = '" << Info.toInclude << "'\n";
+
+    out.close();
+    return;
+}
+
+/*
+Imagine using a compiled language for scripting; Couldn't be me
+*/
+void downloadPackage(const string &URLArg, const bool &Reinstall)
+{
+    string URL = URLArg;
+
+    // Check if package is already installed
+    for (auto p : packages)
+    {
+        if (p.second.source == URLArg || p.second.name == URLArg)
+        {
+            if (Reinstall)
+            {
+                URL = p.second.source;
+            }
+            else
+            {
+                cout << tags::yellow_bold
+                     << "Package '" << p.first << "' was already installed.\n"
+                     << tags::reset;
+                return;
+            }
+        }
+    }
+
+    // Create temp location
+    string tempFolderName = PACKAGE_TEMP_LOCATION "oak_tmp_" + to_string(time(NULL));
+
+    sm_system("mkdir -p " PACKAGE_TEMP_LOCATION,
+              "Failed to create packages directory. Ensure you have sufficient privileges.");
+
+    // Clone package using git
+    sm_system(CLONE_COMMAND + URL + " " + tempFolderName, "Git resolution failure; Likely an invalid source.");
+
+    try
+    {
+        // Ensure proper format
+        sm_system("[ -f " + tempFolderName + "/" + INFO_FILE " ]", "Malformed package; Info file is not present.");
+
+        bool needsMake = false;
+        needsMake = (system(("[ -f " + tempFolderName + "/Makefile ]").c_str()) == 0 || system(("[ -f " + tempFolderName + "/makefile ]").c_str()) == 0);
+
+        // Read info file
+        packageInfo info = loadPackageInfo(tempFolderName + "/" + INFO_FILE);
+
+        // Prepare destination
+        string destFolderName = PACKAGE_INCLUDE_PATH + info.name;
+        sm_system("sudo mkdir -p " + destFolderName, "Failed to create package folder in /usr/include/oak; Check user permissions.");
+
+        // Make package if needed
+        if (needsMake)
+        {
+            sm_system("make -C " + tempFolderName, "Make failure; See cout for details.");
+        }
+
+        // Copy files
+        system(("sudo cp " + tempFolderName + "/*.o " + destFolderName + " ; sudo cp " + tempFolderName + "/*.oak " + destFolderName + " ; sudo cp " + tempFolderName + "/*.txt " + destFolderName + " ;").c_str());
+
+        // Clean up garbage; Doesn't really matter if this fails
+        if (system("sudo rm -rf " PACKAGE_TEMP_LOCATION) != 0)
+        {
+            cout << tags::yellow_bold
+                 << "Warning: Failed to erase trash folder '" << PACKAGE_TEMP_LOCATION << "'.\n"
+                 << "If left unfixed, this could cause issues.\n"
+                 << tags::reset;
+        }
+    }
+    catch (runtime_error &e)
+    {
+        // Clean up garbage
+
+        if (system("sudo rm -rf " PACKAGE_TEMP_LOCATION) != 0)
+        {
+            cout << tags::yellow_bold
+                 << "Warning: Failed to erase trash folder '" << PACKAGE_TEMP_LOCATION << "'.\n"
+                 << "If left unfixed, this could cause issues.\n"
+                 << tags::reset;
+        }
+
+        throw package_error(e.what());
+    }
+
+    return;
+}
+
+vector<string> getPackageFiles(const string &Name)
+{
+    // If package is not already loaded
+    if (packages.count(Name) == 0)
+    {
+        if (system(("[ -d /usr/include/oak/" + Name + " ]").c_str()) == 0)
+        {
+            // Installed, but not loaded; Load and continue
+            loadPackageInfo("/usr/include/oak/" + Name + "/" + INFO_FILE);
+        }
+        else
+        {
+            // Not installed or loaded; Throw error
+            throw package_error("Package '" + Name + "' could not be found. Ensure it is installed.");
+        }
+    }
+
+    // Loaded and installed
+    packageInfo info = packages[Name];
+    vector<string> out;
+    string cur, toSplit = info.toInclude;
+
+    for (int i = 0; i < toSplit.size(); i++)
+    {
+        if (toSplit[i] == ',')
+        {
+            if (cur != "")
+            {
+                out.push_back(PACKAGE_INCLUDE_PATH + Name + "/" + cur);
+            }
+            cur = "";
+        }
+        else
+        {
+            cur.push_back(toSplit[i]);
+        }
+    }
+
+    if (cur != "")
+    {
+        out.push_back(PACKAGE_INCLUDE_PATH + Name + "/" + cur);
+    }
+
+    return out;
+}

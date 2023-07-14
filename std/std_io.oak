@@ -1,0 +1,23 @@
+/*
+Jordan Dehmel, 2023
+GPLv3
+
+Standard io function definitions for use
+with io.cpp.
+*/
+
+link!(/usr/include/oak/std/io.o);
+
+// Print to cout
+let print(what: str) -> void;
+let println(what: str) -> void;
+
+// Error messages
+let print_err(what: str) -> void;
+let println_err(what: str) -> void;
+
+// Get a char from cin
+let get_char() -> i8;
+
+// Read a number of chars from cin into a string
+let read(into: str, length: u128) -> void;
