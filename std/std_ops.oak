@@ -1,0 +1,123 @@
+/*
+Jordan Dehmel, 2023
+GPLv3
+
+Standard operators for atomic types.
+Many of these will be defined in C++
+and linked in.
+*/
+
+link!(misc_math.o);
+
+// Ints
+include!(/usr/include/oak/std/int_math.oak);
+
+// Floats
+include!(/usr/include/oak/std/float_math.oak);
+
+// Bools
+let bool.Copy(self: *bool, other: bool) -> bool; // This in C++
+
+let bool.Eq(self: bool, other: bool) -> bool
+{
+    if (self)
+    {
+        other
+    }
+    else
+    {
+        if (other)
+        {
+            false
+        }
+        else
+        {
+            true
+        }
+    }
+}
+
+let bool.Neq(self: bool, other: bool) -> bool
+{
+    if (self)
+    {
+        if (other)
+        {
+            false
+        }
+        else
+        {
+            true
+        }
+    }
+    else
+    {
+        other
+    }
+}
+
+let bool.Andd(self: bool, other: bool) -> bool
+{
+    if (self)
+    {
+        other
+    }
+
+    false
+}
+
+let bool.Orr(self: bool, other: bool) -> bool
+{
+    if (self)
+    {
+        true
+    }
+
+    other
+}
+
+let bool.Not(self: bool) -> bool
+{
+    if (self)
+    {
+        false
+    }
+
+    true
+}
+
+let bool.AndEq(self: *bool, other: bool) -> bool
+{
+    if (other)
+    {
+        if (*self)
+        {
+            (*self) = true;
+        }
+        else
+        {
+            (*self) = false;
+        }
+    }
+    else
+    {
+        (*self) = false;
+    }
+
+    (*self)
+}
+
+let bool.OrEq(self: *bool, other: bool) -> bool
+{
+    if (other)
+    {
+        (*self) = true;
+    }
+
+    (*self)
+}
+
+// Strs
+let str.Get(self: str, index: u128) -> i8;
+let str.Eq(self: str, other: str) -> bool;
+let str.Neq(self: str, other: str) -> bool;

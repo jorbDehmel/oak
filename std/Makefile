@@ -1,4 +1,4 @@
-all:	io.o mem.o
+all:	io.o mem.o float_math.o int_math.o
 
 %.o:	%.cpp
 	clang++ -c -o $@ $<

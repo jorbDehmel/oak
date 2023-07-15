@@ -296,6 +296,7 @@ sequence __createSequence(vector<string> &From)
     // printvec(From);
 
     sequence out;
+    out.info = code_line;
 
     if (From.size() == 0)
     {
@@ -565,7 +566,9 @@ sequence __createSequence(vector<string> &From)
 
         out.info = parenthesis;
         out.items.push_back(__createSequence(internals));
+
         out.type = out.items[0].type;
+        cout << "Parenthesis wound up with type " << toStr(&out.type) << '\n';
 
         return out;
     }
@@ -728,8 +731,42 @@ sequence __createSequence(vector<string> &From)
                 else
                 {
                     // Parenthesis
-                    sm_assert(false, "UNIMPLEMENTED");
+                    // sm_assert(false, "UNIMPLEMENTED");
+
+                    pop_front(From);
+
+                    out.info = parenthesis;
+
+                    // Code scope.
+                    int count = 1;
+                    vector<string> curVec;
+                    while (!From.empty())
+                    {
+                        if (From[0] == "(")
+                        {
+                            count++;
+                        }
+                        else if (From[0] == ")")
+                        {
+                            count--;
+
+                            if (count == 0)
+                            {
+                                out.items.push_back(__createSequence(curVec));
+                                curVec.clear();
+                                pop_front(From);
+                                break;
+                            }
+                        }
+
+                        curVec.push_back(From[0]);
+                        pop_front(From);
+                    }
                 }
+
+                out.type = out.items[0].type;
+
+                return out;
             }
             else if (cur == "[")
             {

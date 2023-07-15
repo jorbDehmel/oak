@@ -93,8 +93,6 @@ vector<string> getMacroArgs(vector<string> &lexed, const int &i)
     parse_assert(lexed[i] == "(");
     lexed.erase(lexed.begin() + i);
 
-    int count = 1;
-
     string cur = "";
     while (!lexed.empty() && lexed[i] != ";")
     {

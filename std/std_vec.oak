@@ -26,13 +26,15 @@ let vec<T>.Del(self: *vec<T>) -> void
 
 let vec<T>.Get(self: *vec<T>, i: u128) -> T
 {
-    if i < self.size
+    if (i < self.size)
     {
         *(self.data + i)
     }
     else
     {
-        throw error("Invalid index (segmentation fault).");
+        throw(error("Invalid index (segmentation fault)."));
+        
+        // Unreachable but principled
         T()
     }
 }

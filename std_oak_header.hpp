@@ -36,9 +36,9 @@ typedef unsigned long int u64;
 typedef unsigned long long int u128;
 
 // Floating point types
-typedef float f16;
-typedef double f32;
-typedef long double f64;
+typedef float f32;
+typedef double f64;
+typedef long double f128;
 
 // Misc
 typedef const char *const str;

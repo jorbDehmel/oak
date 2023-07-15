@@ -103,7 +103,7 @@ packageInfo loadPackageInfo(const string &Filepath)
             while (content.back() != content.front())
             {
                 inp >> garbage;
-                content += garbage;
+                content += " " + garbage;
 
                 if (inp.eof())
                 {
@@ -216,7 +216,19 @@ void downloadPackage(const string &URLArg, const bool &Reinstall)
               "Failed to create packages directory. Ensure you have sufficient privileges.");
 
     // Clone package using git
-    sm_system(CLONE_COMMAND + URL + " " + tempFolderName, "Git resolution failure; Likely an invalid source.");
+    try
+    {
+        sm_system(CLONE_COMMAND + URL + " " + tempFolderName, "Git resolution failure; Likely an invalid source.");
+    }
+    catch (package_error &e)
+    {
+        cout << tags::yellow_bold
+             << e.what() << '\n'
+             << "Attempting git-less copy...\n"
+             << tags::reset;
+
+        sm_system("cp -r " + URL + " " + tempFolderName, "Local copy failed; Is neither URL nor filepath.");
+    }
 
     try
     {
@@ -229,8 +241,14 @@ void downloadPackage(const string &URLArg, const bool &Reinstall)
         // Read info file
         packageInfo info = loadPackageInfo(tempFolderName + "/" + INFO_FILE);
 
+        cout << tags::green
+             << "Loaded package from " << URL << "\n"
+             << info << '\n'
+             << tags::reset;
+
         // Prepare destination
         string destFolderName = PACKAGE_INCLUDE_PATH + info.name;
+        sm_system("sudo rm -rf " + destFolderName, "Failed to clear old package files.");
         sm_system("sudo mkdir -p " + destFolderName, "Failed to create package folder in /usr/include/oak; Check user permissions.");
 
         // Make package if needed
@@ -240,9 +258,11 @@ void downloadPackage(const string &URLArg, const bool &Reinstall)
         }
 
         // Copy files
-        system(("sudo cp " + tempFolderName + "/*.o " + destFolderName + " ; sudo cp " + tempFolderName + "/*.oak " + destFolderName + " ; sudo cp " + tempFolderName + "/*.txt " + destFolderName + " ;").c_str());
+        sm_system("sudo rm -rf " + tempFolderName + "/*.cpp", "Failed to clean folder");
+        sm_system("sudo cp -r " + tempFolderName + "/* " + destFolderName, "Failed to copy folder");
 
         // Clean up garbage; Doesn't really matter if this fails
+        cout << "sudo rm -rf " PACKAGE_TEMP_LOCATION << '\n';
         if (system("sudo rm -rf " PACKAGE_TEMP_LOCATION) != 0)
         {
             cout << tags::yellow_bold

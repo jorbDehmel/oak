@@ -1,0 +1,79 @@
+/*
+Jordan Dehmel, 2023
+GPLv3
+
+All of the floating-point operators. See
+companion C++ file.
+*/
+
+link!(float_math.o);
+
+// Floats
+let f32.Add(self: f32, other: f32) -> f32;
+let f32.Sub(self: f32, other: f32) -> f32;
+let f32.Mult(self: f32, other: f32) -> f32;
+let f32.Div(self: f32, other: f32) -> f32;
+
+let f32.Eq(self: f32, other: f32) -> bool;
+let f32.Neq(self: f32, other: f32) -> bool;
+let f32.Less(self: f32, other: f32) -> bool;
+let f32.Great(self: f32, other: f32) -> bool;
+let f32.Leq(self: f32, other: f32) -> bool;
+let f32.Greq(self: f32, other: f32) -> bool;
+
+let f32.New(self: *f32) -> void;
+let f32.Copy(self: *f32, other: f32) -> f32;
+let f32.AddEq(self: *f32, other: f32) -> f32;
+let f32.SubEq(self: *f32, other: f32) -> f32;
+let f32.MultEq(self: *f32, other: f32) -> f32;
+let f32.DivEq(self: *f32, other: f32) -> f32;
+
+let f32.Incr(self: *f32) -> f32;
+let f32.Decr(self: *f32) -> f32;
+
+// Doubles
+let f64.Add(self: f64, other: f64) -> f64;
+let f64.Sub(self: f64, other: f64) -> f64;
+let f64.Mult(self: f64, other: f64) -> f64;
+let f64.Div(self: f64, other: f64) -> f64;
+
+let f64.Eq(self: f64, other: f64) -> bool;
+let f64.Neq(self: f64, other: f64) -> bool;
+let f64.Less(self: f64, other: f64) -> bool;
+let f64.Great(self: f64, other: f64) -> bool;
+let f64.Leq(self: f64, other: f64) -> bool;
+let f64.Greq(self: f64, other: f64) -> bool;
+
+let f64.New(self: *f64) -> void;
+let f64.Copy(self: *f64, other: f64) -> f64;
+let f64.AddEq(self: *f64, other: f64) -> f64;
+let f64.SubEq(self: *f64, other: f64) -> f64;
+let f64.MultEq(self: *f64, other: f64) -> f64;
+let f64.DivEq(self: *f64, other: f64) -> f64;
+
+let f64.Incr(self: *f64) -> f64;
+let f64.Decr(self: *f64) -> f64;
+
+// Long Doubles
+let f128.Add(self: f128, other: f128) -> f128;
+let f128.Sub(self: f128, other: f128) -> f128;
+let f128.Mult(self: f128, other: f128) -> f128;
+let f128.Div(self: f128, other: f128) -> f128;
+
+let f128.Eq(self: f128, other: f128) -> bool;
+let f128.Neq(self: f128, other: f128) -> bool;
+let f128.Less(self: f128, other: f128) -> bool;
+let f128.Great(self: f128, other: f128) -> bool;
+let f128.Leq(self: f128, other: f128) -> bool;
+let f128.Greq(self: f128, other: f128) -> bool;
+
+let f128.New(self: *f128) -> void;
+let f128.Copy(self: *f128, other: f128) -> f128;
+let f128.AddEq(self: *f128, other: f128) -> f128;
+let f128.SubEq(self: *f128, other: f128) -> f128;
+let f128.MultEq(self: *f128, other: f128) -> f128;
+let f128.DivEq(self: *f128, other: f128) -> f128;
+
+let f128.Incr(self: *f128) -> f128;
+let f128.Decr(self: *f128) -> f128;
+
