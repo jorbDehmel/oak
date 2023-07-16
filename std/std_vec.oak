@@ -13,18 +13,18 @@ let vec: struct<T>
     size: u128,
 }
 
-let vec<T>.New(self: *vec<T>, size: u128) -> void
+let New<T>(self: *vec<T>, size: u128) -> void
 {
     self.data = alloc<T>(size);
     self.size = size;
 }
 
-let vec<T>.Del(self: *vec<T>) -> void
+let Del<T>(self: *vec<T>) -> void
 {
     free<T>(data);
 }
 
-let vec<T>.Get(self: *vec<T>, i: u128) -> T
+let Get<T>(self: *vec<T>, i: u128) -> T
 {
     if (i < self.size)
     {

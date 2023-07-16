@@ -118,208 +118,250 @@ vector<string> getMacroArgs(vector<string> &lexed, const int &i)
 
 void doFile(const string &From)
 {
-    if (From.size() < 4 || From.substr(From.size() - 4) != ".oak")
+    try
     {
-        cout << tags::yellow_bold
-             << "Warning! File '" << From << "' is not a .oak file.\n"
-             << tags::reset;
-    }
-
-    string realName;
-    if (From.find("/") == string::npos)
-    {
-        realName = From;
-    }
-    else
-    {
-        realName = From.substr(From.find("/") + 1);
-    }
-
-    for (char c : realName)
-    {
-        if ('A' <= c && c <= 'Z')
+        if (From.size() < 4 || From.substr(From.size() - 4) != ".oak")
         {
             cout << tags::yellow_bold
-                 << "Warning! File '" << From << "' has illegal name.\n"
-                 << "Oak files use underscore formatting (ie /path/to/file_to_use.oak).\n"
+                 << "Warning! File '" << From << "' is not a .oak file.\n"
                  << tags::reset;
-            break;
-        }
-    }
-
-    if (visitedFiles.count(From) == 0)
-    {
-        visitedFiles.insert(From);
-
-        if (debug)
-        {
-            cout << "Loading file '" << From << "'\n";
         }
 
-        if (From.size() > 4 && From.substr(From.size() - 4) == ".cpp")
+        string realName;
+        if (From.find("/") == string::npos)
         {
-            cppSources.insert(From);
-            autoOak(From);
-            return;
+            realName = From;
+        }
+        else
+        {
+            realName = From.substr(From.find("/") + 1);
         }
 
-        // A: Load file
-        ifstream file(From);
-        if (!file.is_open())
+        for (char c : realName)
         {
-            throw runtime_error("Could not open source file '" + From + "'");
-        }
-
-        string text, line;
-        while (getline(file, line))
-        {
-            text += line + '\n';
-        }
-
-        // B: Lex
-        vector<string> lexed = lex(text);
-
-        // C: Scan for compiler macros; Do these first
-        // This erases them from lexed
-        for (int i = 0; i < lexed.size(); i++)
-        {
-            if (lexed[i] != "!" && lexed[i].back() == '!')
+            if ('A' <= c && c <= 'Z')
             {
-                cout << "Found thing '" << lexed[i] << "'\n";
+                cout << tags::yellow_bold
+                     << "Warning! File '" << From << "' has illegal name.\n"
+                     << "Oak files use underscore formatting (ie /path/to/file_to_use.oak).\n"
+                     << tags::reset;
+                break;
+            }
+        }
 
-                if (lexed[i] == "include!")
+        if (visitedFiles.count(From) == 0)
+        {
+            visitedFiles.insert(From);
+
+            if (debug)
+            {
+                cout << "Loading file '" << From << "'\n";
+            }
+
+            if (From.size() > 4 && From.substr(From.size() - 4) == ".cpp")
+            {
+                cppSources.insert(From);
+                autoOak(From);
+                return;
+            }
+
+            // A: Load file
+            ifstream file(From);
+            if (!file.is_open())
+            {
+                throw runtime_error("Could not open source file '" + From + "'");
+            }
+
+            string text, line;
+            while (getline(file, line))
+            {
+                text += line + '\n';
+            }
+
+            // B: Lex
+            vector<string> lexed = lex(text);
+
+            // C: Scan for compiler macros; Do these first
+            // This erases them from lexed
+            for (int i = 0; i < lexed.size(); i++)
+            {
+                if (lexed[i] != "!" && lexed[i].back() == '!')
                 {
-                    vector<string> args = getMacroArgs(lexed, i);
-                    for (string a : args)
+                    if (lexed[i] == "include!")
                     {
-                        doFile(a);
-                    }
-                }
-                else if (lexed[i] == "link!")
-                {
-                    vector<string> args = getMacroArgs(lexed, i);
-                    for (string a : args)
-                    {
-                        if (debug)
+                        vector<string> args = getMacroArgs(lexed, i);
+
+                        // Clean arguments
+                        for (int j = 0; j < args.size(); j++)
                         {
-                            cout << "Inserting object " << a << '\n';
+                            while (!args[j].empty() && (args[j].front() == '"' || args[j].front() == '\''))
+                            {
+                                args[j].erase(0, 1);
+                            }
+                            while (!args[j].empty() && (args[j].back() == '"' || args[j].back() == '\''))
+                            {
+                                args[j].pop_back();
+                            }
                         }
 
-                        objects.insert(a);
+                        for (string a : args)
+                        {
+                            doFile(a);
+                        }
+                        i--;
                     }
-                }
-                else if (lexed[i] == "package!")
-                {
-                    vector<string> args = getMacroArgs(lexed, i);
-                    vector<string> files;
-
-                    for (string a : args)
+                    else if (lexed[i] == "link!")
                     {
-                        files = getPackageFiles(a);
-                        for (string f : files)
+                        vector<string> args = getMacroArgs(lexed, i);
+
+                        // Clean arguments
+                        for (int j = 0; j < args.size(); j++)
+                        {
+                            while (!args[j].empty() && (args[j].front() == '"' || args[j].front() == '\''))
+                            {
+                                args[j].erase(0, 1);
+                            }
+                            while (!args[j].empty() && (args[j].back() == '"' || args[j].back() == '\''))
+                            {
+                                args[j].pop_back();
+                            }
+                        }
+
+                        for (string a : args)
                         {
                             if (debug)
                             {
-                                cout << "Loading package file '" << f << "'...\n";
+                                cout << "Inserting object " << a << '\n';
                             }
 
-                            doFile(f);
+                            objects.insert(a);
                         }
+                        i--;
+                    }
+                    else if (lexed[i] == "package!")
+                    {
+                        vector<string> args = getMacroArgs(lexed, i);
+                        vector<string> files;
+
+                        // Clean arguments
+                        for (int j = 0; j < args.size(); j++)
+                        {
+                            while (!args[j].empty() && (args[j].front() == '"' || args[j].front() == '\''))
+                            {
+                                args[j].erase(0, 1);
+                            }
+                            while (!args[j].empty() && (args[j].back() == '"' || args[j].back() == '\''))
+                            {
+                                args[j].pop_back();
+                            }
+                        }
+
+                        for (string a : args)
+                        {
+                            files = getPackageFiles(a);
+                            for (string f : files)
+                            {
+                                if (debug)
+                                {
+                                    cout << "Loading package file '" << f << "'...\n";
+                                }
+
+                                doFile(f);
+                            }
+                        }
+                        i--;
                     }
                 }
             }
-        }
 
-        cout << "Lexed:\n";
-        for (auto s : lexed)
-        {
-            cout << s << '\t';
-        }
-        cout << '\n';
-
-        // D: Scan for macro definitions and handle them
-        // This erases them from lexed
-        for (int i = 1; i < lexed.size(); i++)
-        {
-            if (lexed[i] != "!" && lexed[i].back() == '!' && lexed[i - 1] == "let")
+            // D: Scan for macro definitions and handle them
+            // This erases them from lexed
+            for (int i = 1; i < lexed.size(); i++)
             {
-                string name, contents;
-                name = lexed[i];
-
-                contents = "let main(argc: i16, argv: *str) -> i16 ";
-
-                lexed.erase(lexed.begin() + i);       // Name
-                lexed.erase(lexed.begin() + (i - 1)); // Let
-
-                // let name!(argc: u16, argv: *str) { ... }
-
-                while (lexed[i] != "{" && lexed[i] != ";")
+                if (lexed[i] != "!" && lexed[i].back() == '!' && lexed[i - 1] == "let")
                 {
-                    lexed.erase(lexed.begin() + i);
-                }
+                    string name, contents;
+                    name = lexed[i];
 
-                if (lexed[i] == ";")
-                {
-                    contents += "{ 0 }";
-                }
-                else
-                {
-                    int count = 1;
-                    lexed.erase(lexed.begin() + i);
-                    contents += "\n{";
+                    contents = "let main(argc: i16, argv: *str) -> i16 ";
 
-                    while (count != 0)
+                    lexed.erase(lexed.begin() + i);       // Name
+                    lexed.erase(lexed.begin() + (i - 1)); // Let
+
+                    // let name!(argc: u16, argv: *str) { ... }
+
+                    while (lexed[i] != "{" && lexed[i] != ";")
                     {
-                        if (lexed[i] == "{")
-                        {
-                            count++;
-                        }
-                        else if (lexed[i] == "}")
-                        {
-                            count--;
-                        }
-
-                        contents += " " + lexed[i];
                         lexed.erase(lexed.begin() + i);
                     }
+
+                    if (lexed[i] == ";")
+                    {
+                        contents += "{ 0 }";
+                    }
+                    else
+                    {
+                        int count = 1;
+                        lexed.erase(lexed.begin() + i);
+                        contents += "\n{";
+
+                        while (count != 0)
+                        {
+                            if (lexed[i] == "{")
+                            {
+                                count++;
+                            }
+                            else if (lexed[i] == "}")
+                            {
+                                count--;
+                            }
+
+                            contents += " " + lexed[i];
+                            lexed.erase(lexed.begin() + i);
+                        }
+                    }
+
+                    macros[name] = contents;
                 }
-
-                macros[name] = contents;
             }
-        }
 
-        // E: Scan for macro calls and handle them
-        bool foundMacros = false;
-        do
-        {
-            for (int i = 0; i < lexed.size(); i++)
+            // E: Scan for macro calls and handle them
+            bool foundMacros = false;
+            do
             {
-                // We can assume that no macro definitions remain
-                if (lexed[i] != "!" && lexed[i].back() == '!')
+                for (int i = 0; i < lexed.size(); i++)
                 {
-                    string name = lexed[i];
-                    vector<string> args = getMacroArgs(lexed, i);
-                    callMacro(name, args, debug);
+                    // We can assume that no macro definitions remain
+                    if (lexed[i] != "!" && lexed[i].back() == '!')
+                    {
+                        string name = lexed[i];
+                        vector<string> args = getMacroArgs(lexed, i);
+                        callMacro(name, args, debug);
+                    }
                 }
+            } while (foundMacros);
+
+            // F: Load file stuff
+            sequence fileSeq = createSequence(lexed);
+            if (fileSeq.type != nullType)
+            {
+                cout << tags::yellow_bold
+                     << "Warning! File '" << From << "' has hanging type '"
+                     << toStr(&fileSeq.type) << "'\n"
+                     << tags::reset;
             }
-        } while (foundMacros);
-
-        // F: Load file stuff
-        sequence fileSeq = createSequence(lexed);
-        if (fileSeq.type != nullType)
-        {
-            cout << tags::yellow_bold
-                 << "Warning! File '" << From << "' has hanging type '"
-                 << toStr(&fileSeq.type) << "'\n"
-                 << tags::reset;
         }
-    }
-    else if (debug)
-    {
-        cout << "Skipping repeated file '" << From << "'\n";
-    }
+        else if (debug)
+        {
+            cout << "Skipping repeated file '" << From << "'\n";
+        }
 
-    cout << "Finished file '" << From << "'\n";
+        cout << "Finished file '" << From << "'\n";
+    }
+    catch (runtime_error &e)
+    {
+        throw runtime_error("Failure in file '" + From + "':\n" + e.what());
+    }
 
     return;
 }

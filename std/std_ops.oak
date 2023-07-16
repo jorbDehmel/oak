@@ -16,9 +16,9 @@ include!(/usr/include/oak/std/int_math.oak);
 include!(/usr/include/oak/std/float_math.oak);
 
 // Bools
-let bool.Copy(self: *bool, other: bool) -> bool; // This in C++
+let Copy(self: *bool, other: bool) -> bool; // This in C++
 
-let bool.Eq(self: bool, other: bool) -> bool
+let Eq(self: bool, other: bool) -> bool
 {
     if (self)
     {
@@ -37,7 +37,7 @@ let bool.Eq(self: bool, other: bool) -> bool
     }
 }
 
-let bool.Neq(self: bool, other: bool) -> bool
+let Neq(self: bool, other: bool) -> bool
 {
     if (self)
     {
@@ -56,7 +56,7 @@ let bool.Neq(self: bool, other: bool) -> bool
     }
 }
 
-let bool.Andd(self: bool, other: bool) -> bool
+let Andd(self: bool, other: bool) -> bool
 {
     if (self)
     {
@@ -66,7 +66,7 @@ let bool.Andd(self: bool, other: bool) -> bool
     false
 }
 
-let bool.Orr(self: bool, other: bool) -> bool
+let Orr(self: bool, other: bool) -> bool
 {
     if (self)
     {
@@ -76,7 +76,7 @@ let bool.Orr(self: bool, other: bool) -> bool
     other
 }
 
-let bool.Not(self: bool) -> bool
+let Not(self: bool) -> bool
 {
     if (self)
     {
@@ -86,7 +86,7 @@ let bool.Not(self: bool) -> bool
     true
 }
 
-let bool.AndEq(self: *bool, other: bool) -> bool
+let AndEq(self: *bool, other: bool) -> bool
 {
     if (other)
     {
@@ -107,7 +107,7 @@ let bool.AndEq(self: *bool, other: bool) -> bool
     (*self)
 }
 
-let bool.OrEq(self: *bool, other: bool) -> bool
+let OrEq(self: *bool, other: bool) -> bool
 {
     if (other)
     {
@@ -118,6 +118,6 @@ let bool.OrEq(self: *bool, other: bool) -> bool
 }
 
 // Strs
-let str.Get(self: str, index: u128) -> i8;
-let str.Eq(self: str, other: str) -> bool;
-let str.Neq(self: str, other: str) -> bool;
+let Get(self: str, index: u128) -> i8;
+let Eq(self: str, other: str) -> bool;
+let Neq(self: str, other: str) -> bool;

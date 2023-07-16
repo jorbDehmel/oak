@@ -391,51 +391,11 @@ sequence __createSequence(vector<string> &From)
     }
     else if (From[0] == "let")
     {
-        // call addSymbol or addStruct
-
-        // let NAME: TYPE;
-        // let NAME: TYPE = {};
-        // let NAME: TYPE = OTHER_NAME;
-
-        // let NAME : TYPE TYPE TYPE ( ; = )
-        // if (=), take another chunk.
-
-        // let NAME() -> hi;
-        // let NAME() -> hi {}
-        // let NAME(ARG, ARG) -> hi;
-
-        // let NAME<generics>() -> hi;
-        // let NAME: hi<types>;
-
-        /*
-        cout << "Local contents: '";
-        for (int i = 0; i < 5; i++)
-            if (i < From.size())
-                cout << From[i] << ' ';
-        cout << "'\n";
-        */
-
         // Get name
         pop_front(From); // let
         seq_assert(!From.empty());
         string name = From[0];
         pop_front(From);
-
-        // This should handle method calls for now
-        while (From[0] == ".")
-        {
-            sm_assert(name.find(".") == string::npos, "Method definition must occur on typename.");
-
-            name += ".";
-            pop_front(From);
-
-            if ('A' <= From[0][0] && From[0][0] <= 'Z')
-            {
-                sm_assert(operatorAliases.count(From[0]) != 0, From[0] + " is not a valid operator alias.");
-            }
-            name += From[0];
-            pop_front(From);
-        }
 
         // Get type
         if (From[0] == ":")
