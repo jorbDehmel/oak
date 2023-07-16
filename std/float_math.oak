@@ -6,7 +6,7 @@ All of the floating-point operators. See
 companion C++ file.
 */
 
-link!(float_math.o);
+link!("/usr/include/oak/std/float_math.o");
 
 // Floats
 let Add(self: f32, other: f32) -> f32;

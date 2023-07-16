@@ -6,7 +6,7 @@ Function signatures for ALL the integer
 operators.
 */
 
-link!(int_math.o);
+link!("/usr/include/oak/std/int_math.o");
 
 // u8
 let Add(self: u8, other: u8) -> u8;

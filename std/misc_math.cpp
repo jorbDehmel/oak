@@ -62,3 +62,45 @@ bool Neq(str self, str other)
 {
     return !Eq(self, other);
 }
+
+/*
+let AndEq(self: *bool, other: bool) -> bool;
+let OrEq(self: *bool, other: bool) -> bool;
+*/
+
+bool Eq(bool self, bool other)
+{
+    return self == other;
+}
+
+bool Neq(bool self, bool other)
+{
+    return self != other;
+}
+
+bool Andd(bool self, bool other)
+{
+    return self && other;
+}
+
+bool Orr(bool self, bool other)
+{
+    return self || other;
+}
+
+bool Not(bool self)
+{
+    return !self;
+}
+
+bool AndEq(bool *self, bool other)
+{
+    *self &= other;
+    return *self;
+}
+
+bool OrEq(bool *self, bool other)
+{
+    *self |= other;
+    return *self;
+}

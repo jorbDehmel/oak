@@ -356,7 +356,10 @@ void doFile(const string &From)
             cout << "Skipping repeated file '" << From << "'\n";
         }
 
-        cout << "Finished file '" << From << "'\n";
+        if (debug)
+        {
+            cout << "Finished file '" << From << "'\n";
+        }
     }
     catch (runtime_error &e)
     {

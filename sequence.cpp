@@ -334,8 +334,6 @@ sequence __createSequence(vector<string> &From)
         // This is for the conditional
         out.items.push_back(__createSequence(From));
 
-        debugPrint(out.items[0]);
-
         sm_assert(out.items[0].type == Type(atomic, "bool"), "If statement argument must be boolean.");
         sm_assert(!From.empty(), "Missing statement after if");
 
@@ -528,7 +526,6 @@ sequence __createSequence(vector<string> &From)
         out.items.push_back(__createSequence(internals));
 
         out.type = out.items[0].type;
-        cout << "Parenthesis wound up with type " << toStr(&out.type) << '\n';
 
         return out;
     }
@@ -599,8 +596,6 @@ sequence __createSequence(vector<string> &From)
                 {
                     continue;
                 }
-
-                debugPrint(out);
 
                 sm_assert(out.items[i - 1].info == keyword && out.items[i - 1].raw == "if",
                           "Else statement must be prefixed by if statement.");

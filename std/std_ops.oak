@@ -7,115 +7,23 @@ Many of these will be defined in C++
 and linked in.
 */
 
-link!(misc_math.o);
+link!("/usr/include/oak/std/misc_math.o");
 
 // Ints
-include!(/usr/include/oak/std/int_math.oak);
+include!("/usr/include/oak/std/int_math.oak");
 
 // Floats
-include!(/usr/include/oak/std/float_math.oak);
+include!("/usr/include/oak/std/float_math.oak");
 
 // Bools
-let Copy(self: *bool, other: bool) -> bool; // This in C++
-
-let Eq(self: bool, other: bool) -> bool
-{
-    if (self)
-    {
-        other
-    }
-    else
-    {
-        if (other)
-        {
-            false
-        }
-        else
-        {
-            true
-        }
-    }
-}
-
-let Neq(self: bool, other: bool) -> bool
-{
-    if (self)
-    {
-        if (other)
-        {
-            false
-        }
-        else
-        {
-            true
-        }
-    }
-    else
-    {
-        other
-    }
-}
-
-let Andd(self: bool, other: bool) -> bool
-{
-    if (self)
-    {
-        other
-    }
-
-    false
-}
-
-let Orr(self: bool, other: bool) -> bool
-{
-    if (self)
-    {
-        true
-    }
-
-    other
-}
-
-let Not(self: bool) -> bool
-{
-    if (self)
-    {
-        false
-    }
-
-    true
-}
-
-let AndEq(self: *bool, other: bool) -> bool
-{
-    if (other)
-    {
-        if (*self)
-        {
-            (*self) = true;
-        }
-        else
-        {
-            (*self) = false;
-        }
-    }
-    else
-    {
-        (*self) = false;
-    }
-
-    (*self)
-}
-
-let OrEq(self: *bool, other: bool) -> bool
-{
-    if (other)
-    {
-        (*self) = true;
-    }
-
-    (*self)
-}
+let Copy(self: *bool, other: bool) -> bool;
+let Eq(self: bool, other: bool) -> bool;
+let Neq(self: bool, other: bool) -> bool;
+let Andd(self: bool, other: bool) -> bool;
+let Orr(self: bool, other: bool) -> bool;
+let Not(self: bool) -> bool;
+let AndEq(self: *bool, other: bool) -> bool;
+let OrEq(self: *bool, other: bool) -> bool;
 
 // Strs
 let Get(self: str, index: u128) -> i8;
