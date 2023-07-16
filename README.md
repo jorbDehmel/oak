@@ -136,6 +136,8 @@ let Long_variable_name_with_multiple_words: i32;
 
 The same naming tips go for structs. Structs should not have any special name conventions. The only symbols which have different naming conventions are the operator aliases (see later), which use upper camelcase.
 
+These naming conventions are also extended to package names (unless for some reason incompatible with the git host website they are on) and file names.
+
 Single-line comments should start with "`// `" (slash, slash, space), and multi-line comments should start with `/*` and end with `*/` (just like `C++`).
 
 ```

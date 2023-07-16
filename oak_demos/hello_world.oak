@@ -28,9 +28,14 @@ let main(argc: i32, argv: *str) -> i32
     {
         println("This should not print");
     }
+    else if (false)
+    {
+        println("This also should not print");
+    }
     else
     {
         println("This should print");
+        println("Amoonguse");
     }
 
     0

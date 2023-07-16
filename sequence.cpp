@@ -635,6 +635,13 @@ sequence __createSequence(vector<string> &From)
         {
             if (out.items[i].info == keyword && out.items[i].raw == "else")
             {
+                if (out.items[i - 1].items.size() != 0 && out.items[i - 1].items[0].info == keyword && out.items[i - 1].items[0].raw == "if")
+                {
+                    continue;
+                }
+
+                debugPrint(out);
+
                 sm_assert(out.items[i - 1].info == keyword && out.items[i - 1].raw == "if",
                           "Else statement must be prefixed by if statement.");
             }
@@ -995,7 +1002,7 @@ string toC(const sequence &What)
         break;
 
     case keyword:
-        out += What.raw;
+        out += What.raw + " ";
 
         for (auto child : What.items)
         {

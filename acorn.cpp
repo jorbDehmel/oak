@@ -57,8 +57,7 @@ bool link = true;
 
 bool pretty;
 
-set<string>
-    visitedFiles;
+set<string> visitedFiles;
 
 set<string> cppSources;
 set<string> objects;
@@ -119,6 +118,35 @@ vector<string> getMacroArgs(vector<string> &lexed, const int &i)
 
 void doFile(const string &From)
 {
+    if (From.size() < 4 || From.substr(From.size() - 4) != ".oak")
+    {
+        cout << tags::yellow_bold
+             << "Warning! File '" << From << "' is not a .oak file.\n"
+             << tags::reset;
+    }
+
+    string realName;
+    if (From.find("/") == string::npos)
+    {
+        realName = From;
+    }
+    else
+    {
+        realName = From.substr(From.find("/") + 1);
+    }
+
+    for (char c : realName)
+    {
+        if ('A' <= c && c <= 'Z')
+        {
+            cout << tags::yellow_bold
+                 << "Warning! File '" << From << "' has illegal name.\n"
+                 << "Oak files use underscore formatting (ie /path/to/file_to_use.oak).\n"
+                 << tags::reset;
+            break;
+        }
+    }
+
     if (visitedFiles.count(From) == 0)
     {
         visitedFiles.insert(From);
@@ -358,12 +386,13 @@ int main(const int argc, const char *argv[])
     auto start = chrono::high_resolution_clock::now(), end = start;
     unsigned long long int oakElapsed = 0;
 
+    vector<string> files;
+    string out = "a.out";
+    bool noSave = false;
+    bool eraseTemp = false;
+
     try
     {
-        vector<string> files;
-        string out = "a.out";
-        bool eraseAfter = false;
-
         // Argument parsing
         vector<string> filesToAdd;
         for (int i = 1; i < argc; i++)
@@ -399,30 +428,31 @@ int main(const int argc, const char *argv[])
                     }
                     else if (cur == "--no_save")
                     {
-                        eraseAfter = !eraseAfter;
+                        noSave = !noSave;
 
-                        if (eraseAfter)
+                        if (noSave)
                         {
                             compile = link = false;
                         }
                     }
                     else if (cur == "--translate")
                     {
-                        eraseAfter = compile = link = false;
+                        noSave = compile = link = false;
                     }
                     else if (cur == "--compile")
                     {
                         compile = true;
-                        eraseAfter = link = false;
+                        noSave = link = false;
                     }
                     else if (cur == "--link")
                     {
-                        eraseAfter = false;
+                        noSave = false;
                         compile = link = true;
                     }
                     else if (cur == "--clean")
                     {
                         system("rm -rf .oak_build");
+                        eraseTemp = !eraseTemp;
                     }
                     else if (cur == "--quit")
                     {
@@ -507,13 +537,13 @@ int main(const int argc, const char *argv[])
                             i++;
                             break;
                         case 't':
-                            eraseAfter = compile = link = false;
+                            noSave = compile = link = false;
                         case 'c':
                             compile = true;
-                            eraseAfter = link = false;
+                            noSave = link = false;
                             break;
                         case 'l':
-                            eraseAfter = false;
+                            noSave = false;
                             compile = link = true;
                             break;
                         case 'q':
@@ -523,9 +553,9 @@ int main(const int argc, const char *argv[])
                             pretty = !pretty;
                             break;
                         case 'n':
-                            eraseAfter = !eraseAfter;
+                            noSave = !noSave;
 
-                            if (eraseAfter)
+                            if (noSave)
                             {
                                 compile = link = false;
                             }
@@ -615,10 +645,12 @@ int main(const int argc, const char *argv[])
 
         smartSystem("mkdir -p .oak_build");
 
+        /*
         if (out.find(".oak_build/") == string::npos)
         {
             out = ".oak_build/" + out;
         }
+        */
 
         pair<string, string> names = reconstructAndSave(out);
         cppSources.insert(names.second);
@@ -632,7 +664,7 @@ int main(const int argc, const char *argv[])
                  << "Output body:   '" << names.second << "'\n";
         }
 
-        if (eraseAfter)
+        if (noSave)
         {
             int result = system((string("rm ") + names.first + " " + names.second).c_str());
 
@@ -705,6 +737,19 @@ int main(const int argc, const char *argv[])
         {
             prettify(names.second);
         }
+
+        if (eraseTemp)
+        {
+            cout << "rm -rf .oak_build\n";
+            int result = system("rm -rf .oak_build");
+            if (result != 0)
+            {
+                cout << tags::yellow_bold
+                     << "Warning! Failed to erase './.oak_build/'.\n"
+                     << "If left unfixed, this could cause problems.\n"
+                     << tags::reset;
+            }
+        }
     }
     catch (parse_error &e)
     {
@@ -752,6 +797,21 @@ int main(const int argc, const char *argv[])
 
     if (debug)
     {
+        auto size = getSize(".oak_build");
+
+        if (size != 0)
+        {
+            cout << tags::green_bold
+                 << "\nThe build process took up "
+                 << humanReadable(size)
+                 << " of local storage.\n"
+                 << "(This is stored in './.oak_build/', which is now safe to delete.)\n"
+                 << tags::reset;
+        }
+    }
+
+    if (debug)
+    {
         end = chrono::high_resolution_clock::now();
         unsigned long long totalElapsed = chrono::duration_cast<chrono::nanoseconds>(end - start).count();
 
@@ -776,6 +836,8 @@ int main(const int argc, const char *argv[])
              << "%\n\n"
              << tags::reset;
     }
+
+    cout << "Output file: " << out << '\n';
 
     return 0;
 }
