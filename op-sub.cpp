@@ -59,18 +59,15 @@ void doSub(vector<string> &From, const int &i, const string &SubName, const bool
     toAdd.push_back("(");
     if (!IsConst)
     {
-        toAdd.push_back("&");
+        toAdd.push_back("@");
     }
-    toAdd.push_back("(");
 
     for (auto s : prevGroup)
     {
         toAdd.push_back(s);
     }
 
-    toAdd.push_back(")");
     toAdd.push_back(",");
-    toAdd.push_back("(");
 
     for (auto s : postGroup)
     {
@@ -78,9 +75,89 @@ void doSub(vector<string> &From, const int &i, const string &SubName, const bool
     }
 
     toAdd.push_back(")");
-    toAdd.push_back(")");
 
     From = toAdd;
+    return;
+}
+
+void parenSub(vector<string> &From)
+{
+    if (From.size() < 3)
+    {
+        return;
+    }
+
+    // Level 0: Parenthesis and commas
+    for (int i = 0; i < From.size(); i++)
+    {
+        string cur = From[i];
+        if (cur == "(")
+        {
+            int startI = i, endI = i + 1;
+            vector<string> contents, finalContents;
+
+            int count = 1;
+            while (count != 0 && endI < From.size())
+            {
+                if (From[endI] == "(")
+                {
+                    count++;
+                }
+                else if (From[endI] == ")")
+                {
+                    count--;
+                    if (count == 0)
+                    {
+                        break;
+                    }
+                }
+                else if ((From[endI] == "," || From[endI] == ";") && count == 1)
+                {
+                    parenSub(contents);
+                    operatorSub(contents);
+
+                    for (auto s : contents)
+                    {
+                        finalContents.push_back(s);
+                    }
+                    contents.clear();
+                }
+
+                contents.push_back(From[endI]);
+
+                endI++;
+            }
+
+            parenSub(contents);
+            operatorSub(contents);
+
+            for (auto s : contents)
+            {
+                finalContents.push_back(s);
+            }
+            contents.clear();
+
+            // Replace contents with good ones
+
+            // Erase old stuff
+            for (int j = startI; j <= endI; j++)
+            {
+                From.erase(From.begin() + startI);
+            }
+
+            // Insert new stuff
+            finalContents.insert(finalContents.begin(), "(");
+            finalContents.push_back(")");
+
+            for (int j = finalContents.size() - 1; j >= 0; j--)
+            {
+                From.insert(From.begin() + startI, finalContents[j]);
+            }
+
+            i = startI + finalContents.size();
+        }
+    }
+
     return;
 }
 
@@ -160,7 +237,28 @@ void operatorSub(vector<string> &From)
         }
     }
 
-    // Level 3: Comparisons
+    // Level 3: Booleans
+    for (int i = 0; i < From.size(); i++)
+    {
+        string cur = From[i];
+
+        if (cur == "!")
+        {
+            assert(false);
+        }
+        else if (cur == "&&")
+        {
+            doSub(From, i, "Andd", true);
+            break;
+        }
+        else if (cur == "||")
+        {
+            doSub(From, i, "Orr", true);
+            break;
+        }
+    }
+
+    // Level 4: Comparisons
     for (int i = 0; i < From.size(); i++)
     {
         string cur = From[i];
@@ -197,28 +295,6 @@ void operatorSub(vector<string> &From)
         }
     }
 
-    // Level 4: Booleans
-    for (int i = 0; i < From.size(); i++)
-    {
-        string cur = From[i];
-
-        if (cur == "!")
-        {
-            // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!11
-            assert(false);
-        }
-        else if (cur == "&&")
-        {
-            doSub(From, i, "Andd", true);
-            break;
-        }
-        else if (cur == "||")
-        {
-            doSub(From, i, "Orr", true);
-            break;
-        }
-    }
-
     // Level 5: Multiplication, division and modulo
     for (int i = 0; i < From.size(); i++)
     {
@@ -226,8 +302,6 @@ void operatorSub(vector<string> &From)
 
         if (cur == "*")
         {
-            // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
             doSub(From, i, "Mult", true);
             break;
         }
@@ -264,12 +338,7 @@ void operatorSub(vector<string> &From)
     {
         string cur = From[i];
 
-        if (cur == "^")
-        {
-            doSub(From, i, "Xor", true);
-            break;
-        }
-        else if (cur == "<<")
+        if (cur == "<<")
         {
             doSub(From, i, "Lbs", true);
             break;
@@ -281,8 +350,6 @@ void operatorSub(vector<string> &From)
         }
         else if (cur == "&")
         {
-            // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
             doSub(From, i, "And", true);
             break;
         }

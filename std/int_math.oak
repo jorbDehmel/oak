@@ -14,7 +14,6 @@ let Sub(self: u8, other: u8) -> u8;
 let Mult(self: u8, other: u8) -> u8;
 let Div(self: u8, other: u8) -> u8;
 let Mod(self: u8, other: u8) -> u8;
-let Xor(self: u8, other: u8) -> u8;
 let Eq(self: u8, other: u8) -> bool;
 let Neq(self: u8, other: u8) -> bool;
 let Less(self: u8, other: u8) -> bool;
@@ -26,19 +25,18 @@ let Or(self: u8, other: u8) -> u8;
 let Lbs(self: u8, other: u8) -> u8;
 let Rbs(self: u8, other: u8) -> u8;
 
-let Incr(self: *u8) -> u8;
-let Decr(self: *u8) -> u8;
+let Incr(self: ^u8) -> u8;
+let Decr(self: ^u8) -> u8;
 
-let New(self: *u8) -> void;
-let Copy(self: *u8, other: u8) -> u8;
-let AddEq(self: *u8, other: u8) -> u8;
-let SubEq(self: *u8, other: u8) -> u8;
-let MultEq(self: *u8, other: u8) -> u8;
-let DivEq(self: *u8, other: u8) -> u8;
-let ModEq(self: *u8, other: u8) -> u8;
-let AndEq(self: *u8, other: u8) -> u8;
-let OrEq(self: *u8, other: u8) -> u8;
-let XorEq(self: *u8, other: u8) -> u8;
+let New(self: ^u8) -> void;
+let Copy(self: ^u8, other: u8) -> u8;
+let AddEq(self: ^u8, other: u8) -> u8;
+let SubEq(self: ^u8, other: u8) -> u8;
+let MultEq(self: ^u8, other: u8) -> u8;
+let DivEq(self: ^u8, other: u8) -> u8;
+let ModEq(self: ^u8, other: u8) -> u8;
+let AndEq(self: ^u8, other: u8) -> u8;
+let OrEq(self: ^u8, other: u8) -> u8;
 
 // u16
 let Add(self: u16, other: u16) -> u16;
@@ -46,7 +44,6 @@ let Sub(self: u16, other: u16) -> u16;
 let Mult(self: u16, other: u16) -> u16;
 let Div(self: u16, other: u16) -> u16;
 let Mod(self: u16, other: u16) -> u16;
-let Xor(self: u16, other: u16) -> u16;
 let Eq(self: u16, other: u16) -> bool;
 let Neq(self: u16, other: u16) -> bool;
 let Less(self: u16, other: u16) -> bool;
@@ -58,19 +55,18 @@ let Or(self: u16, other: u16) -> u16;
 let Lbs(self: u16, other: u16) -> u16;
 let Rbs(self: u16, other: u16) -> u16;
 
-let Incr(self: *u16) -> u16;
-let Decr(self: *u16) -> u16;
+let Incr(self: ^u16) -> u16;
+let Decr(self: ^u16) -> u16;
 
-let New(self: *u16) -> void;
-let Copy(self: *u16, other: u16) -> u16;
-let AddEq(self: *u16, other: u16) -> u16;
-let SubEq(self: *u16, other: u16) -> u16;
-let MultEq(self: *u16, other: u16) -> u16;
-let DivEq(self: *u16, other: u16) -> u16;
-let ModEq(self: *u16, other: u16) -> u16;
-let AndEq(self: *u16, other: u16) -> u16;
-let OrEq(self: *u16, other: u16) -> u16;
-let XorEq(self: *u16, other: u16) -> u16;
+let New(self: ^u16) -> void;
+let Copy(self: ^u16, other: u16) -> u16;
+let AddEq(self: ^u16, other: u16) -> u16;
+let SubEq(self: ^u16, other: u16) -> u16;
+let MultEq(self: ^u16, other: u16) -> u16;
+let DivEq(self: ^u16, other: u16) -> u16;
+let ModEq(self: ^u16, other: u16) -> u16;
+let AndEq(self: ^u16, other: u16) -> u16;
+let OrEq(self: ^u16, other: u16) -> u16;
 
 // u32
 let Add(self: u32, other: u32) -> u32;
@@ -78,7 +74,6 @@ let Sub(self: u32, other: u32) -> u32;
 let Mult(self: u32, other: u32) -> u32;
 let Div(self: u32, other: u32) -> u32;
 let Mod(self: u32, other: u32) -> u32;
-let Xor(self: u32, other: u32) -> u32;
 let Eq(self: u32, other: u32) -> bool;
 let Neq(self: u32, other: u32) -> bool;
 let Less(self: u32, other: u32) -> bool;
@@ -90,19 +85,18 @@ let Or(self: u32, other: u32) -> u32;
 let Lbs(self: u32, other: u32) -> u32;
 let Rbs(self: u32, other: u32) -> u32;
 
-let Incr(self: *u32) -> u32;
-let Decr(self: *u32) -> u32;
+let Incr(self: ^u32) -> u32;
+let Decr(self: ^u32) -> u32;
 
-let New(self: *u32) -> void;
-let Copy(self: *u32, other: u32) -> u32;
-let AddEq(self: *u32, other: u32) -> u32;
-let SubEq(self: *u32, other: u32) -> u32;
-let MultEq(self: *u32, other: u32) -> u32;
-let DivEq(self: *u32, other: u32) -> u32;
-let ModEq(self: *u32, other: u32) -> u32;
-let AndEq(self: *u32, other: u32) -> u32;
-let OrEq(self: *u32, other: u32) -> u32;
-let XorEq(self: *u32, other: u32) -> u32;
+let New(self: ^u32) -> void;
+let Copy(self: ^u32, other: u32) -> u32;
+let AddEq(self: ^u32, other: u32) -> u32;
+let SubEq(self: ^u32, other: u32) -> u32;
+let MultEq(self: ^u32, other: u32) -> u32;
+let DivEq(self: ^u32, other: u32) -> u32;
+let ModEq(self: ^u32, other: u32) -> u32;
+let AndEq(self: ^u32, other: u32) -> u32;
+let OrEq(self: ^u32, other: u32) -> u32;
 
 // u64
 let Add(self: u64, other: u64) -> u64;
@@ -110,7 +104,6 @@ let Sub(self: u64, other: u64) -> u64;
 let Mult(self: u64, other: u64) -> u64;
 let Div(self: u64, other: u64) -> u64;
 let Mod(self: u64, other: u64) -> u64;
-let Xor(self: u64, other: u64) -> u64;
 let Eq(self: u64, other: u64) -> bool;
 let Neq(self: u64, other: u64) -> bool;
 let Less(self: u64, other: u64) -> bool;
@@ -122,19 +115,18 @@ let Or(self: u64, other: u64) -> u64;
 let Lbs(self: u64, other: u64) -> u64;
 let Rbs(self: u64, other: u64) -> u64;
 
-let Incr(self: *u64) -> u64;
-let Decr(self: *u64) -> u64;
+let Incr(self: ^u64) -> u64;
+let Decr(self: ^u64) -> u64;
 
-let New(self: *u64) -> void;
-let Copy(self: *u64, other: u64) -> u64;
-let AddEq(self: *u64, other: u64) -> u64;
-let SubEq(self: *u64, other: u64) -> u64;
-let MultEq(self: *u64, other: u64) -> u64;
-let DivEq(self: *u64, other: u64) -> u64;
-let ModEq(self: *u64, other: u64) -> u64;
-let AndEq(self: *u64, other: u64) -> u64;
-let OrEq(self: *u64, other: u64) -> u64;
-let XorEq(self: *u64, other: u64) -> u64;
+let New(self: ^u64) -> void;
+let Copy(self: ^u64, other: u64) -> u64;
+let AddEq(self: ^u64, other: u64) -> u64;
+let SubEq(self: ^u64, other: u64) -> u64;
+let MultEq(self: ^u64, other: u64) -> u64;
+let DivEq(self: ^u64, other: u64) -> u64;
+let ModEq(self: ^u64, other: u64) -> u64;
+let AndEq(self: ^u64, other: u64) -> u64;
+let OrEq(self: ^u64, other: u64) -> u64;
 
 // u128
 let Add(self: u128, other: u128) -> u128;
@@ -142,7 +134,6 @@ let Sub(self: u128, other: u128) -> u128;
 let Mult(self: u128, other: u128) -> u128;
 let Div(self: u128, other: u128) -> u128;
 let Mod(self: u128, other: u128) -> u128;
-let Xor(self: u128, other: u128) -> u128;
 let Eq(self: u128, other: u128) -> bool;
 let Neq(self: u128, other: u128) -> bool;
 let Less(self: u128, other: u128) -> bool;
@@ -154,20 +145,18 @@ let Or(self: u128, other: u128) -> u128;
 let Lbs(self: u128, other: u128) -> u128;
 let Rbs(self: u128, other: u128) -> u128;
 
-let Incr(self: *u128) -> u128;
-let Decr(self: *u128) -> u128;
+let Incr(self: ^u128) -> u128;
+let Decr(self: ^u128) -> u128;
 
-let New(self: *u128) -> void;
-let Copy(self: *u128, other: u128) -> u128;
-let AddEq(self: *u128, other: u128) -> u128;
-let SubEq(self: *u128, other: u128) -> u128;
-let MultEq(self: *u128, other: u128) -> u128;
-let DivEq(self: *u128, other: u128) -> u128;
-let ModEq(self: *u128, other: u128) -> u128;
-let AndEq(self: *u128, other: u128) -> u128;
-let OrEq(self: *u128, other: u128) -> u128;
-let XorEq(self: *u128, other: u128) -> u128;
-
+let New(self: ^u128) -> void;
+let Copy(self: ^u128, other: u128) -> u128;
+let AddEq(self: ^u128, other: u128) -> u128;
+let SubEq(self: ^u128, other: u128) -> u128;
+let MultEq(self: ^u128, other: u128) -> u128;
+let DivEq(self: ^u128, other: u128) -> u128;
+let ModEq(self: ^u128, other: u128) -> u128;
+let AndEq(self: ^u128, other: u128) -> u128;
+let OrEq(self: ^u128, other: u128) -> u128;
 
 // i8
 let Add(self: i8, other: i8) -> i8;
@@ -175,7 +164,6 @@ let Sub(self: i8, other: i8) -> i8;
 let Mult(self: i8, other: i8) -> i8;
 let Div(self: i8, other: i8) -> i8;
 let Mod(self: i8, other: i8) -> i8;
-let Xor(self: i8, other: i8) -> i8;
 let Eq(self: i8, other: i8) -> bool;
 let Neq(self: i8, other: i8) -> bool;
 let Less(self: i8, other: i8) -> bool;
@@ -187,19 +175,18 @@ let Or(self: i8, other: i8) -> i8;
 let Lbs(self: i8, other: i8) -> i8;
 let Rbs(self: i8, other: i8) -> i8;
 
-let Incr(self: *i8) -> i8;
-let Decr(self: *i8) -> i8;
+let Incr(self: ^i8) -> i8;
+let Decr(self: ^i8) -> i8;
 
-let New(self: *i8) -> void;
-let Copy(self: *i8, other: i8) -> i8;
-let AddEq(self: *i8, other: i8) -> i8;
-let SubEq(self: *i8, other: i8) -> i8;
-let MultEq(self: *i8, other: i8) -> i8;
-let DivEq(self: *i8, other: i8) -> i8;
-let ModEq(self: *i8, other: i8) -> i8;
-let AndEq(self: *i8, other: i8) -> i8;
-let OrEq(self: *i8, other: i8) -> i8;
-let XorEq(self: *i8, other: i8) -> i8;
+let New(self: ^i8) -> void;
+let Copy(self: ^i8, other: i8) -> i8;
+let AddEq(self: ^i8, other: i8) -> i8;
+let SubEq(self: ^i8, other: i8) -> i8;
+let MultEq(self: ^i8, other: i8) -> i8;
+let DivEq(self: ^i8, other: i8) -> i8;
+let ModEq(self: ^i8, other: i8) -> i8;
+let AndEq(self: ^i8, other: i8) -> i8;
+let OrEq(self: ^i8, other: i8) -> i8;
 
 // i16
 let Add(self: i16, other: i16) -> i16;
@@ -207,7 +194,6 @@ let Sub(self: i16, other: i16) -> i16;
 let Mult(self: i16, other: i16) -> i16;
 let Div(self: i16, other: i16) -> i16;
 let Mod(self: i16, other: i16) -> i16;
-let Xor(self: i16, other: i16) -> i16;
 let Eq(self: i16, other: i16) -> bool;
 let Neq(self: i16, other: i16) -> bool;
 let Less(self: i16, other: i16) -> bool;
@@ -219,19 +205,18 @@ let Or(self: i16, other: i16) -> i16;
 let Lbs(self: i16, other: i16) -> i16;
 let Rbs(self: i16, other: i16) -> i16;
 
-let Incr(self: *i16) -> i16;
-let Decr(self: *i16) -> i16;
+let Incr(self: ^i16) -> i16;
+let Decr(self: ^i16) -> i16;
 
-let New(self: *i16) -> void;
-let Copy(self: *i16, other: i16) -> i16;
-let AddEq(self: *i16, other: i16) -> i16;
-let SubEq(self: *i16, other: i16) -> i16;
-let MultEq(self: *i16, other: i16) -> i16;
-let DivEq(self: *i16, other: i16) -> i16;
-let ModEq(self: *i16, other: i16) -> i16;
-let AndEq(self: *i16, other: i16) -> i16;
-let OrEq(self: *i16, other: i16) -> i16;
-let XorEq(self: *i16, other: i16) -> i16;
+let New(self: ^i16) -> void;
+let Copy(self: ^i16, other: i16) -> i16;
+let AddEq(self: ^i16, other: i16) -> i16;
+let SubEq(self: ^i16, other: i16) -> i16;
+let MultEq(self: ^i16, other: i16) -> i16;
+let DivEq(self: ^i16, other: i16) -> i16;
+let ModEq(self: ^i16, other: i16) -> i16;
+let AndEq(self: ^i16, other: i16) -> i16;
+let OrEq(self: ^i16, other: i16) -> i16;
 
 // i32
 let Add(self: i32, other: i32) -> i32;
@@ -239,7 +224,6 @@ let Sub(self: i32, other: i32) -> i32;
 let Mult(self: i32, other: i32) -> i32;
 let Div(self: i32, other: i32) -> i32;
 let Mod(self: i32, other: i32) -> i32;
-let Xor(self: i32, other: i32) -> i32;
 let Eq(self: i32, other: i32) -> bool;
 let Neq(self: i32, other: i32) -> bool;
 let Less(self: i32, other: i32) -> bool;
@@ -251,19 +235,18 @@ let Or(self: i32, other: i32) -> i32;
 let Lbs(self: i32, other: i32) -> i32;
 let Rbs(self: i32, other: i32) -> i32;
 
-let Incr(self: *i32) -> i32;
-let Decr(self: *i32) -> i32;
+let Incr(self: ^i32) -> i32;
+let Decr(self: ^i32) -> i32;
 
-let New(self: *i32) -> void;
-let Copy(self: *i32, other: i32) -> i32;
-let AddEq(self: *i32, other: i32) -> i32;
-let SubEq(self: *i32, other: i32) -> i32;
-let MultEq(self: *i32, other: i32) -> i32;
-let DivEq(self: *i32, other: i32) -> i32;
-let ModEq(self: *i32, other: i32) -> i32;
-let AndEq(self: *i32, other: i32) -> i32;
-let OrEq(self: *i32, other: i32) -> i32;
-let XorEq(self: *i32, other: i32) -> i32;
+let New(self: ^i32) -> void;
+let Copy(self: ^i32, other: i32) -> i32;
+let AddEq(self: ^i32, other: i32) -> i32;
+let SubEq(self: ^i32, other: i32) -> i32;
+let MultEq(self: ^i32, other: i32) -> i32;
+let DivEq(self: ^i32, other: i32) -> i32;
+let ModEq(self: ^i32, other: i32) -> i32;
+let AndEq(self: ^i32, other: i32) -> i32;
+let OrEq(self: ^i32, other: i32) -> i32;
 
 // i64
 let Add(self: i64, other: i64) -> i64;
@@ -271,7 +254,6 @@ let Sub(self: i64, other: i64) -> i64;
 let Mult(self: i64, other: i64) -> i64;
 let Div(self: i64, other: i64) -> i64;
 let Mod(self: i64, other: i64) -> i64;
-let Xor(self: i64, other: i64) -> i64;
 let Eq(self: i64, other: i64) -> bool;
 let Neq(self: i64, other: i64) -> bool;
 let Less(self: i64, other: i64) -> bool;
@@ -283,19 +265,18 @@ let Or(self: i64, other: i64) -> i64;
 let Lbs(self: i64, other: i64) -> i64;
 let Rbs(self: i64, other: i64) -> i64;
 
-let Incr(self: *i64) -> i64;
-let Decr(self: *i64) -> i64;
+let Incr(self: ^i64) -> i64;
+let Decr(self: ^i64) -> i64;
 
-let New(self: *i64) -> void;
-let Copy(self: *i64, other: i64) -> i64;
-let AddEq(self: *i64, other: i64) -> i64;
-let SubEq(self: *i64, other: i64) -> i64;
-let MultEq(self: *i64, other: i64) -> i64;
-let DivEq(self: *i64, other: i64) -> i64;
-let ModEq(self: *i64, other: i64) -> i64;
-let AndEq(self: *i64, other: i64) -> i64;
-let OrEq(self: *i64, other: i64) -> i64;
-let XorEq(self: *i64, other: i64) -> i64;
+let New(self: ^i64) -> void;
+let Copy(self: ^i64, other: i64) -> i64;
+let AddEq(self: ^i64, other: i64) -> i64;
+let SubEq(self: ^i64, other: i64) -> i64;
+let MultEq(self: ^i64, other: i64) -> i64;
+let DivEq(self: ^i64, other: i64) -> i64;
+let ModEq(self: ^i64, other: i64) -> i64;
+let AndEq(self: ^i64, other: i64) -> i64;
+let OrEq(self: ^i64, other: i64) -> i64;
 
 // i128
 let Add(self: i128, other: i128) -> i128;
@@ -303,7 +284,6 @@ let Sub(self: i128, other: i128) -> i128;
 let Mult(self: i128, other: i128) -> i128;
 let Div(self: i128, other: i128) -> i128;
 let Mod(self: i128, other: i128) -> i128;
-let Xor(self: i128, other: i128) -> i128;
 let Eq(self: i128, other: i128) -> bool;
 let Neq(self: i128, other: i128) -> bool;
 let Less(self: i128, other: i128) -> bool;
@@ -315,16 +295,15 @@ let Or(self: i128, other: i128) -> i128;
 let Lbs(self: i128, other: i128) -> i128;
 let Rbs(self: i128, other: i128) -> i128;
 
-let Incr(self: *i128) -> i128;
-let Decr(self: *i128) -> i128;
+let Incr(self: ^i128) -> i128;
+let Decr(self: ^i128) -> i128;
 
-let New(self: *i128) -> void;
-let Copy(self: *i128, other: i128) -> i128;
-let AddEq(self: *i128, other: i128) -> i128;
-let SubEq(self: *i128, other: i128) -> i128;
-let MultEq(self: *i128, other: i128) -> i128;
-let DivEq(self: *i128, other: i128) -> i128;
-let ModEq(self: *i128, other: i128) -> i128;
-let AndEq(self: *i128, other: i128) -> i128;
-let OrEq(self: *i128, other: i128) -> i128;
-let XorEq(self: *i128, other: i128) -> i128;
+let New(self: ^i128) -> void;
+let Copy(self: ^i128, other: i128) -> i128;
+let AddEq(self: ^i128, other: i128) -> i128;
+let SubEq(self: ^i128, other: i128) -> i128;
+let MultEq(self: ^i128, other: i128) -> i128;
+let DivEq(self: ^i128, other: i128) -> i128;
+let ModEq(self: ^i128, other: i128) -> i128;
+let AndEq(self: ^i128, other: i128) -> i128;
+let OrEq(self: ^i128, other: i128) -> i128;

@@ -456,7 +456,7 @@ vector<string> lex(const string &What)
         // Universal deliminators (non-ignored)
         else if (c == ';' || c == '(' || c == ')' || c == '[' ||
                  c == ']' || c == '{' || c == '}' || c == '.' ||
-                 c == ',')
+                 c == ',' || c == '^' || c == '@')
         {
             if (cur != "")
             {

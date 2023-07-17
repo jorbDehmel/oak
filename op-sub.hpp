@@ -15,11 +15,15 @@ GPLv3 held by author
 #include <string>
 #include <vector>
 #include <cassert>
+#include <iostream>
 
 using namespace std;
 
 // Replaces all operator calls with their corresponding operator
 // CHANGES THE VECTOR!!
 void operatorSub(vector<string> &From);
+
+// You should call this one.
+void parenSub(vector<string> &From);
 
 #endif

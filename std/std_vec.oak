@@ -9,26 +9,26 @@ include!(/usr/include/oak/std/std_mem.oak, /usr/include/oak/std/std_error.oak);
 
 let vec: struct<T>
 {
-    data: *T,
+    data: ^T,
     size: u128,
 }
 
-let New<T>(self: *vec<T>, size: u128) -> void
+let New<T>(self: ^vec<T>, size: u128) -> void
 {
     self.data = alloc<T>(size);
     self.size = size;
 }
 
-let Del<T>(self: *vec<T>) -> void
+let Del<T>(self: ^vec<T>) -> void
 {
     free<T>(data);
 }
 
-let Get<T>(self: *vec<T>, i: u128) -> T
+let Get<T>(self: ^vec<T>, i: u128) -> T
 {
     if (i < self.size)
     {
-        *(self.data + i)
+        ^(self.data + i)
     }
     else
     {

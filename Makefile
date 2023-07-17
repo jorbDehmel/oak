@@ -9,7 +9,8 @@ HEADS := lexer.hpp reconstruct.hpp symbol-table.hpp \
 	sequence.hpp packages.hpp sizer.hpp op-sub.hpp
 
 all: bin/struct_test.out bin/reconstruct_test.out \
-	bin/acorn.out bin/sequence_test.out
+	bin/acorn.out bin/sequence_test.out \
+	bin/op-sub-test.out
 
 install: bin/acorn.out std_oak_header.hpp
 	sudo mkdir -p /usr/include/oak
@@ -32,10 +33,6 @@ build/%.o:	%.cpp $(HEADS)
 bin/%.out:	build/%.o $(OBJS) $(HEADS)
 	mkdir -p bin
 	$(CC) -o $@ $< $(OBJS)
-
-bin/sequence_test.out:	build/sequence_test.o $(OBJS) $(HEADS)
-	mkdir -p bin
-	$(CC) -o bin/sequence_test.out build/sequence_test.o $(OBJS)
 
 clean:
 	rm -rf bin/* build/*

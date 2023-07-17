@@ -162,7 +162,7 @@ string toStr(const Type *const What)
     switch (What->info)
     {
     case pointer:
-        out += "*";
+        out += "^";
         break;
     case templ:
         out += "<";

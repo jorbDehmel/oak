@@ -12,18 +12,18 @@ let error: struct
     message: str,
 }
 
-let error.New(self: *error, message: str)
+let error.New(self: ^error, message: str)
 {
     self.message = message;
 }
 
-let error.Copy(self: *error, other: *error)
+let error.Copy(self: ^error, other: error)
 {
     self.message = other.message;
 }
 
 // Assertion or assertion with message
-let assert!(argc: i32, argv: *str) -> i32
+let assert!(argc: i32, argv: ^str) -> i32
 {
     if (argc == 2)
     {

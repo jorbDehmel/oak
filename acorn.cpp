@@ -20,6 +20,7 @@ GPLv3 held by author
 #include "type-builder.hpp"
 #include "sequence.hpp"
 #include "packages.hpp"
+#include "op-sub.hpp"
 
 #include "tags.hpp"
 #include "sizer.hpp"
@@ -118,6 +119,8 @@ vector<string> getMacroArgs(vector<string> &lexed, const int &i)
 
 void doFile(const string &From)
 {
+    vector<string> lexed;
+
     try
     {
         if (From.size() < 4 || From.substr(From.size() - 4) != ".oak")
@@ -179,7 +182,7 @@ void doFile(const string &From)
             }
 
             // B: Lex
-            vector<string> lexed = lex(text);
+            lexed = lex(text);
 
             // C: Scan for compiler macros; Do these first
             // This erases them from lexed
@@ -341,7 +344,10 @@ void doFile(const string &From)
                 }
             } while (foundMacros);
 
-            // F: Load file stuff
+            // F: Operator substitution (within parenthesis and between commas)
+            parenSub(lexed);
+
+            // G: Load file stuff
             sequence fileSeq = createSequence(lexed);
             if (fileSeq.type != nullType)
             {
@@ -361,9 +367,22 @@ void doFile(const string &From)
             cout << "Finished file '" << From << "'\n";
         }
     }
-    catch (runtime_error &e)
+    catch (...)
     {
-        throw runtime_error("Failure in file '" + From + "':\n" + e.what());
+        string name = "oak_dump_" + purifyStr(From) + ".log";
+        ofstream dump(name);
+
+        cout << "Dump saved in " << name << "\n";
+
+        assert(dump.is_open());
+        dump << "// FAILURE in file '" << From << "'\n//Lexed:\n\n";
+        for (auto s : lexed)
+        {
+            dump << s << ' ';
+        }
+        dump.close();
+
+        throw runtime_error("Failure in file '" + From + "'");
     }
 
     return;

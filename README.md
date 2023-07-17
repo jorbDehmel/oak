@@ -154,6 +154,8 @@ Correct multi-line comment
 do this*/
 ```
 
+Also, all files should always end with a newline.
+
 ## Main Functions
 
 The main function must take one of the following forms (you can change the argument names). `argc` is the number of command line arguments, at minimum 1. `argv` is a pointer to an array of strings, each of which is a command line argument. The first item of this, `argv[0]`, is the name of the executable that was run.

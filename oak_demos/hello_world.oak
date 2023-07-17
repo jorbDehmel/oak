@@ -17,11 +17,13 @@ Jordan Dehmel, 2023
 // Load demo package
 //package!(std);
 include!("/usr/include/oak/std/std_io.oak");
-include!(/usr/include/oak/std/std_ops.oak);
+include!("/usr/include/oak/std/std_ops.oak");
 
-let main(argc: i32, argv: *str) -> i32
+let main(argc: i32, argv: ^str) -> i32
 {
-    let var: i32 = 23;
+    let var: i32;
+
+    var = 32;
 
     println("Hello, world!");
     print("Among");
@@ -43,6 +45,8 @@ let main(argc: i32, argv: *str) -> i32
 
     println(Add(5, 6));
     println(Sub(5, 6));
+
+    println(5 + 6);
 
     0
 }

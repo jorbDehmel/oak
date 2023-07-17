@@ -29,7 +29,7 @@ Type toType(const vector<string> &What, const set<string> &Local)
     {
         string cur = What[i];
 
-        if (cur == "*" || cur == "&")
+        if (cur == "^" || cur == "&")
         {
             out.append(pointer);
         }
