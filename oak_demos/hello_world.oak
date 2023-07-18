@@ -15,9 +15,8 @@ Jordan Dehmel, 2023
 */
 
 // Load demo package
-//package!(std);
-include!("/usr/include/oak/std/std_io.oak");
-include!("/usr/include/oak/std/std_ops.oak");
+package!(std);
+//include!("/usr/include/oak/std/std_io.oak", "/usr/include/oak/std/std_ops.oak", "/usr/include/oak/std/std_mem.oak");
 
 let main(argc: i32, argv: ^str) -> i32
 {
@@ -40,13 +39,15 @@ let main(argc: i32, argv: ^str) -> i32
     else
     {
         println("This should print");
-        println("Amoonguse");
     }
 
     println(Add(5, 6));
     println(Sub(5, 6));
 
     println(5 + 6);
+
+    let i: ^i32;
+    i = alloc<i32>();
 
     0
 }

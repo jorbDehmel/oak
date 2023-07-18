@@ -286,7 +286,7 @@ void doFile(const string &From)
                     string name, contents;
                     name = lexed[i];
 
-                    contents = "let main(argc: i16, argv: *str) -> i16 ";
+                    contents = "let main(argc: i16, argv: ^str) -> i16 ";
 
                     lexed.erase(lexed.begin() + i);       // Name
                     lexed.erase(lexed.begin() + (i - 1)); // Let
@@ -344,11 +344,25 @@ void doFile(const string &From)
                 }
             } while (foundMacros);
 
+            cout << "Starting parenSub...\n";
+
             // F: Operator substitution (within parenthesis and between commas)
             parenSub(lexed);
 
+            cout << "Finished parenSub.\n";
+
+            cout << "Going into sequencing:\n'";
+            for (auto s : lexed)
+            {
+                cout << s << ' ';
+            }
+            cout << "'\n";
+
             // G: Load file stuff
             sequence fileSeq = createSequence(lexed);
+
+            cout << "Finished sequence\n";
+
             if (fileSeq.type != nullType)
             {
                 cout << tags::yellow_bold
@@ -706,15 +720,6 @@ int main(const int argc, const char *argv[])
                  << "Warning! No main function detected!\n"
                  << tags::reset;
         }
-
-        smartSystem("mkdir -p .oak_build");
-
-        /*
-        if (out.find(".oak_build/") == string::npos)
-        {
-            out = ".oak_build/" + out;
-        }
-        */
 
         pair<string, string> names = reconstructAndSave(out);
         cppSources.insert(names.second);

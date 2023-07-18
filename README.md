@@ -47,6 +47,8 @@ let is_bigger_than_five(a: i32) -> bool
 
 Note that leaving off a semicolon is equivalent to `C++`'s `return` statement. Oak has no `return` keyword.
 
+Pointers are `^` (IE a pointer to a bool is `^bool`). The "get address" operator is `@`.
+
 ## Formatting
 
 Code scopes go like this:
@@ -162,8 +164,8 @@ The main function must take one of the following forms (you can change the argum
 
 ```
 let main() -> i32;
-let main(argc: i32, argv: *str) -> i32;
-let main(argc: i32, argv: **i8) -> i32;
+let main(argc: i32, argv: ^str) -> i32;
+let main(argc: i32, argv: ^^i8) -> i32;
 ```
 
 ## Object Oriented Programming
@@ -183,13 +185,13 @@ METHOD_NAME(&OBJ, ARG, ARG, ...);
 Thus, you can define a method as follows.
 
 ```
-let OBJ_TYPE.METHOD_NAME(self: *OBJ_TYPE, ...) -> RETURN_TYPE;
+let OBJ_TYPE.METHOD_NAME(self: ^OBJ_TYPE, ...) -> RETURN_TYPE;
 ```
 
 For instance, if you wanted to define a method that converts an integer to a double, its signature would be:
 
 ```
-let i32.to_double(self: *i32) -> f64;
+let i32.to_double(self: ^i32) -> f64;
 ```
 
 This frees the programmer from the bounds of the initial class definition.
@@ -203,7 +205,7 @@ package!(std);
 let linked_list<T>: struct
 {
     data: T,
-    next: *linked_list<T>,
+    next: ^linked_list<T>,
 }
 
 let linked_list<T>.append(self: *linked_list<T>, what: T) -> void
@@ -254,7 +256,7 @@ There are many so-called "operator aliases" which are listed below. If `self` is
 
 Oak    | C++       | Description            | Signature for `T`
 -------|-----------|------------------------|------------------------
-Get    | [ ]       | Get given an index     | let Get(self: *T, i: i128) -> SOME_TYPE;
+Get    | [ ]       | Get given an index     | let Get(self: ^T, i: i128) -> SOME_TYPE;
 Less   | <         | Less than              | let Less(self: T, other: T) -> bool;
 Great  | >         | Greater than           | let Great(self: T, other: T) -> bool;
 Leq    | <=        | Less that or equal     | let Leq(self: T, other: T) -> bool;
@@ -266,29 +268,25 @@ Andd   | &&        | Boolean and            | let Andd(self: T, other: T) -> boo
 Or     | \|        | Bitwise or             | let Or(self: T, other: T) -> T;
 Orr    | \|\|      | Boolean or             | let Orr(self: T, other: T) -> bool;
 Not    | !         | Boolean negation       | let Not(self: T) -> T;
-Copy   | =         | Copy constructor       | let Copy(self: *T, other: T) -> *T;
-Del    | ~         | Deletion               | let Del(self: *T) -> void;
+Copy   | =         | Copy constructor       | let Copy(self: ^T, other: T) -> ^T;
+Del    | ~         | Deletion               | let Del(self: ^T) -> void;
 Add    | +         | Addition               | let Add(self: T, other: T) -> T;
 Sub    | -         | Subtraction            | let Sub(self: T, other: T) -> T;
 Mult   | *         | Multiplication         | let Mult(self: T, other: T) -> T;
 Div    | /         | Division               | let Div(self: T, other: T) -> T;
 Mod    | %         | Modulo / remainder     | let Mod(self: T, other: T) -> T;
-Xor    | ^         | Bitwise exclusive or   | let Xor(self: T, other: T) -> T;
-AddEq  | +=        | Increment by a number  | let AddEq(self: *T, other: T) -> T;
-SubEq  | -=        | Decrement by a number  | let SubEq(self: *T, other: T) -> T;
-MultEq | *=        | Multiply and assign    | let MultEq(self: *T, other: T) -> T;
-DivEq  | /=        | Divide and assign      | let DivEq(self: *T, other: T) -> T;
-ModEq  | %=        | Modulo and assign      | let ModEq(self: *T, other: T) -> T;
-XorEq  | ^=        | XOR and assign         | let XorEq(self: *T, other: T) -> T;
-Incr   | ++        | Increment              | let Incr(self: *T) -> T;
-Decr   | --        | Decrement              | let Decr(self: *T) -> T;
-AndEq  | &=        | Bitwise AND and assign | let AndEq(self: *T, other: T) -> T;
-OrEq   | \|=       | Bitwise OR and assign  | let OrEq(self: *T, other: T) -> T;
+AddEq  | +=        | Increment by a number  | let AddEq(self: ^T, other: T) -> T;
+SubEq  | -=        | Decrement by a number  | let SubEq(self: ^T, other: T) -> T;
+MultEq | *=        | Multiply and assign    | let MultEq(self: ^T, other: T) -> T;
+DivEq  | /=        | Divide and assign      | let DivEq(self: ^T, other: T) -> T;
+ModEq  | %=        | Modulo and assign      | let ModEq(self: ^T, other: T) -> T;
+Incr   | ++        | Increment              | let Incr(self: ^T) -> T;
+Decr   | --        | Decrement              | let Decr(self: ^T) -> T;
+AndEq  | &=        | Bitwise AND and assign | let AndEq(self: ^T, other: T) -> T;
+OrEq   | \|=       | Bitwise OR and assign  | let OrEq(self: ^T, other: T) -> T;
 Lbs    | <<        | Left bitshift          | let Lbs(self: T, other: T) -> T;
 Rbs    | >>        | Right bitshift         | let Rbs(self: T, other: T) -> T;
-Ref    | &         | Get address of         | let Ref(self: *T) -> *T;
-Deref  | *         | Dereference pointer    | let Deref(self: *T) -> T;
-New    | TYPE_NAME | Instantiation          | let New(self: *T) -> *T;
+New    | TYPE_NAME | Instantiation          | let New(self: ^T) -> ^T;
 
 There is no Oak equivalent to C++'s prefix increment or decrement operator.
 
@@ -296,7 +294,8 @@ The order of operations for the above operators is as follows (with the top of t
 
 Level | Group Name | Member operators
 ------|------------|--------------------
-1     | Assignment | =, +=, -=, *=, /=, %=, ^=, ++, --, &=, \|=
+0     | Misc       | (), ^, @
+1     | Assignment | =, +=, -=, *=, /=, %=, ++, --, &=, \|=
 2     | Brackets   | [ ]
 3     | Comparison | ==, !=, <, >, <=, >=
 4     | Booleans   | !, &&, \||
@@ -312,7 +311,7 @@ File: `main.oak`
 // Import the Oak standard package
 package!(std);
 
-let main(argc: i32, argv: *str)
+let main(argc: i32, argv: ^str)
 {
     print("This program was started with the command: ");
     println(argv[0]);
@@ -357,9 +356,9 @@ float               | f32
 double              | f64
 char *              | str
 bool                | bool
-T&                  | *T
-T[]                 | *T
-T*                  | *T
+T&                  | ^T
+T[]                 | ^T
+T*                  | ^T
 template\<class T\> | \<T\>
 
 The last few entries show two things; That Oak does not have references or arrays (both are replaced with pointers), and that Oak has smart templating. Additionally note that there are no multi-word types (IE unsigned long long int) in Oak, and that pointers are moved to before the type they point to.
@@ -374,7 +373,7 @@ unsigned long long int **doThing(T &a, T b[]);
 Becomes
 
 ```
-let do_thing<T, F>(a: *T, b: *T) -> **u128;
+let do_thing<T, F>(a: ^T, b: ^T) -> ^^u128;
 ```
 
 ## Acorn
@@ -412,7 +411,7 @@ The following are the standard macros associated with Acorn.
 You can also define your own macros as follows. If you wanted to create a macro named `hi!` which expands to `print("hello world")`, you would do the following.
 
 ```
-let hi!(argc: i32, argv: *str) -> i32
+let hi!(argc: i32, argv: ^str) -> i32
 {
     include!(/usr/include/oak/std/std_io.oak);
 
@@ -427,7 +426,7 @@ A macro is compiled separately, so if you want to use a included file within, yo
 If you wanted to create a macro named `print_five_times!()` which prints the name of a symbol 5 types, you would do the following.
 
 ```
-let print_five_times!(argc: i32, argv: *str)
+let print_five_times!(argc: i32, argv: ^str)
 {
     if (argc != 2)
     {
@@ -465,6 +464,7 @@ AUTHOR = "Jordan Dehmel, Joe Shmoe"
 EMAIL = "jdehmel@outlook.com, example@example.com"
 ABOUT = "A demo of Oak package creation"
 INCLUDE = "main_file_to_link_to.oak,another_file.oak"
+SYS_DEPS = "package1 package2"
 ```
 
 `NAME` is the name of the package. `VERSION` is the version number of the package (For instance, major release 1, minor release 15, path 12 would be `1.15.12`). `DATE` is the date this version was last updated. `SOURCE` is the URL where the package's Git repo can be found. `AUTHOR` is the string which contains all the package author names, separated by commas. `EMAIL` is the same, but for emails. `ABOUT` is the package description.
@@ -472,6 +472,8 @@ INCLUDE = "main_file_to_link_to.oak,another_file.oak"
 `INCLUDE` is the most important field- It contains the filepaths (relative to the main folder of the repo, IE `./`) of all files which will be directly `include!()`-ed by Acorn at compile-time.
 
 For instance, the `STD` (standard) library has a central linking file named `std.oak`. This file contains `include!` macros for all other files in the package. Thus, only `std.oak` needs to linked at compile time- the rest will be taken care of automatically. Thus, `std/oak_package_info.txt` has a line reading `INCLUDE = "std.oak"`.
+
+`SYS_DEPS` is a string containing space-separated packages required to be installed by your operating system. For instance, if a package used SDL2 and Git, it would include the line `SYS_DEPS = "SDL2 git"`.
 
 ## License
 

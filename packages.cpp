@@ -20,6 +20,7 @@ AUTHOR = "John Smith"
 EMAIL = "JSmith@gmail.com"
 ABOUT = "A demo package"
 INCLUDE = "main_include.oak"
+SYS_DEPS = ""
 */
 
 // Macros that may conflict with other files; Thus, included only in the body
@@ -50,9 +51,46 @@ ostream &operator<<(ostream &strm, const packageInfo &info)
          << "Via '" << info.source << "'\n\n"
          << info.description << "\n\n"
          << "Include path '/usr/include/oak/"
-         << info.name << "/" << info.toInclude << "'\n";
+         << info.name << "/" << info.toInclude << "'\n"
+         << "System Deps: '" << info.sysDeps << "'\n";
 
     return strm;
+}
+
+string installCommand = "";
+void install(const string &What)
+{
+    if (installCommand == "")
+    {
+        // Get os-release info
+        system("cat /etc/os-release | grep ^ID= > temp.txt");
+        string line;
+
+        ifstream osName("temp.txt");
+        pm_assert(osName.is_open(), "Failed to poll OS name");
+        getline(osName, line);
+        osName.close();
+
+        system("rm temp.txt");
+
+        if (line.substr(0, 3) == "ID=")
+        {
+            line.erase(0, 3);
+        }
+
+        if (line == "arch")
+        {
+            installCommand = "sudo pacman --needed -S ";
+        }
+    }
+
+    string command = installCommand + What;
+    cout << command << '\n';
+
+    int result = system(command.c_str());
+    pm_assert(result == 0, "Failed to install dep package(s).");
+
+    return;
 }
 
 // Remove any leading or trailing quotes
@@ -152,6 +190,10 @@ packageInfo loadPackageInfo(const string &Filepath)
         {
             toAdd.toInclude = content;
         }
+        else if (name == "SYS_DEPS")
+        {
+            toAdd.sysDeps = content;
+        }
         else
         {
             throw package_error("Invalid item '" + name + "'");
@@ -177,7 +219,8 @@ void savePackageInfo(const packageInfo &Info, const string &Filepath)
         << "EMAIL = '" << Info.email << "'\n"
         << "SOURCE = '" << Info.source << "'\n"
         << "ABOUT = '" << Info.description << "'\n"
-        << "INCLUDE = '" << Info.toInclude << "'\n";
+        << "INCLUDE = '" << Info.toInclude << "'\n"
+        << "SYS_DEPS = '" << Info.sysDeps << "'\n";
 
     out.close();
     return;
@@ -250,6 +293,12 @@ void downloadPackage(const string &URLArg, const bool &Reinstall)
         string destFolderName = PACKAGE_INCLUDE_PATH + info.name;
         sm_system("sudo rm -rf " + destFolderName, "Failed to clear old package files.");
         sm_system("sudo mkdir -p " + destFolderName, "Failed to create package folder in /usr/include/oak; Check user permissions.");
+
+        // Install system deps
+        if (info.sysDeps != "")
+        {
+            install(info.sysDeps);
+        }
 
         // Make package if needed
         if (needsMake)

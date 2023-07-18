@@ -32,14 +32,12 @@ const map<string, string> operatorAliases = {
     make_pair("Mult", "*"),
     make_pair("Div", "/"),
     make_pair("Mod", "%"),
-    make_pair("Xor", "^"),
 
     make_pair("AddEq", "+="),
     make_pair("SubEq", "-="),
     make_pair("MultEq", "*="),
     make_pair("DivEq", "/="),
     make_pair("ModEq", "%="),
-    make_pair("XorEq", "^="),
 
     make_pair("Incr", "++"),
     make_pair("Decr", "--"),
@@ -103,14 +101,12 @@ Get(Get(Get(a, 0).b, 1), 2)
 /  <=> Div()
 *  <=> Mult()
 %  <=> Mod()
-^  <=> Xor()
 
 += <=> AddEq()
 -= <=> SubEq()
 /= <=> DivEq()
 *= <=> MultEq()
 %= <=> ModEq()
-^= <=> XorEq()
 
 ++ <=> Incr()
 -- <=> Decr()
@@ -120,9 +116,6 @@ Get(Get(Get(a, 0).b, 1), 2)
 
 << <=> Lbs()
 >> <=> Rbs()
-
-&  <=> Ref()
-*  <=> Deref()
 
 */
 
@@ -166,7 +159,6 @@ const set<string>
         "/=",
         "&=",
         "|=",
-        "^=",
         "=",
 
         "let",

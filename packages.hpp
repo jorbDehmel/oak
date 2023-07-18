@@ -38,7 +38,12 @@ struct packageInfo
     string description; // Package description
 
     string toInclude; // File within /usr/include/oak/$(PACKAGE_NAME) to include!();
+
+    string sysDeps;
 };
+
+extern string installCommand;
+void install(const string &What);
 
 ostream &operator<<(ostream &strm, const packageInfo &info);
 
