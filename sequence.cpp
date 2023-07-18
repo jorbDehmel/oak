@@ -246,7 +246,7 @@ void debugPrint(sequence &What, int spaces)
         cout << "list";
         break;
     case function_call:
-        cout << "function_call";
+        cout << toStr(&What.type) << " function_call";
         break;
     case parenthesis:
         cout << "parenthesis";
@@ -313,7 +313,7 @@ sequence __createSequence(vector<string> &From)
 
         return out;
     }
-    else if (From[0] == "if")
+    else if (From[0] == "if" || From[0] == "while")
     {
         // Takes a bool code line and a code scope / code line
         out.info = keyword;
@@ -326,8 +326,8 @@ sequence __createSequence(vector<string> &From)
         // This is for the conditional
         out.items.push_back(__createSequence(From));
 
-        sm_assert(out.items[0].type == Type(atomic, "bool"), "If statement argument must be boolean.");
-        sm_assert(!From.empty(), "Missing statement after if");
+        sm_assert(out.items[0].type == Type(atomic, "bool"), out.raw + " statement argument must be boolean. Instead, '" + toStr(&out.items[0].type) + "'");
+        sm_assert(!From.empty(), "Missing statement after " + out.raw + "");
 
         // This is for the code chunk
         out.items.push_back(__createSequence(From));
@@ -519,6 +519,8 @@ sequence __createSequence(vector<string> &From)
 
         out.type = out.items[0].type;
 
+        debugPrint(out); ////////////////////////////////////////////////////////////////////////////////////
+
         return out;
     }
     else if (From[0] == "{")
@@ -620,6 +622,10 @@ sequence __createSequence(vector<string> &From)
             if (cur == ".")
             {
                 sm_assert(i > 0 && specials.count(From[i - 1]) == 0, "'" + From[i - 1] + "' is not a struct.");
+            }
+            else if (cur == ",")
+            {
+                continue;
             }
             else if (cur == "(")
             {
@@ -743,42 +749,64 @@ sequence __createSequence(vector<string> &From)
                 // Symbol name
                 out.items.push_back(sequence{Type(), vector<sequence>(), atom, cur});
 
-                try
+                if ((cur[0] == '"' && cur.back() == '"') || (cur[0] == '\'' && cur[0] == '\''))
                 {
-                    out.items.back().type = getType(cur);
+                    // String literal
+                    out.items.back().type = Type(atomic, "str");
                 }
-                catch (...)
+                else if (('0' <= cur[0] && cur[0] <= '9') || cur[0] == '-')
                 {
-                    if ((cur[0] == '"' && cur.back() == '"') || (cur[0] == '\'' && cur[0] == '\''))
+                    // Number literal
+                    if (cur.find(".") != string::npos)
                     {
-                        // String literal
-                        out.items.back().type = Type(atomic, "str");
-                    }
-                    else if (('0' <= cur[0] && cur[0] <= '9') || cur[0] == '-')
-                    {
-                        // Number literal
-                        if (cur.find(".") != string::npos)
-                        {
-                            out.items.back().type = Type(atomic, "f32");
-                        }
-                        else
-                        {
-                            out.items.back().type = Type(atomic, "i32");
-                        }
-                    }
-                    else if (cur == "true" || cur == "false")
-                    {
-                        out.items.back().type = Type(atomic, "bool");
-                    }
-                    else if (cur == "void")
-                    {
-                        out.items.back().type = nullType;
+                        out.items.back().type = Type(atomic, "f32");
                     }
                     else
                     {
-                        cout << tags::yellow_bold
-                             << "Warning: A type could not be found for symbol '" << cur << "'\n"
-                             << tags::reset;
+                        out.items.back().type = Type(atomic, "i32");
+                    }
+                }
+                else if (cur == "true" || cur == "false")
+                {
+                    out.items.back().type = Type(atomic, "bool");
+                }
+                else if (cur == "void")
+                {
+                    out.items.back().type = nullType;
+                }
+                else
+                {
+                    try
+                    {
+                        out.items.back().type = getType(cur);
+                    }
+                    catch (runtime_error &e)
+                    {
+                        try
+                        {
+                            auto candidates = table[cur];
+
+                            // If all candidates have the same return type, we can deduce type
+                            Type retType = getReturnType(candidates[0].ts.type);
+                            for (int k = 1; k < candidates.size(); k++)
+                            {
+                                if (getReturnType(candidates[k].ts.type) != retType)
+                                {
+                                    throw runtime_error("Ambiguous return type; Cannot deduce symbol type.");
+                                }
+                            }
+
+                            cout << "Successfully found type for symbol '" << cur << "': " << toStr(&retType) << "\n";
+                            out.items.back().type = retType;
+                        }
+                        catch (runtime_error &e)
+                        {
+                            cout << tags::yellow_bold
+                                 << "Warning: A type could not be found for symbol '" << cur << "'\n"
+                                 << tags::reset;
+
+                            throw parse_error(e.what());
+                        }
                     }
                 }
             }

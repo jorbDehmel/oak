@@ -17,4 +17,4 @@ let alloc<T>(num: u128) -> ^T;
 let alloc<T>() -> ^T;
 
 // Free heap memory
-let free<T>(to_free: ^T);
+let free<T>(to_free: ^T) -> void;

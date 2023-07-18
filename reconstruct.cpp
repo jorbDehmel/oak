@@ -274,6 +274,8 @@ pair<string, string> save(const stringstream &header, const stringstream &body, 
 
     rootName = purifyStr(rootName);
 
+    smartSystem("mkdir -p .oak_build");
+
     headerName = ".oak_build/" + rootName + ".hpp";
     bodyName = ".oak_build/" + rootName + ".cpp";
 
@@ -366,8 +368,12 @@ string toStrCFunction(Type *What, const string &Name)
         }
     }
 
-    parse_assert(current != nullptr);
-    parse_assert(current->info == maps);
+    if (current == nullptr || current->info != maps)
+    {
+        cout << "Function '" << arguments << "' has no return type.\n";
+        parse_assert(current != nullptr);
+    }
+
     current = current->next;
 
     // Next, after maps, we will have the return type.

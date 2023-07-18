@@ -344,24 +344,11 @@ void doFile(const string &From)
                 }
             } while (foundMacros);
 
-            cout << "Starting parenSub...\n";
-
             // F: Operator substitution (within parenthesis and between commas)
             parenSub(lexed);
 
-            cout << "Finished parenSub.\n";
-
-            cout << "Going into sequencing:\n'";
-            for (auto s : lexed)
-            {
-                cout << s << ' ';
-            }
-            cout << "'\n";
-
             // G: Load file stuff
             sequence fileSeq = createSequence(lexed);
-
-            cout << "Finished sequence\n";
 
             if (fileSeq.type != nullType)
             {
@@ -375,11 +362,27 @@ void doFile(const string &From)
         {
             cout << "Skipping repeated file '" << From << "'\n";
         }
+    }
+    catch (runtime_error &e)
+    {
+        cout << tags::red_bold
+             << "Caught error '" << e.what() << "'\n"
+             << tags::reset;
 
-        if (debug)
+        string name = "oak_dump_" + purifyStr(From) + ".log";
+        ofstream dump(name);
+
+        cout << "Dump saved in " << name << "\n";
+
+        assert(dump.is_open());
+        dump << "// FAILURE in file '" << From << "'\n//Lexed:\n\n";
+        for (auto s : lexed)
         {
-            cout << "Finished file '" << From << "'\n";
+            dump << s << ' ';
         }
+        dump.close();
+
+        throw runtime_error("Failure in file '" + From + "'");
     }
     catch (...)
     {
@@ -824,7 +827,7 @@ int main(const int argc, const char *argv[])
     {
         if (oakElapsed != 0)
         {
-            cout << "Ellapsed Oak ns: " << oakElapsed;
+            cout << "Elapsed Oak ns: " << oakElapsed;
         }
 
         cout << tags::red_bold
@@ -839,7 +842,7 @@ int main(const int argc, const char *argv[])
     {
         if (oakElapsed != 0)
         {
-            cout << "Ellapsed Oak ns: " << oakElapsed;
+            cout << "Elapsed Oak ns: " << oakElapsed;
         }
 
         cout << tags::red_bold
@@ -854,7 +857,7 @@ int main(const int argc, const char *argv[])
     {
         if (oakElapsed != 0)
         {
-            cout << "Ellapsed Oak ns: " << oakElapsed;
+            cout << "Elapsed Oak ns: " << oakElapsed;
         }
 
         cout << tags::red_bold
