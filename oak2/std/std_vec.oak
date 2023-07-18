@@ -1,0 +1,40 @@
+/*
+Jordan Dehmel, 2023
+GPLv3
+
+Standard vector struct.
+*/
+
+include!(/usr/include/oak/std/std_mem.oak, /usr/include/oak/std/std_error.oak);
+
+let vec: struct<T>
+{
+    data: ^T,
+    size: u128,
+}
+
+let New<T>(self: ^vec<T>, size: u128) -> void
+{
+    self.data = alloc<T>(size);
+    self.size = size;
+}
+
+let Del<T>(self: ^vec<T>) -> void
+{
+    free<T>(data);
+}
+
+let Get<T>(self: ^vec<T>, i: u128) -> T
+{
+    if (i < self.size)
+    {
+        ^(self.data + i)
+    }
+    else
+    {
+        throw(error("Invalid index (segmentation fault)."));
+        
+        // Unreachable but principled
+        T()
+    }
+}

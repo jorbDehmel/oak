@@ -1,0 +1,31 @@
+/*
+Jordan Dehmel, 2023
+GPLv3
+
+Standard operators for atomic types.
+Many of these will be defined in C++
+and linked in.
+*/
+
+link!("/usr/include/oak/std/misc_math.o");
+
+// Ints
+include!("/usr/include/oak/std/int_math.oak");
+
+// Floats
+include!("/usr/include/oak/std/float_math.oak");
+
+// Bools
+let Copy(self: ^bool, other: bool) -> bool;
+let Eq(self: bool, other: bool) -> bool;
+let Neq(self: bool, other: bool) -> bool;
+let Andd(self: bool, other: bool) -> bool;
+let Orr(self: bool, other: bool) -> bool;
+let Not(self: bool) -> bool;
+let AndEq(self: ^bool, other: bool) -> bool;
+let OrEq(self: ^bool, other: bool) -> bool;
+
+// Strs
+let Get(self: str, index: u128) -> i8;
+let Eq(self: str, other: str) -> bool;
+let Neq(self: str, other: str) -> bool;

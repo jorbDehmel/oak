@@ -1,0 +1,13 @@
+/*
+Jordan Dehmel, 2023
+
+Linkage file for the Oak standard
+"header" package.
+*/
+
+include!(
+    "/usr/include/oak/std/std_io.oak",
+    "/usr/include/oak/std/std_conv.oak",
+    "/usr/include/oak/std/std_ops.oak",
+    "/usr/include/oak/std/std_mem.oak"
+);

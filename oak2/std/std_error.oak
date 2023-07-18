@@ -1,0 +1,56 @@
+/*
+Jordan Dehmel, 2023
+GPLv3
+
+Standard error struct.
+*/
+
+package!(std);
+
+let error: struct
+{
+    message: str,
+}
+
+let error.New(self: ^error, message: str)
+{
+    self.message = message;
+}
+
+let error.Copy(self: ^error, other: error)
+{
+    self.message = other.message;
+}
+
+// Assertion or assertion with message
+let assert!(argc: i32, argv: ^str) -> i32
+{
+    if (argc == 2)
+    {
+        // assert!(EXPR) =>
+        // { if (!EXPR) { throw error("EXPR"); } }
+
+        print("if (!");
+        print(argv[1]);
+        print(") { throw error(\"");
+        print(argv[1]);
+        print("\"); } }\n");
+    }
+    else if (argc == 3)
+    {
+        // assert!(EXPR, MESSAGE) =>
+        // { if (!EXPR) { throw error("MESSAGE"); } }
+
+        print("if (!");
+        print(argv[1]);
+        print(") { throw error(\"");
+        print(argv[2]);
+        print("\"); } }\n");
+    }
+    else
+    {
+        throw error("Malformed assert!. Requires 1 or 2 arguments.");
+    }
+
+    0
+}
