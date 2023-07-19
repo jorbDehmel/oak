@@ -12,15 +12,6 @@ as well as its .oak source.
 
 #ifndef OAK_HEAD
 
-#include <map>
-#include <stdio.h>
-using namespace std;
-
-#define impl(onto, name, what) \
-    onto.__methods[name] = (void *)(&what)
-#define call(from, name, type) \
-    ((type)from.__methods[name])(from)
-
 // Signed integer types
 typedef char i8;
 typedef short int i16;
@@ -42,11 +33,5 @@ typedef long double f128;
 
 // Misc
 typedef const char *const str;
-
-// Base class for all live structs
-struct __live_base
-{
-    map<str, void *> __methods;
-};
 
 #endif

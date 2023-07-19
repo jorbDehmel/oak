@@ -7,24 +7,24 @@ Standard vector struct.
 
 include!(/usr/include/oak/std/std_mem.oak, /usr/include/oak/std/std_error.oak);
 
-let vec: struct<T>
+let vec: struct<t>
 {
-    data: ^T,
+    data: ^t,
     size: u128,
 }
 
-let New<T>(self: ^vec<T>, size: u128) -> void
+let New<t>(self: ^vec<t>, size: u128) -> void
 {
-    self.data = alloc<T>(size);
+    self.data = alloc<t>(size);
     self.size = size;
 }
 
-let Del<T>(self: ^vec<T>) -> void
+let Del<t>(self: ^vec<t>) -> void
 {
-    free<T>(data);
+    free<t>(data);
 }
 
-let Get<T>(self: ^vec<T>, i: u128) -> T
+let Get<t>(self: ^vec<t>, i: u128) -> t
 {
     if (i < self.size)
     {
@@ -35,6 +35,6 @@ let Get<T>(self: ^vec<T>, i: u128) -> T
         throw(error("Invalid index (segmentation fault)."));
         
         // Unreachable but principled
-        T()
+        t()
     }
 }

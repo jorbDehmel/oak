@@ -164,12 +164,6 @@ string toStr(const Type *const What)
     case pointer:
         out += "^";
         break;
-    case templ:
-        out += "<";
-        break;
-    case templ_end:
-        out += ">";
-        break;
     case join:
         out += ",";
         break;
@@ -189,10 +183,9 @@ string toStr(const Type *const What)
 
     if (What->next != nullptr)
     {
-        if (What->next->info != templ && What->next->info != templ_end &&
-            What->next->info != function && What->next->info != pointer &&
+        if (What->next->info != function && What->next->info != pointer &&
             What->next->info != join && What->next->info != maps &&
-            What->info != templ && What->info != pointer && What->info != function)
+            What->info != pointer && What->info != function)
         {
             out += " ";
         }
@@ -202,34 +195,6 @@ string toStr(const Type *const What)
         }
 
         out += toStr(What->next);
-    }
-
-    return out;
-}
-
-bool isTemplated(Type *T)
-{
-    return getTemplate(T).size() != 0;
-}
-
-vector<string> getTemplate(Type *T)
-{
-    vector<string> out;
-    set<string> used;
-
-    Type *cur = T;
-    while (cur != nullptr)
-    {
-        if (cur->info == generic)
-        {
-            if (used.count(cur->name) == 0)
-            {
-                out.push_back(cur->name);
-                used.insert(cur->name);
-            }
-        }
-
-        cur = cur->next;
     }
 
     return out;

@@ -138,7 +138,7 @@ let Long_variable_name_with_multiple_words: i32;
 
 The same naming tips go for structs. Structs should not have any special name conventions. The only symbols which have different naming conventions are the operator aliases (see later), which use upper camelcase.
 
-These naming conventions are also extended to package names (unless for some reason incompatible with the git host website they are on) and file names.
+These naming conventions are also extended to package names (unless for some reason incompatible with the git host website they are on) and file names. Unlike standard practice in `C++` and most other languages, generics types (see later) should still be lower-underscore-case.
 
 Single-line comments should start with "`// `" (slash, slash, space), and multi-line comments should start with `/*` and end with `*/` (just like `C++`).
 
@@ -375,6 +375,16 @@ Becomes
 ```
 let do_thing<T, F>(a: ^T, b: ^T) -> ^^u128;
 ```
+
+## Generics
+
+You can declare a generic function (a function which can operate on a generic type, rather than a specific, defined type) by using the `<...>` notation as below.
+
+```
+let generic_fn_demo<t>(arg1: t, arg2: bool, arg3: *t) -> t;
+```
+
+This allows a generic type `t` (you can use whatever name you want) to enter the function's scope temporarily. On a compiler level, generic functions do not exist until they are called. Upon compiler detection of a call, it is ensured that an appropriately-typed function exists (otherwise, such a function is instantiated).
 
 ## Acorn
 Acorn is the Oak translator, compiler, and linker. Oak is first translated into C++, which is then compiled and linked.

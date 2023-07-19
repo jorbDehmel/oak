@@ -12,16 +12,13 @@ class Type;
 
 enum TypeInfo
 {
-    pointer,   // A pointer to the type specified by next
-    templ,     // The previous type is templated with next
-    templ_end, // Ends a template
-    atomic,    // An atomic type (or struct/class definition)
-    join,      // A comma; Syntactic fluff, more or less
-    modifier,  // IE const, unsigned, signed, etc...
-    function,  // Function start (mostly fluff)
-    maps,      // Syntactic fluff for functions
-    var_name,  // A variable name for functions
-    generic,   // A generic; Akin to atomic
+    pointer,  // A pointer to the type specified by next
+    atomic,   // An atomic type (or struct/class definition)
+    join,     // A comma; Syntactic fluff, more or less
+    modifier, // IE const, unsigned, signed, etc...
+    function, // Function start (mostly fluff)
+    maps,     // Syntactic fluff for functions
+    var_name, // A variable name for functions
 };
 
 // To be expanded with struct definitions
@@ -62,15 +59,7 @@ struct __structLookupData
 
 extern map<string, __structLookupData> structData;
 
-// Returns whether or not a type requires a
-// template<whatever> line before it
-// NOT if a line takes template arguments!!!!
-// IE map<T> does but map<string> does not.
-bool isTemplated(Type *T);
-
 // Return the standard C / C++ representation of this type
 string toStr(const Type *const What);
-
-vector<string> getTemplate(Type *T);
 
 #endif

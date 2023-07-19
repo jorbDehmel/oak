@@ -1,39 +1,18 @@
-/*
-A test of the basic parsing of Oak.
-print is a symbol expected to be defined
-in hello_world.o
+package!("std");
 
-This should be FULLY FUNCTIONAL,
-assuming parsing works.
-
-Quick note on editing Oak in VSCode:
-You can set the default language for
-.oak files to Rust, which works very
-well as they are syntactically similar.
-
-Jordan Dehmel, 2023
-*/
-
-// Load demo package
-package!(std);
-//include!("/usr/include/oak/std/std_io.oak", "/usr/include/oak/std/std_ops.oak", "/usr/include/oak/std/std_mem.oak");
-
-let fn_test(num: i32) -> void
+// Test of generics; Compiler should instantiate this without using C++ templates
+let println<t>(what: t) -> void
 {
-    let i: i32;
-    i = 0;
-
-    while (i < num)
-    {
-        println("Hello, world!");
-
-        (i++);
-    }
+    print(what);
+    print("\n");
 }
 
 let main(argc: i32, argv: ^str) -> i32
 {
-    fn_test(5);
+    print("Hello, world!\n");
+
+    println<i32>(65);
+    println<str>("Hiiii");
 
     0
 }

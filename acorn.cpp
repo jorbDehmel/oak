@@ -12,7 +12,6 @@ GPLv3 held by author
 #include <vector>
 #include <chrono>
 
-#include "auto-oak.hpp"
 #include "lexer.hpp"
 #include "macros.hpp"
 #include "reconstruct.hpp"
@@ -90,8 +89,19 @@ vector<string> getMacroArgs(vector<string> &lexed, const int &i)
     vector<string> out;
 
     lexed.erase(lexed.begin() + i);
+
+    if (lexed[i].size() > 2 && lexed[i].substr(0, 2) == "//")
+    {
+        lexed.erase(lexed.begin() + i);
+    }
+
     parse_assert(lexed[i] == "(");
     lexed.erase(lexed.begin() + i);
+
+    if (lexed[i].size() > 2 && lexed[i].substr(0, 2) == "//")
+    {
+        lexed.erase(lexed.begin() + i);
+    }
 
     string cur = "";
     while (!lexed.empty() && lexed[i] != ";")
@@ -101,7 +111,7 @@ vector<string> getMacroArgs(vector<string> &lexed, const int &i)
             out.push_back(cur);
             cur = "";
         }
-        else
+        else if (lexed[i].size() < 3 || lexed[i].substr(0, 2) != "//")
         {
             cur += lexed[i];
         }
@@ -119,6 +129,12 @@ vector<string> getMacroArgs(vector<string> &lexed, const int &i)
 
 void doFile(const string &From)
 {
+    unsigned long long oldLineNum = curLine;
+    string oldFile = curFile;
+
+    curLine = 1;
+    curFile = From;
+
     vector<string> lexed;
 
     try
@@ -159,13 +175,6 @@ void doFile(const string &From)
             if (debug)
             {
                 cout << "Loading file '" << From << "'\n";
-            }
-
-            if (From.size() > 4 && From.substr(From.size() - 4) == ".cpp")
-            {
-                cppSources.insert(From);
-                autoOak(From);
-                return;
             }
 
             // A: Load file
@@ -402,6 +411,9 @@ void doFile(const string &From)
         throw runtime_error("Failure in file '" + From + "'");
     }
 
+    curLine = oldLineNum;
+    curFile = oldFile;
+
     return;
 }
 
@@ -461,9 +473,6 @@ void prettify(const string &Filename)
 
 int main(const int argc, const char *argv[])
 {
-    // Necessary in other places; I just need to not forget to run this
-    setUpInverseOperatorAliases();
-
     auto start = chrono::high_resolution_clock::now(), end = start;
     unsigned long long int oakElapsed = 0;
 
@@ -831,7 +840,9 @@ int main(const int argc, const char *argv[])
         }
 
         cout << tags::red_bold
-             << "\nA parsing error occurred with message:\n"
+             << "\n"
+             << curFile << " " << curLine << '\n'
+             << "A parsing error occurred with message:\n"
              << e.what()
              << "\n"
              << tags::reset;
@@ -846,7 +857,9 @@ int main(const int argc, const char *argv[])
         }
 
         cout << tags::red_bold
-             << "\nA runtime error occurred with message:\n"
+             << "\n"
+             << curFile << " " << curLine << '\n'
+             << "A runtime error occurred with message:\n"
              << e.what()
              << "\n"
              << tags::reset;
@@ -861,6 +874,8 @@ int main(const int argc, const char *argv[])
         }
 
         cout << tags::red_bold
+             << "\n"
+             << curFile << " " << curLine << '\n'
              << "\nAn unknown error ocurred.\n"
              << tags::reset;
 
@@ -903,7 +918,26 @@ int main(const int argc, const char *argv[])
              << "Microseconds: " << totalElapsed / 1'000.0 << '\n'
              << "Milliseconds: " << totalElapsed / 1'000'000.0 << '\n'
              << "Seconds:      " << totalElapsed / 1'000'000'000.0 << "\n\n"
-             << "Percent of time which was Acorn-attributable: "
+             << "Acorn Milliseconds per file: " << (oakElapsed / 1'000'000.0) / visitedFiles.size() << "\n\n";
+
+        if (percentAcornTime < 25)
+        {
+            cout << tags::green_bold;
+        }
+        else if (percentAcornTime < 50)
+        {
+            cout << tags::violet_bold;
+        }
+        else if (percentAcornTime < 75)
+        {
+            cout << tags::yellow_bold;
+        }
+        else
+        {
+            cout << tags::red_bold;
+        }
+
+        cout << "Percent of time which was Acorn-attributable: "
              << percentAcornTime
              << "%\n\n"
              << tags::reset;

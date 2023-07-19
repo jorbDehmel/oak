@@ -16,6 +16,7 @@ vector<string> lex(const string &What)
 {
     vector<string> out;
     string cur = "";
+    unsigned long long line = 1;
 
     char c;
 
@@ -32,6 +33,14 @@ vector<string> lex(const string &What)
                 out.push_back(cur);
                 cur = "";
             }
+
+            if (c == '\n')
+            {
+                // Newline. Increment line count and insert line special symbol
+                line++;
+                out.push_back("//__LINE__=" + to_string(line));
+            }
+
             continue;
         }
 
@@ -53,6 +62,10 @@ vector<string> lex(const string &What)
             {
                 i++;
             }
+
+            line++;
+            out.push_back("//__LINE__=" + to_string(line));
+
             continue;
         }
 

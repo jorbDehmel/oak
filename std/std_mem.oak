@@ -5,7 +5,7 @@ GPLv3
 Standard mem function definitions for use
 with mem.cpp.
 
-Note: These three functions should only
+Note: these three functions should only
 be used within methods! Use outside of
 methods should be considered dangerous,
 as it will not fall out of scope with
@@ -13,8 +13,8 @@ its creator.
 */
 
 // Allocate heap memory
-let alloc<T>(num: u128) -> ^T;
-let alloc<T>() -> ^T;
+// let alloc<t>(num: u128) -> ^t;
+// let alloc<t>() -> ^t;
 
 // Free heap memory
-let free<T>(to_free: ^T) -> void;
+// let free<t>(to_free: ^t) -> void;

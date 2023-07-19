@@ -6,27 +6,15 @@ Standard io function definitions for use
 with io.cpp.
 */
 
-link!(/usr/include/oak/std/io.o);
+link!("/usr/include/oak/std/io.o");
 
 // Print to cout
 let print(what: str) -> void;
 let print(what: i32) -> void;
 let print(what: f64) -> void;
 
-let println<T>(what: T) -> void
-{
-    print(what);
-    print("\n");
-}
-
 // Error messages
 let print_err(what: str) -> void;
-
-let println_err<T>(what: T) -> void
-{
-    print_err(what);
-    print_err("\n");
-}
 
 // Get a char from cin
 let get_char() -> i8;

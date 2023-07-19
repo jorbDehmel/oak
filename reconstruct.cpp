@@ -191,41 +191,9 @@ void reconstruct(const string &Name,
 
             for (__multiTableSymbol s : entry.second)
             {
-                if (isTemplated(&s.ts.type))
+                if (s.type.info == function)
                 {
-                    vector<string> templates = getTemplate(&s.ts.type);
-
-                    // Header stuff
-                    header << "template <";
-                    for (int i = 0; i < templates.size(); i++)
-                    {
-                        header << "class " << templates[i];
-                        if (i + 1 < templates.size())
-                        {
-                            header << ", ";
-                        }
-                    }
-                    header << ">\n";
-
-                    // Body stuff
-                    if (s.seq.items.size() != 0)
-                    {
-                        body << "template <";
-                        for (int i = 0; i < templates.size(); i++)
-                        {
-                            body << "class " << templates[i];
-                            if (i + 1 < templates.size())
-                            {
-                                body << ", ";
-                            }
-                        }
-                        body << ">\n";
-                    }
-                }
-
-                if (s.ts.type.info == function)
-                {
-                    string toAdd = toStrCFunction(&s.ts.type, name);
+                    string toAdd = toStrCFunction(&s.type, name);
 
                     header << toAdd << ";\n";
 
@@ -239,7 +207,7 @@ void reconstruct(const string &Name,
                 }
                 else
                 {
-                    string toAdd = toStrC(&s.ts.type);
+                    string toAdd = toStrC(&s.type);
 
                     header << "extern " << toAdd << " " << name << ";\n";
                     body << toAdd << " " << name << ";\n";
@@ -321,20 +289,6 @@ string toStrCFunction(Type *What, const string &Name)
     parse_assert(What != nullptr && What->info == function);
     Type *current = What->next;
 
-    // Generics section; optional
-    if (current != nullptr && current->info == templ)
-    {
-        while (current != nullptr && current->info != templ_end)
-        {
-            current = current->next;
-        }
-
-        if (current != nullptr)
-        {
-            current = current->next;
-        }
-    }
-
     // Second section, between function and maps, will be arguments.
     string arguments = "";
     for (; current != nullptr && current->info != maps; current = current->next)
@@ -407,7 +361,6 @@ string toStrC(Type *What)
 
     switch (What->info)
     {
-    case generic:
     case atomic:
         out += What->name;
         out += toStrC(What->next);
@@ -423,14 +376,6 @@ string toStrC(Type *What)
     case pointer:
         out += toStrC(What->next);
         out += "*";
-        break;
-    case templ:
-        out += "<";
-        out += toStrC(What->next);
-        break;
-    case templ_end:
-        out += "> ";
-        out += toStrC(What->next);
         break;
     case var_name:
         // Argument in function: Will be FOLLOWED by its type in Oak

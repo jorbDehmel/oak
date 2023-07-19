@@ -8,12 +8,7 @@ GPLv3 held by author
 
 #include "symbol-table.hpp"
 
-/*
-// From type-builder.hpp:
-extern set<string> atomics, modifiers;
-extern map<string, map<string, Type>> structData;
-*/
-
+multiTemplTable templTable;
 multiSymbolTable table;
 
 // Converts lexed symbols into a type
@@ -24,22 +19,31 @@ Type toType(const vector<string> &What, const set<string> &Local)
         return Type(atomic, "NULL");
     }
 
+    set<string> localClone(Local);
+    int i = 0;
+
+    if (What[i] == "<")
+    {
+        while (What[i] != ">")
+        {
+            if (What[i] != "<" && What[i] != ">" && What[i] != ",")
+            {
+                localClone.insert(What[i]);
+            }
+
+            i++;
+        }
+        i++;
+    }
+
     Type out;
-    for (int i = 0; i < What.size(); i++)
+    for (; i < What.size(); i++)
     {
         string cur = What[i];
 
         if (cur == "^" || cur == "&")
         {
             out.append(pointer);
-        }
-        else if (cur == "<")
-        {
-            out.append(templ);
-        }
-        else if (cur == ">")
-        {
-            out.append(templ_end);
         }
         else if (cur == ",")
         {
@@ -56,11 +60,6 @@ Type toType(const vector<string> &What, const set<string> &Local)
         else if (cur == "(")
         {
             out.append(function);
-
-            if (out.info == templ)
-            {
-                out.prepend(function);
-            }
         }
         else if (cur == "let")
         {
@@ -78,14 +77,9 @@ Type toType(const vector<string> &What, const set<string> &Local)
         {
             out.append(var_name, cur);
         }
-        else if (Local.count(cur) != 0)
+        else if (localClone.count(cur) != 0)
         {
             out.append(atomic, cur);
-        }
-        else
-        {
-            out.append(generic, cur);
-            // throw parse_error(string("Type '") + cur + "' is not a recognized symbol.");
         }
     }
 
@@ -236,14 +230,155 @@ void addStruct(const string &From)
     return;
 }
 
-__multiTableSymbol *addSymb(const string &Name, const string &String)
+void addSymb(const string &Name, const vector<string> &From, const sequence &Seq)
 {
-    table[Name].push_back(__multiTableSymbol{tableSymbol(toType(String)), sequence()});
-    return &table[Name].back();
+    // Scan for templating
+    vector<string> toParse;
+    vector<string> generics;
+
+    set<string> genericsSet;
+
+    int count = 0;
+    for (int i = 0; i < From.size() && From[i] != ";" && From[i] != "{"; i++)
+    {
+        if (From[i] == "<")
+        {
+            count++;
+        }
+        else if (From[i] == ">")
+        {
+            count--;
+        }
+
+        if (count == 0)
+        {
+            toParse.push_back(From[i]);
+        }
+        else
+        {
+            if (From[i] != "," && From[i] != "<" && From[i] != ">")
+            {
+                generics.push_back(From[i]);
+                genericsSet.insert(From[i]);
+            }
+        }
+    }
+
+    if (toParse[0] == ">")
+    {
+        toParse.erase(toParse.begin());
+    }
+
+    if (generics.size() == 0)
+    {
+        table[Name].push_back(__multiTableSymbol{Seq, toType(toParse, genericsSet)});
+    }
+    else
+    {
+        templTable[Name].push_back(__template_info{generics, Seq, toType(toParse, genericsSet)});
+    }
+
+    return;
 }
 
-__multiTableSymbol *addSymb(const string &Name, const vector<string> &From)
+void replaceInSequence(sequence &In, const string &What, const Type &With)
 {
-    table[Name].push_back(__multiTableSymbol{tableSymbol(toType(From)), sequence()});
+    for (int i = 0; i < In.items.size(); i++)
+    {
+        if (In.items[i].info == atom && In.items[i].raw == What)
+        {
+            In.items[i].type = With;
+        }
+        else
+        {
+            replaceInSequence(In.items[i], What, With);
+        }
+    }
+}
+
+__multiTableSymbol *instantiateTemplate(const string &Name, const vector<Type> &GenericReplacements)
+{
+    // Examine candidates
+    auto candidates = templTable[Name];
+    if (candidates.size() == 0)
+    {
+        throw parse_error("No candidates exist for templated function '" + Name + "'");
+    }
+
+    bool found = false;
+    __template_info toUse;
+    for (int i = 0; i < candidates.size(); i++)
+    {
+        if (candidates[i].generics.size() == GenericReplacements.size())
+        {
+            found = true;
+            toUse = candidates[i];
+            break;
+        }
+    }
+
+    if (!found)
+    {
+        for (auto c : candidates)
+        {
+            cout << "Candidate '" << Name << "' had " << c.generics.size() << " generics:\n\t";
+            for (auto g : c.generics)
+            {
+                cout << '\t' << g;
+            }
+            cout << '\n';
+        }
+
+        cout << "Required generic count: " << GenericReplacements.size() << '\n';
+
+        throw parse_error("No template candidates match generics count for function '" + Name + "'");
+    }
+
+    // At this point we can be assured that our template is legit
+
+    // Do replacing
+    for (int i = 0; i < GenericReplacements.size(); i++)
+    {
+        // Replace in sequence
+        replaceInSequence(toUse.seq, toUse.generics[i], GenericReplacements[i]);
+
+        // Replace in typing
+        for (Type *cur = &toUse.type; cur != nullptr; cur = cur->next)
+        {
+            if (cur->info == atomic && cur->name == toUse.generics[i])
+            {
+                if (cur->next != nullptr)
+                {
+                    // Copy next
+                    Type next = *cur->next;
+
+                    // Copy in new
+                    (*cur) = GenericReplacements[i];
+
+                    // Append old suffix
+                    cur->append(next);
+                }
+                else
+                {
+                    *cur = GenericReplacements[i];
+                }
+            }
+        }
+    }
+
+    // Scan for existing instantiation and, if it exists, return it
+    auto instantCandidates = table[Name];
+    for (int i = 0; i < instantCandidates.size(); i++)
+    {
+        if (instantCandidates[i].type == toUse.type)
+        {
+            return &table[Name][i];
+        }
+    }
+
+    // cout << "Instantiating function " << Name << " with full type " << toStr(&toUse.type) << "\n";
+
+    table[Name].push_back(__multiTableSymbol{toUse.seq, toUse.type});
+
     return &table[Name].back();
 }
