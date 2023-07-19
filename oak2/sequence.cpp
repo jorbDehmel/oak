@@ -451,6 +451,7 @@ sequence __createSequence(vector<string> &From)
             } while (From[0] != "{" && From[0] != ";");
 
             auto type = toType(toAdd);
+
             map<string, Type> argsWithType = getArgs(type);
             for (pair<string, Type> p : argsWithType)
             {
@@ -519,8 +520,6 @@ sequence __createSequence(vector<string> &From)
 
         out.type = out.items[0].type;
 
-        debugPrint(out); ////////////////////////////////////////////////////////////////////////////////////
-
         return out;
     }
     else if (From[0] == "{")
@@ -528,9 +527,6 @@ sequence __createSequence(vector<string> &From)
         pop_front(From);
 
         out.info = code_scope;
-
-        // Back up symbol table
-        // multiSymbolTable oldTable = table;
 
         // Code scope.
         int count = 1;
@@ -611,7 +607,7 @@ sequence __createSequence(vector<string> &From)
     // Function calls may occur within.
 
     Type curType;
-    int i;
+    int i = 0;
 
     try
     {
@@ -626,6 +622,107 @@ sequence __createSequence(vector<string> &From)
             else if (cur == ",")
             {
                 continue;
+            }
+            else if (cur == "<")
+            {
+                // Templated function call
+                sm_assert(i > 0, "Missing function name on function call parenthesis.");
+                string name = From[i - 1];
+
+                // Part 1: Instantiate templated call
+                {
+                    vector<string> templContents;
+                    vector<Type> splitTypes;
+
+                    // Get template contents here
+                    int count = 1;
+                    do
+                    {
+                        i++;
+
+                        if (From[i] == "<")
+                        {
+                            count++;
+                        }
+                        else if (From[i] == ">")
+                        {
+                            count--;
+                        }
+
+                        if ((count == 1 && From[i] == ",") || (count == 0 && From[i] == ">"))
+                        {
+                            splitTypes.push_back(toType(templContents));
+                            templContents.clear();
+                        }
+                        else
+                        {
+                            templContents.push_back(From[i]);
+                        }
+                    } while (count != 0 && i < From.size());
+
+                    instantiateTemplate(name, splitTypes);
+                }
+
+                // Part 2: Standard function call
+                {
+                    i++;
+
+                    vector<string> contents;
+                    int count = 0, j = i;
+
+                    int eraseStart = i - 1, eraseNum = 1;
+
+                    do
+                    {
+                        contents.push_back(From[j]);
+
+                        if (From[j] == "(")
+                        {
+                            count++;
+                        }
+                        else if (From[j] == ")")
+                        {
+                            count--;
+                        }
+
+                        eraseNum++;
+                        j++;
+                    } while (j < From.size() && count != 0);
+
+                    cout << "Contents: ";
+                    for (auto s : contents)
+                        cout << s << ' ';
+                    cout << "\n";
+
+                    contents.pop_back();
+                    pop_front(contents);
+
+                    // Function
+                    sequence s = __createSequence(contents);
+
+                    out.info = function_call;
+                    out.items.clear();
+
+                    out.items.push_back(sequence{
+                        nullType,
+                        vector<sequence>(),
+                        atom,
+                        name});
+
+                    out.items.push_back(s);
+
+                    // Search for candidate function
+                    out.type = getReturnType(name, s.type);
+
+                    for (int k = 0; k < eraseNum; k++)
+                    {
+                        From.erase(From.begin() + eraseStart);
+                    }
+
+                    out.type = out.items[0].type;
+
+                    return out;
+                }
             }
             else if (cur == "(")
             {
@@ -660,6 +757,7 @@ sequence __createSequence(vector<string> &From)
                     if (i < 3 || From[i - 2] != ".")
                     {
                         // Function
+                        sm_assert(i > 0, "Missing function name on function call parenthesis.");
 
                         sequence s = __createSequence(contents);
 
@@ -774,6 +872,10 @@ sequence __createSequence(vector<string> &From)
                 {
                     out.items.back().type = nullType;
                 }
+                else if (i + 1 < From.size() && From[i + 1] == "<")
+                {
+                    continue;
+                }
                 else
                 {
                     try
@@ -784,10 +886,16 @@ sequence __createSequence(vector<string> &From)
                     {
                         try
                         {
+                            if (table.count(cur) == 0 || table[cur].size() == 0)
+                            {
+                                throw runtime_error("No candidates were found for symbol '" + cur + "'");
+                            }
+
                             auto candidates = table[cur];
 
                             // If all candidates have the same return type, we can deduce type
                             Type retType = getReturnType(candidates[0].type);
+
                             for (int k = 1; k < candidates.size(); k++)
                             {
                                 if (getReturnType(candidates[k].type) != retType)
@@ -795,8 +903,6 @@ sequence __createSequence(vector<string> &From)
                                     throw runtime_error("Ambiguous return type; Cannot deduce symbol type.");
                                 }
                             }
-
-                            cout << "Successfully found type for symbol '" << cur << "': " << toStr(&retType) << "\n";
                             out.items.back().type = retType;
                         }
                         catch (runtime_error &e)

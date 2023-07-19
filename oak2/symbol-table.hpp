@@ -89,6 +89,6 @@ void addStruct(const string &From);
 void addSymb(const string &Name, const vector<string> &From, const sequence &Seq);
 
 // Adds an instance of a templated function
-__multiTableSymbol *instantiateTemplate(const string &Name, const vector<string> &GenericReplacements);
+__multiTableSymbol *instantiateTemplate(const string &Name, const vector<Type> &GenericReplacements);
 
 #endif

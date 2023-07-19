@@ -33,4 +33,4 @@ bin/%.out:	build/%.o $(OBJS) $(HEADS)
 	$(CC) -o $@ $< $(OBJS)
 
 clean:
-	rm -rf bin/* build/*
+	rm -rf bin/* build/* *.o *.out *.log
