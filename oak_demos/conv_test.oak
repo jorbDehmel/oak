@@ -1,0 +1,6 @@
+package!("std");
+
+let main(argc: i32, argv: ^str) -> i32
+{
+    s_to_i("123")
+}

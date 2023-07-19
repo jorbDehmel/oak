@@ -12,6 +12,9 @@ GPLv3 held by author
 #include <string>
 #include <vector>
 #include <iostream>
+
+#include "tags.hpp"
+
 using namespace std;
 
 // If an empty symbol is printed, it is a newline literal

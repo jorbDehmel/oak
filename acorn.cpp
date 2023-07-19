@@ -34,20 +34,20 @@ using namespace std;
 string helpText = "Acorn - Oak Standard Translator\n" DASHED_LINE
                   "Translates .oak files to .cpp.\n"
                   "Option | Verbose     | Purpose\n" DASHED_LINE
-                  " -h    | --help      | Show this\n"
-                  " -v    | --version   | Show version\n"
-                  " -d    | --debug     | Toggle debug mode\n"
-                  " -o    | --output    | Set the output file\n"
-                  " -n    | --no_save   | Produce nothing\n"
-                  " -t    | --translate | Produce C++ files\n"
                   " -c    | --compile   | Produce object files\n"
-                  " -l    | --link      | Produce executables\n"
+                  " -d    | --debug     | Toggle debug mode\n"
                   " -e    | --clean     | Work from scratch\n"
-                  " -q    | --quit      | Quit immediately\n"
-                  " -p    | --pretty    | Prettify C++ files\n"
+                  " -h    | --help      | Show this\n"
                   " -i    | --install   | Install a package\n"
+                  " -l    | --link      | Produce executables\n"
+                  " -n    | --no_save   | Produce nothing\n"
+                  " -o    | --output    | Set the output file\n"
+                  " -p    | --pretty    | Prettify C++ files\n"
+                  " -q    | --quit      | Quit immediately\n"
                   " -r    | --reinstall | Reinstall a package\n"
-                  " -s    | --size      | Show Oak disk usage\n";
+                  " -s    | --size      | Show Oak disk usage\n"
+                  " -t    | --translate | Produce C++ files\n"
+                  " -v    | --version   | Show version\n";
 
 bool debug = false;
 
@@ -449,6 +449,16 @@ void prettify(const string &Filename)
     int indentation = 0;
     for (string curLine : lines)
     {
+        if (curLine == ";")
+        {
+            continue;
+        }
+
+        if (curLine == "}")
+        {
+            indentation--;
+        }
+
         for (int i = 0; i < indentation; i++)
         {
             out << '\t';
@@ -459,10 +469,6 @@ void prettify(const string &Filename)
         if (curLine == "{")
         {
             indentation++;
-        }
-        else if (curLine == "}")
-        {
-            indentation--;
         }
     }
 

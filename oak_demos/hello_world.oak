@@ -11,8 +11,14 @@ let main(argc: i32, argv: ^str) -> i32
 {
     print("Hello, world!\n");
 
-    println<i32>(65);
-    println<str>("Hiiii");
+    println<i32>;
+    println<str>;
+
+    println("Hiiii");
+
+    let i: i32;
+    i = 5;
+    println(i);
 
     0
 }

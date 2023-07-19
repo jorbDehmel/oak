@@ -5,6 +5,8 @@ GPLv3
 Standard conversion functions.
 */
 
+link!("/usr/include/oak/std/conv.o");
+
 // String to int
 let s_to_i(what: str) -> i32;
 

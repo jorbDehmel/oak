@@ -123,7 +123,10 @@ sequence __createSequence(vector<string> &From, bool templated = false)
     if (From[0] == ";")
     {
         pop_front(From);
-        return __createSequence(From);
+        auto toReturn = __createSequence(From);
+        toReturn.type = nullType;
+
+        return toReturn;
     }
     else if (From[0] == ".")
     {
@@ -216,7 +219,7 @@ sequence __createSequence(vector<string> &From, bool templated = false)
         if (From[0] == ":")
         {
             pop_front(From);
-            if (!From.empty() && (From.front() == "struct" || From.front() == "live"))
+            if (!From.empty() && From.front() == "struct")
             {
                 // addStruct takes in the full struct definition, from
                 // let to end curly bracket. So we must first parse this.
@@ -494,9 +497,9 @@ sequence __createSequence(vector<string> &From, bool templated = false)
             }
 
             // Part 2: Standard function call
+            i++;
+            if (From[i] == "(")
             {
-                i++;
-
                 vector<string> contents;
                 int count = 0, j = i;
 
@@ -545,9 +548,15 @@ sequence __createSequence(vector<string> &From, bool templated = false)
                 }
 
                 out.type = out.items[0].type;
-
-                return out;
             }
+            else
+            {
+                out.type = nullType;
+                out.items.clear();
+                out.raw = "";
+            }
+
+            return out;
         }
         else if (cur == "(")
         {
@@ -797,15 +806,6 @@ string toC(const sequence &What)
         break;
 
     case code_scope:
-        /*
-        {
-            a;
-            b;
-            c;
-            d
-        }
-        */
-
         out += "{\n";
 
         for (int i = 0; i < What.items.size(); i++)

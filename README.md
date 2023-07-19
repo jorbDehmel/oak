@@ -4,6 +4,10 @@ Jordan Dehmel, jdehmel@outlook.com, github.com/jorbDehmel/oak
 ## Overview
 Oak is a modern, Rust-adjacent programming language. It uses near-standard Rust typing, without any form of memory protections. It is analogous to C++ with stronger macro support, modern typing, and integrated package management.
 
+## Compilation, Installation, and Uninstallation
+
+To install, open a terminal in this folder and run `make install`. This repo is only compatible with Linux. This will compile and install Oak, as well as the standard Oak package. To uninstall, open this folder in terminal and run `make uninstall`. If you've already deleted this folder, you can run `sudo rm -rf /usr/include/oak /usr/bin/acorn`. Both of these will accomplish the same thing.
+
 ## Syntax
 
 In Oak, a variable is declared as follows.
@@ -297,11 +301,13 @@ Level | Group Name | Member operators
 0     | Misc       | (), ^, @
 1     | Assignment | =, +=, -=, *=, /=, %=, ++, --, &=, \|=
 2     | Brackets   | [ ]
-3     | Comparison | ==, !=, <, >, <=, >=
-4     | Booleans   | !, &&, \||
+3     | Booleans   | !, &&, \||
+4     | Comparison | ==, !=, <, >, <=, >=
 5     | Mult / Div | *, /, %
 6     | Add / Sub  | +, -
 7     | Bitwise    | &, \|, ^, <<, >>
+
+With a few exceptions, operator alias replacement occurs within parenthesis (either as standalone blocks for evaluation or as part of a function call). However, in cases like assignment parenthesis are inferred.
 
 ## Demo
 
@@ -386,6 +392,38 @@ let generic_fn_demo<t>(arg1: t, arg2: bool, arg3: *t) -> t;
 
 This allows a generic type `t` (you can use whatever name you want) to enter the function's scope temporarily. On a compiler level, generic functions do not exist until they are called. Upon compiler detection of a call, it is ensured that an appropriately-typed function exists (otherwise, such a function is instantiated).
 
+Oak does not have automatic instantiation of generic functions via argument type analysis. For instance, you must say `println<i32>(5)`, not `println(5)`. However, this is only true for the first time a generic function is called.
+
+```
+// Always valid:
+{
+    // Instantiate and call
+    println<i32>(5);
+}
+
+// Only valid if println<i32> has already been instantiated:
+{
+    // Call without instantiating
+    println(5);
+}
+
+// Always valid:
+{
+    // Instantiate without calling
+    println<i32>;
+}
+
+// Equivalence
+{
+    println<i32>;
+    println(5);
+
+    // Is equivalent to
+
+    println<i32>(5);
+}
+```
+
 ## Acorn
 Acorn is the Oak translator, compiler, and linker. Oak is first translated into C++, which is then compiled and linked.
 
@@ -393,20 +431,20 @@ Acorn command line arguments:
 
 Name | Verbose     | Function
 -----|-------------|----------------------
- -h  | --help      | Show help (this)
- -v  | --version   | Show Acorn version
- -d  | --debug     | Toggle debug mode
- -o  | --output    | Set the output file
- -n  | --no_save   | Produce nothing
- -t  | --translate | Produce C++ files
  -c  | --compile   | Produce object files
- -l  | --link      | Produce executables
+ -d  | --debug     | Toggle debug mode
  -e  | --clean     | Work from scratch
- -q  | --quit      | Quit immediately
- -p  | --pretty    | Prettify C++ files
+ -h  | --help      | Show help (this)
  -i  | --install   | Install a package
+ -l  | --link      | Produce executables
+ -n  | --no_save   | Produce nothing
+ -o  | --output    | Set the output file
+ -p  | --pretty    | Prettify C++ files
+ -q  | --quit      | Quit immediately
  -r  | --reinstall | Reinstall a package
  -s  | --size      | Show Oak disk usage
+ -t  | --translate | Produce C++ files
+ -v  | --version   | Show Acorn version
 
 ## Macros
 

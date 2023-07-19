@@ -87,8 +87,17 @@ Type toType(const vector<string> &What, const set<string> &Local)
 }
 
 // Can throw errors (IE malformed definitions)
-void addStruct(const vector<string> &From)
+void addStruct(const vector<string> &FromIn)
 {
+    vector<string> From;
+    for (auto f : FromIn)
+    {
+        if (f.size() < 2 || f.substr(0, 2) != "//")
+        {
+            From.push_back(f);
+        }
+    }
+
     // let *name*: struct
     // {
     //      a: type,
