@@ -19,8 +19,25 @@ Type toType(const vector<string> &What, const set<string> &Local)
         return Type(atomic, "NULL");
     }
 
+    set<string> localClone(Local);
+    int i = 0;
+
+    if (What[i] == "<")
+    {
+        while (What[i] != ">")
+        {
+            if (What[i] != "<" && What[i] != ">" && What[i] != ",")
+            {
+                localClone.insert(What[i]);
+            }
+
+            i++;
+        }
+        i++;
+    }
+
     Type out;
-    for (int i = 0; i < What.size(); i++)
+    for (; i < What.size(); i++)
     {
         string cur = What[i];
 
@@ -60,7 +77,7 @@ Type toType(const vector<string> &What, const set<string> &Local)
         {
             out.append(var_name, cur);
         }
-        else if (Local.count(cur) != 0)
+        else if (localClone.count(cur) != 0)
         {
             out.append(atomic, cur);
         }

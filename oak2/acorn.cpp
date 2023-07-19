@@ -118,6 +118,12 @@ vector<string> getMacroArgs(vector<string> &lexed, const int &i)
 
 void doFile(const string &From)
 {
+    unsigned long long oldLineNum = curLine;
+    string oldFile = curFile;
+
+    curLine = 1;
+    curFile = From;
+
     vector<string> lexed;
 
     try
@@ -394,6 +400,9 @@ void doFile(const string &From)
         throw runtime_error("Failure in file '" + From + "'");
     }
 
+    curLine = oldLineNum;
+    curFile = oldFile;
+
     return;
 }
 
@@ -453,9 +462,6 @@ void prettify(const string &Filename)
 
 int main(const int argc, const char *argv[])
 {
-    // Necessary in other places; I just need to not forget to run this
-    setUpInverseOperatorAliases();
-
     auto start = chrono::high_resolution_clock::now(), end = start;
     unsigned long long int oakElapsed = 0;
 
@@ -823,7 +829,9 @@ int main(const int argc, const char *argv[])
         }
 
         cout << tags::red_bold
-             << "\nA parsing error occurred with message:\n"
+             << "\n"
+             << curFile << " " << curLine << '\n'
+             << "A parsing error occurred with message:\n"
              << e.what()
              << "\n"
              << tags::reset;
@@ -838,7 +846,9 @@ int main(const int argc, const char *argv[])
         }
 
         cout << tags::red_bold
-             << "\nA runtime error occurred with message:\n"
+             << "\n"
+             << curFile << " " << curLine << '\n'
+             << "A runtime error occurred with message:\n"
              << e.what()
              << "\n"
              << tags::reset;
@@ -853,6 +863,8 @@ int main(const int argc, const char *argv[])
         }
 
         cout << tags::red_bold
+             << "\n"
+             << curFile << " " << curLine << '\n'
              << "\nAn unknown error ocurred.\n"
              << tags::reset;
 

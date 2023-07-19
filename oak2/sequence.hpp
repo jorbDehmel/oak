@@ -47,23 +47,17 @@ non-sequential parser.
 
 using namespace std;
 
-/////////////////////////////////////////////////////
-
 // Globals
 
 extern const set<string> specials;
-extern const map<string, string> operatorAliases;
-extern map<string, string> inverseOperatorAliases;
-
-void setUpInverseOperatorAliases();
+extern unsigned long long int curLine;
+extern string curFile;
 
 class sequencing_error : public runtime_error
 {
 public:
     sequencing_error(const string &What) : runtime_error(What) {}
 };
-
-/////////////////////////////////////////////////////
 
 // Macros
 
@@ -82,15 +76,13 @@ public:
 #define pop_front(Of) \
     Of.empty() ? throw runtime_error("Cannot pop front from empty vector; line " + to_string(__LINE__)) : Of.erase(Of.begin())
 
-#define printvec(What)        \
-    {                         \
-        cout << #What ":\n";  \
-        for (auto s : What)   \
-            cout << s << ' '; \
-        cout << '\n';         \
+#define printvec(What)                                                \
+    {                                                                 \
+        cout << #What << ' ' << __LINE__ << ' ' << __FILE__ << ":\n"; \
+        for (auto s : What)                                           \
+            cout << s << ' ';                                         \
+        cout << '\n';                                                 \
     }
-
-/////////////////////////////////////////////////////
 
 // Externally useful functions
 
@@ -106,16 +98,11 @@ sequence createSequence(const vector<string> &From, const Type type);
 // Turn a .oak sequence into a .cpp one
 string toC(const sequence &What);
 
-template <class T>
-void highlightIssue(const vector<T> &From, const unsigned int &Index, const unsigned int &Radius);
-
-////////////////////// Utilities //////////////////////
-
 // Compare two types until they have a join (,) or end
 bool compareTypesUntilJoin(Type *A, Type *B);
 
 // Get the return type of a function which exists in the symbol table
-Type getReturnType(const string &Name, const Type &ArgType);
+Type getReturnType(const string &Name, const Type &ArgType, bool templated = false);
 
 // Get the return type from a Type (of a function signature)
 Type getReturnType(const Type &T);
