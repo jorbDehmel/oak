@@ -1,5 +1,5 @@
-include!("/usr/include/oak/std/std_io.oak");
-// package!("std");
+// include!("/usr/include/oak/std/std_io.oak");
+package!("std");
 
 let println<T>(what: T) -> void
 {

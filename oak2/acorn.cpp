@@ -89,8 +89,19 @@ vector<string> getMacroArgs(vector<string> &lexed, const int &i)
     vector<string> out;
 
     lexed.erase(lexed.begin() + i);
+
+    if (lexed[i].size() > 2 && lexed[i].substr(0, 2) == "//")
+    {
+        lexed.erase(lexed.begin() + i);
+    }
+
     parse_assert(lexed[i] == "(");
     lexed.erase(lexed.begin() + i);
+
+    if (lexed[i].size() > 2 && lexed[i].substr(0, 2) == "//")
+    {
+        lexed.erase(lexed.begin() + i);
+    }
 
     string cur = "";
     while (!lexed.empty() && lexed[i] != ";")
@@ -100,7 +111,7 @@ vector<string> getMacroArgs(vector<string> &lexed, const int &i)
             out.push_back(cur);
             cur = "";
         }
-        else
+        else if (lexed[i].size() < 3 || lexed[i].substr(0, 2) != "//")
         {
             cur += lexed[i];
         }
