@@ -114,7 +114,7 @@ Type getType(const string &Name);
 
 map<string, Type> getArgs(Type &type);
 
-void debugPrint(sequence &What, int spaces = 0);
+void debugPrint(const sequence &What, int spaces = 0);
 
 // a.b() -> b(a), a.b().c().d.e() -> e(c(b(a)).d), etc
 vector<string> fixMethodCall(const vector<string> &What);

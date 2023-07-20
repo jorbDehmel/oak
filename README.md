@@ -1,8 +1,14 @@
 # The Oak Programming Language README
+
 Jordan Dehmel, jdehmel@outlook.com, github.com/jorbDehmel/oak
 
 ## Overview
-Oak is a modern, Rust-adjacent programming language. It uses near-standard Rust typing, without any form of memory protections. It is analogous to C++ with stronger macro support, modern typing, and integrated package management.
+
+Oak is a modern, Rust-adjacent programming language. It uses near-standard Rust typing, without any form of memory protections. It is analogous to C++ with stronger macro support, modern typing, and integrated package management. It is named Oak because nature imagery is desperately needed in the screen-drunk mind of a programmer.
+
+This file, and indeed this language, is written assuming that you are well-versed in `C++`, with a moderate knowledge of `Rust`. It is not for beginners.
+
+The Oak programming language outlined here bears no relation nor resemblance to the Java prototype of the same name.
 
 ## Compilation, Installation, and Uninstallation
 
@@ -229,7 +235,13 @@ Oak does not have private members.
 
 Oak does not have explicit header files like C / C++, but there is no reason why you could not use a `.oak` file like a `.hpp / .h`. For example, a `.oak` can establish function signatures without explicitly defining them, allowing another `.oak` to define them. This allows easy division of labor, as in `C / C++`. This is obviously vital for any project of scale. Additionally, the translator will detect and prevent circular dependencies, eliminating any analogy to `pragma once`.
 
-## Operator Overloading
+## Memory Safety
+
+The `alloc<t>` and `free<t>` functions are akin to `C++`'s `new` and `delete` keywords, respectively. Alloc requests a memory position on the stack with the size of `t`, and free correspondingly releases that memory. These two functions are only legal in operator alias methods (see below) for memory safety. This means that any data allocated on the heap must be wrapped in a struct. This allows the "parent" variable to fall out of scope, thereby calling its destructor and ensuring some memory safety.
+
+Oak is not very memory safe. It is more so than `C++`, but less than `Rust`. It is the author's opinion that `Rust`'s lifetime and ownership policies create countless issues and programming "walls" that are only worth it in some scenarios. I believe that programmers should hold the responsibility for their own memory safety, rather than a compiler, and that belief is reflected in Oak.
+
+## Operator Overloading / Aliases
 
 Where in `C++` you would write
 
@@ -423,6 +435,10 @@ Oak does not have automatic instantiation of generic functions via argument type
     println<i32>(5);
 }
 ```
+
+## Whitespace
+
+Oak's lexer does not keep track of tabs or newlines, and uses spaces exclusively to delimitate symbols. There is, therefore, no compile-time reason why a newline would ever be necessary. The translator reads all Oak files as a single line. This does NOT mean that you should use poor form!
 
 ## Acorn
 Acorn is the Oak translator, compiler, and linker. Oak is first translated into C++, which is then compiled and linked.

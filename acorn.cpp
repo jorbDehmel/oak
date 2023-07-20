@@ -26,7 +26,7 @@ GPLv3 held by author
 
 using namespace std;
 
-#define VERSION "0.0.0"
+#define VERSION "0.0.1"
 #define LICENSE "GPLv3"
 #define INFO "jdehmel@outlook.com"
 
@@ -49,16 +49,13 @@ string helpText = "Acorn - Oak Standard Translator\n" DASHED_LINE
                   " -t    | --translate | Produce C++ files\n"
                   " -v    | --version   | Show version\n";
 
+// Settings
 bool debug = false;
-
-// Translate -> compile -> link
 bool compile = true;
 bool link = true;
-
-bool pretty;
+bool pretty = false;
 
 set<string> visitedFiles;
-
 set<string> cppSources;
 set<string> objects;
 
@@ -384,10 +381,10 @@ void doFile(const string &From)
         cout << "Dump saved in " << name << "\n";
 
         assert(dump.is_open());
-        dump << "// FAILURE in file '" << From << "'\n//Lexed:\n\n";
+        dump << "// FAILURE in file '" << From << "'\n// Lexed:\n\n";
         for (auto s : lexed)
         {
-            dump << s << ' ';
+            dump << s << '\n';
         }
         dump.close();
 
@@ -401,10 +398,10 @@ void doFile(const string &From)
         cout << "Dump saved in " << name << "\n";
 
         assert(dump.is_open());
-        dump << "// FAILURE in file '" << From << "'\n//Lexed:\n\n";
+        dump << "// FAILURE in file '" << From << "'\n// Lexed:\n\n";
         for (auto s : lexed)
         {
-            dump << s << ' ';
+            dump << s << "\n";
         }
         dump.close();
 
@@ -459,12 +456,24 @@ void prettify(const string &Filename)
             indentation--;
         }
 
+        string tabbing;
         for (int i = 0; i < indentation; i++)
         {
-            out << '\t';
+            tabbing += '\t';
+        }
+        out << tabbing;
+
+        while (curLine.find(" ;") != string::npos)
+        {
+            curLine.replace(curLine.find(" ; "), 3, ";\n" + tabbing);
         }
 
         out << curLine << '\n';
+
+        if (curLine.size() != 0 && (curLine[0] == '#' || curLine[0] == '}'))
+        {
+            out << '\n';
+        }
 
         if (curLine == "{")
         {
@@ -949,7 +958,10 @@ int main(const int argc, const char *argv[])
              << tags::reset;
     }
 
-    cout << "Output file: " << out << '\n';
+    if (debug)
+    {
+        cout << "Output file: " << out << '\n';
+    }
 
     return 0;
 }

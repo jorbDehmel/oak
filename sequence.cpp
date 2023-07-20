@@ -52,7 +52,7 @@ bool compareTypesUntilJoin(Type *A, Type *B)
 
 /////////////////////////////////////////////////////////////////////////
 
-void debugPrint(sequence &What, int spaces)
+void debugPrint(const sequence &What, int spaces)
 {
     for (int i = 0; i < spaces; i++)
     {
@@ -61,6 +61,9 @@ void debugPrint(sequence &What, int spaces)
 
     switch (What.info)
     {
+    case declaration:
+        cout << "declaration:";
+        break;
     case list:
         cout << "list";
         break;
@@ -261,6 +264,24 @@ sequence __createSequence(vector<string> &From, bool templated = false)
                 addSymb(name, toAdd, __createSequence(From));
 
                 // This SHOULD appear during toC.
+                out.info = declaration;
+                out.raw = "";
+                out.type = nullType;
+                out.items.clear();
+
+                // i32 hi;
+                // let hi: i32;
+                // New(hi: ^i32);
+
+                // Full C++: toAdd hi; New(&hi);
+
+                Type type = toType(toAdd);
+
+                out.items.push_back(sequence{nullType, vector<sequence>(), atom, toStrC(&type)});
+                out.items.push_back(sequence{nullType, vector<sequence>(), atom, name});
+                out.items.push_back(sequence{nullType, vector<sequence>(), atom, "; New(&" + name + ")"});
+
+                return out;
             }
         }
         else if (From[0] == "<" || From[0] == "(")
@@ -354,6 +375,9 @@ sequence __createSequence(vector<string> &From, bool templated = false)
     {
         pop_front(From);
 
+        // Save symbol table for later restoration
+        auto oldTable = table;
+
         out.info = code_scope;
 
         // Code scope.
@@ -404,8 +428,42 @@ sequence __createSequence(vector<string> &From, bool templated = false)
         }
 
         // Restore symbol table
-        // table = oldTable;
+        // This copies only newly instantiated functions; No other symbols.
+        multiSymbolTable newTable = oldTable;
+        for (auto p : table)
+        {
+            if (p.second.size() == oldTable[p.first].size())
+            {
+                continue;
+            }
+            else
+            {
+                for (auto s : p.second)
+                {
+                    if (s.type.info == function)
+                    {
+                        bool present = false;
+                        for (auto ss : oldTable[p.first])
+                        {
+                            if (ss.type == s.type)
+                            {
+                                present = true;
+                                break;
+                            }
+                        }
 
+                        if (!present)
+                        {
+                            newTable[p.first].push_back(s);
+                        }
+                    }
+                }
+            }
+        }
+
+        table = newTable;
+
+        // Check if/else validity
         for (int i = 1; i < out.items.size(); i++)
         {
             if (out.items[i].info == keyword && out.items[i].raw == "else")
@@ -462,12 +520,12 @@ sequence __createSequence(vector<string> &From, bool templated = false)
             sm_assert(i > 0, "Missing function name on function call parenthesis.");
             string name = From[i - 1];
 
-            // Part 1: Instantiate templated call
+            // Part 1: Instantiate generic call
             {
                 vector<string> templContents;
                 vector<Type> splitTypes;
 
-                // Get template contents here
+                // Get generic contents here
                 int count = 1;
                 do
                 {
@@ -599,14 +657,14 @@ sequence __createSequence(vector<string> &From, bool templated = false)
                     out.items.clear();
 
                     out.items.push_back(sequence{
-                        nullType,
+                        getReturnType(From[i - 1], s.type),
                         vector<sequence>(),
                         atom,
                         From[i - 1]});
 
                     out.items.push_back(s);
 
-                    // Search for candidate function
+                    // Erase junk
                     for (int k = 0; k < eraseNum; k++)
                     {
                         From.erase(From.begin() + eraseStart);
@@ -785,6 +843,7 @@ string toC(const sequence &What)
 
     switch (What.info)
     {
+    case declaration:
     case code_line:
         // Does NOT append a semicolon!
 

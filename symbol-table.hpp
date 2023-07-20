@@ -39,6 +39,7 @@ enum sequenceInfo
     access,        // a[5];
     atom,          // Anything else; Uses "raw" to specify
     keyword,       // Const, mut, let, etc...
+    declaration,   // bool *what;
 };
 
 struct sequence

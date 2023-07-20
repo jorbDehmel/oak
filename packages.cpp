@@ -78,9 +78,22 @@ void install(const string &What)
             line.erase(0, 3);
         }
 
+        for (int i = 0; i < line.size(); i++)
+        {
+            line[i] = tolower(line[i]);
+        }
+
         if (line == "arch")
         {
             installCommand = "sudo pacman --needed -S ";
+        }
+        else if (line == "ubuntu")
+        {
+            installCommand = "sudo apt-get install ";
+        }
+        else if (line == "fedora")
+        {
+            installCommand = "sudo dnf install ";
         }
     }
 

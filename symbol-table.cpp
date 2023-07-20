@@ -381,11 +381,17 @@ __multiTableSymbol *instantiateTemplate(const string &Name, const vector<Type> &
     {
         if (instantCandidates[i].type == toUse.type)
         {
+            cout << tags::yellow_bold
+                 << "Warning! Generic function "
+                 << Name
+                 << toStr(&toUse.type)
+                 << " has already been instantiated;\n"
+                 << "Repeated instantiation calls are redundant.\n"
+                 << tags::reset;
+
             return &table[Name][i];
         }
     }
-
-    // cout << "Instantiating function " << Name << " with full type " << toStr(&toUse.type) << "\n";
 
     table[Name].push_back(__multiTableSymbol{toUse.seq, toUse.type});
 
