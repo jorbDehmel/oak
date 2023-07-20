@@ -1,0 +1,51 @@
+link!("sdl_interface.o");
+
+let sdl_window: struct
+{
+    width, height: u64,
+}
+
+let sdl_color: struct
+{
+    r, g, b, a: u8,
+}
+
+let New(what: ^sdl_color) -> void
+{
+    what.r = 0;
+    what.g = 0;
+    what.b = 0;
+    what.a = 0;
+}
+
+let New(what: ^sdl_color, r: u8, g: u8, b: u8, a: u8) -> void
+{
+    what.r = r;
+    what.g = g;
+    what.b = b;
+    what.a = a;
+}
+
+let sdl_coord: struct
+{
+    x, y: u64,
+}
+
+let sdl_rect: struct
+{
+    x, y, w, h: u64,
+}
+
+let sdl_sin(x: f64) -> f64;
+let sdl_cos(x: f64) -> f64;
+let sdl_tan(x: f64) -> f64;
+
+let sdl_init() -> void;
+let sdl_quit() -> void;
+
+let show(window: ^sdl_window) -> void;
+let fill(window: ^sdl_window, color: sdl_color) -> void;
+
+let draw_dot(window: ^sdl_window, point: sdl_coord, color: sdl_color) -> void;
+let draw_line(window: ^sdl_window, point_a: sdl_coord, point_b: sdl_coord, color: sdl_color) -> void;
+let draw_rect(window: ^sdl_window, rect: sdl_rect, color: sdl_color) -> void;

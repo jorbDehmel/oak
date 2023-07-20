@@ -38,11 +38,6 @@ void print(str what)
     return;
 }
 
-/*
-let print(what: i32) -> void;
-let print(what: f64) -> void;
-*/
-
 void print(i32 what)
 {
     cout << what;

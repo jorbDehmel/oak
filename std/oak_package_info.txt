@@ -1,3 +1,6 @@
+// Jordan Dehmel, 2023
+// github.com/jorbDehmel/oak
+
 NAME = "std"
 VERSION = "0.0.1"
 LICENSE = "GPLv3"

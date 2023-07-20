@@ -140,6 +140,13 @@ packageInfo loadPackageInfo(const string &Filepath)
             break;
         }
 
+        // Commenting
+        if (name.size() >= 2 && name.substr(0, 2) == "//")
+        {
+            getline(inp, garbage);
+            continue;
+        }
+
         inp >> garbage;
         pm_assert(garbage == "=", "Malformed package info file.");
         if (inp.eof())
@@ -166,6 +173,12 @@ packageInfo loadPackageInfo(const string &Filepath)
         }
 
         cleanString(content);
+
+        // Adds case resiliency
+        for (int i = 0; i < name.size(); i++)
+        {
+            name[i] = toupper(name[i]);
+        }
 
         if (name == "NAME")
         {

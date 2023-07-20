@@ -34,13 +34,9 @@ i32 s_to_i(str what)
     bool negative = false;
     i32 out = 0;
 
-    cout << "Calling upon '" << what << "'\n";
-
     for (int i = 0; what[i] != '\0'; i++)
     {
         out *= 10;
-
-        cout << i << '\t' << what[i] << '\t' << (int)what[i] << '\t' << out << '\n';
 
         switch (what[i])
         {
@@ -89,6 +85,7 @@ i32 s_to_i(str what)
     }
 }
 
+// Cheater's way out tbh
 bool s_to_b(str what)
 {
     return (what[0] == 't') || (what[0] == 'T');
