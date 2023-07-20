@@ -287,6 +287,7 @@ void downloadPackage(const string &URLArg, const bool &Reinstall)
     // Clone package using git
     try
     {
+        // URL
         sm_system(CLONE_COMMAND + URL + " " + tempFolderName, "Git resolution failure; Likely an invalid source.");
     }
     catch (package_error &e)
@@ -296,7 +297,45 @@ void downloadPackage(const string &URLArg, const bool &Reinstall)
              << "Attempting git-less copy...\n"
              << tags::reset;
 
-        sm_system("cp -r " + URL + " " + tempFolderName, "Local copy failed; Is neither URL nor filepath.");
+        try
+        {
+            // Local file
+            sm_system("cp -r " + URL + " " + tempFolderName, "Local copy failed; Is neither URL nor filepath.");
+        }
+        catch (...)
+        {
+            // Package from packages_list.txt
+
+            // Load packages_list.txt
+            ifstream packagesList(PACKAGES_LIST_PATH);
+            pm_assert(packagesList.is_open(), URL + " is not a valid package URL or name and failed to load packages list.");
+
+            string line;
+            while (getline(packagesList, line))
+            {
+                if (line.size() >= 2 && line.substr(0, 2) == "//")
+                {
+                    continue;
+                }
+                else
+                {
+                    pm_assert(line.find(' ') != string::npos, "Malformed packages_list.txt");
+
+                    // name source
+                    string name, source;
+                    auto breakPoint = line.find(' ');
+
+                    name = line.substr(0, breakPoint + 1);
+                    source = line.substr(breakPoint);
+
+                    if (name == URL)
+                    {
+                        downloadPackage(source, Reinstall);
+                        return;
+                    }
+                }
+            }
+        }
     }
 
     try

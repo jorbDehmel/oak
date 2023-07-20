@@ -14,6 +14,7 @@ install: bin/acorn.out std_oak_header.hpp
 	sudo mkdir -p /usr/include/oak
 	
 	sudo cp std_oak_header.hpp /usr/include/oak
+	sudo cp packages_list.txt /usr/include/oak
 	sudo cp -r std /usr/include/oak
 	sudo $(MAKE) -C /usr/include/oak/std
 	sudo rm -f /usr/include/oak/std/*.cpp

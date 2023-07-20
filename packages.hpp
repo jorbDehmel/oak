@@ -24,6 +24,8 @@ using namespace std;
 #define PACKAGE_INCLUDE_PATH "/usr/include/oak/"
 #define INFO_FILE "oak_package_info.txt"
 
+#define PACKAGES_LIST_PATH "/usr/include/oak/packages_list.txt"
+
 #define CLONE_COMMAND "git clone "
 
 struct packageInfo

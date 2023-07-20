@@ -790,6 +790,11 @@ sequence __createSequence(vector<string> &From, bool templated = false)
                         {
                             if (getReturnType(candidates[k].type) != retType)
                             {
+                                for (auto candidate : candidates)
+                                {
+                                    cout << "Candidate '" << cur << "' has type " << toStr(&candidate.type) << "\n";
+                                }
+
                                 throw runtime_error("Ambiguous return type; Cannot deduce symbol type.");
                             }
                         }
@@ -810,7 +815,7 @@ sequence __createSequence(vector<string> &From, bool templated = false)
         {
             out.items.push_back(sequence{nullType, vector<sequence>(), atom, cur});
         }
-    }
+    } // End iteration
 
     From.clear();
 

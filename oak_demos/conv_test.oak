@@ -2,5 +2,9 @@ package!("std");
 
 let main(argc: i32, argv: ^str) -> i32
 {
-    s_to_i("23")
+    let i: i32;
+    (i = s_to_i("23"));
+    print(i);
+
+    0
 }

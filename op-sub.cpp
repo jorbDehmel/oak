@@ -8,33 +8,6 @@ GPLv3 held by author
 
 #include "op-sub.hpp"
 
-/*
-Order of operations for computers:
-
-Brackets
-Comparison
-And / Or / Negation
-Mult / Div / Mod
-Add / Sub
-Bitwise
-*/
-
-/*
-Without ordered operations:
-
-1 < 2 && 3 > 4
-Less(1, 2) && 3 > 4
-And(Less(1, 2), 3) > 4
-Less(And(Less(1, 2), 3), 4)
-(1 < 2 && 3) > 4
-
-With ordered operations:
-
-1 < 2 && 3 > 4
-Less(1, 2) && Great(3, 4)
-And(Less(1, 2), Great(3, 4))
-*/
-
 void doSub(vector<string> &From, const int &i, const string &SubName, const bool &IsConst)
 {
     // Everything before, after, and what to replace all this with
@@ -87,7 +60,7 @@ void parenSub(vector<string> &From)
         return;
     }
 
-    // Level 0: Parenthesis and commas
+    // Pre-level A: Parenthesis and commas
     for (int i = 0; i < From.size(); i++)
     {
         string cur = From[i];
