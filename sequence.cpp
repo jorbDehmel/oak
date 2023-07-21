@@ -96,7 +96,7 @@ void debugPrint(const sequence &What, int spaces)
         break;
     }
 
-    cout << " w/ raw " << What.raw << ":\n";
+    cout << " w/ raw " << What.raw << ", type " << toStr(&What.type) << ":\n";
     for (auto s : What.items)
     {
         debugPrint(s, spaces + 1);
@@ -153,12 +153,9 @@ sequence __createSequence(vector<string> &From, bool templated = false)
             }
 
             pop_front(From);
-        } while (count != 0);
+        } while (!From.empty() && count != 0);
 
-        string name = "";
         int num = 1;
-        Type type;
-
         for (int j = 0; j < contents.size(); j++)
         {
             if (contents[j] == ",")
@@ -172,13 +169,10 @@ sequence __createSequence(vector<string> &From, bool templated = false)
 
                 break;
             }
-            else
-            {
-                name += contents[j];
-            }
         }
 
-        sequence temp = createSequence(contents);
+        sequence temp = __createSequence(contents);
+        string name = toC(temp);
 
         Type tempType = temp.type;
         sm_assert(tempType.info == pointer, "'alloc!' returns a pointer.");
@@ -194,7 +188,7 @@ sequence __createSequence(vector<string> &From, bool templated = false)
 
         int count = 0;
         pop_front(From);
-        string name;
+        vector<string> contents;
 
         do
         {
@@ -209,10 +203,18 @@ sequence __createSequence(vector<string> &From, bool templated = false)
 
             if (!(count == 1 && From[0] == "(") && !(count == 0 && From[0] == ")"))
             {
-                name += From[0];
-                pop_front(From);
+                contents.push_back(From[0]);
             }
-        } while (count != 0);
+
+            pop_front(From);
+        } while (!From.empty() && count != 0);
+
+        sequence temp = __createSequence(contents);
+        string name = toC(temp);
+
+        Type tempType = temp.type;
+        sm_assert(tempType.info == pointer, "'alloc!' returns a pointer.");
+        temp.type = *tempType.next;
 
         out = getFreeSequence(name, false);
 
@@ -224,7 +226,7 @@ sequence __createSequence(vector<string> &From, bool templated = false)
 
         int count = 0;
         pop_front(From);
-        string name;
+        vector<string> contents;
 
         do
         {
@@ -239,12 +241,22 @@ sequence __createSequence(vector<string> &From, bool templated = false)
 
             if (!(count == 1 && From[0] == "(") && !(count == 0 && From[0] == ")"))
             {
-                name += From[0];
-                pop_front(From);
+                contents.push_back(From[0]);
             }
-        } while (count != 0);
+
+            pop_front(From);
+        } while (!From.empty() && count != 0);
+
+        sequence temp = __createSequence(contents);
+        string name = toC(temp);
+
+        Type tempType = temp.type;
+        sm_assert(tempType.info == pointer, "'alloc!' returns a pointer.");
+        temp.type = *tempType.next;
 
         out = getFreeSequence(name, true);
+
+        return out;
     }
 
     // Misc keycharacters
@@ -255,12 +267,6 @@ sequence __createSequence(vector<string> &From, bool templated = false)
         toReturn.type = nullType;
 
         return toReturn;
-    }
-    else if (From[0] == ".")
-    {
-        out.info = keyword;
-        out.raw = From[0];
-        return out;
     }
 
     // Referencing and dereferencing operators
@@ -336,7 +342,7 @@ sequence __createSequence(vector<string> &From, bool templated = false)
 
         pop_front(From);
 
-        out.items[0] = __createSequence(From);
+        out.items.push_back(__createSequence(From));
 
         sm_assert(!From.empty() && From[0] == "catch", "Try block must be followed by catch block");
 
@@ -355,7 +361,7 @@ sequence __createSequence(vector<string> &From, bool templated = false)
 
         pop_front(From);
 
-        out.items[0] = __createSequence(From);
+        out.items.push_back(__createSequence(From));
 
         return out;
     }
@@ -396,6 +402,7 @@ sequence __createSequence(vector<string> &From, bool templated = false)
             else
             {
                 // Non-struct definition; Local var, not function
+                // NOTE: let a: i32 = 5; is NO LONGER supported!
 
                 // Scrape entire definition for this
                 vector<string> toAdd = {
@@ -404,25 +411,22 @@ sequence __createSequence(vector<string> &From, bool templated = false)
                     ":",
                 };
 
-                while (!From.empty() && From.front() != ";" && From.front() != "=")
+                while (!From.empty() && From.front() != ";")
                 {
                     toAdd.push_back(From.front());
                     pop_front(From);
-                }
 
-                addSymb(name, toAdd, __createSequence(From));
+                    if (!From.empty() && From.front() == "=")
+                    {
+                        throw sequencing_error("Instantiate / assignment combo is not supported.");
+                    }
+                }
 
                 // This SHOULD appear during toC.
                 out.info = declaration;
                 out.raw = "";
                 out.type = nullType;
                 out.items.clear();
-
-                // i32 hi;
-                // let hi: i32;
-                // New(hi: ^i32);
-
-                // Full C++: toAdd hi; New(&hi);
 
                 Type type = toType(toAdd);
 
@@ -648,21 +652,11 @@ sequence __createSequence(vector<string> &From, bool templated = false)
 
         return out;
     }
-    else if (From[0] == "[")
-    {
-        sm_assert(false, "UNIMPLEMENTED");
-
-        // List
-
-        return out;
-    }
 
     // Non-special case; code line.
     // Function calls may occur within.
 
-    Type curType;
     int i = 0;
-
     for (i = 0; i < From.size(); i++)
     {
         string cur = From[i];
@@ -676,7 +670,38 @@ sequence __createSequence(vector<string> &From, bool templated = false)
         }
         else if (cur == ".")
         {
+            // Note: Prior to processing, methods should have been scanned
+            // out and replaced with their C version. Thus, "." should only
+            // be struct member access.
+
             sm_assert(i > 0 && specials.count(From[i - 1]) == 0, "'" + From[i - 1] + "' is not a struct.");
+            sm_assert(i + 1 < From.size(), "Access operator must not be end of file.");
+
+            out.info = code_line;
+            out.type = getMemberType(getType(From[i - 1]), From[i + 1]);
+
+            out.items.clear();
+            out.items.push_back(sequence{nullType, vector<sequence>(), atom, From[i - 1]});
+
+            if (getType(From[i - 1]).info == pointer)
+            {
+                out.items.push_back(sequence{nullType, vector<sequence>(), atom, "->"});
+            }
+            else
+            {
+                out.items.push_back(sequence{nullType, vector<sequence>(), atom, "."});
+            }
+
+            out.items.push_back(sequence{nullType, vector<sequence>(), atom, From[i + 1]});
+
+            // Erase old (very important!!!)
+
+            for (int j = 0; j < 3; j++)
+            {
+                From.erase(From.begin() + (i - 1));
+            }
+
+            return out;
         }
         else if (cur == ",")
         {
@@ -870,11 +895,6 @@ sequence __createSequence(vector<string> &From, bool templated = false)
                         From.erase(From.begin() + eraseStart);
                     }
                 }
-                else
-                {
-                    // Method; Fix
-                    sm_assert(false, "UNIMPLEMENTED");
-                }
             }
             else
             {
@@ -1061,7 +1081,7 @@ string toC(const sequence &What)
         {
             out += toC(What.items[i]);
 
-            if (i + 1 != What.items.size() && out.back() != '.')
+            if (i + 1 != What.items.size())
             {
                 out += " ";
             }
@@ -1295,6 +1315,12 @@ Type getMemberType(const Type &Base, const string &Name)
     string structName = "";
 
     Type temp(Base);
+    while (temp.info == pointer)
+    {
+        Type tempTemp = *temp.next;
+        temp = tempTemp;
+    }
+
     int count = 0;
     for (Type *cur = &temp; cur != nullptr; cur = cur->next)
     {
@@ -1306,7 +1332,8 @@ Type getMemberType(const Type &Base, const string &Name)
     }
     sm_assert(structName != "", "Could not get struct name from malformed type.");
 
-    sm_assert(structData[structName].members.count(Name) != 0, "struct " + structName + " has no member " + Name + ".");
+    sm_assert(structData.count(structName) != 0, "struct '" + structName + "' does not exist.");
+    sm_assert(structData[structName].members.count(Name) != 0, "struct '" + structName + "' has no member '" + Name + "'.");
 
     return structData[structName].members[Name];
 }

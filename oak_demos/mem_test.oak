@@ -7,13 +7,21 @@ let test: struct
 
 let New(self: ^test) -> void
 {
-    let hi: ^i32;
+    print("Alloc called\n");
 
-    alloc!(hi, 10);
-    free!(hi);
+    alloc!(self.data, 5);
+}
+
+let Del(self: ^test) -> void
+{
+    print("Free called\n");
+
+    free_arr!(self.data);
 }
 
 let main() -> i32
 {
+    let a: test;
+
     0
 }

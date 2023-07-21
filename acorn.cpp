@@ -344,7 +344,7 @@ void doFile(const string &From)
                     if (lexed[i] != "!" && lexed[i].back() == '!')
                     {
                         // Special cases; Memory macros
-                        if (lexed[i] == "alloc!" || lexed[i] == "free!")
+                        if (lexed[i] == "alloc!" || lexed[i] == "free!" || lexed[i] == "free_arr!")
                         {
                             continue;
                         }
@@ -500,7 +500,7 @@ int main(const int argc, const char *argv[])
     vector<string> files;
     string out = "a.out";
     bool noSave = false;
-    bool eraseTemp = false;
+    bool eraseTemp = true;
 
     try
     {
@@ -633,6 +633,7 @@ int main(const int argc, const char *argv[])
                             break;
                         case 'e':
                             system("rm -rf .oak_build");
+                            eraseTemp = !eraseTemp;
                             break;
                         case 'd':
                             debug = !debug;
