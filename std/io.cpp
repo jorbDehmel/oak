@@ -8,29 +8,10 @@ provided during linking for cross-language
 compilation.
 */
 
+#include "std_oak_header.hpp"
+
 #include <iostream>
 using namespace std;
-
-// Signed integer types
-typedef char i8;
-typedef short int i16;
-typedef int i32;
-typedef long int i64;
-typedef long long int i128;
-
-// Unsigned integer types
-typedef unsigned char u8;
-typedef unsigned short int u16;
-typedef unsigned int u32;
-typedef unsigned long int u64;
-typedef unsigned long long int u128;
-
-// Floating point types
-typedef float f32;
-typedef double f64;
-typedef long double f128;
-
-typedef const char *const str;
 
 void print(str what)
 {

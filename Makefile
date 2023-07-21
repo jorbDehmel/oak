@@ -2,20 +2,22 @@ CC := clang++ -pedantic -Wall
 OBJS := build/lexer.o build/symbol-table.o \
 	build/type-builder.o build/reconstruct.o \
 	build/macros.o build/sequence.o \
-	build/packages.o build/sizer.o build/op-sub.o
+	build/packages.o build/sizer.o build/op-sub.o \
+	build/mem.o
 
 HEADS := lexer.hpp reconstruct.hpp symbol-table.hpp \
 	type-builder.hpp macros.hpp tags.hpp \
 	sequence.hpp packages.hpp sizer.hpp op-sub.hpp
 
-all: bin/acorn.out
+all: bin/acorn.out bin/mem-test.out
 
 install: bin/acorn.out std_oak_header.hpp
 	sudo mkdir -p /usr/include/oak
-	
-	sudo cp std_oak_header.hpp /usr/include/oak
+
+	sudo cp std_oak_header.hpp /usr/include
 	sudo cp packages_list.txt /usr/include/oak
 	sudo cp -r std /usr/include/oak
+
 	sudo $(MAKE) -C /usr/include/oak/std
 	sudo rm -f /usr/include/oak/std/*.cpp
 	sudo rm -f /usr/include/oak/std/Makefile
@@ -23,7 +25,7 @@ install: bin/acorn.out std_oak_header.hpp
 	sudo cp bin/acorn.out /usr/bin/acorn
 
 uninstall:
-	sudo rm -rf /usr/bin/acorn /usr/include/oak
+	sudo rm -rf /usr/bin/acorn /usr/include/oak /usr/include/std_oak_header.hpp
 
 build/%.o:	%.cpp $(HEADS)
 	mkdir -p build

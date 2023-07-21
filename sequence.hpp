@@ -39,6 +39,7 @@ non-sequential parser.
 #include <cmath>
 #include <map>
 
+#include "mem.hpp"
 #include "type-builder.hpp"
 #include "symbol-table.hpp"
 #include "reconstruct.hpp"

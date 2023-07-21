@@ -1,10 +1,17 @@
+
+[comment]: # ( As of July 20, 2023, the project is about 5,559 lines of code )
+
 # The Oak Programming Language README
 
 Jordan Dehmel, jdehmel@outlook.com, github.com/jorbDehmel/oak
 
+----------------------------------------------------------------------
+
 ## Overview
 
-Oak is a modern, Rust-adjacent programming language. It uses near-standard Rust typing, without any form of memory protections. It is analogous to C++ with stronger macro support, modern typing, and integrated package management. It is named Oak because nature imagery is desperately needed in the screen-drunk mind of a programmer.
+Oak is a modern, Rust-adjacent programming language. It uses near-standard Rust typing, without any form of memory protections. It is analogous to C++ with stronger macro support, modern typing, and integrated package management. It is named Oak because nature imagery is desperately needed in the mind of a programmer.
+
+Oak is, as of now, a translated language; Oak code is translated via the `acorn` command (see later) into `C++`. `acorn` can also compile Oak into object code, or link it to create executables.
 
 This file, and indeed this language, is written assuming that you are well-versed in `C++`, with a moderate knowledge of `Rust`. It is not for beginners.
 
@@ -229,7 +236,7 @@ let linked_list<T>.append(self: *linked_list<T>, what: T) -> void
 }
 ```
 
-Oak does not have private members.
+Oak does not have private members, nor does it have inheritance. Eventually, traits will be implemented as in Rust.
 
 ## Division Of Labor
 
@@ -240,6 +247,10 @@ Oak does not have explicit header files like C / C++, but there is no reason why
 The `alloc<t>` and `free<t>` functions are akin to `C++`'s `new` and `delete` keywords, respectively. Alloc requests a memory position on the stack with the size of `t`, and free correspondingly releases that memory. These two functions are only legal in operator alias methods (see below) for memory safety. This means that any data allocated on the heap must be wrapped in a struct. This allows the "parent" variable to fall out of scope, thereby calling its destructor and ensuring some memory safety.
 
 Oak is not very memory safe. It is more so than `C++`, but less than `Rust`. It is the author's opinion that `Rust`'s lifetime and ownership policies create countless issues and programming "walls" that are only worth it in some scenarios. I believe that programmers should hold the responsibility for their own memory safety, rather than a compiler, and that belief is reflected in Oak.
+
+## Interchangeability With C++
+
+The Acorn compiler will have some automated `C++`-to-`Oak` translation capabilities. For instance, using a `include!` macro statement on a `C`-based file will translate the function signatures within into Oak notation and add them to the symbol table. This allows the merging of the two languages to take place later, with object files. Since `Oak` is translated into `C++`, this is exceedingly simple. You can also define only the function signatures in `Oak` and define them in `C++`, as is done in the Oak `std` (standard) package.
 
 ## Operator Overloading / Aliases
 

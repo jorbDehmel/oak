@@ -1,35 +1,10 @@
 /*
 Jordan Dehmel, 2023
-
-Linkage file for the Oak standard
-"header" package.
+Linkage file for the Oak standard package.
 */
 
 include!(
     "/usr/include/oak/std/std_io.oak",
     "/usr/include/oak/std/std_conv.oak",
-    "/usr/include/oak/std/std_ops.oak",
-    "/usr/include/oak/std/std_mem.oak"
+    "/usr/include/oak/std/std_ops.oak"
 );
-
-/*
-let forl!(argc: i32, argv: ^str) -> i32
-{
-    include("/usr/include/oak/std/std_io.oak");
-
-    print(argv[1]);
-    print(";\n");
-
-    print("while (");
-    print(argv[2]);
-    print(")\n{\n");
-
-    print(argv[4]);
-    print("\n");
-    print(argv[5]);
-
-    print("}\n");
-
-    0
-}
-*/

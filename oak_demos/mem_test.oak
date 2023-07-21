@@ -1,0 +1,16 @@
+package!("std");
+
+let test: struct
+{
+    data: ^i32,
+}
+
+let New(self: ^test) -> void
+{
+    alloc!(self.data, 10);
+}
+
+let main() -> i32
+{
+    0
+}

@@ -343,6 +343,12 @@ void doFile(const string &From)
                     // We can assume that no macro definitions remain
                     if (lexed[i] != "!" && lexed[i].back() == '!')
                     {
+                        // Special cases; Memory macros
+                        if (lexed[i] == "alloc!" || lexed[i] == "free!")
+                        {
+                            continue;
+                        }
+
                         string name = lexed[i];
                         vector<string> args = getMacroArgs(lexed, i);
                         callMacro(name, args, debug);

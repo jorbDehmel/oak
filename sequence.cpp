@@ -8,6 +8,9 @@ GPLv3 held by author
 
 #include "sequence.hpp"
 
+// Activates "dirty" mode, where mem alloc and free are allowed
+bool insideMethod = false;
+
 unsigned long long int curLine = 1;
 string curFile = "";
 
@@ -108,12 +111,12 @@ sequence __createSequence(vector<string> &From, bool templated = false)
     sequence out;
     out.info = code_line;
 
+    // Misc. Invalid cases (common)
     if (From.size() == 0)
     {
         return out;
     }
-
-    if (From[0].size() > 11 && From[0].substr(0, 11) == "//__LINE__=")
+    else if (From[0].size() > 11 && From[0].substr(0, 11) == "//__LINE__=")
     {
         // Line update special symbol
         string newLineNum = From[0].substr(11);
@@ -123,7 +126,125 @@ sequence __createSequence(vector<string> &From, bool templated = false)
         pop_front(From);
         return __createSequence(From);
     }
-    if (From[0] == ";")
+
+    // Memory Keywords
+    else if (From[0] == "alloc!")
+    {
+        sm_assert(insideMethod, "Memory cannot be allocated outside of an operator-alias method.");
+
+        int count = 0;
+        pop_front(From);
+        vector<string> contents;
+
+        do
+        {
+            if (From[0] == "(")
+            {
+                count++;
+            }
+            else if (From[0] == ")")
+            {
+                count--;
+            }
+
+            if (!(count == 1 && From[0] == "(") && !(count == 0 && From[0] == ")"))
+            {
+                contents.push_back(From[0]);
+            }
+
+            pop_front(From);
+        } while (count != 0);
+
+        string name = "";
+        int num = 1;
+        Type type;
+
+        for (int j = 0; j < contents.size(); j++)
+        {
+            if (contents[j] == ",")
+            {
+                num = stoi(contents[j + 1]);
+
+                while (j + 1 < contents.size())
+                {
+                    contents.erase(contents.begin() + (j + 1));
+                }
+
+                break;
+            }
+            else
+            {
+                name += contents[j];
+            }
+        }
+
+        sequence temp = createSequence(contents);
+
+        out = getAllocSequence(temp.type, name, num);
+
+        return out;
+    }
+    else if (From[0] == "free!")
+    {
+        sm_assert(insideMethod, "Memory cannot be deleted outside of an operator-alias method.");
+
+        int count = 0;
+        pop_front(From);
+        string name;
+
+        do
+        {
+            if (From[0] == "(")
+            {
+                count++;
+            }
+            else if (From[0] == ")")
+            {
+                count--;
+            }
+
+            if (!(count == 1 && From[0] == "(") && !(count == 0 && From[0] == ")"))
+            {
+                name += From[0];
+                pop_front(From);
+            }
+        } while (count != 0);
+
+        out = getFreeSequence(name, false);
+
+        return out;
+    }
+    else if (From[0] == "free_arr!")
+    {
+        sm_assert(insideMethod, "Memory cannot be deleted outside of an operator-alias method.");
+
+        int count = 0;
+        pop_front(From);
+        string name;
+
+        do
+        {
+            if (From[0] == "(")
+            {
+                count++;
+            }
+            else if (From[0] == ")")
+            {
+                count--;
+            }
+
+            if (!(count == 1 && From[0] == "(") && !(count == 0 && From[0] == ")"))
+            {
+                name += From[0];
+                pop_front(From);
+            }
+        } while (count != 0);
+
+        out = getFreeSequence(name, true);
+    }
+
+    // Misc keycharacters
+    else if (From[0] == ";")
     {
         pop_front(From);
         auto toReturn = __createSequence(From);
@@ -137,6 +258,8 @@ sequence __createSequence(vector<string> &From, bool templated = false)
         out.raw = From[0];
         return out;
     }
+
+    // Keywords
     else if (From[0] == "for")
     {
         // Takes a for_triple and a code scope / code line
@@ -307,6 +430,19 @@ sequence __createSequence(vector<string> &From, bool templated = false)
                 table[p.first].push_back(__multiTableSymbol{sequence(), p.second});
             }
 
+            bool isMethod = false;
+            for (char c : name)
+            {
+                if ('A' <= c && c <= 'Z')
+                {
+                    isMethod = true;
+                    break;
+                }
+            }
+
+            bool oldSafeness = insideMethod;
+            insideMethod = isMethod;
+
             // Insert symbol
             if (From.front() == "{")
             {
@@ -316,6 +452,8 @@ sequence __createSequence(vector<string> &From, bool templated = false)
             {
                 addSymb(name, toAdd, sequence{});
             }
+
+            insideMethod = oldSafeness;
 
             for (pair<string, Type> p : argsWithType)
             {
@@ -584,7 +722,22 @@ sequence __createSequence(vector<string> &From, bool templated = false)
                 pop_front(contents);
 
                 // Function
+                bool isMethod = false;
+                for (char c : name)
+                {
+                    if ('A' <= c && c <= 'Z')
+                    {
+                        isMethod = true;
+                        break;
+                    }
+                }
+
+                bool oldSafeness = insideMethod;
+                insideMethod = isMethod;
+
                 sequence s = __createSequence(contents, true);
+
+                insideMethod = oldSafeness;
 
                 out.info = function_call;
                 out.items.clear();
@@ -651,16 +804,33 @@ sequence __createSequence(vector<string> &From, bool templated = false)
                     // Function
                     sm_assert(i > 0, "Missing function name on function call parenthesis.");
 
+                    string name = From[i - 1];
+
+                    bool isMethod = false;
+                    for (char c : name)
+                    {
+                        if ('A' <= c && c <= 'Z')
+                        {
+                            isMethod = true;
+                            break;
+                        }
+                    }
+
+                    bool oldSafeness = insideMethod;
+                    insideMethod = isMethod;
+
                     sequence s = __createSequence(contents);
+
+                    insideMethod = oldSafeness;
 
                     out.info = function_call;
                     out.items.clear();
 
                     out.items.push_back(sequence{
-                        getReturnType(From[i - 1], s.type),
+                        getReturnType(name, s.type),
                         vector<sequence>(),
                         atom,
-                        From[i - 1]});
+                        name});
 
                     out.items.push_back(s);
 
