@@ -180,6 +180,10 @@ sequence __createSequence(vector<string> &From, bool templated = false)
 
         sequence temp = createSequence(contents);
 
+        Type tempType = temp.type;
+        sm_assert(tempType.info == pointer, "'alloc!' returns a pointer.");
+        temp.type = *tempType.next;
+
         out = getAllocSequence(temp.type, name, num);
 
         return out;
@@ -257,6 +261,28 @@ sequence __createSequence(vector<string> &From, bool templated = false)
         out.info = keyword;
         out.raw = From[0];
         return out;
+    }
+
+    // Referencing and dereferencing operators
+    else if (From[0] == "^")
+    {
+        pop_front(From);
+        auto toReturn = __createSequence(From);
+        sm_assert(toReturn.type.info == pointer, "Cannot dereference non-pointer.");
+
+        Type temp = *toReturn.type.next;
+        toReturn.type = temp;
+
+        return toReturn;
+    }
+    else if (From[0] == "@")
+    {
+        pop_front(From);
+        auto toReturn = __createSequence(From);
+
+        toReturn.type.prepend(pointer);
+
+        return toReturn;
     }
 
     // Keywords
@@ -402,7 +428,11 @@ sequence __createSequence(vector<string> &From, bool templated = false)
 
                 out.items.push_back(sequence{nullType, vector<sequence>(), atom, toStrC(&type)});
                 out.items.push_back(sequence{nullType, vector<sequence>(), atom, name});
-                out.items.push_back(sequence{nullType, vector<sequence>(), atom, "; New(&" + name + ")"});
+
+                if (type.info != pointer)
+                {
+                    out.items.push_back(sequence{nullType, vector<sequence>(), atom, "; New(&" + name + ")"});
+                }
 
                 return out;
             }

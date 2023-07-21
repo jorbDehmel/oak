@@ -7,7 +7,10 @@ let test: struct
 
 let New(self: ^test) -> void
 {
-    alloc!(self.data, 10);
+    let hi: ^i32;
+
+    alloc!(hi, 10);
+    free!(hi);
 }
 
 let main() -> i32

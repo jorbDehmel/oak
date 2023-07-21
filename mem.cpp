@@ -1,6 +1,6 @@
 #include "mem.hpp"
 
-sequence getAllocSequence(const Type &type, const string &name, const int &num)
+sequence getAllocSequence(Type &type, const string &name, const int &num)
 {
     // Assumes that name is a pointer to type which already exists in scope
     // declarations are printed verbatim during reconstruction; ergo...
@@ -10,7 +10,7 @@ sequence getAllocSequence(const Type &type, const string &name, const int &num)
     out.type = nullType;
     out.items.clear();
 
-    vector<string> toAdd = {name, "=", "new", toStr(&type), "[", to_string(num), "]"};
+    vector<string> toAdd = {name, "=", "new", toStrC(&type), "[", to_string(num), "]"};
     for (auto s : toAdd)
     {
         out.items.push_back(sequence{nullType, vector<sequence>(), atom, s});

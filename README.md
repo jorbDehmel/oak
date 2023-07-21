@@ -217,22 +217,19 @@ In Oak, you can define new data structures as structs, and define any methods up
 
 ```
 // Alloc is defined in std's std_mem.oak
-package!(std);
+package!("std");
 
-let linked_list<T>: struct
+let linked_list<t>: struct
 {
-    data: T,
-    next: ^linked_list<T>,
+    data: t,
+    next: ^linked_list<t>,
 }
 
-let linked_list<T>.append(self: *linked_list<T>, what: T) -> void
+let linked_list<t>.append(self: *linked_list<t>, what: t) -> void
 {
     // Alloc is equivalent to C++'s new keyword
-    alloc<linked_list<T>>(next);
-
+    alloc!(next);
     next.data = what;
-
-    void
 }
 ```
 
@@ -242,11 +239,43 @@ Oak does not have private members, nor does it have inheritance. Eventually, tra
 
 Oak does not have explicit header files like C / C++, but there is no reason why you could not use a `.oak` file like a `.hpp / .h`. For example, a `.oak` can establish function signatures without explicitly defining them, allowing another `.oak` to define them. This allows easy division of labor, as in `C / C++`. This is obviously vital for any project of scale. Additionally, the translator will detect and prevent circular dependencies, eliminating any analogy to `pragma once`.
 
-## Memory Safety
+## Memory Safety and Heap Memory Allocation
 
-The `alloc<t>` and `free<t>` functions are akin to `C++`'s `new` and `delete` keywords, respectively. Alloc requests a memory position on the stack with the size of `t`, and free correspondingly releases that memory. These two functions are only legal in operator alias methods (see below) for memory safety. This means that any data allocated on the heap must be wrapped in a struct. This allows the "parent" variable to fall out of scope, thereby calling its destructor and ensuring some memory safety.
+The `alloc!` and `free!` functions are akin to `C++`'s `new` and `delete` keywords, respectively. Alloc requests a memory position on the heap with the size of `t`, and free correspondingly releases that memory. These two functions are only legal in operator alias methods (see below) for memory safety. This means that any data allocated on the heap must be wrapped in a struct. This allows the "parent" variable to fall out of scope, thereby calling its destructor and ensuring some memory safety.
 
 Oak is not very memory safe. It is more so than `C++`, but less than `Rust`. It is the author's opinion that `Rust`'s lifetime and ownership policies create countless issues and programming "walls" that are only worth it in some scenarios. I believe that programmers should hold the responsibility for their own memory safety, rather than a compiler, and that belief is reflected in Oak.
+
+Example of `alloc!`, `free!`, and `free_arr!`:
+
+```
+let New<t>(self: ^node<t>) -> void
+{
+    // Legal call to alloc!
+
+    // Allocate a single instance on the heap
+    alloc!(self.data);
+    free!(self.data);
+
+    // Allocate an array of size 5 on the heap
+    alloc!(self.data, 5);
+
+    // Free a dynamically allocated array
+    free_arr!(self.data);
+}
+
+let Del<t>(self: ^node<t>) -> void
+{
+    free!(self.data);
+}
+
+let main() -> i32
+{
+    // ILLEGAL CALL to alloc!
+    
+    let i: ^bool;
+    alloc!(i);
+}
+```
 
 ## Interchangeability With C++
 
