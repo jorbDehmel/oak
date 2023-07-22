@@ -354,6 +354,12 @@ void downloadPackage(const string &URLArg, const bool &Reinstall)
              << info << '\n'
              << tags::reset;
 
+        // Ensure valid formatting
+        for (char c : info.name)
+        {
+            pm_assert(!('A' <= c && c <= 'Z'), "Cannot install package with illegal name.");
+        }
+
         // Prepare destination
         string destFolderName = PACKAGE_INCLUDE_PATH + info.name;
         sm_system("sudo rm -rf " + destFolderName, "Failed to clear old package files.");

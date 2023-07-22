@@ -382,36 +382,18 @@ void doFile(const string &From)
              << tags::reset;
 
         string name = "oak_dump_" + purifyStr(From) + ".log";
-        ofstream dump(name);
-
         cout << "Dump saved in " << name << "\n";
-
-        assert(dump.is_open());
-        dump << "// FAILURE in file '" << From << "'\n// Lexed:\n\n";
-        for (auto s : lexed)
-        {
-            dump << s << '\n';
-        }
-        dump.close();
+        dump(lexed, name, From, curLine);
 
         throw runtime_error("Failure in file '" + From + "'");
     }
     catch (...)
     {
         string name = "oak_dump_" + purifyStr(From) + ".log";
-        ofstream dump(name);
-
         cout << "Dump saved in " << name << "\n";
+        dump(lexed, name, From, curLine);
 
-        assert(dump.is_open());
-        dump << "// FAILURE in file '" << From << "'\n// Lexed:\n\n";
-        for (auto s : lexed)
-        {
-            dump << s << "\n";
-        }
-        dump.close();
-
-        throw runtime_error("Failure in file '" + From + "'");
+        throw runtime_error("Unknown failure in file '" + From + "'");
     }
 
     curLine = oldLineNum;

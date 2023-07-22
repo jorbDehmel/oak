@@ -1,0 +1,10 @@
+// Jordan Dehmel, 2023
+package!("std");
+package!("sdl");
+
+let main() -> i32
+{
+    print("hi\n");
+
+    0
+}

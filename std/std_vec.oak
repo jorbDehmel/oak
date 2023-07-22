@@ -5,7 +5,8 @@ GPLv3
 Standard vector struct.
 */
 
-include!(/usr/include/oak/std/std_mem.oak, /usr/include/oak/std/std_error.oak);
+include!("/usr/include/oak/std/std_mem.oak",
+    "/usr/include/oak/std/std_error.oak");
 
 let vec: struct<t>
 {
@@ -15,13 +16,13 @@ let vec: struct<t>
 
 let New<t>(self: ^vec<t>, size: u128) -> void
 {
-    self.data = alloc<t>(size);
+    alloc!(self.data, size);
     self.size = size;
 }
 
 let Del<t>(self: ^vec<t>) -> void
 {
-    free<t>(data);
+    free_arr!(data);
 }
 
 let Get<t>(self: ^vec<t>, i: u128) -> t

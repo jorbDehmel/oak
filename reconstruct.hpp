@@ -54,4 +54,7 @@ string toStrCFunction(Type *What, const string &Name);
 // Other type of C++ function; IE bool (*what)(const bool &What);
 string toStrCFunctionRef(Type *What, const string &Name);
 
+// Dump data to file
+void dump(const vector<string> &Lexed, const string &Where, const string &FileName, const int &Line);
+
 #endif
