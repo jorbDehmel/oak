@@ -20,7 +20,7 @@ const set<string> specials = {
     "!=", "!", "^", "&&", "(", ")", "{", "}", "[", "]", "||", "&&",
     "~", ":", ";", "->", "&", "<<", ">>", "+=", "-=", "*=", "/=",
     "&=", "|=", "=", "let", "for", "struct", "if", "else", "while",
-    "const", "mut", "catch", "try", "switch", "case"};
+    "catch", "try", "switch", "case"};
 
 // Compare two types until they have a join (,) or end
 bool compareTypesUntilJoin(Type *A, Type *B)
@@ -259,7 +259,7 @@ sequence __createSequence(vector<string> &From, bool templated = false)
         return out;
     }
 
-    // Misc keycharacters
+    // Misc key-characters
     else if (From[0] == ";")
     {
         pop_front(From);
@@ -1045,7 +1045,7 @@ sequence __createSequence(vector<string> &From, bool templated = false)
     }
 
     return out;
-}
+} // __createSequence
 
 // Type enforced version
 sequence createSequence(const vector<string> &From, const Type type)

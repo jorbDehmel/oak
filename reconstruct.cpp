@@ -432,20 +432,24 @@ void dump(const vector<string> &Lexed, const string &Where, const string &FileNa
         }
     }
 
+    file << "\n";
+
     file << sep
-         << "// Raw lex results (unfiltered, 20 per line):\n";
+         << "// Raw lex results (unfiltered, 10 per line):\n";
 
     int i = 0;
     for (auto s : Lexed)
     {
-        file << s << ' ';
+        file << s << '\t';
 
         i++;
-        if (i % 20 == 0)
+        if (i % 10 == 0)
         {
             file << '\n';
         }
     }
+
+    file << "\n";
 
     file << sep
          << "// Symbols and their types:\n";
@@ -461,7 +465,7 @@ void dump(const vector<string> &Lexed, const string &Where, const string &FileNa
     }
 
     file << sep
-         << "// Templates:\n";
+         << "// Generics:\n";
 
     for (auto p : templTable)
     {
@@ -498,6 +502,48 @@ void dump(const vector<string> &Lexed, const string &Where, const string &FileNa
         for (auto m : s.second.members)
         {
             file << m.first << '\t' << toStr(&m.second) << '\n';
+        }
+    }
+
+    file << sep
+         << "// Full definitions:\n";
+
+    file << "\n// Symbols\n";
+
+    for (auto p : table)
+    {
+        file << p.first << ":\n";
+
+        for (auto item : p.second)
+        {
+            file << '\t' << toStr(&item.type) << '\n';
+
+            if (item.seq.items.size() != 0)
+            {
+                file << "\t\t" << toC(item.seq) << '\n';
+            }
+        }
+    }
+
+    file << "\n// Generics:\n";
+
+    for (auto p : templTable)
+    {
+        file << p.first << ":\n";
+
+        for (auto item : p.second)
+        {
+            file << "\t(";
+            for (auto gen : item.generics)
+            {
+                file << gen << " ";
+            }
+            file << ") " << toStr(&item.type) << '\n';
+
+            if (item.seq.items.size() != 0)
+            {
+                file << "\t\t" << toC(item.seq) << '\n';
+            }
         }
     }
 

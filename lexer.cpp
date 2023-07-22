@@ -483,7 +483,7 @@ vector<string> lex(const string &What)
         }
 
         // String literals
-        else if (i != 0 && What[i - 1] != '\\' && (c == '"' || c == '\''))
+        else if ((i == 0 || What[i - 1] != '\\') && (c == '"' || c == '\''))
         {
             if (cur != "")
             {

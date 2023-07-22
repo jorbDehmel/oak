@@ -1,0 +1,8 @@
+// Jordan Dehmel, 2023
+package!("std");
+
+let main() -> i32
+{
+    // Quines are very easy lol
+    print(__CONTENTS__);
+}

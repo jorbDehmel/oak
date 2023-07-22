@@ -5,5 +5,14 @@ package!("std");
 let main(argc: i32, argv: ^str) -> i32
 {
     print("Hello, world!\n");
-    0
+    
+    print("This is line ");
+    print(__LINE__);
+    print("\n");
+
+    print("This file was compiled at UNIX time code ");
+    print(__COMP_TIME__);
+    print("\n");
+    
+    0;
 }

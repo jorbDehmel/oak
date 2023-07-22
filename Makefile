@@ -3,11 +3,12 @@ OBJS := build/lexer.o build/symbol-table.o \
 	build/type-builder.o build/reconstruct.o \
 	build/macros.o build/sequence.o \
 	build/packages.o build/sizer.o build/op-sub.o \
-	build/mem.o
+	build/mem.o build/acorn_resources.o
 
 HEADS := lexer.hpp reconstruct.hpp symbol-table.hpp \
 	type-builder.hpp macros.hpp tags.hpp \
-	sequence.hpp packages.hpp sizer.hpp op-sub.hpp
+	sequence.hpp packages.hpp sizer.hpp op-sub.hpp \
+	acorn_resources.hpp
 
 all: bin/acorn.out
 
@@ -26,6 +27,9 @@ install: bin/acorn.out std_oak_header.hpp
 
 uninstall:
 	sudo rm -rf /usr/bin/acorn /usr/include/oak /usr/include/std_oak_header.hpp
+
+reinstall:
+	$(MAKE) -C . uninstall clean install
 
 build/%.o:	%.cpp $(HEADS)
 	mkdir -p build
