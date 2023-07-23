@@ -55,51 +55,51 @@ bool compareTypesUntilJoin(Type *A, Type *B)
 
 /////////////////////////////////////////////////////////////////////////
 
-void debugPrint(const sequence &What, int spaces)
+void debugPrint(const sequence &What, int spaces, ostream &to)
 {
     for (int i = 0; i < spaces; i++)
     {
-        cout << "| ";
+        to << "| ";
     }
 
     switch (What.info)
     {
     case declaration:
-        cout << "declaration:";
+        to << "declaration:";
         break;
     case list:
-        cout << "list";
+        to << "list";
         break;
     case function_call:
-        cout << toStr(&What.type) << " function_call";
+        to << toStr(&What.type) << " function_call";
         break;
     case parenthesis:
-        cout << "parenthesis";
+        to << "parenthesis";
         break;
     case code_scope:
-        cout << "code_scope";
+        to << "code_scope";
         break;
     case code_line:
-        cout << "code_line";
+        to << "code_line";
         break;
     case for_triple:
-        cout << "for_triple";
+        to << "for_triple";
         break;
     case access:
-        cout << "access";
+        to << "access";
         break;
     case atom:
-        cout << "atom";
+        to << "atom";
         break;
     case keyword:
-        cout << "keyword";
+        to << "keyword";
         break;
     }
 
-    cout << " w/ raw " << What.raw << ", type " << toStr(&What.type) << ":\n";
+    to << " w/ raw " << What.raw << ", type " << toStr(&What.type) << ":\n";
     for (auto s : What.items)
     {
-        debugPrint(s, spaces + 1);
+        debugPrint(s, spaces + 1, to);
     }
 
     return;
@@ -1083,7 +1083,7 @@ string toC(const sequence &What)
 
             if (i + 1 != What.items.size())
             {
-                out += " ";
+                out += ", ";
             }
         }
 
@@ -1219,6 +1219,9 @@ sequence createSequence(const vector<string> &From)
     else
     {
         sequence outSeq;
+        outSeq.info = code_scope;
+        outSeq.type = nullType;
+
         for (auto i : out)
         {
             outSeq.items.push_back(i);

@@ -51,9 +51,10 @@ const string helpText = "Acorn - Oak Standard Translator\n" DASHED_LINE
                         " -r    | --reinstall | Reinstall a package\n"
                         " -s    | --size      | Show Oak disk usage\n"
                         " -t    | --translate | Produce C++ files\n"
+                        " -u    | --dump      | Save dump files\n"
                         " -v    | --version   | Show version\n";
 
-extern bool debug, compile, link, pretty;
+extern bool debug, compile, link, pretty, alwaysDump;
 extern set<string> visitedFiles, cppSources, objects;
 extern map<string, string> preprocDefines;
 

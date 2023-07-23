@@ -11,6 +11,15 @@ using namespace std;
 
 int main(const int argc, const char *argv[])
 {
+    // OS warning if someone manages to compile this for windows or macOS
+#if (defined(_WIN32) || defined(_WIN64) || defined(__APPLE__))
+    SystemType OS = Windows;
+    cout << tags::red_bold
+         << "Severe Warning! This version of Oak is designed for Linux!\n"
+         << "No other operating systems are supported!\n"
+         << tags::reset;
+#endif
+
     auto start = chrono::high_resolution_clock::now(), end = start;
     unsigned long long int oakElapsed = 0;
 
@@ -126,6 +135,10 @@ int main(const int argc, const char *argv[])
                     {
                         getDiskUsage();
                     }
+                    else if (cur == "--dump")
+                    {
+                        alwaysDump = !alwaysDump;
+                    }
                     else
                     {
                         throw runtime_error(string("Invalid verbose option '") + cur + "'");
@@ -211,6 +224,9 @@ int main(const int argc, const char *argv[])
                             break;
                         case 's':
                             getDiskUsage();
+                            break;
+                        case 'u':
+                            alwaysDump = !alwaysDump;
                             break;
 
                         default:

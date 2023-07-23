@@ -13,6 +13,17 @@ let main(argc: i32, argv: ^str) -> i32
     print("This file was compiled at UNIX time code ");
     print(__COMP_TIME__);
     print("\n");
+
+    srand();
+
+    print(rand(0, 1000));
+    print("\n");
+
+    print(rand(0, 1000));
+    print("\n");
+
+    print(rand(0, 1000));
+    print("\n");
     
     0;
 }

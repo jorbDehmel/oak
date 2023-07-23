@@ -14,6 +14,7 @@ bool debug = false;
 bool compile = true;
 bool link = true;
 bool pretty = false;
+bool alwaysDump = false;
 
 set<string> visitedFiles;
 set<string> cppSources;
@@ -188,16 +189,8 @@ void doFile(const string &From)
                 }
                 else if (preprocDefines.count(lexed[i]) != 0)
                 {
-                    cout << "Replacing " << lexed[i] << " with raw " << preprocDefines[lexed[i]] << " lexed ";
-
                     vector<string> lexedDef = lex(preprocDefines[lexed[i]]);
                     lexed.erase(lexed.begin() + i);
-
-                    for (auto d : lexedDef)
-                    {
-                        cout << d << ' ';
-                    }
-                    cout << '\n';
 
                     for (int j = lexedDef.size() - 1; j >= 0; j--)
                     {
@@ -387,6 +380,18 @@ void doFile(const string &From)
                      << toStr(&fileSeq.type) << "'\n"
                      << tags::reset;
             }
+
+            if (alwaysDump)
+            {
+                string name = "oak_dump_" + purifyStr(From) + ".log";
+
+                if (debug)
+                {
+                    cout << "Saving dump file '" << name << "'\n";
+                }
+
+                dump(lexed, name, From, curLine, fileSeq);
+            }
         }
         else if (debug)
         {
@@ -401,7 +406,7 @@ void doFile(const string &From)
 
         string name = "oak_dump_" + purifyStr(From) + ".log";
         cout << "Dump saved in " << name << "\n";
-        dump(lexed, name, From, curLine);
+        dump(lexed, name, From, curLine, sequence());
 
         throw runtime_error("Failure in file '" + From + "'");
     }
@@ -409,7 +414,7 @@ void doFile(const string &From)
     {
         string name = "oak_dump_" + purifyStr(From) + ".log";
         cout << "Dump saved in " << name << "\n";
-        dump(lexed, name, From, curLine);
+        dump(lexed, name, From, curLine, sequence());
 
         throw runtime_error("Unknown failure in file '" + From + "'");
     }

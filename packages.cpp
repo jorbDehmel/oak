@@ -95,6 +95,8 @@ void install(const string &What)
         {
             installCommand = "sudo dnf install ";
         }
+
+        pm_assert(installCommand != "", "Could not determine package manager. Unknown distro '" + line + "'.");
     }
 
     string command = installCommand + What;

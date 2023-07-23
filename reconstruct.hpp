@@ -55,6 +55,7 @@ string toStrCFunction(Type *What, const string &Name);
 string toStrCFunctionRef(Type *What, const string &Name);
 
 // Dump data to file
-void dump(const vector<string> &Lexed, const string &Where, const string &FileName, const int &Line);
+void dump(const vector<string> &Lexed, const string &Where, const string &FileName,
+          const int &Line, const sequence &FileSeq);
 
 #endif

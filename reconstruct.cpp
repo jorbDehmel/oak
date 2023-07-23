@@ -398,7 +398,8 @@ string toStrC(Type *What)
 }
 
 // Dump data to file
-void dump(const vector<string> &Lexed, const string &Where, const string &FileName, const int &Line)
+void dump(const vector<string> &Lexed, const string &Where, const string &FileName,
+          const int &Line, const sequence &FileSeq)
 {
     string sep = "";
     for (int i = 0; i < 50; i++)
@@ -546,6 +547,11 @@ void dump(const vector<string> &Lexed, const string &Where, const string &FileNa
             }
         }
     }
+
+    file << sep
+         << "// Full anatomy:\n";
+
+    debugPrint(FileSeq, 0, file);
 
     file.close();
     return;

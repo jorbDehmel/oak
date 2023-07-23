@@ -8,3 +8,17 @@ include!(
     "/usr/include/oak/std/std_conv.oak",
     "/usr/include/oak/std/std_ops.oak"
 );
+
+link!("/usr/include/oak/std/misc_std.o");
+
+// Misc
+let time() -> i64;
+
+// Seeds RNG with current time
+let srand() -> void;
+
+// Seeds RNG with a given number
+let srand(with: i32) -> void;
+
+// Generates a random number
+let rand(low: i32, high: i32) -> i32;
