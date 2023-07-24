@@ -149,6 +149,10 @@ int main(const int argc, const char *argv[])
                         makePackage(argv[i + 1]);
                         i++;
                     }
+                    else if (cur == "--manual")
+                    {
+                        manual = !manual;
+                    }
                     else
                     {
                         throw runtime_error(string("Invalid verbose option '") + cur + "'");
@@ -178,6 +182,9 @@ int main(const int argc, const char *argv[])
                         case 'd':
                             debug = !debug;
                             cout << "Set debug to " << (debug ? "true" : "false") << '\n';
+                            break;
+                        case 'm':
+                            manual = !manual;
                             break;
                         case 'o':
                             if (i + 1 >= argc)
@@ -405,6 +412,27 @@ int main(const int argc, const char *argv[])
                      << "If left unfixed, this could cause problems.\n"
                      << tags::reset;
             }
+        }
+
+        // Manual generation if requested
+        if (manual)
+        {
+            string manualPath = out;
+            if (manualPath.find(".") != string::npos)
+            {
+                manualPath = manualPath.substr(0, manualPath.find("."));
+            }
+
+            manualPath += ".md";
+
+            if (debug)
+            {
+                cout << tags::green_bold
+                     << "Generating manual '" << manualPath << "'.\n"
+                     << tags::reset;
+            }
+
+            generate(files, manualPath);
         }
     }
     catch (parse_error &e)

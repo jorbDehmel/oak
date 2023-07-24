@@ -15,6 +15,7 @@ bool compile = true;
 bool link = true;
 bool pretty = false;
 bool alwaysDump = false;
+bool manual = false;
 
 set<string> visitedFiles;
 set<string> cppSources;

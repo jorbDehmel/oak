@@ -24,6 +24,7 @@ GPLv3 held by author
 #include "sequence.hpp"
 #include "packages.hpp"
 #include "op-sub.hpp"
+#include "document.hpp"
 
 #include "tags.hpp"
 #include "sizer.hpp"
@@ -45,6 +46,7 @@ const string helpText = "Acorn - Oak Standard Translator\n" DASHED_LINE
                         " -i    | --install   | Install a package\n"
                         " -l    | --link      | Produce executables\n"
                         " -n    | --no_save   | Produce nothing\n"
+                        " -m    | --manual    | Produce a .md doc\n"
                         " -o    | --output    | Set the output file\n"
                         " -p    | --pretty    | Prettify C++ files\n"
                         " -q    | --quit      | Quit immediately\n"
@@ -55,7 +57,7 @@ const string helpText = "Acorn - Oak Standard Translator\n" DASHED_LINE
                         " -v    | --version   | Show version\n"
                         " -w    | --new       | Create a new package\n";
 
-extern bool debug, compile, link, pretty, alwaysDump;
+extern bool debug, compile, link, pretty, alwaysDump, manual;
 extern set<string> visitedFiles, cppSources, objects;
 extern map<string, string> preprocDefines;
 

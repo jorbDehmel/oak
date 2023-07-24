@@ -3,12 +3,13 @@ OBJS := build/lexer.o build/symbol-table.o \
 	build/type-builder.o build/reconstruct.o \
 	build/macros.o build/sequence.o \
 	build/packages.o build/sizer.o build/op-sub.o \
-	build/mem.o build/acorn_resources.o
+	build/mem.o build/acorn_resources.o \
+	build/document.o
 
 HEADS := lexer.hpp reconstruct.hpp symbol-table.hpp \
 	type-builder.hpp macros.hpp tags.hpp \
 	sequence.hpp packages.hpp sizer.hpp op-sub.hpp \
-	acorn_resources.hpp
+	acorn_resources.hpp document.hpp
 
 all: bin/acorn.out
 

@@ -14,7 +14,7 @@ let main(argc: i32, argv: ^str) -> i32
     print(__COMP_TIME__);
     print("\n");
 
-    srand();
+    seed_rand();
 
     print(rand(0, 1000));
     print("\n");

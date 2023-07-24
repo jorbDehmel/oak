@@ -592,6 +592,18 @@ If you use VSCode, you can add this to your `.vscode/settings.json` file.
 
 Rust is similar enough to Oak that you won't notice any major issues, so long as you don't enable any Rust extensions.
 
+## Preproc Definitions
+
+There are several so-called preproc definitions which can be called upon. These will be replaced with their values before compilation. Each of these begin and end with two underscores.
+
+Name            | Type | Description
+----------------|------|----------------------
+\__LINE__       | i128 | The current line
+\__COMP_TIME__  | i128 | The UNIX time of compilation
+\__PREV_FILE__  | str  | The path of the previous Oak file
+\__FILE__       | str  | The path of the current Oak file
+\__CONTENTS__   | str  | The contents of the current Oak file
+
 ## License
 
 Oak is protected by the GPLv3, which must be attached in any installation media for the software.

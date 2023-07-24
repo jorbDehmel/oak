@@ -15,10 +15,13 @@ link!("/usr/include/oak/std/misc_std.o");
 let time() -> i64;
 
 // Seeds RNG with current time
-let srand() -> void;
+let seed_rand() -> void;
 
 // Seeds RNG with a given number
-let srand(with: i32) -> void;
+let seed_rand(with: i32) -> void;
 
 // Generates a random number
 let rand(low: i32, high: i32) -> i32;
+
+// Get the ctime version of a time
+let c_time(when: ^i64) -> str;
