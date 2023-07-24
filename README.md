@@ -494,6 +494,7 @@ Name | Verbose     | Function
  -i  | --install   | Install a package
  -l  | --link      | Produce executables
  -n  | --no_save   | Produce nothing
+ -m  | --manual    | Generate auto-documentation
  -o  | --output    | Set the output file
  -p  | --pretty    | Prettify C++ files
  -q  | --quit      | Quit immediately
