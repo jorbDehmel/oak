@@ -9,7 +9,7 @@ Jordan Dehmel, jdehmel@outlook.com, github.com/jorbDehmel/oak
 
 ## Overview
 
-Oak is a modern, Rust-adjacent programming language. It uses near-standard Rust typing, without any form of memory protections. It is analogous to C++ with stronger macro support, modern typing, and integrated package management. It is named Oak because nature imagery is desperately needed in the mind of a programmer. Oak has no target purpose; I just needed a project.
+Oak is a modern, Rust-adjacent programming language. It uses near-standard Rust typing, without any form of memory protections. It is analogous to C++ with stronger macro support, modern typing, and integrated package management. It is named Oak because nature imagery is desperately needed in the mind of a programmer. If C++ is backpacking in the wilderness and Rust is a hotel, Oak is an old camper in a campground; There's electricity and a toilet, but you still have to watch out for bears. Oak has no target purpose; I just needed a project.
 
 Oak is, as of now, a translated language; Oak code is translated via the `acorn` command (see later) into `C++`. `acorn` can also compile Oak into object code, or link it to create executables.
 
