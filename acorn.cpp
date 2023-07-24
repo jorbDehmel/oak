@@ -139,6 +139,16 @@ int main(const int argc, const char *argv[])
                     {
                         alwaysDump = !alwaysDump;
                     }
+                    else if (cur == "--new")
+                    {
+                        if (i + 1 >= argc)
+                        {
+                            throw runtime_error("--new must be followed by a package name");
+                        }
+
+                        makePackage(argv[i + 1]);
+                        i++;
+                    }
                     else
                     {
                         throw runtime_error(string("Invalid verbose option '") + cur + "'");
@@ -219,6 +229,16 @@ int main(const int argc, const char *argv[])
                             }
 
                             downloadPackage(argv[i + 1], true);
+
+                            i++;
+                            break;
+                        case 'w':
+                            if (i + 1 >= argc)
+                            {
+                                throw runtime_error("-w must be followed by a package name");
+                            }
+
+                            makePackage(argv[i + 1]);
 
                             i++;
                             break;

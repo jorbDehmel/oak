@@ -52,7 +52,8 @@ const string helpText = "Acorn - Oak Standard Translator\n" DASHED_LINE
                         " -s    | --size      | Show Oak disk usage\n"
                         " -t    | --translate | Produce C++ files\n"
                         " -u    | --dump      | Save dump files\n"
-                        " -v    | --version   | Show version\n";
+                        " -v    | --version   | Show version\n"
+                        " -w    | --new       | Create a new package\n";
 
 extern bool debug, compile, link, pretty, alwaysDump;
 extern set<string> visitedFiles, cppSources, objects;
@@ -67,5 +68,7 @@ vector<string> getMacroArgs(vector<string> &lexed, const int &i);
 
 void doFile(const string &From);
 void prettify(const string &Filename);
+
+void makePackage(const string &Name);
 
 #endif

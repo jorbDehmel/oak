@@ -431,7 +431,7 @@ unsigned long long int **doThing(T &a, T b[]);
 Becomes
 
 ```
-let do_thing<T, F>(a: ^T, b: ^T) -> ^^u128;
+let do_thing<t, f>(a: ^t, b: ^f) -> ^^u128;
 ```
 
 ## Generics
@@ -578,6 +578,18 @@ SYS_DEPS = "package1 package2"
 For instance, the `STD` (standard) library has a central linking file named `std.oak`. This file contains `include!` macros for all other files in the package. Thus, only `std.oak` needs to linked at compile time- the rest will be taken care of automatically. Thus, `std/oak_package_info.txt` has a line reading `INCLUDE = "std.oak"`.
 
 `SYS_DEPS` is a string containing space-separated packages required to be installed by your operating system. For instance, if a package used SDL2 and Git, it would include the line `SYS_DEPS = "SDL2 git"`.
+
+## Editing Oak
+
+If you use VSCode, you can add this to your `.vscode/settings.json` file.
+
+```
+"files.associations": {
+        "*.oak": "rust",
+    }
+```
+
+Rust is similar enough to Oak that you won't notice any major issues, so long as you don't enable any Rust extensions.
 
 ## License
 

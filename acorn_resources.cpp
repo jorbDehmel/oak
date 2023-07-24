@@ -496,3 +496,60 @@ void prettify(const string &Filename)
 
     return;
 }
+
+void makePackage(const string &RawName)
+{
+    string name = purifyStr(RawName);
+    for (int i = 0; i < name.size(); i++)
+    {
+        name[i] = tolower(name[i]);
+    }
+
+    // mkdir NAME
+    smartSystem("mkdir -p " + name);
+
+    // touch NAME/oak_package_info.txt
+    ofstream info(name + "/oak_package_info.txt");
+    pm_assert(info.is_open(), "Could not open oak_package_info.txt in newly created package folder.");
+
+    auto now = time(NULL);
+    string time = ctime(&now);
+    time.pop_back();
+
+    /*
+    VERSION = "0.0.1"
+    LICENSE = "GPLv3"
+    SOURCE = "github.com/jorbDehmel"
+    AUTHOR = "Jordan Dehmel"
+    EMAIL = "jdehmel@outlook.com"
+    ABOUT = "Oak STD Package"
+    SYS_DEPS = "git clang"
+    */
+
+    info << "NAME = '" << name << "'\n"
+         << "DATE = '" << time << "'\n"
+         << "INCLUDE = '" << name << ".oak'\n"
+         << "VERSION = ''\n"
+         << "LICENSE = ''\n"
+         << "SOURCE = ''\n"
+         << "AUTHOR = ''\n"
+         << "EMAIL = ''\n"
+         << "ABOUT = ''\n"
+         << "SYS_DEPS = ''\n";
+
+    info.close();
+
+    // touch NAME/NAME.oak
+    ofstream include(name + "/" + name + ".oak");
+    pm_assert(include.is_open(), "Could not open main include file in newly created package folder.");
+    include.close();
+
+    ofstream ignore(name + "/.gitignore");
+    pm_assert(ignore.is_open(), "Could not open git ignore file in newly created package folder.");
+    ignore.close();
+
+    // git init
+    smartSystem("git init " + name + " > /dev/null");
+
+    return;
+}
