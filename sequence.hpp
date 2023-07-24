@@ -93,14 +93,14 @@ public:
 sequence createSequence(const vector<string> &From);
 sequence createSequence(const string &From);
 
+// Internal consumptive version: Erases from vector, so not safe for frontend
+sequence __createSequence(vector<string> &From);
+
 // As above, but enforce type accuracy.
 sequence createSequence(const vector<string> &From, const Type type);
 
 // Turn a .oak sequence into a .cpp one
 string toC(const sequence &What);
-
-// Compare two types until they have a join (,) or end
-bool compareTypesUntilJoin(Type *A, Type *B);
 
 // Get the return type of a function which exists in the symbol table
 Type getReturnType(const string &Name, const Type &ArgType, bool templated = false);

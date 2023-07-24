@@ -501,6 +501,7 @@ Name | Verbose     | Function
  -s  | --size      | Show Oak disk usage
  -t  | --translate | Produce C++ files
  -v  | --version   | Show Acorn version
+ -w  | --new       | Make a new package
 
 ## Macros
 

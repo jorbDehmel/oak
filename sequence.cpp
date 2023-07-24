@@ -22,39 +22,6 @@ const set<string> specials = {
     "&=", "|=", "=", "let", "for", "struct", "if", "else", "while",
     "catch", "try", "switch", "case"};
 
-// Compare two types until they have a join (,) or end
-bool compareTypesUntilJoin(Type *A, Type *B)
-{
-    Type *left = A;
-    Type *right = B;
-
-    while (left != nullptr && right != nullptr)
-    {
-        if (left->info == join && right->info == join)
-        {
-            return true;
-        }
-        else if (left->info != right->info)
-        {
-            return false;
-        }
-        else if (left->info == atomic)
-        {
-            if (left->name != right->name)
-            {
-                return false;
-            }
-        }
-
-        left = left->next;
-        right = right->next;
-    }
-
-    return true;
-}
-
-/////////////////////////////////////////////////////////////////////////
-
 void debugPrint(const sequence &What, int spaces, ostream &to)
 {
     for (int i = 0; i < spaces; i++)
@@ -105,8 +72,56 @@ void debugPrint(const sequence &What, int spaces, ostream &to)
     return;
 }
 
+sequence createSequence(const vector<string> &From)
+{
+    // Clone to feed into the consumptive version
+    vector<string> temp(From);
+    vector<sequence> out;
+
+    // Feed to consumptive version
+    while (!temp.empty())
+    {
+        out.push_back(__createSequence(temp));
+    }
+
+    if (out.size() == 0)
+    {
+        return sequence{};
+    }
+    else if (out.size() == 1)
+    {
+        return out[0];
+    }
+    else
+    {
+        sequence outSeq;
+        outSeq.info = code_scope;
+        outSeq.type = nullType;
+
+        for (auto i : out)
+        {
+            outSeq.items.push_back(i);
+        }
+        return outSeq;
+    }
+}
+
+// Type enforced version
+sequence createSequence(const vector<string> &From, const Type type)
+{
+    sequence out = createSequence(From);
+    seq_assert(out.type == type);
+    return out;
+}
+
+sequence createSequence(const string &From)
+{
+    vector<string> lexed = lex(From);
+    return createSequence(lexed);
+}
+
 // Internal consumptive version: Erases from vector, so not safe for frontend
-sequence __createSequence(vector<string> &From, bool templated = false)
+sequence __createSequence(vector<string> &From)
 {
     sequence out;
     out.info = code_line;
@@ -790,7 +805,7 @@ sequence __createSequence(vector<string> &From, bool templated = false)
                 bool oldSafeness = insideMethod;
                 insideMethod = isMethod;
 
-                sequence s = __createSequence(contents, true);
+                sequence s = __createSequence(contents);
 
                 insideMethod = oldSafeness;
 
@@ -1047,20 +1062,6 @@ sequence __createSequence(vector<string> &From, bool templated = false)
     return out;
 } // __createSequence
 
-// Type enforced version
-sequence createSequence(const vector<string> &From, const Type type)
-{
-    sequence out = createSequence(From);
-    seq_assert(out.type == type);
-    return out;
-}
-
-sequence createSequence(const string &From)
-{
-    vector<string> lexed = lex(From);
-    return createSequence(lexed);
-}
-
 // Turn a .oak sequence into a .cpp one
 string toC(const sequence &What)
 {
@@ -1194,40 +1195,6 @@ string toC(const sequence &What)
     }
 
     return out;
-}
-
-sequence createSequence(const vector<string> &From)
-{
-    // Clone to feed into the consumptive version
-    vector<string> temp(From);
-    vector<sequence> out;
-
-    // Feed to consumptive version
-    while (!temp.empty())
-    {
-        out.push_back(__createSequence(temp));
-    }
-
-    if (out.size() == 0)
-    {
-        return sequence{};
-    }
-    else if (out.size() == 1)
-    {
-        return out[0];
-    }
-    else
-    {
-        sequence outSeq;
-        outSeq.info = code_scope;
-        outSeq.type = nullType;
-
-        for (auto i : out)
-        {
-            outSeq.items.push_back(i);
-        }
-        return outSeq;
-    }
 }
 
 // Get the return type of a function which exists in the symbol table
