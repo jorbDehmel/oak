@@ -476,10 +476,6 @@ Oak does not have automatic instantiation of generic functions via argument type
 }
 ```
 
-## Whitespace
-
-Oak's lexer does not keep track of tabs or newlines, and uses spaces exclusively to delimitate symbols. There is, therefore, no compile-time reason why a newline would ever be necessary. The translator reads all Oak files as a single line. This does NOT mean that you should use poor form!
-
 ## Acorn
 Acorn is the Oak translator, compiler, and linker. Oak is first translated into C++, which is then compiled and linked.
 
@@ -493,14 +489,15 @@ Name | Verbose     | Function
  -h  | --help      | Show help (this)
  -i  | --install   | Install a package
  -l  | --link      | Produce executables
- -n  | --no_save   | Produce nothing
  -m  | --manual    | Generate auto-documentation
+ -n  | --no_save   | Produce nothing
  -o  | --output    | Set the output file
  -p  | --pretty    | Prettify C++ files
  -q  | --quit      | Quit immediately
  -r  | --reinstall | Reinstall a package
  -s  | --size      | Show Oak disk usage
  -t  | --translate | Produce C++ files
+ -u  | --dump      | Produce dump files
  -v  | --version   | Show Acorn version
  -w  | --new       | Make a new package
 
@@ -508,7 +505,7 @@ Name | Verbose     | Function
 
 The following are the standard macros associated with Acorn.
 
-`include!(WHAT, WHAT, ...)` causes the translator to also use the file(s) within. It can take `.oak`, `.cpp`, `.hpp`, `.h` or `.c` files.
+`include!(WHAT, WHAT, ...)` causes the translator to also use the file(s) within. It can take `.oak` files.
 
 `package!(WHAT, WHAT, ...)` is a more advanced version of the above. See the packages section below for more details.
 
@@ -516,10 +513,12 @@ The following are the standard macros associated with Acorn.
 
 You can also define your own macros as follows. If you wanted to create a macro named `hi!` which expands to `print("hello world")`, you would do the following.
 
+Macro arguments are always treated as strings. For instance, `link!(foobar)` is equivalent to `link!("foobar")`. You are encouraged to put quotations around any filenames.
+
 ```
 let hi!(argc: i32, argv: ^str) -> i32
 {
-    include!(/usr/include/oak/std/std_io.oak);
+    include!("/usr/include/oak/std/std_io.oak");
 
     print("print(\"hello world\")");
 

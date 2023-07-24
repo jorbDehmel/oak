@@ -471,6 +471,14 @@ vector<string> lex(const string &What)
                  c == ']' || c == '{' || c == '}' || c == '.' ||
                  c == ',' || c == '^' || c == '@')
         {
+            if (c == '{' || c == '}')
+            {
+                if (i > 0 && What[i - 1] != '\t' && What[i - 1] != '\n')
+                {
+                    throw runtime_error("Curly brackets must be prefixed by newline.");
+                }
+            }
+
             if (cur != "")
             {
                 out.push_back(cur);

@@ -23,7 +23,7 @@ void seed_rand(i32 with)
     srand(with);
 }
 
-str c_time(i64 *when)
+str c_time(i64 when)
 {
-    return ctime(when);
+    return ctime(&when);
 }
