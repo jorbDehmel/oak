@@ -199,3 +199,38 @@ string toStr(const Type *const What)
 
     return out;
 }
+
+void Type::pop_front()
+{
+    if (next == nullptr)
+    {
+        info = atomic;
+        name = "NULL";
+    }
+    else
+    {
+        *this = *next;
+    }
+
+    return;
+}
+
+void Type::pop_back()
+{
+    if (next == nullptr)
+    {
+        info = atomic;
+        name = "NULL";
+    }
+    else if (next->next == nullptr)
+    {
+        delete next;
+        next = nullptr;
+    }
+    else
+    {
+        next->pop_back();
+    }
+
+    return;
+}

@@ -11,7 +11,7 @@ HEADS := lexer.hpp reconstruct.hpp symbol-table.hpp \
 	sequence.hpp packages.hpp sizer.hpp op-sub.hpp \
 	acorn_resources.hpp document.hpp
 
-all: bin/acorn.out
+all: bin/acorn.out bin/test.out
 
 install: bin/acorn.out std_oak_header.hpp
 	sudo mkdir -p /usr/include/oak

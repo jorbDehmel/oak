@@ -470,7 +470,7 @@ sequence __createSequence(vector<string> &From)
 
             auto type = toType(toAdd);
 
-            map<string, Type> argsWithType = getArgs(type);
+            auto argsWithType = getArgs(type);
             for (pair<string, Type> p : argsWithType)
             {
                 table[p.first].push_back(__multiTableSymbol{sequence(), p.second});
@@ -1257,8 +1257,7 @@ Type getReturnType(const Type &T)
         }
     }
 
-    throw sequencing_error("Can not get return value from non-function type.");
-    return Type();
+    return T;
 }
 
 // Enforce member existence
@@ -1448,10 +1447,10 @@ Type getType(const string &Name)
     return candidates[0].type;
 }
 
-map<string, Type> getArgs(Type &type)
+vector<pair<string, Type>> getArgs(Type &type)
 {
     // Get everything between final function and maps
-    map<string, Type> out;
+    vector<pair<string, Type>> out;
 
     Type *cur = &type;
     if (cur->info != function)
@@ -1469,7 +1468,7 @@ map<string, Type> getArgs(Type &type)
         {
             if (symbName != "")
             {
-                out[symbName] = symbType;
+                out.push_back(make_pair(symbName, symbType));
             }
 
             break;
@@ -1478,7 +1477,7 @@ map<string, Type> getArgs(Type &type)
         {
             if (symbName != "")
             {
-                out[symbName] = symbType;
+                out.push_back(make_pair(symbName, symbType));
 
                 symbName = "";
                 symbType = nullType;
@@ -1495,4 +1494,160 @@ map<string, Type> getArgs(Type &type)
     }
 
     return out;
+}
+
+// This should only be called after method replacement
+Type resolveFunction(const vector<string> &What)
+{
+    // get name (first item)
+    string name = What[0];
+    Type type = nullType;
+
+    if (What.size() > 1 && What[1] == "(")
+    {
+        // get args within parenthesis
+        vector<string> curArg;
+        vector<vector<string>> args;
+
+        int count = 0;
+        int i = 1;
+        do
+        {
+            if (What[i] == "(")
+            {
+                count++;
+            }
+            else if (What[i] == ")")
+            {
+                count--;
+            }
+
+            if (What[i] == "," && count == 1)
+            {
+                args.push_back(curArg);
+                curArg.clear();
+            }
+
+            curArg.push_back(What[i]);
+
+            i++;
+        } while (i < What.size() && count != 0);
+
+        args.push_back(curArg);
+
+        // Erase commas, open parenthesis on first one
+        for (int i = 0; i < args.size(); i++)
+        {
+            args[i].erase(args[i].begin());
+        }
+
+        // Erase end parenthesis
+        args.back().pop_back();
+
+        for (int i = 0; i < args.size(); i++)
+        {
+            if (args[i].size() == 0)
+            {
+                args.erase(args.begin() + i);
+                i--;
+            }
+        }
+
+        vector<Type> argTypes;
+        for (vector<string> arg : args)
+        {
+            // if function call, recurse
+            if (arg.size() > 1 && arg[1] == "(")
+            {
+                argTypes.push_back(resolveFunction(arg));
+            }
+            else
+            {
+                // if immediately resolvable, resolve type
+                sm_assert(table.count(arg[0]) != 0, "No definitions exist for symbol '" + arg[0] + "'.");
+                auto candidates = table[arg[0]];
+                sm_assert(candidates.size() != 0, "No definitions exist for symbol '" + arg[0] + "'.");
+                type = getReturnType(candidates.back().type);
+
+                // if member access, resolve that
+                int i = 1;
+                while (arg[i] == ".")
+                {
+                    while (type.info == pointer)
+                    {
+                        type = *type.next;
+                    }
+
+                    sm_assert(type.info == atomic, "Error during type trimming for member access; Could not find struct name.");
+                    string structName = type.name;
+
+                    sm_assert(structData.count(structName) != 0, "Struct type '" + structName + "' does not exist.");
+                    sm_assert(structData[structName].members.count(arg[i + 1]) != 0, "Struct '" + structName + "' has no member '" + arg[i + 1] + "'.");
+
+                    type = structData[structName].members[arg[i + 1]];
+
+                    i += 2;
+                }
+
+                argTypes.push_back(type);
+            }
+        }
+
+        // Search for candidates
+        auto candidates = table[name];
+
+        // Weed out any candidates which do not have the correct argument types
+        for (int j = 0; j < candidates.size(); j++)
+        {
+            auto candArgs = getArgs(candidates[j].type);
+
+            for (int k = 0; k < candArgs.size(); k++)
+            {
+                if (candArgs[k].second != argTypes[k])
+                {
+                    candidates.erase(candidates.begin() + j);
+                    j--;
+                    break;
+                }
+            }
+        }
+
+        // If no candidates, throw error
+        if (candidates.size() == 0)
+        {
+            throw sequencing_error("Function call '" + name + "' has no candidates.");
+        }
+
+        // If multiple candidates, ensure all return types are the same
+        else if (candidates.size() > 1)
+        {
+            type = getReturnType(candidates[0].type);
+
+            for (int j = 1; j < candidates.size(); j++)
+            {
+                if (getReturnType(candidates[j].type) != type)
+                {
+                    throw sequencing_error("Function call '" + name + "' has two or more viable candidates.");
+                }
+            }
+
+            // Now safe; Has been verified that all candidates have identical types
+        }
+        else
+        {
+            // Single candidate
+            type = getReturnType(candidates[0].type);
+        }
+    }
+    else
+    {
+        // Non-function
+        sm_assert(table.count(What[0]) != 0, "No definitions exist for symbol '" + What[0] + "'.");
+        auto candidates = table[What[0]];
+        sm_assert(candidates.size() != 0, "No definitions exist for symbol '" + What[0] + "'.");
+        type = getReturnType(candidates.back().type);
+    }
+
+    // Return function return type
+    return type;
 }

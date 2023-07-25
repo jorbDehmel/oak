@@ -38,6 +38,9 @@ public:
     void append(const TypeInfo &Info, const string &Name = "");
     void append(const Type &Other);
 
+    void pop_front();
+    void pop_back();
+
     Type &operator=(const Type &Other);
 
     bool operator==(const Type &Other) const;
