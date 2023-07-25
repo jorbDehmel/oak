@@ -1,5 +1,5 @@
 
-[comment]: # ( As of July 20, 2023, the project is about 5,559 lines of code )
+[comment]: # ( As of July 24, 2023, the project is about 6,400 lines of code )
 
 # The Oak Programming Language README
 
@@ -9,7 +9,7 @@ Jordan Dehmel, jdehmel@outlook.com, github.com/jorbDehmel/oak
 
 ## Overview
 
-Oak is a modern, Rust-adjacent programming language. It uses near-standard Rust typing, without any form of memory protections. It is analogous to C++ with stronger macro support, modern typing, and integrated package management. It is named Oak because nature imagery is desperately needed in the mind of a programmer. If C++ is backpacking in the wilderness and Rust is a hotel, Oak is an old camper in a campground; There's electricity and a toilet, but you still have to watch out for bears. Oak has no target purpose; I just needed a project.
+`Oak` is a modern, `Rust`-adjacent programming language. It uses near-standard `Rust` typing, without any form of memory protections. It is analogous to `C++` with stronger macro support, modern typing, and integrated package management. It is named Oak because nature imagery is desperately needed in the mind of a programmer. If `C++` is backpacking in the wilderness and `Rust` is a hotel, Oak is an old camper in a campground; There's electricity and a toilet, but you still have to watch out for bears. Oak has no target purpose; I just needed a project.
 
 Oak is, as of now, a translated language; Oak code is translated via the `acorn` command (see later) into `C++`. `acorn` can also compile Oak into object code, or link it to create executables.
 
@@ -227,17 +227,17 @@ let linked_list<t>: struct
 
 let linked_list<t>.append(self: *linked_list<t>, what: t) -> void
 {
-    // Alloc is equivalent to C++'s new keyword
+    // Alloc is equivalent to `C++`'s new keyword
     alloc!(next);
     next.data = what;
 }
 ```
 
-Oak does not have private members, nor does it have inheritance. Eventually, traits will be implemented as in Rust.
+Oak does not have private members, nor does it have inheritance. Eventually, traits will be implemented as in `Rust`.
 
 ## Division Of Labor
 
-Oak does not have explicit header files like C / C++, but there is no reason why you could not use a `.oak` file like a `.hpp / .h`. For example, a `.oak` can establish function signatures without explicitly defining them, allowing another `.oak` to define them. This allows easy division of labor, as in `C / C++`. This is obviously vital for any project of scale. Additionally, the translator will detect and prevent circular dependencies, eliminating any analogy to `pragma once`.
+Oak does not have explicit header files like C / `C++`, but there is no reason why you could not use a `.oak` file like a `.hpp / .h`. For example, a `.oak` can establish function signatures without explicitly defining them, allowing another `.oak` to define them. This allows easy division of labor, as in `C / C++`. This is obviously vital for any project of scale. Additionally, the translator will detect and prevent circular dependencies, eliminating any analogy to `pragma once`.
 
 ## Memory Safety and Heap Memory Allocation
 
@@ -277,7 +277,7 @@ let main() -> i32
 }
 ```
 
-## Interchangeability With C++
+## Interchangeability With `C++`
 
 The Acorn compiler will have some automated `C++`-to-`Oak` translation capabilities. For instance, using a `include!` macro statement on a `C`-based file will translate the function signatures within into Oak notation and add them to the symbol table. This allows the merging of the two languages to take place later, with object files. Since `Oak` is translated into `C++`, this is exceedingly simple. You can also define only the function signatures in `Oak` and define them in `C++`, as is done in the Oak `std` (standard) package.
 
@@ -310,7 +310,7 @@ let example.Eq(...) -> bool;
 
 There are many so-called "operator aliases" which are listed below. If `self` is not a pointer, it is a const function.
 
-Oak    | C++       | Description            | Signature for `T`
+Oak    | `C++`       | Description            | Signature for `T`
 -------|-----------|------------------------|------------------------
 Get    | [ ]       | Get given an index     | let Get(self: ^T, i: i128) -> SOME_TYPE;
 Less   | <         | Less than              | let Less(self: T, other: T) -> bool;
@@ -344,7 +344,7 @@ Lbs    | <<        | Left bitshift          | let Lbs(self: T, other: T) -> T;
 Rbs    | >>        | Right bitshift         | let Rbs(self: T, other: T) -> T;
 New    | TYPE_NAME | Instantiation          | let New(self: ^T) -> ^T;
 
-There is no Oak equivalent to C++'s prefix increment or decrement operator.
+There is no Oak equivalent to `C++`'s prefix increment or decrement operator.
 
 The order of operations for the above operators is as follows (with the top of the list being evaluated first and the bottom last)
 
@@ -398,7 +398,7 @@ Hello, world!
 
 ## Atomic Conversions (If You Don't Know Rust)
 
-C++                 | Oak
+`C++`                 | Oak
 --------------------|-------
 unsigned char       | u8
 char                | i8
@@ -414,10 +414,10 @@ float               | f32
 double              | f64
 char *              | str
 bool                | bool
-T&                  | ^T
-T[]                 | ^T
-T*                  | ^T
-template\<class T\> | \<T\>
+T&                  | ^t
+T[]                 | ^t
+T*                  | ^t
+template\<class T\> | \<t\>
 
 The last few entries show two things; That Oak does not have references or arrays (both are replaced with pointers), and that Oak has smart templating. Additionally note that there are no multi-word types (IE unsigned long long int) in Oak, and that pointers are moved to before the type they point to.
 
@@ -477,7 +477,7 @@ Oak does not have automatic instantiation of generic functions via argument type
 ```
 
 ## Acorn
-Acorn is the Oak translator, compiler, and linker. Oak is first translated into C++, which is then compiled and linked.
+Acorn is the Oak translator, compiler, and linker. Oak is first translated into `C++`, which is then compiled and linked.
 
 Acorn command line arguments:
 
@@ -492,11 +492,11 @@ Name | Verbose     | Function
  -m  | --manual    | Generate auto-documentation
  -n  | --no_save   | Produce nothing
  -o  | --output    | Set the output file
- -p  | --pretty    | Prettify C++ files
+ -p  | --pretty    | Prettify `C++` files
  -q  | --quit      | Quit immediately
  -r  | --reinstall | Reinstall a package
  -s  | --size      | Show Oak disk usage
- -t  | --translate | Produce C++ files
+ -t  | --translate | Produce `C++` files
  -u  | --dump      | Produce dump files
  -v  | --version   | Show Acorn version
  -w  | --new       | Make a new package
@@ -553,7 +553,7 @@ If you were to call `print_five_times!(a)`, it would expand into `aaaaa`. If you
 
 ## Packages
 
-The `package!(WHAT)` macro imports a package. If it is not yet installed on the compiling device, it can be cloned via Git by using `acorn --install PACKAGE_URL`. You can update or reinstall a package via `acorn --reinstal PACKAGE_URL`.
+The `package!(WHAT)` macro imports a package. If it is not yet installed on the compiling device, it can be cloned via Git by using `acorn --install PACKAGE_URL`. You can update or reinstall a package via `acorn --reinstall PACKAGE_URL`.
 
 ### Creating Packages
 
@@ -590,7 +590,7 @@ If you use VSCode, you can add this to your `.vscode/settings.json` file.
     }
 ```
 
-Rust is similar enough to Oak that you won't notice any major issues, so long as you don't enable any Rust extensions.
+`Rust` is similar enough to Oak that you won't notice any major issues, so long as you don't enable any `Rust` extensions.
 
 ## Preproc Definitions
 
@@ -598,11 +598,11 @@ There are several so-called preproc definitions which can be called upon. These 
 
 Name            | Type | Description
 ----------------|------|----------------------
-\__LINE__       | i128 | The current line
-\__COMP_TIME__  | i128 | The UNIX time of compilation
-\__PREV_FILE__  | str  | The path of the previous Oak file
-\__FILE__       | str  | The path of the current Oak file
-\__CONTENTS__   | str  | The contents of the current Oak file
+\_\_LINE__       | i128 | The current line
+\_\_COMP_TIME__  | i128 | The UNIX time of compilation
+\_\_PREV_FILE__  | str  | The path of the previous Oak file
+\_\_FILE__       | str  | The path of the current Oak file
+\_\_CONTENTS__   | str  | The contents of the current Oak file
 
 ## License
 

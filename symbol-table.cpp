@@ -12,8 +12,17 @@ multiTemplTable templTable;
 multiSymbolTable table;
 
 // Converts lexed symbols into a type
-Type toType(const vector<string> &What, const set<string> &Local)
+Type toType(const vector<string> &WhatIn, const set<string> &Local)
 {
+    vector<string> What;
+    for (string s : WhatIn)
+    {
+        if (s.size() < 2 || s.substr(0, 2) != "//")
+        {
+            What.push_back(s);
+        }
+    }
+
     if (What.size() == 0)
     {
         return Type(atomic, "NULL");
@@ -41,7 +50,7 @@ Type toType(const vector<string> &What, const set<string> &Local)
     {
         string cur = What[i];
 
-        if (cur == "^" || cur == "&")
+        if (cur == "^" || cur == "@")
         {
             out.append(pointer);
         }

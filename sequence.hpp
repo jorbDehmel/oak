@@ -103,7 +103,7 @@ sequence createSequence(const vector<string> &From, const Type type);
 string toC(const sequence &What);
 
 // Get the return type of a function which exists in the symbol table
-Type getReturnType(const string &Name, const Type &ArgType, bool templated = false);
+Type getReturnType(const string &Name, const Type &ArgType);
 
 // Get the return type from a Type (of a function signature)
 Type getReturnType(const Type &T);

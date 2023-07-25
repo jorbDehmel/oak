@@ -31,11 +31,8 @@ void debugPrint(const sequence &What, int spaces, ostream &to)
 
     switch (What.info)
     {
-    case declaration:
-        to << "declaration:";
-        break;
-    case list:
-        to << "list";
+    case comma_sep:
+        to << "comma_sep:";
         break;
     case function_call:
         to << toStr(&What.type) << " function_call";
@@ -438,7 +435,7 @@ sequence __createSequence(vector<string> &From)
                 }
 
                 // This SHOULD appear during toC.
-                out.info = declaration;
+                out.info = comma_sep;
                 out.raw = "";
                 out.type = nullType;
                 out.items.clear();
@@ -692,7 +689,7 @@ sequence __createSequence(vector<string> &From)
             sm_assert(i > 0 && specials.count(From[i - 1]) == 0, "'" + From[i - 1] + "' is not a struct.");
             sm_assert(i + 1 < From.size(), "Access operator must not be end of file.");
 
-            out.info = code_line;
+            out.info = comma_sep;
             out.type = getMemberType(getType(From[i - 1]), From[i + 1]);
 
             out.items.clear();
@@ -709,7 +706,7 @@ sequence __createSequence(vector<string> &From)
 
             out.items.push_back(sequence{nullType, vector<sequence>(), atom, From[i + 1]});
 
-            // Erase old (very important!!!)
+            // Erase old
 
             for (int j = 0; j < 3; j++)
             {
@@ -1069,15 +1066,20 @@ string toC(const sequence &What)
 
     switch (What.info)
     {
-    case declaration:
+    case comma_sep:
+        for (int i = 0; i < What.items.size(); i++)
+        {
+            out += toC(What.items[i]);
+
+            if (i + 1 != What.items.size())
+            {
+                out += " ";
+            }
+        }
+
+        break;
+
     case code_line:
-        // Does NOT append a semicolon!
-
-        /*
-        a, b, c;
-        let a = 5, let b = 6, let c = (a == b);
-        */
-
         for (int i = 0; i < What.items.size(); i++)
         {
             out += toC(What.items[i]);
@@ -1141,25 +1143,6 @@ string toC(const sequence &What)
 
         break;
 
-    case list:
-        // Typing cannot be enforced here!
-
-        out += "{";
-
-        for (int i = 0; i < What.items.size(); i++)
-        {
-            out += toC(What.items[i]);
-
-            if (i + 1 < What.items.size())
-            {
-                out += ", ";
-            }
-        }
-
-        out += "}";
-
-        break;
-
     case parenthesis:
         // No join characters
 
@@ -1198,7 +1181,7 @@ string toC(const sequence &What)
 }
 
 // Get the return type of a function which exists in the symbol table
-Type getReturnType(const string &Name, const Type &ArgType, bool templated)
+Type getReturnType(const string &Name, const Type &ArgType)
 {
     auto functions = table[Name];
     sm_assert(functions.size() > 0, "No candidate definitions exists for '" + Name + "'");

@@ -1,0 +1,70 @@
+Existing passes (per file):
+1  - lex
+2  - preproc definitions and special symbol insertion (IE lines)
+3  - compiler-end macros (include, link, package)
+4  - macro definitions
+5  - macro calls (until no remain)
+6  - operator substitution
+7  - sequencing
+
+Proposal (insertion of 3 passes):
+1  - lex
+2  - preproc definitions and special symbol insertion (IE lines)
+3  - compiler-end macros (include, link, package)
+4  - macro definitions
+5  - macro calls (until no remain)
+6  - operator substitution
+
+7  - Method substitution
+
+A  - function sequencing
+    8  - Function call typing - produce 'globs' of sequences
+    9  - glob merging
+
+10 - remaining sequencing
+
+A rigorous outline of sequence reconstruction
+---------------------------------------------
+ELIMINATE list
+
+function_call
+    [0] = fn name
+    [1] = parenthesis of args
+
+parenthesis
+    all items are comma separated inside parenthesis
+
+code_scope
+    all items are semicolon separated
+
+code_line
+    all items are space separated
+
+for_triple
+    3 items are semicolon separated inside curly brackets
+
+access
+    items are comma separated inside square brackets
+
+atom
+    as-is
+
+declaration
+    all items are comma separated
+    RENAME to comma_sep
+
+keyword
+    like code_scope, but is never followed by a semicolon;
+
+Outline of function call globbing
+---------------------------------------------
+
+Parse each arg of function
+|- Deduce type of arg
+|- If function, recurse
+Now look for candidate function calls
+Deduce type of function, return
+
+This allows one (recursive) pass per function.
+It doesn't actually have that much to do with
+globbing.

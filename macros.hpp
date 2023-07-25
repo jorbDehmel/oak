@@ -27,8 +27,6 @@ using namespace std;
 #define COMPILED_PATH ".oak_build/"
 #define COMPILER_COMMAND "acorn"
 
-// Compiler name: Oakc -> "Oak Seed" -> acorn
-
 extern set<string> compiled;
 extern map<string, string> macros;
 

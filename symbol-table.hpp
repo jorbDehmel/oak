@@ -30,7 +30,6 @@ public:
 
 enum sequenceInfo
 {
-    list,          // a = [1, 2, 3,]
     function_call, // hi(1, 2, 3)
     parenthesis,   // (1 == 2) <=> bool
     code_scope,    // {1; 2; 3}
@@ -38,8 +37,8 @@ enum sequenceInfo
     for_triple,    // (i: i16 = 0; i < 10; i++) <=> (NULL, bool, ANY)
     access,        // a[5];
     atom,          // Anything else; Uses "raw" to specify
-    keyword,       // Const, mut, let, etc...
-    declaration,   // bool *what;
+    comma_sep,
+    keyword,
 };
 
 struct sequence

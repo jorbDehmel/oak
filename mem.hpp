@@ -16,15 +16,6 @@ GPLv3 held by author
 #include "reconstruct.hpp"
 using namespace std;
 
-/*
-let hi: ^bool;
-alloc!(hi, 5);
-
-becomes
-bool *hi;
-hi = new bool[5];
-*/
-
 // Returns the sequence which allocates an array of size num and type type.
 sequence getAllocSequence(Type &type, const string &name, const int &num = 1);
 

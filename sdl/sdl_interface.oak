@@ -12,7 +12,7 @@ let sdl_color: struct
 
 let New(what: ^sdl_color) -> void
 {
-    what.r = 0;
+    (what.r = 0);
     what.g = 0;
     what.b = 0;
     what.a = 0;
