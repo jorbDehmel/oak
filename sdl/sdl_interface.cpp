@@ -57,6 +57,12 @@ void sdl_quit()
     return;
 }
 
+void sdl_delay(i32 ms)
+{
+    SDL_Delay(ms);
+    return;
+}
+
 f64 sdl_sin(f64 x)
 {
     return SDL_sin(x);

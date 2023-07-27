@@ -6,5 +6,19 @@ let main() -> i32
 {
     print("hi\n");
 
+    sdl_init();
+
+    let wind: sdl_window;
+    let black: sdl_color;
+
+    fill(@wind, black);
+    show(@wind);
+
+    sdl_delay(1000);
+
+    Del(@wind);
+
+    sdl_quit();
+
     0
 }

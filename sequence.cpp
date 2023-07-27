@@ -1084,12 +1084,10 @@ vector<pair<string, Type>> getArgs(Type &type)
 // This should only be called after method replacement
 Type resolveFunction(const vector<string> &What, int &start, string &c)
 {
-    if (What.empty())
+    if (What.empty() || start >= What.size())
     {
         return nullType;
     }
-
-    sm_assert(start < What.size(), "Invalid call to resolveFunction; index cannot be outside of input size.");
 
     // Pointer check
     if (What[start] == "@")
@@ -1125,6 +1123,13 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
     {
         c += ";";
         return nullType;
+    }
+
+    // Special symbol check
+    else if (What[start].size() >= 2 && What[start].substr(0, 2) == "//")
+    {
+        start++;
+        return resolveFunction(What, start, c);
     }
 
     // Standard case
@@ -1327,7 +1332,6 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
         if (litType == nullType)
         {
             // Is not a literal
-
             sm_assert(table.count(What[start]) != 0, "No definitions exist for symbol '" + What[start] + "'.");
             auto candidates = table[What[start]];
             sm_assert(candidates.size() != 0, "No definitions exist for symbol '" + What[start] + "'.");

@@ -60,16 +60,6 @@ void parenSub(vector<string> &From)
         return;
     }
 
-    // Erase special symbols
-    for (int i = 0; i < From.size(); i++)
-    {
-        if (From[i].size() >= 2 && From[i].substr(0, 2) == "//")
-        {
-            From.erase(From.begin() + i);
-            i--;
-        }
-    }
-
     // Pre-level A: Parenthesis and commas
     for (int i = 0; i < From.size(); i++)
     {

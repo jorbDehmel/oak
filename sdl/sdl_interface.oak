@@ -2,8 +2,16 @@ link!("/usr/include/oak/sdl/sdl_interface.o");
 
 let sdl_window: struct
 {
-    width, height: u64,
+    width, height: i32,
+
+    // DON'T MESS WITH THESE!
+    // This is how you add
+    // oak-invisible C++ items in linking.
+    __a, __b, __c, __d: i128,
 }
+
+let New(what: ^sdl_window) -> void;
+let Del(what: ^sdl_window) -> void;
 
 let sdl_color: struct
 {
@@ -12,10 +20,10 @@ let sdl_color: struct
 
 let New(what: ^sdl_color) -> void
 {
-    (what.r = 0);
-    what.g = 0;
-    what.b = 0;
-    what.a = 0;
+    what.r = i32_to_u8(0);
+    what.g = i32_to_u8(0);
+    what.b = i32_to_u8(0);
+    what.a = i32_to_u8(0);
 }
 
 let New(what: ^sdl_color, r: u8, g: u8, b: u8, a: u8) -> void
@@ -42,6 +50,7 @@ let sdl_tan(x: f64) -> f64;
 
 let sdl_init() -> void;
 let sdl_quit() -> void;
+let sdl_delay(ms: i32) -> void;
 
 let show(window: ^sdl_window) -> void;
 let fill(window: ^sdl_window, color: sdl_color) -> void;
