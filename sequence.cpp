@@ -394,7 +394,7 @@ sequence __createSequence(vector<string> &From)
                 // addStruct takes in the full struct definition, from
                 // let to end curly bracket. So we must first parse this.
 
-                vector<string> toAdd = {"let", name, ":", From.front()};
+                vector<string> toAdd = {"let", name, ":"};
 
                 int count = 0;
                 while (count != 0 || (From[0] != "}" && From[0] != ";"))
@@ -445,9 +445,25 @@ sequence __createSequence(vector<string> &From)
                 out.items.push_back(sequence{nullType, vector<sequence>(), atom, toStrC(&type)});
                 out.items.push_back(sequence{nullType, vector<sequence>(), atom, name});
 
+                // Insert into table
+                table[name].push_back(__multiTableSymbol{sequence{type, vector<sequence>(), atom, ""}, type});
+
+                // Call constructor (pointers do not get constructors)
                 if (type.info != pointer)
                 {
-                    out.items.push_back(sequence{nullType, vector<sequence>(), atom, "; New(&" + name + ")"});
+                    // Syntactically necessary
+                    out.items.push_back(sequence{nullType, vector<sequence>(), atom, ";"});
+
+                    vector<string> newCall = {"New", "(", "@", name, ")"};
+                    int garbage = 0;
+
+                    sequence toAppend;
+                    toAppend.info = atom;
+                    toAppend.type = resolveFunction(newCall, garbage, toAppend.raw);
+
+                    out.items.push_back(toAppend);
+
+                    // out.items.push_back(sequence{nullType, vector<sequence>(), atom, "; New(&" + name + ")"});
                 }
 
                 return out;
@@ -1075,6 +1091,44 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
 
     sm_assert(start < What.size(), "Invalid call to resolveFunction; index cannot be outside of input size.");
 
+    // Pointer check
+    if (What[start] == "@")
+    {
+        start++;
+
+        string followingC = "";
+        Type type = resolveFunction(What, start, followingC);
+        type.prepend(pointer);
+
+        c += "&" + followingC;
+
+        return type;
+    }
+    else if (What[start] == "^")
+    {
+        start++;
+
+        string followingC = "";
+        Type type = resolveFunction(What, start, followingC);
+
+        sm_assert(type.info == pointer, "Cannot dereference non-pointer.");
+        Type temp = *type.next;
+        type = temp;
+
+        c += "*" + followingC;
+
+        return type;
+    }
+
+    // Semicolon check
+    else if (What[start] == ";")
+    {
+        c += ";";
+        return nullType;
+    }
+
+    // Standard case
+
     // get name (first item)
     string name = What[start];
     Type type = nullType;
@@ -1174,21 +1228,22 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
         c += name + "(";
 
         int i = 0;
+        string argC = "";
         vector<Type> argTypes;
         for (vector<string> arg : args)
         {
             int trash = 0;
-            argTypes.push_back(resolveFunction(arg, trash, c));
+            argTypes.push_back(resolveFunction(arg, trash, argC));
 
             if (i + 1 < args.size())
             {
-                c += ", ";
+                argC += ", ";
             }
 
             i++;
         }
 
-        c += ")";
+        c += argC + ")";
 
         // Search for candidates
         sm_assert(table.count(name) != 0, "Function call '" + name + "' has no registered symbols.");
@@ -1268,7 +1323,6 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
         // Non-function
 
         // Literal check
-
         Type litType = checkLiteral(What[start]);
         if (litType == nullType)
         {
