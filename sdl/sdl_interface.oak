@@ -10,28 +10,28 @@ let sdl_window: struct
     __a, __b, __c, __d: i128,
 }
 
-let New(what: ^sdl_window) -> void;
-let Del(what: ^sdl_window) -> void;
+let New(self: ^sdl_window) -> void;
+let Del(self: ^sdl_window) -> void;
 
 let sdl_color: struct
 {
     r, g, b, a: u8,
 }
 
-let New(what: ^sdl_color) -> void
+let New(self: ^sdl_color) -> void
 {
-    what.r = i32_to_u8(0);
-    what.g = i32_to_u8(0);
-    what.b = i32_to_u8(0);
-    what.a = i32_to_u8(0);
+    self.r = i32_to_u8(0);
+    self.g = i32_to_u8(0);
+    self.b = i32_to_u8(0);
+    self.a = i32_to_u8(0);
 }
 
-let New(what: ^sdl_color, r: u8, g: u8, b: u8, a: u8) -> void
+let New(self: ^sdl_color, r: u8, g: u8, b: u8, a: u8) -> void
 {
-    what.r = r;
-    what.g = g;
-    what.b = b;
-    what.a = a;
+    self.r = r;
+    self.g = g;
+    self.b = b;
+    self.a = a;
 }
 
 let sdl_coord: struct
@@ -39,9 +39,31 @@ let sdl_coord: struct
     x, y: u64,
 }
 
+let New(self: ^sdl_coord, x: u64, y: u64) -> void
+{
+    self.x = x;
+    self.y = y;
+}
+
 let sdl_rect: struct
 {
     x, y, w, h: u64,
+}
+
+let New(self: ^sdl_rect) -> void
+{
+    self.x = i32_to_u64(0);
+    self.y = i32_to_u64(0);
+    self.w = i32_to_u64(0);
+    self.h = i32_to_u64(0);
+}
+
+let New(self: ^sdl_rect, x: u64, y: u64, w: u64, h: u64) -> void
+{
+    self.x = x;
+    self.y = y;
+    self.w = w;
+    self.h = h;
 }
 
 let sdl_sin(x: f64) -> f64;

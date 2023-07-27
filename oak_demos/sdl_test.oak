@@ -9,10 +9,18 @@ let main() -> i32
     sdl_init();
 
     let wind: sdl_window;
+
     let black: sdl_color;
+    let white: sdl_color;
+    New(@white, i32_to_u8(255), i32_to_u8(255), i32_to_u8(255), i32_to_u8(255));
 
     fill(@wind, black);
-    show(@wind);
+
+    let rect: sdl_rect;
+    New(@rect, i32_to_u64(10), i32_to_u64(10), i32_to_u64(10), i32_to_u64(10));
+    draw_rect(@wind, rect, white);
+    
+    show(@wind);   
 
     sdl_delay(1000);
 

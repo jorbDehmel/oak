@@ -399,7 +399,7 @@ string toStrC(Type *What)
 
 // Dump data to file
 void dump(const vector<string> &Lexed, const string &Where, const string &FileName,
-          const int &Line, const sequence &FileSeq)
+          const int &Line, const sequence &FileSeq, const vector<string> LexedBackup)
 {
     string sep = "";
     for (int i = 0; i < 50; i++)
@@ -552,6 +552,22 @@ void dump(const vector<string> &Lexed, const string &Where, const string &FileNa
          << "// Full anatomy:\n";
 
     debugPrint(FileSeq, 0, file);
+
+    file << sep
+         << "// Post-replacement lexed:\n";
+
+    for (auto s : LexedBackup)
+    {
+        if (s.size() >= 2 && s.substr(0, 2) == "//")
+        {
+            file << "\n"
+                 << s << "\t|\t";
+        }
+        else
+        {
+            file << s << ' ';
+        }
+    }
 
     file.close();
     return;

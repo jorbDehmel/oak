@@ -1138,6 +1138,7 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
     string name = What[start];
     Type type = nullType;
 
+    // Parenthesis
     if (What[start] == "(")
     {
         vector<string> toUse;
@@ -1171,7 +1172,8 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
         return toReturn;
     }
 
-    if (What.size() > start + 1 && What[start + 1] == "(")
+    // Function call
+    else if (What.size() > start + 1 && What[start + 1] == "(")
     {
         // get args within parenthesis
         vector<string> curArg;

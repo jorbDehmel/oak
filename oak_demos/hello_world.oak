@@ -50,6 +50,8 @@ let main(argc: i32, argv: ^str) -> i32
 
     print(test.nest.data);
     print("\n");
-    
+
+    sys("pwd");
+
     0
 }

@@ -23,5 +23,7 @@ let main() -> i32
 {
     let a: test;
 
+    Del(@a);
+
     0
 }

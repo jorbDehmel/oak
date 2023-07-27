@@ -1,4 +1,5 @@
 // Includes and linkages
 link!("-L/usr/lib -lSDL2");
 
+package!("std");
 include!("/usr/include/oak/sdl/sdl_interface.oak");

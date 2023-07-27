@@ -33,3 +33,8 @@ str c_time(i32 when)
     i64 copy = when;
     return ctime(&copy);
 }
+
+i32 sys(str command)
+{
+    return system(command);
+}

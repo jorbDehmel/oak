@@ -96,7 +96,7 @@ void doFile(const string &From)
     curLine = 1;
     curFile = From;
 
-    vector<string> lexed;
+    vector<string> lexed, lexedCopy;
 
     preprocDefines["__PREV_FILE__"] = (oldFile == "" ? "\"NULL\"" : ("\"" + oldFile + "\""));
     preprocDefines["__FILE__"] = '"' + From + '"';
@@ -371,6 +371,8 @@ void doFile(const string &From)
             // F: Operator substitution (within parenthesis and between commas)
             parenSub(lexed);
 
+            lexedCopy = lexed;
+
             // G: Load file stuff
             sequence fileSeq = createSequence(lexed);
 
@@ -391,7 +393,7 @@ void doFile(const string &From)
                     cout << "Saving dump file '" << name << "'\n";
                 }
 
-                dump(lexed, name, From, curLine, fileSeq);
+                dump(lexed, name, From, curLine, fileSeq, lexedCopy);
             }
         }
         else if (debug)
@@ -407,7 +409,7 @@ void doFile(const string &From)
 
         string name = "oak_dump_" + purifyStr(From) + ".log";
         cout << "Dump saved in " << name << "\n";
-        dump(lexed, name, From, curLine, sequence());
+        dump(lexed, name, From, curLine, sequence(), lexedCopy);
 
         throw runtime_error("Failure in file '" + From + "'");
     }
@@ -415,7 +417,7 @@ void doFile(const string &From)
     {
         string name = "oak_dump_" + purifyStr(From) + ".log";
         cout << "Dump saved in " << name << "\n";
-        dump(lexed, name, From, curLine, sequence());
+        dump(lexed, name, From, curLine, sequence(), lexedCopy);
 
         throw runtime_error("Unknown failure in file '" + From + "'");
     }
