@@ -613,39 +613,7 @@ sequence __createSequence(vector<string> &From)
 
         // Restore symbol table
         // This copies only newly instantiated functions; No other symbols.
-        multiSymbolTable newTable = oldTable;
-        for (auto p : table)
-        {
-            if (p.second.size() == oldTable[p.first].size())
-            {
-                continue;
-            }
-            else
-            {
-                for (auto s : p.second)
-                {
-                    if (s.type.info == function)
-                    {
-                        bool present = false;
-                        for (auto ss : oldTable[p.first])
-                        {
-                            if (ss.type == s.type)
-                            {
-                                present = true;
-                                break;
-                            }
-                        }
-
-                        if (!present)
-                        {
-                            newTable[p.first].push_back(s);
-                        }
-                    }
-                }
-            }
-        }
-
-        table = newTable;
+        restoreSymbolTable(oldTable);
 
         // Check if/else validity
         for (int i = 1; i < out.items.size(); i++)
@@ -1497,41 +1465,73 @@ vector<pair<string, Type>> getArgs(Type &type)
 }
 
 // This should only be called after method replacement
-Type resolveFunction(const vector<string> &What)
+Type resolveFunction(const vector<string> &What, int &start, string &c)
 {
+    sm_assert(start < What.size(), "Invalid call to resolveFunction; index cannot be outside of input size.");
+
     // get name (first item)
-    string name = What[0];
+    string name = What[start];
     Type type = nullType;
 
-    if (What.size() > 1 && What[1] == "(")
+    if (What[start] == "(")
+    {
+        vector<string> toUse;
+        int count = 0;
+        do
+        {
+            if (What[start] == "(")
+            {
+                count++;
+            }
+            else if (What[start] == ")")
+            {
+                count--;
+            }
+
+            toUse.push_back(What[start]);
+
+            start++;
+        } while (start < What.size() && count != 0);
+
+        toUse.erase(toUse.begin());
+        toUse.pop_back();
+
+        int trash = 0;
+        Type toReturn = resolveFunction(toUse, trash, c);
+        c = "(" + c + ")";
+
+        return toReturn;
+    }
+
+    if (What.size() > start + 1 && What[start + 1] == "(")
     {
         // get args within parenthesis
         vector<string> curArg;
         vector<vector<string>> args;
 
         int count = 0;
-        int i = 1;
+        start++;
         do
         {
-            if (What[i] == "(")
+            if (What[start] == "(")
             {
                 count++;
             }
-            else if (What[i] == ")")
+            else if (What[start] == ")")
             {
                 count--;
             }
 
-            if (What[i] == "," && count == 1)
+            if (What[start] == "," && count == 1)
             {
                 args.push_back(curArg);
                 curArg.clear();
             }
 
-            curArg.push_back(What[i]);
+            curArg.push_back(What[start]);
 
-            i++;
-        } while (i < What.size() && count != 0);
+            start++;
+        } while (start < What.size() && count != 0);
 
         args.push_back(curArg);
 
@@ -1553,45 +1553,24 @@ Type resolveFunction(const vector<string> &What)
             }
         }
 
+        c += name + "(";
+
+        int i = 0;
         vector<Type> argTypes;
         for (vector<string> arg : args)
         {
-            // if function call, recurse
-            if (arg.size() > 1 && arg[1] == "(")
+            int trash = 0;
+            argTypes.push_back(resolveFunction(arg, trash, c));
+
+            if (i + 1 < args.size())
             {
-                argTypes.push_back(resolveFunction(arg));
+                c += ", ";
             }
-            else
-            {
-                // if immediately resolvable, resolve type
-                sm_assert(table.count(arg[0]) != 0, "No definitions exist for symbol '" + arg[0] + "'.");
-                auto candidates = table[arg[0]];
-                sm_assert(candidates.size() != 0, "No definitions exist for symbol '" + arg[0] + "'.");
-                type = getReturnType(candidates.back().type);
 
-                // if member access, resolve that
-                int i = 1;
-                while (arg[i] == ".")
-                {
-                    while (type.info == pointer)
-                    {
-                        type = *type.next;
-                    }
-
-                    sm_assert(type.info == atomic, "Error during type trimming for member access; Could not find struct name.");
-                    string structName = type.name;
-
-                    sm_assert(structData.count(structName) != 0, "Struct type '" + structName + "' does not exist.");
-                    sm_assert(structData[structName].members.count(arg[i + 1]) != 0, "Struct '" + structName + "' has no member '" + arg[i + 1] + "'.");
-
-                    type = structData[structName].members[arg[i + 1]];
-
-                    i += 2;
-                }
-
-                argTypes.push_back(type);
-            }
+            i++;
         }
+
+        c += ")";
 
         // Search for candidates
         auto candidates = table[name];
@@ -1638,16 +1617,149 @@ Type resolveFunction(const vector<string> &What)
             // Single candidate
             type = getReturnType(candidates[0].type);
         }
+
+        start--;
     }
     else
     {
         // Non-function
-        sm_assert(table.count(What[0]) != 0, "No definitions exist for symbol '" + What[0] + "'.");
-        auto candidates = table[What[0]];
-        sm_assert(candidates.size() != 0, "No definitions exist for symbol '" + What[0] + "'.");
-        type = getReturnType(candidates.back().type);
+
+        // Literal check
+
+        Type litType = checkLiteral(What[start]);
+        if (litType == nullType)
+        {
+            // Is not a literal
+
+            sm_assert(table.count(What[start]) != 0, "No definitions exist for symbol '" + What[start] + "'.");
+            auto candidates = table[What[start]];
+            sm_assert(candidates.size() != 0, "No definitions exist for symbol '" + What[start] + "'.");
+
+            type = getReturnType(candidates.back().type);
+        }
+        else
+        {
+            // Is a literal
+            type = litType;
+        }
+
+        c += What[start];
     }
+
+    // if member access, resolve that
+    while (start < What.size() && What[start + 1] == ".")
+    {
+        // Auto-dereference pointers (. to -> automatically)
+        if (type.info == pointer)
+        {
+            while (type.info == pointer)
+            {
+                Type temp = *type.next;
+                type = temp;
+
+                c = "*" + c;
+            }
+
+            c = "(" + c + ")";
+        }
+
+        sm_assert(type.info == atomic, "Error during type trimming for member access; Could not find struct name.");
+        string structName = type.name;
+
+        sm_assert(structData.count(structName) != 0, "Struct type '" + structName + "' does not exist.");
+        sm_assert(structData[structName].members.count(What[start + 2]) != 0, "Struct '" + structName + "' has no member '" + What[start + 2] + "'.");
+
+        type = structData[structName].members[What[start + 2]];
+
+        c += "." + What[start + 2];
+
+        start += 2;
+    }
+
+    start++;
 
     // Return function return type
     return type;
+}
+
+Type checkLiteral(const string &From)
+{
+    // Check as bool
+    if (From == "true" || From == "false")
+    {
+        return Type(atomic, "bool");
+    }
+
+    // Check as string
+    else if ((From.front() == '"' && From.back() == '"') || (From.front() == '\'' && From.back() == '\''))
+    {
+        return Type(atomic, "str");
+    }
+
+    // Check as numbers
+    bool canBeDouble = true;
+    for (char c : From)
+    {
+        if (!('0' <= c && c <= '9') && c != '-' && c != '.')
+        {
+            canBeDouble = false;
+            break;
+        }
+    }
+
+    if (canBeDouble)
+    {
+        if (From.find(".") == string::npos)
+        {
+            // Int
+            return Type(atomic, "i32");
+        }
+        else
+        {
+            // Float
+            return Type(atomic, "f64");
+        }
+    }
+
+    // Default: Not a literal
+    return nullType;
+}
+
+void restoreSymbolTable(multiSymbolTable &backup)
+{
+    multiSymbolTable newTable = backup;
+    for (auto p : table)
+    {
+        if (p.second.size() == backup[p.first].size())
+        {
+            continue;
+        }
+        else
+        {
+            for (auto s : p.second)
+            {
+                if (s.type.info == function)
+                {
+                    bool present = false;
+                    for (auto ss : backup[p.first])
+                    {
+                        if (ss.type == s.type)
+                        {
+                            present = true;
+                            break;
+                        }
+                    }
+
+                    if (!present)
+                    {
+                        newTable[p.first].push_back(s);
+                    }
+                }
+            }
+        }
+    }
+
+    table = newTable;
+
+    return;
 }

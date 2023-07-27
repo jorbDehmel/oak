@@ -124,7 +124,9 @@ vector<string> fixMethodCall(const string &What);
 ///////////////////////////////////////////////////////////////////////////////
 // Experimental
 
-Type resolveFunction(const vector<string> &What);
+Type resolveFunction(const vector<string> &What, int &start, string &c);
+Type checkLiteral(const string &From);
+void restoreSymbolTable(multiSymbolTable &backup);
 
 ///////////////////////////////////////////////////////////////////////////////
 
