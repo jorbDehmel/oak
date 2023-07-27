@@ -516,45 +516,6 @@ sequence __createSequence(vector<string> &From)
 
         return out;
     }
-    else if (From[0] == "(")
-    {
-        // Parenthesis
-        // At this stage, is NEVER a function call.
-
-        vector<string> internals;
-        int count = 0;
-
-        do
-        {
-            if (From[0] == "(")
-            {
-                count++;
-            }
-            else if (From[0] == ")")
-            {
-                count--;
-            }
-
-            internals.push_back(From.front());
-            pop_front(From);
-        } while (count != 0 && !From.empty());
-
-        if (internals.front() == "(")
-        {
-            pop_front(internals);
-        }
-        if (internals.back() == ")")
-        {
-            internals.pop_back();
-        }
-
-        out.info = parenthesis;
-        out.items.push_back(__createSequence(internals));
-
-        out.type = out.items[0].type;
-
-        return out;
-    }
     else if (From[0] == "{")
     {
         pop_front(From);
@@ -636,8 +597,7 @@ sequence __createSequence(vector<string> &From)
     // Non-special case; code line.
     // Function calls may occur within.
 
-    int i = 0;
-    for (i = 0; i < From.size(); i++)
+    for (int i = 0; i < From.size(); i++)
     {
         string cur = From[i];
 
@@ -648,374 +608,15 @@ sequence __createSequence(vector<string> &From)
             curLine = stoull(newLineNum);
             continue;
         }
-        else if (cur == ".")
-        {
-            // Note: Prior to processing, methods should have been scanned
-            // out and replaced with their C version. Thus, "." should only
-            // be struct member access.
-
-            sm_assert(i > 0 && specials.count(From[i - 1]) == 0, "'" + From[i - 1] + "' is not a struct.");
-            sm_assert(i + 1 < From.size(), "Access operator must not be end of file.");
-
-            out.info = comma_sep;
-            out.type = getMemberType(getType(From[i - 1]), From[i + 1]);
-
-            out.items.clear();
-            out.items.push_back(sequence{nullType, vector<sequence>(), atom, From[i - 1]});
-
-            if (getType(From[i - 1]).info == pointer)
-            {
-                out.items.push_back(sequence{nullType, vector<sequence>(), atom, "->"});
-            }
-            else
-            {
-                out.items.push_back(sequence{nullType, vector<sequence>(), atom, "."});
-            }
-
-            out.items.push_back(sequence{nullType, vector<sequence>(), atom, From[i + 1]});
-
-            // Erase old
-
-            for (int j = 0; j < 3; j++)
-            {
-                From.erase(From.begin() + (i - 1));
-            }
-
-            return out;
-        }
-        else if (cur == ",")
-        {
-            continue;
-        }
-        else if (cur == "<")
-        {
-            // Templated function call
-            sm_assert(i > 0, "Missing function name on function call parenthesis.");
-            string name = From[i - 1];
-
-            // Part 1: Instantiate generic call
-            {
-                vector<string> templContents;
-                vector<Type> splitTypes;
-
-                // Get generic contents here
-                int count = 1;
-                do
-                {
-                    i++;
-
-                    if (From[i] == "<")
-                    {
-                        count++;
-                    }
-                    else if (From[i] == ">")
-                    {
-                        count--;
-                    }
-
-                    if ((count == 1 && From[i] == ",") || (count == 0 && From[i] == ">"))
-                    {
-                        splitTypes.push_back(toType(templContents));
-                        templContents.clear();
-                    }
-                    else
-                    {
-                        templContents.push_back(From[i]);
-                    }
-                } while (count != 0 && i < From.size());
-
-                instantiateTemplate(name, splitTypes);
-            }
-
-            // Part 2: Standard function call
-            i++;
-            if (From[i] == "(")
-            {
-                vector<string> contents;
-                int count = 0, j = i;
-
-                int eraseStart = i - 1, eraseNum = 1;
-
-                do
-                {
-                    contents.push_back(From[j]);
-
-                    if (From[j] == "(")
-                    {
-                        count++;
-                    }
-                    else if (From[j] == ")")
-                    {
-                        count--;
-                    }
-
-                    eraseNum++;
-                    j++;
-                } while (j < From.size() && count != 0);
-
-                contents.pop_back();
-                pop_front(contents);
-
-                // Function
-                bool isMethod = false;
-                for (char c : name)
-                {
-                    if ('A' <= c && c <= 'Z')
-                    {
-                        isMethod = true;
-                        break;
-                    }
-                }
-
-                bool oldSafeness = insideMethod;
-                insideMethod = isMethod;
-
-                sequence s = __createSequence(contents);
-
-                insideMethod = oldSafeness;
-
-                out.info = function_call;
-                out.items.clear();
-
-                out.items.push_back(sequence{
-                    nullType,
-                    vector<sequence>(),
-                    atom,
-                    name});
-
-                out.items.push_back(s);
-
-                // Search for candidate function
-                out.type = getReturnType(name, s.type);
-
-                for (int k = 0; k < eraseNum; k++)
-                {
-                    From.erase(From.begin() + eraseStart);
-                }
-
-                out.type = out.items[0].type;
-            }
-            else
-            {
-                out.type = nullType;
-                out.items.clear();
-                out.raw = "";
-            }
-
-            return out;
-        }
-        else if (cur == "(")
-        {
-            vector<string> contents;
-            int count = 0, j = i;
-
-            int eraseStart = i - 1, eraseNum = 1;
-
-            do
-            {
-                contents.push_back(From[j]);
-
-                if (From[j] == "(")
-                {
-                    count++;
-                }
-                else if (From[j] == ")")
-                {
-                    count--;
-                }
-
-                eraseNum++;
-                j++;
-            } while (j < From.size() && count != 0);
-
-            if (i > 0 && specials.count(From[i - 1]) == 0)
-            {
-                // Calls; Resolve argument list, then check candidates
-                contents.pop_back();
-                pop_front(contents);
-
-                if (i < 3 || From[i - 2] != ".")
-                {
-                    // Function
-                    sm_assert(i > 0, "Missing function name on function call parenthesis.");
-
-                    string name = From[i - 1];
-
-                    bool isMethod = false;
-                    for (char c : name)
-                    {
-                        if ('A' <= c && c <= 'Z')
-                        {
-                            isMethod = true;
-                            break;
-                        }
-                    }
-
-                    bool oldSafeness = insideMethod;
-                    insideMethod = isMethod;
-
-                    sequence s = __createSequence(contents);
-
-                    insideMethod = oldSafeness;
-
-                    out.info = function_call;
-                    out.items.clear();
-
-                    out.items.push_back(sequence{
-                        getReturnType(name, s.type),
-                        vector<sequence>(),
-                        atom,
-                        name});
-
-                    out.items.push_back(s);
-
-                    // Erase junk
-                    for (int k = 0; k < eraseNum; k++)
-                    {
-                        From.erase(From.begin() + eraseStart);
-                    }
-                }
-            }
-            else
-            {
-                // Parenthesis
-                // sm_assert(false, "UNIMPLEMENTED");
-
-                pop_front(From);
-
-                out.info = parenthesis;
-
-                // Code scope.
-                int count = 1;
-                vector<string> curVec;
-                while (!From.empty())
-                {
-                    if (From[0] == "(")
-                    {
-                        count++;
-                    }
-                    else if (From[0] == ")")
-                    {
-                        count--;
-
-                        if (count == 0)
-                        {
-                            out.items.push_back(__createSequence(curVec));
-                            curVec.clear();
-                            pop_front(From);
-                            break;
-                        }
-                    }
-
-                    curVec.push_back(From[0]);
-                    pop_front(From);
-                }
-            }
-
-            out.type = out.items[0].type;
-
-            return out;
-        }
-        else if (cur == "[")
-        {
-            if (i > 0 && specials.count(From[i - 1]) == 0)
-            {
-                // Access operator
-
-                // a[b.c.d()] <=> Get(a, b.c.d()) -> Get(&a, d(&b.c))
-
-                sm_assert(false, "UNIMPLEMENTED");
-            }
-            else
-            {
-                // List
-                sm_assert(false, "UNIMPLEMENTED");
-            }
-        }
-        else if (specials.count(cur) == 0)
-        {
-            // Symbol name
-            out.items.push_back(sequence{Type(), vector<sequence>(), atom, cur});
-
-            if ((cur[0] == '"' && cur.back() == '"') || (cur[0] == '\'' && cur[0] == '\''))
-            {
-                // String literal
-                out.items.back().type = Type(atomic, "str");
-            }
-            else if (('0' <= cur[0] && cur[0] <= '9') || cur[0] == '-')
-            {
-                // Number literal
-                if (cur.find(".") != string::npos)
-                {
-                    out.items.back().type = Type(atomic, "f32");
-                }
-                else
-                {
-                    out.items.back().type = Type(atomic, "i32");
-                }
-            }
-            else if (cur == "true" || cur == "false")
-            {
-                out.items.back().type = Type(atomic, "bool");
-            }
-            else if (cur == "void")
-            {
-                out.items.back().type = nullType;
-            }
-            else if (i + 1 < From.size() && From[i + 1] == "<")
-            {
-                continue;
-            }
-            else
-            {
-                try
-                {
-                    out.items.back().type = getType(cur);
-                }
-                catch (runtime_error &e)
-                {
-                    try
-                    {
-                        if (table.count(cur) == 0 || table[cur].size() == 0)
-                        {
-                            throw runtime_error("No candidates were found for symbol '" + cur + "'");
-                        }
-
-                        auto candidates = table[cur];
-
-                        // If all candidates have the same return type, we can deduce type
-                        Type retType = getReturnType(candidates[0].type);
-
-                        for (int k = 1; k < candidates.size(); k++)
-                        {
-                            if (getReturnType(candidates[k].type) != retType)
-                            {
-                                for (auto candidate : candidates)
-                                {
-                                    cout << "Candidate '" << cur << "' has type " << toStr(&candidate.type) << "\n";
-                                }
-
-                                throw runtime_error("Ambiguous return type; Cannot deduce symbol type.");
-                            }
-                        }
-                        out.items.back().type = retType;
-                    }
-                    catch (runtime_error &e)
-                    {
-                        cout << tags::yellow_bold
-                             << "Warning: A type could not be found for symbol '" << cur << "'\n"
-                             << tags::reset;
-
-                        throw parse_error(e.what());
-                    }
-                }
-            }
-        }
         else
         {
-            out.items.push_back(sequence{nullType, vector<sequence>(), atom, cur});
+            sequence temp;
+            temp.info = atom;
+            temp.type = resolveFunction(From, i, temp.raw);
+
+            out.items.push_back(temp);
         }
-    } // End iteration
+    }
 
     From.clear();
 
@@ -1467,6 +1068,11 @@ vector<pair<string, Type>> getArgs(Type &type)
 // This should only be called after method replacement
 Type resolveFunction(const vector<string> &What, int &start, string &c)
 {
+    if (What.empty())
+    {
+        return nullType;
+    }
+
     sm_assert(start < What.size(), "Invalid call to resolveFunction; index cannot be outside of input size.");
 
     // get name (first item)
@@ -1493,8 +1099,11 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
             start++;
         } while (start < What.size() && count != 0);
 
-        toUse.erase(toUse.begin());
-        toUse.pop_back();
+        if (!toUse.empty())
+        {
+            toUse.erase(toUse.begin());
+            toUse.pop_back();
+        }
 
         int trash = 0;
         Type toReturn = resolveFunction(toUse, trash, c);
@@ -1533,16 +1142,25 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
             start++;
         } while (start < What.size() && count != 0);
 
-        args.push_back(curArg);
+        if (!curArg.empty())
+        {
+            args.push_back(curArg);
+        }
 
         // Erase commas, open parenthesis on first one
         for (int i = 0; i < args.size(); i++)
         {
-            args[i].erase(args[i].begin());
+            if (!args[i].empty())
+            {
+                args[i].erase(args[i].begin());
+            }
         }
 
         // Erase end parenthesis
-        args.back().pop_back();
+        if (!args.empty() && !args.back().empty())
+        {
+            args.back().pop_back();
+        }
 
         for (int i = 0; i < args.size(); i++)
         {
@@ -1573,12 +1191,22 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
         c += ")";
 
         // Search for candidates
+        sm_assert(table.count(name) != 0, "Function call '" + name + "' has no registered symbols.");
+        sm_assert(table[name].size() != 0, "Function call '" + name + "' has no registered symbols.");
+
         auto candidates = table[name];
 
         // Weed out any candidates which do not have the correct argument types
         for (int j = 0; j < candidates.size(); j++)
         {
             auto candArgs = getArgs(candidates[j].type);
+
+            if (candArgs.size() != argTypes.size())
+            {
+                candidates.erase(candidates.begin() + j);
+                j--;
+                continue;
+            }
 
             for (int k = 0; k < candArgs.size(); k++)
             {
@@ -1594,7 +1222,22 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
         // If no candidates, throw error
         if (candidates.size() == 0)
         {
-            throw sequencing_error("Function call '" + name + "' has no candidates.");
+            candidates = table[name];
+
+            cout << "Candidates:\n";
+            for (auto c : candidates)
+            {
+                cout << name << " has type " << toStr(&c.type) << '\n';
+            }
+
+            cout << "Arguments:\n(";
+            for (auto a : argTypes)
+            {
+                cout << toStr(&a) << ", ";
+            }
+            cout << ")\n";
+
+            throw sequencing_error("Function call '" + name + "' has no viable candidates.");
         }
 
         // If multiple candidates, ensure all return types are the same
@@ -1712,7 +1355,22 @@ Type checkLiteral(const string &From)
         if (From.find(".") == string::npos)
         {
             // Int
-            return Type(atomic, "i32");
+
+            // Check size
+            long long val = stoll(From);
+
+            if (abs(val) <= __INT_MAX__)
+            {
+                return Type(atomic, "i32");
+            }
+            else if (abs(val) <= __LONG_MAX__)
+            {
+                return Type(atomic, "i64");
+            }
+            else
+            {
+                return Type(atomic, "i128");
+            }
         }
         else
         {

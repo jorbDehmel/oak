@@ -27,3 +27,9 @@ str c_time(i64 when)
 {
     return ctime(&when);
 }
+
+str c_time(i32 when)
+{
+    i64 copy = when;
+    return ctime(&copy);
+}

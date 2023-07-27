@@ -24,4 +24,5 @@ let seed_rand(with: i32) -> void;
 let rand(low: i32, high: i32) -> i32;
 
 // Get the ctime version of a time
+let c_time(when: i32) -> str;
 let c_time(when: i64) -> str;
