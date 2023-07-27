@@ -60,6 +60,16 @@ void parenSub(vector<string> &From)
         return;
     }
 
+    // Erase special symbols
+    for (int i = 0; i < From.size(); i++)
+    {
+        if (From[i].size() >= 2 && From[i].substr(0, 2) == "//")
+        {
+            From.erase(From.begin() + i);
+            i--;
+        }
+    }
+
     // Pre-level A: Parenthesis and commas
     for (int i = 0; i < From.size(); i++)
     {
@@ -128,6 +138,95 @@ void parenSub(vector<string> &From)
             }
 
             i = startI + finalContents.size();
+        }
+        else if (From[i] == "=" || From[i] == "+=" || From[i] == "-=" || From[i] == "*=" ||
+                 From[i] == "/=" || From[i] == "%=" || From[i] == "|=" || From[i] == "&=" ||
+                 From[i] == "++" || From[i] == "--")
+        {
+            int begin = i, end = i, count = 0;
+
+            // Iterate back until beginning of expression
+            while (begin > 0)
+            {
+                begin--;
+
+                if (From[begin] == "(")
+                {
+                    count++;
+                }
+                else if (From[begin] == ")")
+                {
+                    count--;
+                }
+
+                if (count == 0)
+                {
+                    if (From[begin] == ";" || From[begin] == "}" || From[begin] == "{")
+                    {
+                        begin++;
+                        break;
+                    }
+                }
+            }
+
+            // Iterate forward until end of expression
+            while (end + 1 < From.size())
+            {
+                end++;
+
+                if (From[end] == "(")
+                {
+                    count++;
+                }
+                else if (From[end] == ")")
+                {
+                    count--;
+                }
+
+                if (count == 0)
+                {
+                    if (From[end] == ";" || From[end] == "}" || From[end] == "{")
+                    {
+                        end--;
+                        break;
+                    }
+                }
+            }
+
+            vector<string> contents, finalContents;
+
+            for (int j = begin; j <= end; j++)
+            {
+                contents.push_back(From[j]);
+            }
+
+            // Stolen from above
+            operatorSub(contents);
+
+            for (auto s : contents)
+            {
+                finalContents.push_back(s);
+            }
+            contents.clear();
+
+            // Replace contents with good ones
+
+            // Erase old stuff
+            for (int j = begin; j <= end; j++)
+            {
+                From.erase(From.begin() + begin);
+            }
+
+            // Insert new stuff
+            finalContents.insert(finalContents.begin(), "(");
+            finalContents.push_back(")");
+
+            for (int j = finalContents.size() - 1; j >= 0; j--)
+            {
+                From.insert(From.begin() + begin, finalContents[j]);
+            }
+
+            i = begin + finalContents.size();
         }
     }
 
