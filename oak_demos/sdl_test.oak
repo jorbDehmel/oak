@@ -12,12 +12,12 @@ let main() -> i32
 
     let black: sdl_color;
     let white: sdl_color;
-    New(@white, i32_to_u8(255), i32_to_u8(255), i32_to_u8(255), i32_to_u8(255));
+    New(@white, to_u8(255), to_u8(255), to_u8(255), to_u8(255));
 
     fill(@wind, black);
 
     let rect: sdl_rect;
-    New(@rect, i32_to_u64(10), i32_to_u64(10), i32_to_u64(10), i32_to_u64(10));
+    New(@rect, to_u64(10), to_u64(10), to_u64(10), to_u64(10));
     draw_rect(@wind, rect, white);
     
     show(@wind);   
@@ -27,6 +27,9 @@ let main() -> i32
     Del(@wind);
 
     sdl_quit();
+
+    let i: i32;
+    i = 0;
 
     0
 }

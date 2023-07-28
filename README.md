@@ -604,6 +604,88 @@ Name            | Type | Description
 \_\_FILE__       | str  | The path of the current Oak file
 \_\_CONTENTS__   | str  | The contents of the current Oak file
 
+## Translator Passes
+
+The `Oak` translator goes through the following passes when processing a file from `Oak` to `C++`. Each of these represents (at minimum) one full pass over the entire file. In stages after stage 2, they represent symbol-wise iteration, but before then they represent character-wise iteration.
+
+1 - Text cleaning for `__CONTENTS__` pre-proc definition
+2 - Lexicographical symbol parsing (lexing)
+3 - Preprocessor definition insertion
+4 - Compiler macros (file inclusions, linker commands, package inclusions)
+5 - Regular macro definition scanning
+6 - Regular macro call handling
+7 - Parenthesis and operator substitution
+8 - Sequencing
+9 - (Optional) `C++` file prettification
+10 - (External) Object file creation via `clang++`
+11 - (External) Executable linking via `clang++`
+
+## Future Ideas
+
+### Preprocessor Rules
+
+The introduction of preprocessor rules would introduce a new subclass of `Oak` code for creating rules. It would add one additional pass to the translation process, just after lexing. It would allow pseudo-regular-expression code replacement. For instance, `Oak`'s method-conversion process could be expressed as follows.
+
+```
+// This means replace something matching the first string
+// with the corresponding formatted second string.
+// A dollar sign creates or accesses a single-letter
+// variable. There can only be 62 variables ([a-zA-Z0-9]).
+
+$argless_method "$a . $b ( )" -> "$b ( @ $a )";
+
+/*
+Take the code `hi.hello().what();`
+
+The rule would first find `hi.hello()` and replace it
+with `hello(@hi)`, leaving `hello(@hi).what();`
+
+It would next detect `hello(@hi).what()` and replace
+it with `what(@hello(@hi));`.
+*/
+```
+
+A more complicated version of this rule could be written for argumented methods.
+
+Obviously, due to the in-file nature of this, rules would only apply to subsequent files. Indeed, rules would operate on an opt-in basis. This opt-in would be signalled via the `rule!` macro, which would be introduced alongside them.
+
+You could also bundle rules as follows.
+
+```
+$let argless_method "..." -> "...";
+$let arg_method "..." -> "...";
+
+// This defines the bundle of the above two rules
+$let methods argless_method arg_method
+```
+
+In any file after this, you could call the following to enable this feature.
+
+```
+rule!("methods");
+
+// This is equivalent to
+rule!("argless_method", "arg_method");
+```
+
+You would need to explicitly call the `rule!` macro in every file; The list of all rules is maintained by file inclusions, but the list of active rules is not. This is so a package could not ruin basic rules of the language and propagate those changes to every included file.
+
+You could also use the wildcard / glob operator `$$` as follows. The `$$` is essentially an unsaved variable, since variables also match any single symbol.
+
+```
+$let turn_everything_into_meow "$$" -> "meow";
+
+// All individual symbols match `$$`, so every symbol would
+// be replaced with `meow`. Since this happens after lexing,
+// each meow would by its own symbol.
+
+$let remove_meow "meow" -> "";
+
+// Rules are evaluated from first added to last added
+// (left to right in bundles)
+$let remove_everything turn_everything_into_meow remove_meow;
+```
+
 ## License
 
 Oak is protected by the GPLv3, which must be attached in any installation media for the software.

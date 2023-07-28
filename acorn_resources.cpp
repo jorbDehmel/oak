@@ -133,9 +133,9 @@ void doFile(const string &From)
             }
         }
 
-        if (visitedFiles.count(From) == 0)
+        if (visitedFiles.count(realName) == 0)
         {
-            visitedFiles.insert(From);
+            visitedFiles.insert(realName);
 
             if (debug)
             {
@@ -347,26 +347,34 @@ void doFile(const string &From)
             }
 
             // E: Scan for macro calls and handle them
-            bool foundMacros = false;
-            do
+            for (int i = 0; i < lexed.size(); i++)
             {
-                for (int i = 0; i < lexed.size(); i++)
+                // We can assume that no macro definitions remain
+                if (lexed[i] != "!" && lexed[i].back() == '!')
                 {
-                    // We can assume that no macro definitions remain
-                    if (lexed[i] != "!" && lexed[i].back() == '!')
+                    // Special cases; Memory macros
+                    if (lexed[i] == "alloc!" || lexed[i] == "free!" || lexed[i] == "free_arr!")
                     {
-                        // Special cases; Memory macros
-                        if (lexed[i] == "alloc!" || lexed[i] == "free!" || lexed[i] == "free_arr!")
-                        {
-                            continue;
-                        }
-
-                        string name = lexed[i];
-                        vector<string> args = getMacroArgs(lexed, i);
-                        callMacro(name, args, debug);
+                        continue;
                     }
+
+                    string name = lexed[i];
+
+                    // Erases all trace of the call in the process
+                    vector<string> args = getMacroArgs(lexed, i);
+
+                    string output = callMacro(name, args, debug);
+                    vector<string> lexedOutput = lex(output);
+
+                    // Insert the new code
+                    for (int j = lexedOutput.size() - 1; j >= 0; j--)
+                    {
+                        lexed.insert(lexed.begin() + i, lexedOutput[j]);
+                    }
+
+                    // Since we do not change i, this new code will be scanned next.
                 }
-            } while (foundMacros);
+            }
 
             // F: Operator substitution (within parenthesis and between commas)
             parenSub(lexed);

@@ -22,6 +22,7 @@ const set<string> specials = {
     "&=", "|=", "=", "let", "for", "struct", "if", "else", "while",
     "catch", "try", "switch", "case"};
 
+// Actually used in dump files, not just for debugging.
 void debugPrint(const sequence &What, int spaces, ostream &to)
 {
     for (int i = 0; i < spaces; i++)
@@ -103,20 +104,6 @@ sequence createSequence(const vector<string> &From)
     }
 }
 
-// Type enforced version
-sequence createSequence(const vector<string> &From, const Type type)
-{
-    sequence out = createSequence(From);
-    seq_assert(out.type == type);
-    return out;
-}
-
-sequence createSequence(const string &From)
-{
-    vector<string> lexed = lex(From);
-    return createSequence(lexed);
-}
-
 // Internal consumptive version: Erases from vector, so not safe for frontend
 sequence __createSequence(vector<string> &From)
 {
@@ -135,7 +122,8 @@ sequence __createSequence(vector<string> &From)
 
         curLine = stoull(newLineNum);
 
-        pop_front(From);
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        From.erase(From.begin());
         return __createSequence(From);
     }
 
@@ -145,7 +133,8 @@ sequence __createSequence(vector<string> &From)
         sm_assert(insideMethod, "Memory cannot be allocated outside of an operator-alias method.");
 
         int count = 0;
-        pop_front(From);
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        From.erase(From.begin());
         vector<string> contents;
 
         do
@@ -164,7 +153,8 @@ sequence __createSequence(vector<string> &From)
                 contents.push_back(From[0]);
             }
 
-            pop_front(From);
+            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+            From.erase(From.begin());
         } while (!From.empty() && count != 0);
 
         int num = 1;
@@ -199,7 +189,8 @@ sequence __createSequence(vector<string> &From)
         sm_assert(insideMethod, "Memory cannot be deleted outside of an operator-alias method.");
 
         int count = 0;
-        pop_front(From);
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        From.erase(From.begin());
         vector<string> contents;
 
         do
@@ -218,7 +209,8 @@ sequence __createSequence(vector<string> &From)
                 contents.push_back(From[0]);
             }
 
-            pop_front(From);
+            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+            From.erase(From.begin());
         } while (!From.empty() && count != 0);
 
         sequence temp = __createSequence(contents);
@@ -237,7 +229,8 @@ sequence __createSequence(vector<string> &From)
         sm_assert(insideMethod, "Memory cannot be deleted outside of an operator-alias method.");
 
         int count = 0;
-        pop_front(From);
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        From.erase(From.begin());
         vector<string> contents;
 
         do
@@ -256,7 +249,8 @@ sequence __createSequence(vector<string> &From)
                 contents.push_back(From[0]);
             }
 
-            pop_front(From);
+            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+            From.erase(From.begin());
         } while (!From.empty() && count != 0);
 
         sequence temp = __createSequence(contents);
@@ -274,7 +268,8 @@ sequence __createSequence(vector<string> &From)
     // Misc key-characters
     else if (From[0] == ";")
     {
-        pop_front(From);
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        From.erase(From.begin());
         auto toReturn = __createSequence(From);
         toReturn.type = nullType;
 
@@ -284,7 +279,8 @@ sequence __createSequence(vector<string> &From)
     // Referencing and dereferencing operators
     else if (From[0] == "^")
     {
-        pop_front(From);
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        From.erase(From.begin());
         auto toReturn = __createSequence(From);
         sm_assert(toReturn.type.info == pointer, "Cannot dereference non-pointer.");
 
@@ -295,7 +291,8 @@ sequence __createSequence(vector<string> &From)
     }
     else if (From[0] == "@")
     {
-        pop_front(From);
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        From.erase(From.begin());
         auto toReturn = __createSequence(From);
 
         toReturn.type.prepend(pointer);
@@ -318,7 +315,8 @@ sequence __createSequence(vector<string> &From)
         out.raw = From[0];
         out.type = nullType;
 
-        pop_front(From);
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        From.erase(From.begin());
 
         // Pops the first full sequence from the remaining front
         // This is for the conditional
@@ -339,39 +337,8 @@ sequence __createSequence(vector<string> &From)
         out.raw = From[0];
         out.type = nullType;
 
-        pop_front(From);
-
-        out.items.push_back(__createSequence(From));
-
-        return out;
-    }
-    else if (From[0] == "try")
-    {
-        // Takes a code scope / code line
-        out.info = keyword;
-        out.raw = From[0];
-        out.type = nullType;
-
-        pop_front(From);
-
-        out.items.push_back(__createSequence(From));
-
-        sm_assert(!From.empty() && From[0] == "catch", "Try block must be followed by catch block");
-
-        return out;
-    }
-    else if (From[0] == "catch")
-    {
-        // Takes a code scope / code line
-
-        // I'll figure out a graceful solution to error capture later
-        // Maybe a global string? IDK
-
-        out.info = keyword;
-        out.raw = From[0];
-        out.type = nullType;
-
-        pop_front(From);
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        From.erase(From.begin());
 
         out.items.push_back(__createSequence(From));
 
@@ -380,15 +347,18 @@ sequence __createSequence(vector<string> &From)
     else if (From[0] == "let")
     {
         // Get name
-        pop_front(From); // let
-        seq_assert(!From.empty());
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        From.erase(From.begin()); // let
+        sm_assert(!From.empty(), "'let' must be followed by something.");
         string name = From[0];
-        pop_front(From);
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        From.erase(From.begin());
 
         // Get type
         if (From[0] == ":")
         {
-            pop_front(From);
+            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+            From.erase(From.begin());
             if (!From.empty() && From.front() == "struct")
             {
                 // addStruct takes in the full struct definition, from
@@ -400,10 +370,12 @@ sequence __createSequence(vector<string> &From)
                 while (count != 0 || (From[0] != "}" && From[0] != ";"))
                 {
                     toAdd.push_back(From[0]);
-                    pop_front(From);
+                    sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                    From.erase(From.begin());
                 }
                 toAdd.push_back(From[0]);
-                pop_front(From);
+                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                From.erase(From.begin());
 
                 // addStruct
                 addStruct(toAdd);
@@ -426,7 +398,8 @@ sequence __createSequence(vector<string> &From)
                 while (!From.empty() && From.front() != ";")
                 {
                     toAdd.push_back(From.front());
-                    pop_front(From);
+                    sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                    From.erase(From.begin());
 
                     if (!From.empty() && From.front() == "=")
                     {
@@ -481,7 +454,8 @@ sequence __createSequence(vector<string> &From)
             do
             {
                 toAdd.push_back(From.front());
-                pop_front(From);
+                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                From.erase(From.begin());
             } while (From[0] != "{" && From[0] != ";");
 
             auto type = toType(toAdd);
@@ -534,7 +508,8 @@ sequence __createSequence(vector<string> &From)
     }
     else if (From[0] == "{")
     {
-        pop_front(From);
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        From.erase(From.begin());
 
         // Save symbol table for later restoration
         auto oldTable = table;
@@ -558,7 +533,8 @@ sequence __createSequence(vector<string> &From)
                 {
                     out.items.push_back(__createSequence(curVec));
                     curVec.clear();
-                    pop_front(From);
+                    sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                    From.erase(From.begin());
                     break;
                 }
             }
@@ -572,14 +548,16 @@ sequence __createSequence(vector<string> &From)
                     curVec.clear();
                 }
 
-                pop_front(From);
+                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                From.erase(From.begin());
             }
             else
             {
                 if (!From.empty())
                 {
                     curVec.push_back(From[0]);
-                    pop_front(From);
+                    sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                    From.erase(From.begin());
                 }
                 else
                 {
@@ -765,69 +743,6 @@ string toC(const sequence &What)
     return out;
 }
 
-// Get the return type of a function which exists in the symbol table
-Type getReturnType(const string &Name, const Type &ArgType)
-{
-    auto functions = table[Name];
-    sm_assert(functions.size() > 0, "No candidate definitions exists for '" + Name + "'");
-
-    for (auto f : functions)
-    {
-        // Function type anatomy in symbol table:
-        // function -> ARGS -> maps -> RETURN_TYPE
-
-        Type curType;
-        Type *cursor = &f.type;
-        seq_assert(cursor != nullptr);
-
-        // Find last function keyword in f.type
-        if (f.type.info != function)
-        {
-            continue;
-        }
-
-        seq_assert(cursor->next != nullptr);
-
-        // Skip past function
-        cursor = cursor->next;
-
-        // Scrape until maps keyword is reached, then stop
-        while (cursor != nullptr && cursor->info != maps)
-        {
-            if (cursor->info != var_name)
-            {
-                curType.append(cursor->info, cursor->name);
-            }
-            cursor = cursor->next;
-        }
-
-        // Compare against goal argument type
-        if (curType == ArgType)
-        {
-            // Get return type
-            return getReturnType(f.type);
-        }
-    }
-
-    Type mustMatch = getReturnType(functions[0].type);
-    for (int i = 1; i < functions.size(); i++)
-    {
-        if (getReturnType(functions[i].type) != mustMatch)
-        {
-            // Failure case; No suitable function definition exist
-            for (auto c : functions)
-            {
-                cout << "Candidate '" << Name << "' has type " << toStr(&c.type) << '\n';
-            }
-            cout << "No candidate had the required argument type " << toStr(&ArgType) << '\n';
-
-            throw sequencing_error("No candidate functions matched required call for '" + Name + "'");
-        }
-    }
-
-    return mustMatch;
-}
-
 // Get the return type from a Type (of a function signature)
 Type getReturnType(const Type &T)
 {
@@ -843,36 +758,6 @@ Type getReturnType(const Type &T)
     }
 
     return T;
-}
-
-// Enforce member existence
-Type getMemberType(const Type &Base, const string &Name)
-{
-    // Get struct name
-    string structName = "";
-
-    Type temp(Base);
-    while (temp.info == pointer)
-    {
-        Type tempTemp = *temp.next;
-        temp = tempTemp;
-    }
-
-    int count = 0;
-    for (Type *cur = &temp; cur != nullptr; cur = cur->next)
-    {
-        if (count == 0 && cur->info == atomic)
-        {
-            structName = cur->name;
-            break;
-        }
-    }
-    sm_assert(structName != "", "Could not get struct name from malformed type.");
-
-    sm_assert(structData.count(structName) != 0, "struct '" + structName + "' does not exist.");
-    sm_assert(structData[structName].members.count(Name) != 0, "struct '" + structName + "' has no member '" + Name + "'.");
-
-    return structData[structName].members[Name];
 }
 
 // Assume the input has no extraneous symbols
@@ -1013,23 +898,6 @@ vector<string> fixMethodCall(const vector<string> &What)
     }
 
     return out;
-}
-
-vector<string> fixMethodCall(const string &What)
-{
-    vector<string> lexed = lex(What);
-    return fixMethodCall(lexed);
-}
-
-Type getType(const string &Name)
-{
-    auto candidates = table[Name];
-
-    // Safety checks
-    sm_assert(candidates.size() != 0, "Symbol '" + Name + "' has no type.");
-    sm_assert(candidates.size() < 2, "Symbol '" + Name + "' is ambiguous; No type could be discerned.");
-
-    return candidates[0].type;
 }
 
 vector<pair<string, Type>> getArgs(Type &type)

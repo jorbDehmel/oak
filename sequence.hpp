@@ -60,11 +60,6 @@ public:
     sequencing_error(const string &What) : runtime_error(What) {}
 };
 
-// Macros
-
-#define seq_assert(what) \
-    ((bool)(what) ? true : throw sequencing_error("Assertion '" #what "' failed."))
-
 // Sequence message assert
 #define sm_assert(expression, message)                                           \
     ((bool)(expression)                                                          \
@@ -74,44 +69,21 @@ public:
                                   string(strrchr("/" __FILE__, '/') + 1) + " " + \
                                   to_string(__LINE__)))
 
-#define pop_front(Of) \
-    Of.empty() ? throw runtime_error("Cannot pop front from empty vector; line " + to_string(__LINE__)) : Of.erase(Of.begin())
-
-#define printvec(What)                                                \
-    {                                                                 \
-        cout << #What << ' ' << __LINE__ << ' ' << __FILE__ << ":\n"; \
-        for (auto s : What)                                           \
-            cout << s << ' ';                                         \
-        cout << '\n';                                                 \
-    }
-
 // Externally useful functions
 
 // Creates a sequence from a lexed string.
 // Return type is deduced naturally from the contents.
 // Can throw sequencing errors.
 sequence createSequence(const vector<string> &From);
-sequence createSequence(const string &From);
 
 // Internal consumptive version: Erases from vector, so not safe for frontend
 sequence __createSequence(vector<string> &From);
 
-// As above, but enforce type accuracy.
-sequence createSequence(const vector<string> &From, const Type type);
-
 // Turn a .oak sequence into a .cpp one
 string toC(const sequence &What);
 
-// Get the return type of a function which exists in the symbol table
-Type getReturnType(const string &Name, const Type &ArgType);
-
 // Get the return type from a Type (of a function signature)
 Type getReturnType(const Type &T);
-
-// Enforce member existence
-Type getMemberType(const Type &Base, const string &Name);
-
-Type getType(const string &Name);
 
 vector<pair<string, Type>> getArgs(Type &type);
 
@@ -119,15 +91,9 @@ void debugPrint(const sequence &What, int spaces = 0, ostream &to = cout);
 
 // a.b() -> b(a), a.b().c().d.e() -> e(c(b(a)).d), etc
 vector<string> fixMethodCall(const vector<string> &What);
-vector<string> fixMethodCall(const string &What);
-
-///////////////////////////////////////////////////////////////////////////////
-// Experimental
 
 Type resolveFunction(const vector<string> &What, int &start, string &c);
 Type checkLiteral(const string &From);
 void restoreSymbolTable(multiSymbolTable &backup);
-
-///////////////////////////////////////////////////////////////////////////////
 
 #endif
