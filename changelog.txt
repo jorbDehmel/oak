@@ -1,0 +1,8 @@
+Acorn Oak compiler changelog
+Jordan Dehmel, jdehmel@outlook.com
+github.com/jorbDehmel/oak
+
+Acorn Sersion | Date     | Justification
+--------------|----------|-----------------------------------------
+0.0.1         | 7/28/23  | Initialization of changelog - NOT start
+              |          | of project.

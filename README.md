@@ -1,5 +1,7 @@
 
-[comment]: # ( As of July 24, 2023, the project is about 6,400 lines of code )
+[comment]: # ( As of July 28, 2023, the project is about 6,500 lines of code )
+[comment]: # ( It takes 14 seconds to compile via time make clean install )
+[comment]: # ( It takes up 928 mb of disk space upon install via acorn -sq )
 
 # The Oak Programming Language
 
@@ -65,6 +67,8 @@ let is_bigger_than_five(a: i32) -> bool
 Note that leaving off a semicolon is equivalent to `C++`'s `return` statement. Oak has no `return` keyword.
 
 Pointers are `^` (IE a pointer to a bool is `^bool`). The "get address" operator is `@`.
+
+Syntax is fluid and user-modifiable in `Oak`. For more information about this aspect, see the `Preproc Rules` section below.
 
 ## Formatting
 
@@ -163,8 +167,24 @@ Single-line comments should start with "`// `" (slash, slash, space), and multi-
 // Correct single line comment
 //Do not format them like this (no leading space)
 
+// single-line comments should NEVER start with a lower-case
+
+// Except in this case; When
+// it is a continuation of 
+// a previous line for
+// formatting reasons, a
+// lowercase start is fine.
+
 /*
-Correct multi-line comment
+Correct multi-line comment.
+
+The same wrap-over capitalization
+rules apply.
+*/
+
+/*
+incorrect multi-line comment
+(no leading capitalization)
 */
 
 /*Don't do this (why would you do this?)*/
@@ -174,6 +194,8 @@ do this*/
 ```
 
 Also, all files should always end with a newline.
+
+Comment blocks before global definitions (those not within a code scope) will be included in automatic manual generation via `acorn -m`.
 
 ## Main Functions
 
