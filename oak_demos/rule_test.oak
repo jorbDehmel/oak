@@ -1,4 +1,22 @@
 package!("std");
+
+/*
+// Experimental bundle for method declarations
+
+new_rule!("mut_meth_dec", "let $a . . $b ( )", "let $b ( self : ^ $a )");
+new_rule!("const_meth_dec", "let $a . $b ( )", "let $b ( self : $a )");
+new_rule!("mut_arg_meth_dec", "let $a . . $b (", "let $b ( self : ^ $a ,");
+new_rule!("const_arg_meth_dec", "let $a . $b (", "let $b ( self : $a ,");
+
+bundle_rule!("std_method_dec",
+    "mut_meth_dec",
+    "const_meth_dec",
+    "mut_arg_meth_dec",
+    "const_arg_meth_dec");
+
+use_rule!("std_method_dec");
+*/
+
 use_rule!("std_method");
 
 let times_two(self: ^i32) -> i32

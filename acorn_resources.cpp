@@ -48,17 +48,6 @@ void doFile(const string &From)
     // Clear active rules
     activeRules.clear();
 
-    cout << "Entering file " << From << " w/ rules:\n";
-    for (auto p : rules)
-    {
-        cout << '\t' << p.first << '\n';
-    }
-    cout << "Bundles:\n";
-    for (auto p : bundles)
-    {
-        cout << '\t' << p.first << '\n';
-    }
-
     unsigned long long oldLineNum = curLine;
     string oldFile = curFile;
 
@@ -146,6 +135,7 @@ void doFile(const string &From)
 
             // B: Lex
             lexed = lex(text);
+            lexedCopy = lexed;
 
             // C: Preproc definitions
             preprocDefines["__LINE__"] = "1";
@@ -350,8 +340,6 @@ void doFile(const string &From)
 
             // H: Operator substitution (within parenthesis and between commas)
             parenSub(lexed);
-
-            lexedCopy = lexed;
 
             // I: Load file stuff
             sequence fileSeq = createSequence(lexed);

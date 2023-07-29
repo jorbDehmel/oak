@@ -554,7 +554,7 @@ void dump(const vector<string> &Lexed, const string &Where, const string &FileNa
     debugPrint(FileSeq, 0, file);
 
     file << sep
-         << "// Post-replacement lexed:\n";
+         << "// Pre-everything lexed:\n";
 
     for (auto s : LexedBackup)
     {
@@ -567,6 +567,53 @@ void dump(const vector<string> &Lexed, const string &Where, const string &FileNa
         {
             file << s << ' ';
         }
+    }
+    file << '\n';
+
+    file << sep
+         << "// All rules:\n";
+
+    for (auto s : rules)
+    {
+        file << s.first << '\n'
+             << '\t';
+
+        for (auto t : s.second.inputPattern)
+        {
+            file << t << ' ';
+        }
+
+        file << "\n\t";
+
+        for (auto t : s.second.outputPattern)
+        {
+            file << t << ' ';
+        }
+
+        file << "\n";
+    }
+
+    file << sep
+         << "// All bundles:\n";
+
+    for (auto p : bundles)
+    {
+        file << p.first << "\n\t";
+
+        for (auto r : p.second)
+        {
+            file << r << ' ';
+        }
+
+        file << '\n';
+    }
+
+    file << sep
+         << "// Active rules:\n";
+
+    for (auto s : activeRules)
+    {
+        file << s << '\n';
     }
 
     file.close();

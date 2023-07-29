@@ -24,6 +24,7 @@ agnostic with respect to input (as much as possible).
 #include "type-builder.hpp"
 #include "sequence.hpp"
 #include "symbol-table.hpp"
+#include "rules.hpp"
 
 #define OAK_HEADER_PATH "/usr/include/std_oak_header.hpp"
 

@@ -11,13 +11,13 @@ Jordan Dehmel, jdehmel@outlook.com, github.com/jorbDehmel/oak
 
 ## Overview
 
-`Oak` is a modern, `Rust`-adjacent programming language. It uses near-standard `Rust` typing, without any form of memory protections. It is analogous to `C++` with stronger macro support, modern typing, and integrated package management. It is named Oak because nature imagery is desperately needed in the mind of a programmer. If `C++` is backpacking in the wilderness and `Rust` is a hotel, Oak is an old camper in a campground; There's electricity and a toilet, but you still have to watch out for bears. Oak has no target purpose; I just needed a project.
+`Oak` is a modern, compiled, low-level, statically-typed programming language. It uses `Rust`-like typing, without `Rust`'s lifetimes system. It is analogous to `C++` with stronger macro support, modern typing, compile-time syntax modification and integrated package management. It's like if `C` let you shape the language to your liking. It is named Oak because nature imagery is desperately needed in the mind of a programmer.
 
-Oak is, as of now, a translated language; Oak code is translated via the `acorn` command (see later) into `C++`. `acorn` can also compile Oak into object code, or link it to create executables.
+Oak is, as of now, a translated language; Oak code is translated via the `acorn` command (see later) into `C++`. `acorn` can also compile `Oak` into object code, or link it to create executables.
 
-This file, and indeed this language, is written assuming that you are well-versed in `C++`, with a moderate knowledge of `Rust`. It is not for beginners.
+Oak has modifiable syntax (see the section on preprocessor rules), making it highly customizable and flexible in a way that no other mainstream languages are. It supports the creation of "dialects", which are `Oak` variants which use preprocessor rules to support independent syntactical structures. In this way, `Oak` provides a strong central core to many branches.
 
-The Oak programming language outlined here bears no relation nor resemblance to the Java prototype of the same name.
+The Oak programming language outlined here bears no relation nor resemblance to the Java prototype of the same name; I was not aware of it until significantly into development.
 
 ## Compilation, Installation, and Uninstallation
 
@@ -647,6 +647,8 @@ Output patterns do not use wildcards. Upon replacement, any occurrence of a defi
 For instance, the input rule `meow $$ $m meow` would match `meow woof bark meow`, or indeed any other two symbols surrounded by `meow`'s. The difference comes only in the output pattern; `$s` would map to `bark`, but `woof` would never be accessible. As far as the output pattern is concerned, that `$$` could have matched anything.
 
 Input and output patterns are lexed, so spaces may or may not be required within.
+
+In a way, rules allow you to define whatever syntactic fluff you want.
 
 ### Defining and Using Rules
 

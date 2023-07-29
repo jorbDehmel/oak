@@ -1,5 +1,7 @@
 // Jordan Dehmel, 2023
 package!("std");
+use_rule!("std_method");
+
 package!("sdl");
 
 let main() -> i32
@@ -12,19 +14,20 @@ let main() -> i32
 
     let black: sdl_color;
     let white: sdl_color;
-    New(@white, to_u8(255), to_u8(255), to_u8(255), to_u8(255));
+    white..New(to_u8(255), to_u8(255), to_u8(255), to_u8(255));
 
-    fill(@wind, black);
+    wind..fill(black);
 
     let rect: sdl_rect;
-    New(@rect, to_u64(10), to_u64(10), to_u64(10), to_u64(10));
-    draw_rect(@wind, rect, white);
-    
-    show(@wind);   
+    rect..New(to_u64(10), to_u64(10), to_u64(10), to_u64(10));
+
+    wind..draw_rect(rect, white);
+      
+    wind..show();
 
     sdl_delay(1000);
 
-    Del(@wind);
+    wind..Del();
 
     sdl_quit();
 
