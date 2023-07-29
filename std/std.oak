@@ -11,6 +11,18 @@ include!(
 
 link!("/usr/include/oak/std/misc_std.o");
 
+// Method rules
+new_rule!("argless_mut_method", "$a . . $b ( )", "$b ( @ $a )");
+new_rule!("argless_method", "$a . $b ( )", "$b ( $a )");
+new_rule!("mut_method", "$a . . $b (", "$b ( @ $a ,");
+new_rule!("const_method", "$a . $b (", "$b ( $a ,");
+
+bundle_rule!("std_method",
+    "argless_mut_method",
+    "argless_method",
+    "mut_method",
+    "const_method");
+
 // Misc
 let time() -> i64;
 

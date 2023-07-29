@@ -25,6 +25,7 @@ GPLv3 held by author
 #include "packages.hpp"
 #include "op-sub.hpp"
 #include "document.hpp"
+#include "rules.hpp"
 
 #include "tags.hpp"
 #include "sizer.hpp"
@@ -63,10 +64,6 @@ extern map<string, string> preprocDefines;
 
 // Prints the cumulative disk usage of Oak (in human-readable)
 void getDiskUsage();
-
-// I is the point in Lexed at which a macro name was found
-// CONSUMPTIVE!
-vector<string> getMacroArgs(vector<string> &lexed, const int &i);
 
 void doFile(const string &From);
 void prettify(const string &Filename);

@@ -1,7 +1,7 @@
 
 [comment]: # ( As of July 24, 2023, the project is about 6,400 lines of code )
 
-# The Oak Programming Language README
+# The Oak Programming Language
 
 Jordan Dehmel, jdehmel@outlook.com, github.com/jorbDehmel/oak
 
@@ -604,87 +604,97 @@ Name            | Type | Description
 \_\_FILE__       | str  | The path of the current Oak file
 \_\_CONTENTS__   | str  | The contents of the current Oak file
 
+## Preproc Rules
+
+### Outline
+
+Use with caution. Rules alter the fundamental syntax of the language.
+
+Rules are an experimental feature that allow you to add more functionality to `Oak`. They take in a pattern of symbols, and replace it with a different one when it is detected in the code. A pattern definition is mostly like a fragment of `Oak` code, save for a few special features.
+
+The default symbol type in a rule is a literal. These match only the symbol that they are. For instance, `hi` would only match symbols that say `hi`. It would not match a symbol that said `hi-llo`, even though the pattern is a prefix of the latter. This is because rules operate on symbol-wise pattern matching, not character-wise pattern matching.
+
+The second type of symbol in a rule is a variable. These take the form of a dollar sign followed by a single alphanumeric character (in regex, `\$[a-zA-Z0-9]`). Variables can only use single-character names, so there are a maximum of `62` variables per rule. Whatever single symbol is matched into a variable will be accessible in the output pattern.
+
+The final type of symbol in a rule is a wildcard, represented by two dollar signs. A wildcard matches anything, but is not stored.
+
+The dollar sign was chosen over the traditional "glob" `*` operator because it is not used within usual `Oak` code. The glob also represents multiplication, so it is not used. Using the dollar sign means that there are no backslashes needed in an `Oak` rule.
+
+Output patterns do not use wildcards. Upon replacement, any occurrence of a defined variable in the output pattern will be replaced with that variable's match in the input pattern.
+
+For instance, the input rule `meow $$ $m meow` would match `meow woof bark meow`, or indeed any other two symbols surrounded by `meow`'s. The difference comes only in the output pattern; `$s` would map to `bark`, but `woof` would never be accessible. As far as the output pattern is concerned, that `$$` could have matched anything.
+
+Input and output patterns are lexed, so spaces may or may not be required within.
+
+### Defining and Using Rules
+
+Rules are defined using the `new_rule!` macro. This takes three arguments; The name of the rule, the input pattern, and the output pattern. For instance, a rule named `foo_to_bar` with an input pattern `foo` and an output pattern `bar` would be declared `new_rule!("foo_to_bar", "foo", "bar");`. Note that all arguments to rule macros **must** be strings. This is advisable (but not strictly required) of all macros.
+
+Once a rule is defined, it will be inactive. To make a rule active, you must call the `use_rule!` macro. This takes one or more rule names, and activates those rules from that point on. Note that these rules are only active *after* this macro is called.
+
+The set of active rules does not roll over when a new file is called, but the set of all rules does. This means that a included file will have access to its "parent" files' rules, but they will always be off by default. The `use_rule!` macro will need to be called within every file which wants to use a rule.
+
+### Removing Rules
+
+A rule can be deactivated (but never deleted) using the `rem_rule!` macro. This takes zero or more arguments. If zero arguments are given, it disables all rules. If one or more, it disables the rules with the given names.
+
+### Rule Bundles
+
+Multiple rules can be bundled together under one name by using the `bundle_rule!` macro. This takes two or more arguments, with the first argument being the name of the bundle. The remaining arguments are the names of the rules which fall within this bundle. This allows you to use a single `use_rule!` call to activate a hole suite of rules.
+
+Bundles cannot be disabled all at once; You will need to call `rem_rule!` for each of their component rules. A bundle with a given name will always overwrite a rule with the same name, except in a `bundle_rule!` call. A rule can never overwrite a macro call, but can overwrite anything else. Rules cannot find special / comment symbols (like the secret `//__LINE__=` symbol).
+
+### Example
+
+```
+// File "source.oak"
+
+package!("std");
+
+new_rule!("everything_to_meow", "$$", "meow");
+new_rule!("remove_meow", "meow", "");
+
+bundle_rule!("remove_everything", "everything_to_meow", "remove_meow");
+
+use_rule!("remove_everything");
+
+these symbols will be destroyed by the meow menace
+
+```
+
+Any file which calls `include!("source.oak");` would have access to the `remove_everything` rule, but it would always be off by default.
+
+Here is the source code of the `std_method` bundle, which does automatic method reformatting.
+
+```
+new_rule!("argless_mut_method", "$a . . $b ( )", "$b ( @ $a )");
+new_rule!("argless_method", "$a . $b ( )", "$b ( $a )");
+new_rule!("mut_method", "$a . . $b (", "$b ( @ $a ,");
+new_rule!("const_method", "$a . $b (", "$b ( $a ,");
+
+bundle_rule!("std_method",
+    "argless_mut_method",
+    "argless_method",
+    "mut_method",
+    "const_method");
+```
+
 ## Translator Passes
 
 The `Oak` translator goes through the following passes when processing a file from `Oak` to `C++`. Each of these represents (at minimum) one full pass over the entire file. In stages after stage 2, they represent symbol-wise iteration, but before then they represent character-wise iteration.
 
 1 - Text cleaning for `__CONTENTS__` pre-proc definition
 2 - Lexicographical symbol parsing (lexing)
-3 - Preprocessor definition insertion
-4 - Compiler macros (file inclusions, linker commands, package inclusions)
-5 - Regular macro definition scanning
-6 - Regular macro call handling
-7 - Parenthesis and operator substitution
-8 - Sequencing
-9 - (Optional) `C++` file prettification
-10 - (External) Object file creation via `clang++`
-11 - (External) Executable linking via `clang++`
-
-## Future Ideas
-
-### Preprocessor Rules
-
-The introduction of preprocessor rules would introduce a new subclass of `Oak` code for creating rules. It would add one additional pass to the translation process, just after lexing. It would allow pseudo-regular-expression code replacement. For instance, `Oak`'s method-conversion process could be expressed as follows.
-
-```
-// This means replace something matching the first string
-// with the corresponding formatted second string.
-// A dollar sign creates or accesses a single-letter
-// variable. There can only be 62 variables ([a-zA-Z0-9]).
-
-$argless_method "$a . $b ( )" -> "$b ( @ $a )";
-
-/*
-Take the code `hi.hello().what();`
-
-The rule would first find `hi.hello()` and replace it
-with `hello(@hi)`, leaving `hello(@hi).what();`
-
-It would next detect `hello(@hi).what()` and replace
-it with `what(@hello(@hi));`.
-*/
-```
-
-A more complicated version of this rule could be written for argumented methods.
-
-Obviously, due to the in-file nature of this, rules would only apply to subsequent files. Indeed, rules would operate on an opt-in basis. This opt-in would be signalled via the `rule!` macro, which would be introduced alongside them.
-
-You could also bundle rules as follows.
-
-```
-$let argless_method "..." -> "...";
-$let arg_method "..." -> "...";
-
-// This defines the bundle of the above two rules
-$let methods argless_method arg_method
-```
-
-In any file after this, you could call the following to enable this feature.
-
-```
-rule!("methods");
-
-// This is equivalent to
-rule!("argless_method", "arg_method");
-```
-
-You would need to explicitly call the `rule!` macro in every file; The list of all rules is maintained by file inclusions, but the list of active rules is not. This is so a package could not ruin basic rules of the language and propagate those changes to every included file.
-
-You could also use the wildcard / glob operator `$$` as follows. The `$$` is essentially an unsaved variable, since variables also match any single symbol.
-
-```
-$let turn_everything_into_meow "$$" -> "meow";
-
-// All individual symbols match `$$`, so every symbol would
-// be replaced with `meow`. Since this happens after lexing,
-// each meow would by its own symbol.
-
-$let remove_meow "meow" -> "";
-
-// Rules are evaluated from first added to last added
-// (left to right in bundles)
-$let remove_everything turn_everything_into_meow remove_meow;
-```
+4 - Preprocessor definition insertion
+5 - Compiler macros (file inclusions, linker commands, package inclusions)
+6 - Rule parsing and substitution (handles rule macros)
+6 - Regular macro definition scanning
+7 - Regular macro call handling
+8 - Parenthesis and operator substitution
+9 - Sequencing
+10 - (Optional) `C++` file prettification
+11 - (External) Object file creation via `clang++`
+12 - (External) Executable linking via `clang++`
 
 ## License
 

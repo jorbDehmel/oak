@@ -54,10 +54,11 @@ extern map<string, rule> rules;
 extern vector<string> activeRules;
 extern map<string, vector<string>> bundles;
 
+// I is the point in Lexed at which a macro name was found
+// CONSUMPTIVE!
+vector<string> getMacroArgs(vector<string> &lexed, const int &i);
+
 // Active rules should already be present in their vector
 void doRules(vector<string> &From);
-
-// To be called by doRules
-vector<string> replace(const vector<string> Subset, const rule &Rule);
 
 #endif

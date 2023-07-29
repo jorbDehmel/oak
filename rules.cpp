@@ -5,15 +5,62 @@ map<string, rule> rules;
 vector<string> activeRules;
 map<string, vector<string>> bundles;
 
+// I is the point in Lexed at which a macro name was found
+// CONSUMPTIVE!
+vector<string> getMacroArgs(vector<string> &lexed, const int &i)
+{
+    vector<string> out;
+
+    lexed.erase(lexed.begin() + i);
+
+    if (lexed[i].size() > 2 && lexed[i].substr(0, 2) == "//")
+    {
+        lexed.erase(lexed.begin() + i);
+    }
+
+    if (lexed[i] != "(")
+    {
+        throw runtime_error("Internal error; Malformed call to getMacroArgs.");
+    }
+
+    lexed.erase(lexed.begin() + i);
+
+    if (lexed[i].size() > 2 && lexed[i].substr(0, 2) == "//")
+    {
+        lexed.erase(lexed.begin() + i);
+    }
+
+    string cur = "";
+    while (!lexed.empty() && lexed[i] != ";")
+    {
+        if (lexed[i] == "," || lexed[i] == ")")
+        {
+            out.push_back(cur);
+            cur = "";
+        }
+        else if (lexed[i].size() < 3 || lexed[i].substr(0, 2) != "//")
+        {
+            cur += lexed[i];
+        }
+
+        lexed.erase(lexed.begin() + i);
+    }
+
+    if (!lexed.empty())
+    {
+        lexed.erase(lexed.begin() + i);
+    }
+
+    return out;
+}
+
 void doRules(vector<string> &From)
 {
-    vector<int> ruleStates;
     vector<map<string, string>> ruleVars;
 
-    // Initialize state machines
+    // Initialize variable maps
     for (int i = 0; i < activeRules.size(); i++)
     {
-        ruleStates.push_back(0);
         ruleVars.push_back(map<string, string>());
     }
 
@@ -24,139 +71,245 @@ void doRules(vector<string> &From)
             continue;
         }
 
-        // Definitions and bundles
-        else if (From[i] == "$let")
+        // Add a new rule to the list of all rules
+        else if (From[i] == "new_rule!")
         {
-            // $let NAME "input format" -> "output format" ;
-            // $let BUNDLE_NAME = NAME NAME NAME ;
+            // new_rule!("NAME", "INP_PAT", "OUT_PAT");
 
-            rm_assert(i + 2 < From.size(), "Malformed rule; $let must be followed by bundle or definition.");
-
-            string name = From[i + 1];
-
-            // Erase from i until this index, but not this index.
-            int eraseUntil;
-
-            if (From[i + 2] == "=")
+            auto args = getMacroArgs(From, i);
+            for (int j = 0; j < args.size(); j++)
             {
-                // Bundle
-                int j = i + 3;
-
-                while (j < From.size() && From[j] != ";")
-                {
-                    if (From[j] != ",")
-                    {
-                        bundles[name].push_back(From[j]);
-                    }
-
-                    j++;
-                }
-
-                eraseUntil = j + 1;
-            }
-            else
-            {
-                rm_assert(i + 6 < From.size(), "Malformed rule; Definition does not have enough space to be well-formed.");
-
-                // Definitions
-                string inpFormat, outFormat;
-                inpFormat = From[i + 3];
-
-                rm_assert(From[i + 4] == "->", "Malformed rule; Input format must be following by 'yields' arrow (->).");
-
-                outFormat = From[i + 5];
-
-                rm_assert(From[i + 6] == ";", "Malformed rule; Output format in definition must be followed by semicolon.");
-
-                rm_assert(inpFormat.front() == '"' && inpFormat.back() == '"', "Input format must be string enclosed.");
-                rm_assert(outFormat.front() == '"' && outFormat.back() == '"', "Output format must be string enclosed.");
-
-                rule toAdd;
-                toAdd.inputPattern = lex(inpFormat);
-                toAdd.outputPattern = lex(outFormat);
-
-                // Rules do not start out active
-                rules[name] = toAdd;
-
-                eraseUntil = i + 7;
+                rm_assert(args[j].size() >= 2, "Rule macro argument is of insufficient size.");
+                rm_assert((args[j].front() == '"' && args[j].back() == '"') || (args[j].front() == '\'' && args[j].back() == '\''), "All rule macro arguments must be strings.");
+                args[j].pop_back();
+                args[j].erase(0, 1);
             }
 
-            for (int j = 0; j < eraseUntil - i; j++)
-            {
-                From.erase(From.begin() + i);
-            }
-            i--;
-            continue;
+            rm_assert(args.size() == 3, "new_rule! requires exactly three arguments.");
+
+            string name = args[0];
+            rule toAdd;
+
+            toAdd.inputPattern = lex(args[1]);
+            toAdd.outputPattern = lex(args[2]);
+
+            rules[name] = toAdd;
         }
-        else
+
+        // Use a rule that already exists
+        else if (From[i] == "use_rule!")
         {
-            // Iterate through rules
-            for (int rule = 0; rule < activeRules.size(); rule++)
+            // use_rule!("NAME", "NAME", ...);
+
+            auto args = getMacroArgs(From, i);
+            for (int j = 0; j < args.size(); j++)
             {
-                string pat = rules[activeRules[rule]].inputPattern[ruleStates[rule]];
+                rm_assert(args[j].size() >= 2, "Rule macro argument is of insufficient size.");
+                rm_assert((args[j].front() == '"' && args[j].back() == '"') || (args[j].front() == '\'' && args[j].back() == '\''), "All rule macro arguments must be strings.");
+                args[j].pop_back();
+                args[j].erase(0, 1);
+            }
 
-                // Wildcard; Always a match, but never accessible
-                if (pat == "$$")
+            rm_assert(args.size() > 0, "use_rule! requires at least one argument.");
+
+            for (auto arg : args)
+            {
+                rm_assert(rules.count(arg) != 0 || bundles.count(arg) != 0, "Rule '" + arg + "' does not exist and is not a bundle.");
+
+                // bundles override rules with the same name
+                if (bundles.count(arg) != 0)
                 {
-                    ruleStates[rule]++;
+                    for (auto r : bundles[arg])
+                    {
+                        activeRules.push_back(r);
+                        ruleVars.push_back(map<string, string>());
+                    }
                 }
-
-                // Named variable; Always a match, stored
-                else if (pat.front() == '$')
-                {
-                    ruleVars[rule][pat] = From[i];
-
-                    ruleStates[rule]++;
-                }
-
-                // Literal; Must match symbol verbatim
-                else if (pat == From[i])
-                {
-                    ruleStates[rule]++;
-                }
-
-                // Failure case; Reset
                 else
                 {
-                    ruleStates[rule] = 0;
-                    ruleVars[rule].clear();
+                    activeRules.push_back(arg);
+                    ruleVars.push_back(map<string, string>());
                 }
+            }
+        }
 
-                // Check for success
-                if (ruleStates[rule] == rules[activeRules[rule]].inputPattern.size())
+        // Stop using a rule that is in use
+        else if (From[i] == "rem_rule!")
+        {
+            // rem_rule!("NAME", "NAME", ...);
+
+            auto args = getMacroArgs(From, i);
+            for (int j = 0; j < args.size(); j++)
+            {
+                rm_assert(args[j].size() >= 2, "Rule macro argument is of insufficient size.");
+                rm_assert((args[j].front() == '"' && args[j].back() == '"') || (args[j].front() == '\'' && args[j].back() == '\''), "All rule macro arguments must be strings.");
+                args[j].pop_back();
+                args[j].erase(0, 1);
+            }
+
+            if (args.size() == 0)
+            {
+                activeRules.clear();
+            }
+
+            for (auto arg : args)
+            {
+                bool found = false;
+                for (int j = activeRules.size() - 1; j >= 0; j--)
                 {
-                    // Success case; Replace
-                    int startIndex = 1 + i - rules[activeRules[rule]].inputPattern.size();
-
-                    // Get old
-                    vector<string> subset;
-                    for (int k = startIndex; k <= i; k++)
+                    if (activeRules[j] == arg)
                     {
-                        subset.push_back(From[k]);
-                    }
-
-                    // Get new
-                    vector<string> toInsert = replace(subset, rules[activeRules[rule]]);
-
-                    // Erase old
-                    for (int k = 1 + i - rules[activeRules[rule]].inputPattern.size(); k <= i; k++)
-                    {
-                        From.erase(From.begin() + startIndex);
-                    }
-
-                    // Insert new
-                    for (int k = toInsert.size() - 1; k >= 0; k--)
-                    {
-                        From.insert(From.begin() + startIndex, toInsert[k]);
+                        found = true;
+                        activeRules.erase(activeRules.begin() + j);
+                        break;
                     }
                 }
+
+                rm_assert(found, "Rule '" + arg + "' is not in use.");
+            }
+        }
+
+        // Bundle multiple rules into one
+        else if (From[i] == "bundle_rule!")
+        {
+            // bundle_rule!("BUNDLE_NAME", "NAME", ...);
+
+            auto args = getMacroArgs(From, i);
+            for (int j = 0; j < args.size(); j++)
+            {
+                rm_assert(args[j].size() >= 2, "Rule macro argument is of insufficient size.");
+                rm_assert((args[j].front() == '"' && args[j].back() == '"') || (args[j].front() == '\'' && args[j].back() == '\''), "All rule macro arguments must be strings.");
+                args[j].pop_back();
+                args[j].erase(0, 1);
+            }
+
+            rm_assert(args.size() > 1, "bundle_rule! requires at least two arguments.");
+
+            string name = args[0];
+            for (int j = 1; j < args.size(); j++)
+            {
+                bundles[name].push_back(args[j]);
+            }
+        }
+
+        // Regular case; Non-rule-macro symbol. Check against active rules.
+        else
+        {
+            for (int ruleIndex = 0; ruleIndex < activeRules.size(); ruleIndex++)
+            {
+                if (rules.count(activeRules[ruleIndex]) == 0)
+                {
+                    continue;
+                }
+
+                int isMatch = true;
+                rule &curRule = rules[activeRules[ruleIndex]];
+
+                if (i + curRule.inputPattern.size() >= From.size())
+                {
+                    continue;
+                }
+
+                int posInFrom = i;
+                for (int k = 0; k < curRule.inputPattern.size(); k++)
+                {
+                    string &match = curRule.inputPattern[k];
+
+                    // Empty string in input match; IDK why this would happen
+                    if (match == "")
+                    {
+                        continue;
+                    }
+
+                    while (From[posInFrom].size() >= 2 && From[posInFrom].substr(0, 2) == "//")
+                    {
+                        posInFrom++;
+
+                        if (posInFrom >= From.size())
+                        {
+                            isMatch = false;
+                            break;
+                        }
+                    }
+
+                    if (posInFrom >= From.size())
+                    {
+                        isMatch = false;
+                        break;
+                    }
+
+                    // Macro; Cannot overwrite with rules
+                    if (From[posInFrom].size() > 1 && From[posInFrom].back() == '!')
+                    {
+                        isMatch = false;
+                        break;
+                    }
+
+                    // Wildcard; Un-stored match
+                    if (match == "$$")
+                    {
+                        posInFrom++;
+                        continue;
+                    }
+
+                    // Variable; Stored match
+                    else if (match.size() == 2 && match[0] == '$')
+                    {
+                        ruleVars[ruleIndex][match] = From[posInFrom];
+                        posInFrom++;
+                    }
+
+                    // Literal; Must match verbatim
+                    else if (match == From[posInFrom])
+                    {
+                        posInFrom++;
+                        continue;
+                    }
+
+                    // Failure case
+                    else
+                    {
+                        isMatch = false;
+                        break;
+                    }
+                }
+
+                // If match, do replacement
+                if (isMatch)
+                {
+                    // Variable table is already built at this point
+
+                    // Get new contents
+                    vector<string> newContents;
+                    for (auto s : curRule.outputPattern)
+                    {
+                        if (ruleVars[ruleIndex].count(s) != 0)
+                        {
+                            newContents.push_back(ruleVars[ruleIndex][s]);
+                        }
+                        else
+                        {
+                            newContents.push_back(s);
+                        }
+                    }
+
+                    // Erase old contents
+                    for (int k = 0; k < curRule.inputPattern.size(); k++)
+                    {
+                        From.erase(From.begin() + i);
+                    }
+
+                    // Insert new contents
+                    for (int k = newContents.size() - 1; k >= 0; k--)
+                    {
+                        From.insert(From.begin() + i, newContents[k]);
+                    }
+                }
+
+                ruleVars[ruleIndex].clear();
             }
         }
     }
 
     return;
-}
-
-vector<string> replace(const vector<string> Subset, const rule &Rule)
-{
 }

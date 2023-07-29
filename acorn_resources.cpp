@@ -43,53 +43,22 @@ void getDiskUsage()
     return;
 }
 
-// I is the point in Lexed at which a macro name was found
-// CONSUMPTIVE!
-vector<string> getMacroArgs(vector<string> &lexed, const int &i)
-{
-    vector<string> out;
-
-    lexed.erase(lexed.begin() + i);
-
-    if (lexed[i].size() > 2 && lexed[i].substr(0, 2) == "//")
-    {
-        lexed.erase(lexed.begin() + i);
-    }
-
-    parse_assert(lexed[i] == "(");
-    lexed.erase(lexed.begin() + i);
-
-    if (lexed[i].size() > 2 && lexed[i].substr(0, 2) == "//")
-    {
-        lexed.erase(lexed.begin() + i);
-    }
-
-    string cur = "";
-    while (!lexed.empty() && lexed[i] != ";")
-    {
-        if (lexed[i] == "," || lexed[i] == ")")
-        {
-            out.push_back(cur);
-            cur = "";
-        }
-        else if (lexed[i].size() < 3 || lexed[i].substr(0, 2) != "//")
-        {
-            cur += lexed[i];
-        }
-
-        lexed.erase(lexed.begin() + i);
-    }
-
-    if (!lexed.empty())
-    {
-        lexed.erase(lexed.begin() + i);
-    }
-
-    return out;
-}
-
 void doFile(const string &From)
 {
+    // Clear active rules
+    activeRules.clear();
+
+    cout << "Entering file " << From << " w/ rules:\n";
+    for (auto p : rules)
+    {
+        cout << '\t' << p.first << '\n';
+    }
+    cout << "Bundles:\n";
+    for (auto p : bundles)
+    {
+        cout << '\t' << p.first << '\n';
+    }
+
     unsigned long long oldLineNum = curLine;
     string oldFile = curFile;
 
@@ -178,7 +147,7 @@ void doFile(const string &From)
             // B: Lex
             lexed = lex(text);
 
-            // Pre-C: Preproc definitions
+            // C: Preproc definitions
             preprocDefines["__LINE__"] = "1";
             for (int i = 0; i < lexed.size(); i++)
             {
@@ -202,7 +171,7 @@ void doFile(const string &From)
                 }
             }
 
-            // C: Scan for compiler macros; Do these first
+            // D: Scan for compiler macros; Do these first
             // This erases them from lexed
             for (int i = 0; i < lexed.size(); i++)
             {
@@ -295,7 +264,10 @@ void doFile(const string &From)
                 }
             }
 
-            // D: Scan for macro definitions and handle them
+            // E: Rules
+            doRules(lexed);
+
+            // F: Scan for macro definitions and handle them
             // This erases them from lexed
             for (int i = 1; i < lexed.size(); i++)
             {
@@ -346,7 +318,7 @@ void doFile(const string &From)
                 }
             }
 
-            // E: Scan for macro calls and handle them
+            // G: Scan for macro calls and handle them
             for (int i = 0; i < lexed.size(); i++)
             {
                 // We can assume that no macro definitions remain
@@ -376,12 +348,12 @@ void doFile(const string &From)
                 }
             }
 
-            // F: Operator substitution (within parenthesis and between commas)
+            // H: Operator substitution (within parenthesis and between commas)
             parenSub(lexed);
 
             lexedCopy = lexed;
 
-            // G: Load file stuff
+            // I: Load file stuff
             sequence fileSeq = createSequence(lexed);
 
             if (fileSeq.type != nullType)

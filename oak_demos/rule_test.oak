@@ -1,0 +1,34 @@
+package!("std");
+use_rule!("std_method");
+
+let times_two(self: ^i32) -> i32
+{
+    (^self * 2)
+}
+
+let times_two(self: i32) -> i32
+{
+    (self * 100)
+}
+
+let times(self: i32, other: i32, other_other: i32) -> i32
+{
+    (self * other * other_other)
+}
+
+let main() -> i32
+{
+    let a: i32;
+    a = 5;
+
+    print(a..times_two());
+    print("\n");
+
+    print(a.times_two());
+    print("\n");
+
+    print(a.times(10, 10));
+    print("\n");
+
+    0
+}
