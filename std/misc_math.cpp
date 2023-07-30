@@ -7,6 +7,12 @@ For .o linking w/ Acorn STD package
 
 #include "std_oak_header.hpp"
 
+void New(bool *self)
+{
+    *self = false;
+    return;
+}
+
 bool Copy(bool *self, bool other)
 {
     (*self) = other;

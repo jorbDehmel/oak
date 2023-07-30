@@ -1,0 +1,22 @@
+// For testing Oak's generic functions
+
+package!("std");
+use_rule!("std_method");
+
+let print_twice<t>(what: t) -> void
+{
+    print(what);
+    print("\n");
+
+    print(what);
+    print("\n");
+}
+
+let main() -> i32
+{
+    print_twice<i32>;
+
+    print_twice(10);
+
+    0
+}

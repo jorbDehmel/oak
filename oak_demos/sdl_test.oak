@@ -14,7 +14,14 @@ let main() -> i32
 
     let black: sdl_color;
     let white: sdl_color;
+    let red: sdl_color;
+    let green: sdl_color;
+    let blue: sdl_color;
+
     white..New(to_u8(255), to_u8(255), to_u8(255), to_u8(255));
+    red..New(to_u8(255), to_u8(0), to_u8(0), to_u8(255));
+    green..New(to_u8(0), to_u8(255), to_u8(0), to_u8(255));
+    blue..New(to_u8(0), to_u8(0), to_u8(255), to_u8(255));
 
     wind..fill(black);
 

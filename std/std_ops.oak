@@ -16,6 +16,7 @@ include!("/usr/include/oak/std/int_math.oak");
 include!("/usr/include/oak/std/float_math.oak");
 
 // Bools
+let New(self: ^bool) -> void;
 let Copy(self: ^bool, other: bool) -> bool;
 let Eq(self: bool, other: bool) -> bool;
 let Neq(self: bool, other: bool) -> bool;

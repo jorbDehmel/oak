@@ -69,6 +69,11 @@ bool s_to_b(str what)
     return (what[0] == 't') || (what[0] == 'T');
 }
 
+str b_to_s(bool what)
+{
+    return (what ? "true" : "false");
+}
+
 f64 s_to_f(str what)
 {
     throw -1;

@@ -1,0 +1,21 @@
+// For testing Oak's loops
+// As of 7/29/23, "while" loops work, but "for" loops don't
+
+package!("std");
+use_rule!("std_method");
+
+let main() -> i32
+{
+    let flag: i32;
+    flag = 10;
+
+    while (flag > 0)
+    {
+        print(flag);
+        print("\n");
+
+        flag -= 1;
+    }
+
+    0
+}

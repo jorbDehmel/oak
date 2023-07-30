@@ -1,0 +1,50 @@
+// For testing Oak conditionals
+// As of 7/29/23, works.
+
+package!("std");
+use_rule!("std_method");
+
+let main() -> i32
+{
+    let cond: bool;
+    cond = true;
+
+    print(b_to_s(cond));
+    print("\n");
+
+    if (cond)
+    {
+        print("Cond was true.\n");
+    }
+    else
+    {
+        print("Cond was false.\n");
+    }
+
+    cond = false;
+
+    if (cond)
+    {
+        print("Cond was true.\n");
+    }
+    else
+    {
+        print("Cond was false.\n");
+    }
+
+    let a: bool;
+    let b: bool;
+    a = false;
+    b = true;
+
+    if (a)
+    {
+        ;
+    }
+    else if (b)
+    {
+        print("sldfkjslkdf\n");
+    }
+
+    0
+}

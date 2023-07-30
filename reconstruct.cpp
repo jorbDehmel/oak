@@ -110,67 +110,14 @@ void reconstruct(const string &Name,
         header << "// Struct definitions\n";
         for (auto s : structData)
         {
-            if (!s.second.templatedTypes.empty())
+            header << "struct " << s.first << "\n{\n";
+
+            for (auto m : s.second.members)
             {
-                // Templated! Must complete full definition here
-
-                // Insert template definition line
-                header << "template <";
-
-                int i = 0;
-                for (auto t : s.second.templatedTypes)
-                {
-                    header << "class " << t;
-
-                    if (i + 1 != s.second.templatedTypes.size())
-                    {
-                        header << ", ";
-                    }
-
-                    i++;
-                }
-
-                header << ">\n";
-
-                header << "struct " << s.first;
-
-                if (s.second.type.name == "live")
-                {
-                    header << " : public __live_base";
-                }
-                else if (s.second.type.name != "NULL" && s.second.type.name != "struct")
-                {
-                    header << " : public " << toStrC(&s.second.type);
-                }
-
-                header << "\n{\n";
-
-                for (auto m : s.second.members)
-                {
-                    header << "\t" << toStrC(&m.second) << " " << m.first << ";\n";
-                }
-
-                header << "};\n\n";
+                header << "\t" << toStrC(&m.second) << " " << m.first << ";\n";
             }
-            else
-            {
-                // Non-templated struct
-                header << "struct " << s.first;
 
-                if (s.second.type.name != "NULL" && s.second.type.name != "struct")
-                {
-                    header << " : public " << toStrC(&s.second.type);
-                }
-
-                header << "\n{\n";
-
-                for (auto m : s.second.members)
-                {
-                    header << "\t" << toStrC(&m.second) << " " << m.first << ";\n";
-                }
-
-                header << "};\n\n";
-            }
+            header << "};\n\n";
         }
     }
 
@@ -279,12 +226,7 @@ pair<string, string> save(const stringstream &header, const stringstream &body, 
 // This is separate due to complexity
 string toStrCFunction(Type *What, const string &Name)
 {
-    // function -> GENERICS -> function -> ARGS -> maps -> RETURN_TYPE
-    // function -> templ -> GENERICS -> templ_end
-    //          -> function -> ARGS -> maps -> RETURN_TYPE
-
     // function -> ARGS -> maps -> RETURN_TYPE
-    // RETURN_TYPE NAME(ARGS);
 
     parse_assert(What != nullptr && What->info == function);
     Type *current = What->next;
@@ -466,39 +408,11 @@ void dump(const vector<string> &Lexed, const string &Where, const string &FileNa
     }
 
     file << sep
-         << "// Generics:\n";
-
-    for (auto p : templTable)
-    {
-        file << p.first << ":\n";
-
-        for (auto item : p.second)
-        {
-            file << "\t(";
-            for (auto gen : item.generics)
-            {
-                file << gen << " ";
-            }
-            file << ") " << toStr(&item.type) << '\n';
-        }
-    }
-
-    file << sep
          << "// Structs:\n";
 
     for (auto s : structData)
     {
-        if (s.second.templatedTypes.size() != 0)
-        {
-            file << "<";
-            for (auto g : s.second.templatedTypes)
-            {
-                file << g << ' ';
-            }
-            file << "> ";
-        }
-
-        file << s.first << ": " << toStr(&s.second.type) << "\n";
+        file << s.first << "\n";
 
         for (auto m : s.second.members)
         {
@@ -539,11 +453,23 @@ void dump(const vector<string> &Lexed, const string &Where, const string &FileNa
             {
                 file << gen << " ";
             }
-            file << ") " << toStr(&item.type) << '\n';
+            file << ") ";
 
-            if (item.seq.items.size() != 0)
+            for (auto s : item.returnType)
             {
-                file << "\t\t" << toC(item.seq) << '\n';
+                file << s << ' ';
+            }
+            file << '\n';
+
+            if (item.guts.size() != 0)
+            {
+                file << "\t\t";
+
+                for (auto s : item.guts)
+                {
+                    file << s << ' ';
+                }
+                file << '\n';
             }
         }
     }

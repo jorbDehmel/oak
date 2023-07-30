@@ -8,6 +8,10 @@ GPLv3 held by author
 
 #include "sequence.hpp"
 
+// Global instantiations
+multiTemplTable templTable;
+map<string, __templStructLookupData> templStructData;
+
 // Activates "dirty" mode, where mem alloc and free are allowed
 bool insideMethod = false;
 
@@ -350,15 +354,37 @@ sequence __createSequence(vector<string> &From)
         sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
         From.erase(From.begin()); // let
         sm_assert(!From.empty(), "'let' must be followed by something.");
+
         string name = From[0];
         sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
         From.erase(From.begin());
+
+        // Gather templating if there is any
+        vector<string> generics;
+        if (From.front() == "<")
+        {
+            while (!From.empty() && From.front() != ">")
+            {
+                if (From.front() != "<" && From.front() != ">" && From.front() != ",")
+                {
+                    generics.push_back(From.front());
+                }
+
+                From.erase(From.begin());
+            }
+
+            if (!From.empty() && From.front() == ">")
+            {
+                From.erase(From.begin());
+            }
+        }
 
         // Get type
         if (From[0] == ":")
         {
             sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
             From.erase(From.begin());
+
             if (!From.empty() && From.front() == "struct")
             {
                 // addStruct takes in the full struct definition, from
@@ -377,8 +403,28 @@ sequence __createSequence(vector<string> &From)
                 sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
                 From.erase(From.begin());
 
-                // addStruct
-                addStruct(toAdd);
+                if (generics.empty())
+                {
+                    // Non-templated struct
+                    addStruct(toAdd);
+                }
+                else
+                {
+                    // Templated struct
+                    cout << "Adding struct template " << name << " w/ generics '";
+                    for (auto s : generics)
+                    {
+                        cout << s << ' ';
+                    }
+                    cout << "' and data '";
+                    for (auto s : toAdd)
+                    {
+                        cout << s << ' ';
+                    }
+                    cout << "'\n";
+
+                    templStructData[name] = __templStructLookupData{generics, toAdd};
+                }
 
                 // This should be left out of toC, as it should only be used
                 // in the header file during reconstruction.
@@ -387,6 +433,8 @@ sequence __createSequence(vector<string> &From)
             {
                 // Non-struct definition; Local var, not function
                 // NOTE: let a: i32 = 5; is NO LONGER supported!
+
+                sm_assert(generics.empty(), "Variable declaration must not be templated.");
 
                 // Scrape entire definition for this
                 vector<string> toAdd = {
@@ -442,65 +490,110 @@ sequence __createSequence(vector<string> &From)
                 return out;
             }
         }
-        else if (From[0] == "<" || From[0] == "(")
+        else if (From[0] == "(")
         {
             // Function definition
 
-            // This should NOT appear during toC, as it is only
-            // present during reconstruction.
-
-            // Templating and arguments
-            vector<string> toAdd;
-            do
+            if (generics.size() == 0)
             {
-                toAdd.push_back(From.front());
-                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-                From.erase(From.begin());
-            } while (From[0] != "{" && From[0] != ";");
-
-            auto type = toType(toAdd);
-
-            auto argsWithType = getArgs(type);
-            for (pair<string, Type> p : argsWithType)
-            {
-                table[p.first].push_back(__multiTableSymbol{sequence(), p.second});
-            }
-
-            bool isMethod = false;
-            for (char c : name)
-            {
-                if ('A' <= c && c <= 'Z')
+                // Arguments
+                vector<string> toAdd;
+                do
                 {
-                    isMethod = true;
-                    break;
+                    toAdd.push_back(From.front());
+                    sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                    From.erase(From.begin());
+                } while (From[0] != "{" && From[0] != ";");
+
+                auto type = toType(toAdd);
+
+                auto oldTable = table;
+
+                auto argsWithType = getArgs(type);
+                for (pair<string, Type> p : argsWithType)
+                {
+                    table[p.first].push_back(__multiTableSymbol{sequence(), p.second});
                 }
-            }
 
-            bool oldSafeness = insideMethod;
-            insideMethod = isMethod;
-
-            // Insert symbol
-            if (From.front() == "{")
-            {
-                addSymb(name, toAdd, __createSequence(From));
-            }
-            else
-            {
-                addSymb(name, toAdd, sequence{});
-            }
-
-            insideMethod = oldSafeness;
-
-            for (pair<string, Type> p : argsWithType)
-            {
-                for (int k = 0; k < table[p.first].size(); k++)
+                bool isMethod = false;
+                for (char c : name)
                 {
-                    if (table[p.first][k].type == p.second)
+                    if ('A' <= c && c <= 'Z')
                     {
-                        table[p.first].erase(table[p.first].begin() + k);
+                        isMethod = true;
                         break;
                     }
                 }
+
+                bool oldSafeness = insideMethod;
+                insideMethod = isMethod;
+
+                // Insert symbol
+                if (From.front() == "{")
+                {
+                    addSymb(name, toAdd, __createSequence(From));
+                }
+                else
+                {
+                    addSymb(name, toAdd, sequence{});
+                }
+
+                insideMethod = oldSafeness;
+
+                restoreSymbolTable(oldTable);
+            }
+            else
+            {
+                vector<string> toAdd = {"let", name}, returnType;
+                while (From.front() != "->")
+                {
+                    if (From.front().size() < 2 || From.front().substr(0, 2) != "//")
+                    {
+                        toAdd.push_back(From.front());
+                    }
+
+                    From.erase(From.begin());
+                }
+
+                toAdd.push_back(From.front());
+                From.erase(From.begin());
+
+                while (From.front() != "{" && From.front() != ";")
+                {
+                    if (From.front().size() < 2 || From.front().substr(0, 2) != "//")
+                    {
+                        toAdd.push_back(From.front());
+                        returnType.push_back(From.front());
+                    }
+
+                    From.erase(From.begin());
+                }
+
+                sm_assert(From.front() == "{", "Generic functions must be defined at declaration.");
+
+                // Scrape contents
+                int count = 0;
+                do
+                {
+                    if (From[0] == "{")
+                    {
+                        count++;
+                    }
+                    else if (From[0] == "}")
+                    {
+                        count--;
+                    }
+
+                    if (From.front().size() < 2 || From.front().substr(0, 2) != "//")
+                    {
+                        toAdd.push_back(From.front());
+                    }
+
+                    From.erase(From.begin());
+                } while (count != 0);
+
+                // Insert template
+                templTable[name].push_back(__template_info{generics, toAdd, returnType});
             }
         }
 
@@ -589,30 +682,28 @@ sequence __createSequence(vector<string> &From)
     }
 
     // Non-special case; code line.
-    // Function calls may occur within.
+    // Function calls and template instantiation may occur within.
 
-    for (int i = 0; i < From.size(); i++)
+    while (From[0].size() > 11 && From[0].substr(0, 11) == "//__LINE__=")
     {
-        string cur = From[i];
-
-        if (cur.size() > 11 && cur.substr(0, 11) == "//__LINE__=")
-        {
-            // Line update special symbol
-            string newLineNum = cur.substr(12);
-            curLine = stoull(newLineNum);
-            continue;
-        }
-        else
-        {
-            sequence temp;
-            temp.info = atom;
-            temp.type = resolveFunction(From, i, temp.raw);
-
-            out.items.push_back(temp);
-        }
+        // Line update special symbol
+        string newLineNum = From[0].substr(12);
+        curLine = stoull(newLineNum);
+        continue;
     }
 
-    From.clear();
+    sequence temp;
+    temp.info = atom;
+
+    int i = 0;
+    temp.type = resolveFunction(From, i, temp.raw);
+    out.items.push_back(temp);
+
+    // Erase old
+    for (int k = 0; k < i; k++)
+    {
+        From.erase(From.begin());
+    }
 
     if (out.items.size() == 1)
     {
@@ -758,146 +849,6 @@ Type getReturnType(const Type &T)
     }
 
     return T;
-}
-
-// Assume the input has no extraneous symbols
-vector<string> fixMethodCall(const vector<string> &What)
-{
-    if (What.size() < 2)
-    {
-        vector<string> out = What;
-        return out;
-    }
-
-    // Parse last dot chunk
-    vector<string> finalChunk;
-    vector<string> rest = What;
-
-    vector<string> out;
-
-    int count = 0;
-    while (!rest.empty() && !(rest.back() == "." && count == 0))
-    {
-        if (rest.back() == "(")
-        {
-            count++;
-        }
-        else if (rest.back() == ")")
-        {
-            count--;
-        }
-
-        finalChunk.insert(finalChunk.begin(), rest.back());
-        rest.pop_back();
-    }
-
-    if (!rest.empty())
-    {
-        rest.pop_back();
-    }
-
-    // Determine if method or member
-    if (finalChunk.back() == ")")
-    {
-        bool needsComma = false;
-
-        // Method call; Prepend
-        out.push_back(finalChunk.front());
-        out.push_back("(");
-
-        if (!rest.empty())
-        {
-            needsComma = true;
-
-            out.push_back("&");
-
-            // RECURSE for previous
-            vector<string> fixedRest = fixMethodCall(rest);
-            for (string s : fixedRest)
-            {
-                out.push_back(s);
-            }
-        }
-
-        // ARGUMENTS
-        vector<string> curArg;
-        int i = 2;
-        int count = 1;
-
-        do
-        {
-            if (finalChunk[i] == "(")
-            {
-                count++;
-            }
-            else if (finalChunk[i] == ")")
-            {
-                count--;
-            }
-
-            if (finalChunk[i] == ")" && count == 0)
-            {
-                vector<string> fixedArg = fixMethodCall(curArg);
-
-                if (needsComma && fixedArg.size() != 0)
-                {
-                    out.push_back(",");
-                }
-
-                for (string s : fixedArg)
-                {
-                    out.push_back(s);
-                }
-
-                needsComma = true;
-
-                break;
-            }
-            else if (finalChunk[i] == "," && count == 1)
-            {
-                vector<string> fixedArg = fixMethodCall(curArg);
-
-                if (needsComma && fixedArg.size() != 0)
-                {
-                    out.push_back(",");
-                }
-
-                for (string s : fixedArg)
-                {
-                    out.push_back(s);
-                }
-
-                curArg.clear();
-
-                needsComma = true;
-            }
-            else
-            {
-                curArg.push_back(finalChunk[i]);
-            }
-
-            i++;
-        } while (i < finalChunk.size());
-
-        out.push_back(")");
-    }
-    else
-    {
-        // Member access; Append
-        sm_assert(!rest.empty(), "Cannot access member of NULL");
-
-        // RECURSE
-        vector<string> fixedRest = fixMethodCall(rest);
-        for (string s : fixedRest)
-        {
-            out.push_back(s);
-        }
-
-        out.push_back(".");
-        out.push_back(finalChunk.front());
-    }
-
-    return out;
 }
 
 vector<pair<string, Type>> getArgs(Type &type)
@@ -1152,6 +1103,7 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
         // If no candidates, throw error
         if (candidates.size() == 0)
         {
+            // Get all theoretical candidates again
             candidates = table[name];
 
             cout << "Candidates:\n";
@@ -1193,6 +1145,33 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
 
         start--;
     }
+
+    // Function template instantiation (not struct at this stage)
+    else if (What.size() > start + 1 && What[start + 1] == "<")
+    {
+        vector<string> generics;
+        start += 2;
+
+        while (start < What.size() && What[start] != ">")
+        {
+            if (What[start] != "<" && What[start] != ">" && What[start] != ",")
+            {
+                generics.push_back(What[start]);
+            }
+
+            start++;
+        }
+        start++;
+
+        sm_assert(start >= What.size() || What[start] == ";", "Template instantiation call must end with semicolon, not '" + What[start] + "'");
+
+        cout << "Instantiating " << name << '\n';
+
+        instantiateTemplate(name, generics);
+
+        cout << "Instantiated " << name << '\n';
+    }
+
     else
     {
         // Non-function
@@ -1348,4 +1327,91 @@ void restoreSymbolTable(multiSymbolTable &backup)
     table = newTable;
 
     return;
+}
+
+__multiTableSymbol *instantiateTemplate(const string &Name, const vector<string> &GenericReplacements)
+{
+    // Examine candidates
+    auto candidates = templTable[Name];
+    if (candidates.size() == 0)
+    {
+        throw parse_error("No candidates exist for templated function '" + Name + "'");
+    }
+    bool found = false;
+    __template_info toUse;
+    for (int i = 0; i < candidates.size(); i++)
+    {
+        if (candidates[i].generics.size() == GenericReplacements.size())
+        {
+            found = true;
+            toUse = candidates[i];
+            break;
+        }
+    }
+
+    if (!found)
+    {
+        for (auto c : candidates)
+        {
+            cout << "Candidate '" << Name << "' had " << c.generics.size() << " generics:\n\t";
+            for (auto g : c.generics)
+            {
+                cout << '\t' << g;
+            }
+            cout << '\n';
+        }
+
+        cout << "Required generic count: " << GenericReplacements.size() << '\n';
+
+        throw parse_error("No template candidates match generics count for function '" + Name + "'");
+    }
+
+    // At this point we can be assured that our template is legit
+
+    // Do replacing
+    for (int i = 0; i < GenericReplacements.size(); i++)
+    {
+        // Replace in guts
+        for (int j = 0; j < toUse.guts.size(); j++)
+        {
+            if (toUse.guts[j] == toUse.generics[i])
+            {
+                toUse.guts[j] = GenericReplacements[i];
+            }
+        }
+
+        // Replace in return type
+        for (int j = 0; j < toUse.returnType.size(); j++)
+        {
+            if (toUse.returnType[j] == toUse.generics[i])
+            {
+                toUse.returnType[j] = GenericReplacements[i];
+            }
+        }
+    }
+
+    Type outType = toType(toUse.returnType);
+    sequence outSeq = createSequence(toUse.guts);
+
+    // Scan for existing instantiation and, if it exists, return it
+    auto instantCandidates = table[Name];
+    for (int i = 0; i < instantCandidates.size(); i++)
+    {
+        if (instantCandidates[i].type == outType)
+        {
+            cout << tags::yellow_bold
+                 << "Warning! Generic function "
+                 << Name
+                 << toStr(&outType)
+                 << " has already been instantiated;\n"
+                 << "Repeated instantiation calls are redundant.\n"
+                 << tags::reset;
+
+            return &table[Name][i];
+        }
+    }
+
+    table[Name].push_back(__multiTableSymbol{outSeq, outType});
+
+    return &table[Name].back();
 }

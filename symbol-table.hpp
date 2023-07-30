@@ -60,14 +60,13 @@ struct __multiTableSymbol
 struct __template_info
 {
     vector<string> generics;
-    sequence seq;
-    Type type;
+    vector<string> guts;
+    vector<string> returnType;
 };
 
 typedef map<string, vector<__multiTableSymbol>> multiSymbolTable;
 typedef map<string, vector<__template_info>> multiTemplTable;
 
-extern multiTemplTable templTable;
 extern multiSymbolTable table;
 
 // Returns the C version of a sequence
@@ -87,8 +86,5 @@ void addStruct(const string &From);
 // Takes full definition, possibly including "let"
 // Could also be a template!
 void addSymb(const string &Name, const vector<string> &From, const sequence &Seq);
-
-// Adds an instance of a templated function
-__multiTableSymbol *instantiateTemplate(const string &Name, const vector<Type> &GenericReplacements);
 
 #endif

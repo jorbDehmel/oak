@@ -55,9 +55,13 @@ extern const Type nullType;
 
 struct __structLookupData
 {
-    set<string> templatedTypes;
-    Type type;
     map<string, Type> members;
+};
+
+struct __templStructLookupData
+{
+    vector<string> generics;
+    vector<string> guts;
 };
 
 extern map<string, __structLookupData> structData;

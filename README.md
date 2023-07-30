@@ -19,6 +19,15 @@ Oak has modifiable syntax (see the section on preprocessor rules), making it hig
 
 The Oak programming language outlined here bears no relation nor resemblance to the Java prototype of the same name; I was not aware of it until significantly into development.
 
+## Names
+
+Name      | Meaning
+----------|-------------------------------------------------------
+`Oak`     | The base `Oak` programming language.
+`Acorn`   | The `Oak` translator / compiler.
+`Sapling` | The sub-language for creating `Oak` dialects / rules.
+Dialect   | A syntactically-modified branch of `Oak`.
+
 ## Compilation, Installation, and Uninstallation
 
 To install, open a terminal in this folder and run `make install`. This repo is only compatible with Linux. This will compile and install Oak, as well as the standard Oak package. To uninstall, open this folder in terminal and run `make uninstall`. If you've already deleted this folder, you can run `sudo rm -rf /usr/include/oak /usr/bin/acorn`. Both of these will accomplish the same thing.
@@ -196,6 +205,8 @@ do this*/
 Also, all files should always end with a newline.
 
 Comment blocks before global definitions (those not within a code scope) will be included in automatic manual generation via `acorn -m`.
+
+Any sequence starting with `#` is ignored completely. This is to allow for shebangs. This symbol should **never** be used for commenting.
 
 ## Main Functions
 
@@ -626,7 +637,7 @@ Name            | Type | Description
 \_\_FILE__       | str  | The path of the current Oak file
 \_\_CONTENTS__   | str  | The contents of the current Oak file
 
-## Preproc Rules
+## Preproc Rules and Sapling
 
 ### Outline
 
@@ -648,7 +659,7 @@ For instance, the input rule `meow $$ $m meow` would match `meow woof bark meow`
 
 Input and output patterns are lexed, so spaces may or may not be required within.
 
-In a way, rules allow you to define whatever syntactic fluff you want.
+In a way, rules allow you to define whatever syntactic fluff you want. The rule-definition language outlined here is tenatively called `Sapling` (**S**ymbol **A**lteration **P**rogramming **L**anguage **I**mplemented by **N**ine **G**orillas). This may be stylized `$apling`.
 
 ### Defining and Using Rules
 
@@ -703,7 +714,13 @@ bundle_rule!("std_method",
     "const_method");
 ```
 
-## Translator Passes
+### Future
+
+In the future, `Sapling` may introduce several more additional options. On such feature is `$+`, which is a wildcard that matches any one or more symbols. It may not be the first or last symbol in a `Sapling` sequence, as it is terminated only by the first instance of the following symbol (if it were the first item, it would be highly inefficient). Another such, with the same rules, is `$*`. This symbol matches any zero or more symbols that are not the following symbol. With these two symbols, no occurrence of the following symbol may match anywhere within.
+
+`hi $* ( )` would match `hi hello hello hello hello ( )`, but not `hi hello hello ( hello ) ( )`.
+
+## Addendum I: Translator Passes
 
 The `Oak` translator goes through the following passes when processing a file from `Oak` to `C++`. Each of these represents (at minimum) one full pass over the entire file. In stages after stage 2, they represent symbol-wise iteration, but before then they represent character-wise iteration.
 
@@ -719,6 +736,56 @@ The `Oak` translator goes through the following passes when processing a file fr
 10 - (Optional) `C++` file prettification
 11 - (External) Object file creation via `clang++`
 12 - (External) Executable linking via `clang++`
+
+## Addendum II: Special Symbols
+
+Special symbols are inserted during lexing to retain metadata. They are ignored by nearly every other stage of translation. This is, for instance, how `acorn` knows which line an error occurs on even though the `Oak` lexer erases newlines extremely early in processing. Special symbols are prefixed with two slashes, like a comment. The `line` special symbol looks like this: `//__LINE__=X`, with `X` being replaced by the current line.
+
+As a front-end user of `acorn`, you shouldn't have to worry about special symbols. They will appear in some parts of `acorn`-generated dump files, but otherwise they should not appear anywhere (even `Sapling` ignores them).
+
+## Addendum III: Time and Space Complexities
+
+`Oak` translation, in theory, runs in time complexity proportional to the sum number of characters in the included files; `O(n)`. This analysis assumes that this number of characters outnumbers the number of symbols, and that any further iterative process takes fewer steps that this. The space complexity is the same as the time complexity. These prepositions may prove to be false, however, warranting a more thorough analysis.
+
+## Addendum IV: The "std_method" rule
+
+The `std_method` rule (included in the "std" package) allows method calls like other languages. There are four cases; zero-argument const methods, zero-argument mutable methods, argumented const methods, and argumented mutable methods. Mutable methods take pointer to the object, while const ones take a copy of it. Thus, const methods cannot change the members. Argumented and zero-argument methods refer to the appearance pre-rule-application; All methods take a reference to the object they are called upon. The rules allow the following shorthands.
+
+```
+package!("std");
+use_rule!("std_method");
+
+let a: struct;
+
+let argless_const(self: a) -> void;
+let argless_mut(self: ^a) -> void;
+let arg_const(self: a, i32 b, i32, c, i32 d) -> void;
+let arg_mut(self: ^a, i32 b, i32 c) -> void;
+
+let main() -> i32
+{
+    let test: a;
+
+    // These two calls are equivalent:
+    test.argless_const();
+    argless_const(test);
+
+    // These two calls are equivalent:
+    test..argless_mut();
+    argless_mut(@test);
+
+    // These two calls are equivalent:
+    test.arg_const(1, 2, 3);
+    arg_const(test, 1, 2, 3);
+
+    // These two calls are equivalent:
+    test..arg_mut(1, 2);
+    arg_mut(@test, 1, 2);
+
+    0
+}
+
+```
 
 ## License
 
