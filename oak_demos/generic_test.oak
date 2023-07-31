@@ -1,4 +1,5 @@
 // For testing Oak's generic functions
+// As of 7/30/23, passed.
 
 package!("std");
 use_rule!("std_method");

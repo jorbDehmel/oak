@@ -1,3 +1,6 @@
+// Testing of Oak's std_method rule (and rules in general)
+// Legacy passed
+
 package!("std");
 
 /*

@@ -1,3 +1,6 @@
+// For testing Oak's std_mem operations
+// Legacy passed
+
 package!("std");
 
 let test: struct

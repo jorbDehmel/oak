@@ -395,11 +395,20 @@ sequence __createSequence(vector<string> &From)
                 int count = 0;
                 while (count != 0 || (From[0] != "}" && From[0] != ";"))
                 {
-                    toAdd.push_back(From[0]);
+                    if (From[0].size() < 2 || From[0].substr(0, 2) != "//")
+                    {
+                        toAdd.push_back(From[0]);
+                    }
+
                     sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
                     From.erase(From.begin());
                 }
-                toAdd.push_back(From[0]);
+
+                if (From[0].size() < 2 || From[0].substr(0, 2) != "//")
+                {
+                    toAdd.push_back(From[0]);
+                }
+
                 sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
                 From.erase(From.begin());
 
@@ -411,7 +420,8 @@ sequence __createSequence(vector<string> &From)
                 else
                 {
                     // Templated struct
-                    cout << "Adding struct template " << name << " w/ generics '";
+                    cout << __FILE__ << ":" << __LINE__ << " "
+                         << "Adding struct template " << name << " w/ generics '";
                     for (auto s : generics)
                     {
                         cout << s << ' ';
@@ -700,7 +710,7 @@ sequence __createSequence(vector<string> &From)
     out.items.push_back(temp);
 
     // Erase old
-    for (int k = 0; k < i; k++)
+    for (int k = 0; !From.empty() && k < i; k++)
     {
         From.erase(From.begin());
     }
@@ -1165,11 +1175,7 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
 
         sm_assert(start >= What.size() || What[start] == ";", "Template instantiation call must end with semicolon, not '" + What[start] + "'");
 
-        cout << "Instantiating " << name << '\n';
-
         instantiateTemplate(name, generics);
-
-        cout << "Instantiated " << name << '\n';
     }
 
     else

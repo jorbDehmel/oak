@@ -1,0 +1,26 @@
+// For testing Oak's generic structs
+// UNPASSED
+
+// Linked list node
+let node<t>: struct
+{
+    data: t,
+    next: ^node<t>,
+}
+
+let New<t>(self: ^node<t>, data: t) -> void
+{
+    self.data = data;
+}
+
+let main() -> i32
+{
+    New<i32>;
+
+    let head: node<i32>;
+
+    head.data = 123;
+    print(head.data);
+
+    0
+}
