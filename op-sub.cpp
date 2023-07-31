@@ -287,6 +287,7 @@ void operatorSub(vector<string> &From)
         }
     }
 
+    /*
     // Level 2: Containers
     for (int i = 0; i < From.size(); i++)
     {
@@ -298,6 +299,7 @@ void operatorSub(vector<string> &From)
             assert(false);
         }
     }
+    */
 
     // Level 3: Booleans
     for (int i = 0; i < From.size(); i++)

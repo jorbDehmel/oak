@@ -346,13 +346,36 @@ vector<string> lex(const string &What)
 
         else if (c == '+')
         {
-            if (What.size() > i + 1 && (What[i + 1] == '=' || What[i + 1] == '+'))
+            if (What.size() > i + 1 && What[i + 1] == '=')
             {
                 cur += c;
                 cur += What[i + 1];
                 out.push_back(cur);
                 i++;
                 cur = "";
+            }
+            else if (What.size() > i + 1 && What[i + 1] == '+')
+            {
+                if (What.size() > i + 2 && What[i + 2] == '+')
+                {
+                    // Pointer addition operator +++
+                    cur += c;
+                    cur += What[i + 1];
+                    cur += What[i + 2];
+
+                    out.push_back(cur);
+                    i += 2;
+                    cur = "";
+                }
+                else
+                {
+                    // Increment operator ++
+                    cur += c;
+                    cur += What[i + 1];
+                    out.push_back(cur);
+                    i++;
+                    cur = "";
+                }
             }
             else
             {
