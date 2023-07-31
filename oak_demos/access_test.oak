@@ -1,0 +1,40 @@
+// A test of array access [] in Oak.
+// UNPASSED
+
+package!("std");
+use_rule!("std_method");
+
+let wrapper: struct
+{
+    data: ^i32,
+}
+
+let New(self: ^wrapper) -> void
+{
+    alloc!(data, 10);
+}
+
+let Del(self: ^wrapper) -> void
+{
+    free_arr!(data);
+}
+
+let Get(self: ^wrapper, index: i32) -> ^i32
+{
+    @(self.data + index)
+}
+
+let main() -> i32
+{
+    let test: wrapper;
+
+    let d: ^i32;
+    
+    d = test[0];
+    Copy(d, 5);
+
+    print(d);
+    print("\n")
+
+    0
+}

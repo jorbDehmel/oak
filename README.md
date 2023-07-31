@@ -716,7 +716,7 @@ bundle_rule!("std_method",
 
 ### Future
 
-In the future, `Sapling` may introduce several more additional options. On such feature is `$+`, which is a wildcard that matches any one or more symbols. It may not be the first or last symbol in a `Sapling` sequence, as it is terminated only by the first instance of the following symbol (if it were the first item, it would be highly inefficient). Another such, with the same rules, is `$*`. This symbol matches any zero or more symbols that are not the following symbol. With these two symbols, no occurrence of the following symbol may match anywhere within.
+In the future, `Sapling` may introduce several more additional options. On such feature is `$+`, which is a wildcard that matches any one or more symbols. It may not be the first or last symbol in a `Sapling` sequence, as it is terminated only by the first instance of the following symbol (if it were the first item, it would be highly inefficient). Another such, with the same rules, is `$*`. This symbol matches any zero or more symbols that are not the following symbol. With these two symbols, no occurrence of the following symbol may match anywhere within. Additionally, a variable may not occur directly after either.
 
 `hi $* ( )` would match `hi hello hello hello hello ( )`, but not `hi hello hello ( hello ) ( )`.
 
