@@ -3,13 +3,13 @@
 
 // TODO: Implement pointer addition
 
+// new_rule!("access_begin", "[", ". . Get (");
+// new_rule!("access_end", "]", ")");
+// bundle_rule!("access", "access_begin", "access_end");
+
 package!("std");
 
-new_rule!("access_begin", "[", ". . Get (");
-new_rule!("access_end", "]", ")");
-bundle_rule!("access", "access_begin", "access_end");
-
-use_rule!("access");
+// use_rule!("access");
 use_rule!("std_method");
 
 let wrapper: struct
@@ -37,13 +37,16 @@ let Get(self: ^wrapper, index: i32) -> ^i32
 
 let main() -> i32
 {
-    let test: wrapper;
+    let test: wrapper;  
     Copy(test.data +++ 1, 5);
 
     print(^(test.data +++ 1));
     print("\n");
 
-    Del(@test);
+    //test[1];
+    test..Get(1);
+
+    test..Del();
 
     0
 }

@@ -544,11 +544,38 @@ int main(const int argc, const char *argv[])
              << percentAcornTime
              << "%\n\n"
              << tags::reset;
-    }
 
-    if (debug)
-    {
-        cout << "Output file: " << out << '\n';
+        vector<string> passNames = {
+            "__CONTENTS__",
+            "lexing\t",
+            "preproc defs",
+            "compile macros",
+            "rules\t",
+            "macro defs",
+            "macro calls",
+            "op subs\t",
+            "sequencing",
+        };
+
+        // Get total according to this:
+        unsigned long long int total = 0;
+        for (auto t : phaseTimes)
+        {
+            total += t;
+        }
+
+        cout << "Total logged by compiler: " << total << '\n'
+             << "By compiler pass (ns):\n";
+        for (int j = 0; j < NUM_PHASES; j++)
+        {
+            cout << "\t" << j + 1
+                 << "\t" << passNames[j]
+                 << "\t" << phaseTimes[j]
+                 << ((phaseTimes[j] < 10'000'000) ? "\t\t" : "\t")
+                 << (100 * (double)phaseTimes[j] / total) << "%\n";
+        }
+        cout << "\n"
+             << "Output file: " << out << '\n';
     }
 
     return 0;

@@ -2,6 +2,7 @@
 // Legacy passed
 
 package!("std");
+use_rule!("std_method");
 
 let test: struct
 {
@@ -26,7 +27,7 @@ let main() -> i32
 {
     let a: test;
 
-    a.Del();
+    a..Del();
 
     0
 }

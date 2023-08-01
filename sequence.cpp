@@ -77,7 +77,13 @@ void debugPrint(const sequence &What, int spaces, ostream &to)
 sequence createSequence(const vector<string> &From)
 {
     // Clone to feed into the consumptive version
-    vector<string> temp(From);
+    // vector<string> temp(From);
+    list<string> temp;
+    for (auto i : From)
+    {
+        temp.push_back(i);
+    }
+
     vector<sequence> out;
 
     // Feed to consumptive version
@@ -109,7 +115,7 @@ sequence createSequence(const vector<string> &From)
 }
 
 // Internal consumptive version: Erases from vector, so not safe for frontend
-sequence __createSequence(vector<string> &From)
+sequence __createSequence(list<string> &From)
 {
     sequence out;
     out.info = code_line;
@@ -119,62 +125,66 @@ sequence __createSequence(vector<string> &From)
     {
         return out;
     }
-    else if (From[0].size() > 11 && From[0].substr(0, 11) == "//__LINE__=")
+    else if (From.front().size() > 11 && From.front().substr(0, 11) == "//__LINE__=")
     {
         // Line update special symbol
-        string newLineNum = From[0].substr(11);
+        string newLineNum = From.front().substr(11);
 
         curLine = stoull(newLineNum);
 
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-        From.erase(From.begin());
+        sm_assert(!From.empty(), "Cannot pop from front of empty list.");
+        From.pop_front();
         return __createSequence(From);
     }
 
     // Memory Keywords
-    else if (From[0] == "alloc!")
+    else if (From.front() == "alloc!")
     {
         sm_assert(insideMethod, "Memory cannot be allocated outside of an operator-alias method.");
 
         int count = 0;
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-        From.erase(From.begin());
-        vector<string> contents;
+        sm_assert(!From.empty(), "Cannot pop from front of empty list.");
+        From.pop_front();
+        list<string> contents;
 
         do
         {
-            if (From[0] == "(")
+            if (From.front() == "(")
             {
                 count++;
             }
-            else if (From[0] == ")")
+            else if (From.front() == ")")
             {
                 count--;
             }
 
-            if (!(count == 1 && From[0] == "(") && !(count == 0 && From[0] == ")"))
+            if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")"))
             {
-                contents.push_back(From[0]);
+                contents.push_back(From.front());
             }
 
-            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-            From.erase(From.begin());
+            sm_assert(!From.empty(), "Cannot pop from front of empty list.");
+            From.pop_front();
         } while (!From.empty() && count != 0);
 
         int num = 1;
-        for (int j = 0; j < contents.size(); j++)
+
+        int j = 0;
+        for (auto item = contents.begin(); item != contents.end(); item++)
         {
-            if (contents[j] == ",")
+            if (*item == ",")
             {
-                num = stoi(contents[j + 1]);
+                num = stoi(*item);
 
                 while (j + 1 < contents.size())
                 {
-                    contents.erase(contents.begin() + (j + 1));
+                    contents.erase(item);
                 }
 
                 break;
             }
+
+            j++;
         }
 
         sequence temp = __createSequence(contents);
@@ -188,33 +198,33 @@ sequence __createSequence(vector<string> &From)
 
         return out;
     }
-    else if (From[0] == "free!")
+    else if (From.front() == "free!")
     {
         sm_assert(insideMethod, "Memory cannot be deleted outside of an operator-alias method.");
 
         int count = 0;
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-        From.erase(From.begin());
-        vector<string> contents;
+        sm_assert(!From.empty(), "Cannot pop from front of empty list.");
+        From.pop_front();
+        list<string> contents;
 
         do
         {
-            if (From[0] == "(")
+            if (From.front() == "(")
             {
                 count++;
             }
-            else if (From[0] == ")")
+            else if (From.front() == ")")
             {
                 count--;
             }
 
-            if (!(count == 1 && From[0] == "(") && !(count == 0 && From[0] == ")"))
+            if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")"))
             {
-                contents.push_back(From[0]);
+                contents.push_back(From.front());
             }
 
-            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-            From.erase(From.begin());
+            sm_assert(!From.empty(), "Cannot pop from front of empty list.");
+            From.pop_front();
         } while (!From.empty() && count != 0);
 
         sequence temp = __createSequence(contents);
@@ -228,33 +238,33 @@ sequence __createSequence(vector<string> &From)
 
         return out;
     }
-    else if (From[0] == "free_arr!")
+    else if (From.front() == "free_arr!")
     {
         sm_assert(insideMethod, "Memory cannot be deleted outside of an operator-alias method.");
 
         int count = 0;
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-        From.erase(From.begin());
-        vector<string> contents;
+        sm_assert(!From.empty(), "Cannot pop from front of empty list.");
+        From.pop_front();
+        list<string> contents;
 
         do
         {
-            if (From[0] == "(")
+            if (From.front() == "(")
             {
                 count++;
             }
-            else if (From[0] == ")")
+            else if (From.front() == ")")
             {
                 count--;
             }
 
-            if (!(count == 1 && From[0] == "(") && !(count == 0 && From[0] == ")"))
+            if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")"))
             {
-                contents.push_back(From[0]);
+                contents.push_back(From.front());
             }
 
-            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-            From.erase(From.begin());
+            sm_assert(!From.empty(), "Cannot pop from front of empty list.");
+            From.pop_front();
         } while (!From.empty() && count != 0);
 
         sequence temp = __createSequence(contents);
@@ -270,57 +280,33 @@ sequence __createSequence(vector<string> &From)
     }
 
     // Misc key-characters
-    else if (From[0] == ";")
+    else if (From.front() == ";")
     {
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-        From.erase(From.begin());
+        sm_assert(!From.empty(), "Cannot pop from front of empty list.");
+        From.pop_front();
         auto toReturn = __createSequence(From);
         toReturn.type = nullType;
 
         return toReturn;
     }
 
-    // Referencing and dereferencing operators
-    else if (From[0] == "^")
-    {
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-        From.erase(From.begin());
-        auto toReturn = __createSequence(From);
-        sm_assert(toReturn.type.info == pointer, "Cannot dereference non-pointer.");
-
-        Type temp = *toReturn.type.next;
-        toReturn.type = temp;
-
-        return toReturn;
-    }
-    else if (From[0] == "@")
-    {
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-        From.erase(From.begin());
-        auto toReturn = __createSequence(From);
-
-        toReturn.type.prepend(pointer);
-
-        return toReturn;
-    }
-
     // Keywords
-    else if (From[0] == "for")
+    else if (From.front() == "for")
     {
         // Takes a for_triple and a code scope / code line
         sm_assert(false, "UNIMPLEMENTED");
 
         return out;
     }
-    else if (From[0] == "if" || From[0] == "while")
+    else if (From.front() == "if" || From.front() == "while")
     {
         // Takes a bool code line and a code scope / code line
         out.info = keyword;
-        out.raw = From[0];
+        out.raw = From.front();
         out.type = nullType;
 
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-        From.erase(From.begin());
+        sm_assert(!From.empty(), "Cannot pop from front of empty list.");
+        From.pop_front();
 
         // Pops the first full sequence from the remaining front
         // This is for the conditional
@@ -334,30 +320,30 @@ sequence __createSequence(vector<string> &From)
 
         return out;
     }
-    else if (From[0] == "else")
+    else if (From.front() == "else")
     {
         // Takes a code scope / code line
         out.info = keyword;
-        out.raw = From[0];
+        out.raw = From.front();
         out.type = nullType;
 
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-        From.erase(From.begin());
+        sm_assert(!From.empty(), "Cannot pop from front of empty list.");
+        From.pop_front();
 
         out.items.push_back(__createSequence(From));
 
         return out;
     }
-    else if (From[0] == "let")
+    else if (From.front() == "let")
     {
         // Get name
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-        From.erase(From.begin()); // let
+        sm_assert(!From.empty(), "Cannot pop from front of empty list.");
+        From.pop_front(); // let
         sm_assert(!From.empty(), "'let' must be followed by something.");
 
-        string name = From[0];
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-        From.erase(From.begin());
+        string name = From.front();
+        sm_assert(!From.empty(), "Cannot pop from front of empty list.");
+        From.pop_front();
 
         // Gather templating if there is any
         vector<string> generics;
@@ -370,20 +356,20 @@ sequence __createSequence(vector<string> &From)
                     generics.push_back(From.front());
                 }
 
-                From.erase(From.begin());
+                From.pop_front();
             }
 
             if (!From.empty() && From.front() == ">")
             {
-                From.erase(From.begin());
+                From.pop_front();
             }
         }
 
         // Get type
-        if (From[0] == ":")
+        if (From.front() == ":")
         {
-            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-            From.erase(From.begin());
+            sm_assert(!From.empty(), "Cannot pop from front of empty list.");
+            From.pop_front();
 
             if (!From.empty() && From.front() == "struct")
             {
@@ -393,24 +379,24 @@ sequence __createSequence(vector<string> &From)
                 vector<string> toAdd = {"let", name, ":"};
 
                 int count = 0;
-                while (count != 0 || (From[0] != "}" && From[0] != ";"))
+                while (count != 0 || (!From.empty() && From.front() != "}" && From.front() != ";"))
                 {
-                    if (From[0].size() < 2 || From[0].substr(0, 2) != "//")
+                    if (From.front().size() < 2 || From.front().substr(0, 2) != "//")
                     {
-                        toAdd.push_back(From[0]);
+                        toAdd.push_back(From.front());
                     }
 
-                    sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-                    From.erase(From.begin());
+                    sm_assert(!From.empty(), "Cannot pop from front of empty list.");
+                    From.pop_front();
                 }
 
-                if (From[0].size() < 2 || From[0].substr(0, 2) != "//")
+                if (From.front().size() < 2 || From.front().substr(0, 2) != "//")
                 {
-                    toAdd.push_back(From[0]);
+                    toAdd.push_back(From.front());
                 }
 
-                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-                From.erase(From.begin());
+                sm_assert(!From.empty(), "Cannot pop from front of empty list.");
+                From.pop_front();
 
                 if (generics.empty())
                 {
@@ -456,8 +442,8 @@ sequence __createSequence(vector<string> &From)
                 while (!From.empty() && From.front() != ";")
                 {
                     toAdd.push_back(From.front());
-                    sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-                    From.erase(From.begin());
+                    sm_assert(!From.empty(), "Cannot pop from front of empty list.");
+                    From.pop_front();
 
                     if (!From.empty() && From.front() == "=")
                     {
@@ -500,7 +486,7 @@ sequence __createSequence(vector<string> &From)
                 return out;
             }
         }
-        else if (From[0] == "(")
+        else if (From.front() == "(")
         {
             // Function definition
 
@@ -511,9 +497,9 @@ sequence __createSequence(vector<string> &From)
                 do
                 {
                     toAdd.push_back(From.front());
-                    sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-                    From.erase(From.begin());
-                } while (From[0] != "{" && From[0] != ";");
+                    sm_assert(!From.empty(), "Cannot pop from front of empty list.");
+                    From.pop_front();
+                } while (From.front() != "{" && From.front() != ";");
 
                 auto type = toType(toAdd);
 
@@ -562,11 +548,11 @@ sequence __createSequence(vector<string> &From)
                         toAdd.push_back(From.front());
                     }
 
-                    From.erase(From.begin());
+                    From.pop_front();
                 }
 
                 toAdd.push_back(From.front());
-                From.erase(From.begin());
+                From.pop_front();
 
                 while (From.front() != "{" && From.front() != ";")
                 {
@@ -576,7 +562,7 @@ sequence __createSequence(vector<string> &From)
                         returnType.push_back(From.front());
                     }
 
-                    From.erase(From.begin());
+                    From.pop_front();
                 }
 
                 sm_assert(From.front() == "{", "Generic functions must be defined at declaration.");
@@ -585,11 +571,11 @@ sequence __createSequence(vector<string> &From)
                 int count = 0;
                 do
                 {
-                    if (From[0] == "{")
+                    if (From.front() == "{")
                     {
                         count++;
                     }
-                    else if (From[0] == "}")
+                    else if (From.front() == "}")
                     {
                         count--;
                     }
@@ -599,7 +585,7 @@ sequence __createSequence(vector<string> &From)
                         toAdd.push_back(From.front());
                     }
 
-                    From.erase(From.begin());
+                    From.pop_front();
                 } while (count != 0);
 
                 // Insert template
@@ -609,10 +595,10 @@ sequence __createSequence(vector<string> &From)
 
         return out;
     }
-    else if (From[0] == "{")
+    else if (From.front() == "{")
     {
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-        From.erase(From.begin());
+        sm_assert(!From.empty(), "Cannot pop from front of empty list.");
+        From.pop_front();
 
         // Save symbol table for later restoration
         auto oldTable = table;
@@ -621,14 +607,14 @@ sequence __createSequence(vector<string> &From)
 
         // Code scope.
         int count = 1;
-        vector<string> curVec;
+        list<string> curVec;
         while (true)
         {
-            if (From[0] == "{")
+            if (From.front() == "{")
             {
                 count++;
             }
-            else if (From[0] == "}")
+            else if (From.front() == "}")
             {
                 count--;
 
@@ -636,13 +622,13 @@ sequence __createSequence(vector<string> &From)
                 {
                     out.items.push_back(__createSequence(curVec));
                     curVec.clear();
-                    sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-                    From.erase(From.begin());
+                    sm_assert(!From.empty(), "Cannot pop from front of empty list.");
+                    From.pop_front();
                     break;
                 }
             }
 
-            if (count == 1 && (From[0] == ";" || From[0] == "}"))
+            if (count == 1 && (From.front() == ";" || From.front() == "}"))
             {
                 if (!curVec.empty())
                 {
@@ -651,16 +637,16 @@ sequence __createSequence(vector<string> &From)
                     curVec.clear();
                 }
 
-                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-                From.erase(From.begin());
+                sm_assert(!From.empty(), "Cannot pop from front of empty list.");
+                From.pop_front();
             }
             else
             {
                 if (!From.empty())
                 {
-                    curVec.push_back(From[0]);
-                    sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-                    From.erase(From.begin());
+                    curVec.push_back(From.front());
+                    sm_assert(!From.empty(), "Cannot pop from front of empty list.");
+                    From.pop_front();
                 }
                 else
                 {
@@ -694,25 +680,31 @@ sequence __createSequence(vector<string> &From)
     // Non-special case; code line.
     // Function calls and template instantiation may occur within.
 
-    while (From[0].size() > 11 && From[0].substr(0, 11) == "//__LINE__=")
+    while (From.front().size() > 11 && From.front().substr(0, 11) == "//__LINE__=")
     {
         // Line update special symbol
-        string newLineNum = From[0].substr(12);
+        string newLineNum = From.front().substr(12);
         curLine = stoull(newLineNum);
-        continue;
     }
 
     sequence temp;
     temp.info = atom;
 
     int i = 0;
-    temp.type = resolveFunction(From, i, temp.raw);
+
+    vector<string> tempVec;
+    for (auto i : From)
+    {
+        tempVec.push_back(i);
+    }
+    temp.type = resolveFunction(tempVec, i, temp.raw);
+
     out.items.push_back(temp);
 
     // Erase old
     for (int k = 0; !From.empty() && k < i; k++)
     {
-        From.erase(From.begin());
+        From.pop_front();
     }
 
     if (out.items.size() == 1)
@@ -1147,11 +1139,9 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
 
             // Now safe; Has been verified that all candidates have identical types
         }
-        else
-        {
-            // Single candidate
-            type = getReturnType(candidates[0].type);
-        }
+
+        // Single candidate
+        type = getReturnType(candidates[0].type);
 
         start--;
     }

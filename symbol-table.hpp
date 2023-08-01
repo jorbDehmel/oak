@@ -54,6 +54,7 @@ struct __multiTableSymbol
 {
     sequence seq;
     Type type;
+    unsigned long long uses;
 };
 
 // For later instantiation

@@ -22,6 +22,7 @@ set<string> cppSources;
 set<string> objects;
 
 map<string, string> preprocDefines;
+vector<unsigned long long> phaseTimes;
 
 // Prints the cumulative disk usage of Oak (in human-readable)
 void getDiskUsage()
@@ -45,6 +46,15 @@ void getDiskUsage()
 
 void doFile(const string &From)
 {
+    while (phaseTimes.size() < NUM_PHASES)
+    {
+        phaseTimes.push_back(0);
+    }
+    int curPhase = 0;
+
+    auto start = chrono::high_resolution_clock::now();
+    auto end = start;
+
     // Clear active rules
     activeRules.clear();
 
@@ -113,6 +123,8 @@ void doFile(const string &From)
                 text += line + '\n';
             }
 
+            start = chrono::high_resolution_clock::now();
+
             // This one goes out to quine writers (myself included)
             string cleanedText;
             for (char c : text)
@@ -133,11 +145,23 @@ void doFile(const string &From)
             }
             preprocDefines["__CONTENTS__"] = "\"" + cleanedText + "\"";
 
+            end = chrono::high_resolution_clock::now();
+            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+            curPhase++;
+
             // B: Lex
+            start = chrono::high_resolution_clock::now();
+
             lexed = lex(text);
             lexedCopy = lexed;
 
+            end = chrono::high_resolution_clock::now();
+            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+            curPhase++;
+
             // C: Preproc definitions
+            start = chrono::high_resolution_clock::now();
+
             preprocDefines["__LINE__"] = "1";
             for (int i = 0; i < lexed.size(); i++)
             {
@@ -161,8 +185,15 @@ void doFile(const string &From)
                 }
             }
 
+            end = chrono::high_resolution_clock::now();
+            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+            curPhase++;
+
             // D: Scan for compiler macros; Do these first
             // This erases them from lexed
+            start = chrono::high_resolution_clock::now();
+            unsigned long long int recurseTime = 0;
+
             for (int i = 0; i < lexed.size(); i++)
             {
                 if (lexed[i] != "!" && lexed[i].back() == '!')
@@ -186,7 +217,10 @@ void doFile(const string &From)
 
                         for (string a : args)
                         {
+                            auto recStart = chrono::high_resolution_clock::now();
                             doFile(a);
+                            auto recEnd = chrono::high_resolution_clock::now();
+                            recurseTime += chrono::duration_cast<chrono::nanoseconds>(recEnd - recStart).count();
                         }
                         i--;
                     }
@@ -238,7 +272,11 @@ void doFile(const string &From)
 
                         for (string a : args)
                         {
+                            auto recStart = chrono::high_resolution_clock::now();
                             files = getPackageFiles(a);
+                            auto recEnd = chrono::high_resolution_clock::now();
+                            recurseTime += chrono::duration_cast<chrono::nanoseconds>(recEnd - recStart).count();
+
                             for (string f : files)
                             {
                                 if (debug)
@@ -246,7 +284,10 @@ void doFile(const string &From)
                                     cout << "Loading package file '" << f << "'...\n";
                                 }
 
+                                auto recStart = chrono::high_resolution_clock::now();
                                 doFile(f);
+                                auto recEnd = chrono::high_resolution_clock::now();
+                                recurseTime += chrono::duration_cast<chrono::nanoseconds>(recEnd - recStart).count();
                             }
                         }
                         i--;
@@ -254,11 +295,23 @@ void doFile(const string &From)
                 }
             }
 
+            end = chrono::high_resolution_clock::now();
+            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count() - recurseTime;
+            curPhase++;
+
             // E: Rules
+            start = chrono::high_resolution_clock::now();
+
             doRules(lexed);
+
+            end = chrono::high_resolution_clock::now();
+            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+            curPhase++;
 
             // F: Scan for macro definitions and handle them
             // This erases them from lexed
+            start = chrono::high_resolution_clock::now();
+
             for (int i = 1; i < lexed.size(); i++)
             {
                 if (lexed[i] != "!" && lexed[i].back() == '!' && lexed[i - 1] == "let")
@@ -308,14 +361,26 @@ void doFile(const string &From)
                 }
             }
 
+            end = chrono::high_resolution_clock::now();
+            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+            curPhase++;
+
             // G: Scan for macro calls and handle them
+            start = chrono::high_resolution_clock::now();
+
             for (int i = 0; i < lexed.size(); i++)
             {
                 // We can assume that no macro definitions remain
                 if (lexed[i] != "!" && lexed[i].back() == '!')
                 {
-                    // Special cases; Memory macros
+                    // Special cases: Memory macros
                     if (lexed[i] == "alloc!" || lexed[i] == "free!" || lexed[i] == "free_arr!")
+                    {
+                        continue;
+                    }
+
+                    // More special cases: Rule macros
+                    else if (lexed[i] == "new_rule!" || lexed[i] == "use_rule!" || lexed[i] == "rem_rule!" || lexed[i] == "bundle_rule!")
                     {
                         continue;
                     }
@@ -338,11 +403,27 @@ void doFile(const string &From)
                 }
             }
 
+            end = chrono::high_resolution_clock::now();
+            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+            curPhase++;
+
             // H: Operator substitution (within parenthesis and between commas)
+            start = chrono::high_resolution_clock::now();
+
             parenSub(lexed);
 
+            end = chrono::high_resolution_clock::now();
+            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+            curPhase++;
+
             // I: Load file stuff
+            start = chrono::high_resolution_clock::now();
+
             sequence fileSeq = createSequence(lexed);
+
+            end = chrono::high_resolution_clock::now();
+            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+            curPhase++;
 
             if (fileSeq.type != nullType)
             {

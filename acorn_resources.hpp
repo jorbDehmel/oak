@@ -30,6 +30,8 @@ GPLv3 held by author
 #include "tags.hpp"
 #include "sizer.hpp"
 
+#define NUM_PHASES 9
+
 using namespace std;
 
 #define VERSION "0.0.1"
@@ -61,6 +63,7 @@ const string helpText = "Acorn - Oak Standard Translator\n" DASHED_LINE
 extern bool debug, compile, link, pretty, alwaysDump, manual;
 extern set<string> visitedFiles, cppSources, objects;
 extern map<string, string> preprocDefines;
+extern vector<unsigned long long> phaseTimes;
 
 // Prints the cumulative disk usage of Oak (in human-readable)
 void getDiskUsage();

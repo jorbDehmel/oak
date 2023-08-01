@@ -9,7 +9,18 @@ GPLv3 held by author
 #include "macros.hpp"
 
 // The pre-inserted ones are used by the compiler- Not literal macros
-set<string> compiled = {"include!", "link!", "package!", "alloc!", "free!", "free_arr!"};
+set<string> compiled = {
+    "include!",
+    "link!",
+    "package!",
+    "alloc!",
+    "free!",
+    "free_arr!",
+    "new_rule!",
+    "use_rule!",
+    "rem_rule!",
+    "bundle_rule!",
+};
 map<string, string> macros;
 
 void compileMacro(const string &Name, bool debug)

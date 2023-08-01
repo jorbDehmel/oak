@@ -39,6 +39,8 @@ non-sequential parser.
 #include <cmath>
 #include <map>
 
+#include <list>
+
 #include "mem.hpp"
 #include "type-builder.hpp"
 #include "symbol-table.hpp"
@@ -80,7 +82,7 @@ public:
 sequence createSequence(const vector<string> &From);
 
 // Internal consumptive version: Erases from vector, so not safe for frontend
-sequence __createSequence(vector<string> &From);
+sequence __createSequence(list<string> &From);
 
 // Turn a .oak sequence into a .cpp one
 string toC(const sequence &What);
