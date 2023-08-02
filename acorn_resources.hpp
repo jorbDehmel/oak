@@ -38,6 +38,12 @@ using namespace std;
 #define LICENSE "GPLv3"
 #define INFO "jdehmel@outlook.com"
 
+/*
+Remaining options:
+-abfgjkxyz
+-ABCEFGHIJKLMNOPQTUVWXYZ
+*/
+
 #define DASHED_LINE "------------------------------------------\n"
 const string helpText = "Acorn - Oak Standard Translator\n" DASHED_LINE
                         "Translates .oak files to .cpp.\n"
@@ -57,6 +63,7 @@ const string helpText = "Acorn - Oak Standard Translator\n" DASHED_LINE
                         " -r    | --reinstall | Reinstall a package\n"
                         " -R    | --remove    | Uninstalls a package\n"
                         " -s    | --size      | Show Oak disk usage\n"
+                        " -S    | --install   | Install a package\n"
                         " -t    | --translate | Produce C++ files\n"
                         " -u    | --dump      | Save dump files\n"
                         " -v    | --version   | Show version\n"

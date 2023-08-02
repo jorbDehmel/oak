@@ -518,6 +518,7 @@ Name | Verbose     | Function
 -----|-------------|----------------------
  -c  | --compile   | Produce object files
  -d  | --debug     | Toggle debug mode
+ -D  | --dialect   | Use a dialect file
  -e  | --clean     | Work from scratch
  -h  | --help      | Show help (this)
  -i  | --install   | Install a package
@@ -528,7 +529,9 @@ Name | Verbose     | Function
  -p  | --pretty    | Prettify `C++` files
  -q  | --quit      | Quit immediately
  -r  | --reinstall | Reinstall a package
+ -R  | --remove    | Uninstalls a package
  -s  | --size      | Show Oak disk usage
+ -S  | --install   | Install a package
  -t  | --translate | Produce `C++` files
  -u  | --dump      | Produce dump files
  -v  | --version   | Show Acorn version
@@ -719,6 +722,14 @@ bundle_rule!("std_method",
 In the future, `Sapling` may introduce several more additional options. On such feature is `$+`, which is a wildcard that matches any one or more symbols. It may not be the first or last symbol in a `Sapling` sequence, as it is terminated only by the first instance of the following symbol (if it were the first item, it would be highly inefficient). Another such, with the same rules, is `$*`. This symbol matches any zero or more symbols that are not the following symbol. With these two symbols, no occurrence of the following symbol may match anywhere within. Additionally, a variable may not occur directly after either.
 
 `hi $* ( )` would match `hi hello hello hello hello ( )`, but not `hi hello hello ( hello ) ( )`.
+
+## Dialects
+
+Dialect files introduce rules that are handled before all others, and which are always enabled by the translator. This allows for the creation of `Oak` **dialects**, or syntactically different languages which use rules to collapse to regular `Oak` at translation-time.
+
+Dialect files (`.od` files, for **O**ak **d**ialect) consist of a few types of line. There can be comments, marked by `// ` (slash-slash-space). A line can read `clear`, which erases all existing dialect rules. It could also read `final`, which disables any further dialect changes. Finally, a line could read `"INPUT PATTERN HERE" "OUTPUT PATTERN HERE"`, with an input and an output pattern enclosed by quotes and separated by a space.
+
+Dialects are loaded via the `acorn -D filename.od` argument.
 
 ## Addendum I: Translator Passes
 

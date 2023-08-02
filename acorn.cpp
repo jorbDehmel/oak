@@ -239,6 +239,18 @@ int main(const int argc, const char *argv[])
                             break;
                         case 'R':
                             // Remove
+                            if (i + 1 >= argc)
+                            {
+                                throw runtime_error("-R must be followed by a package name");
+                            }
+
+                            if (system((string("sudo rm -rf /usr/include/oak/") + argv[i + 1]).c_str()) != 0)
+                            {
+                                cout << tags::red_bold
+                                     << "Warning! Failed to remove package '" << argv[i + 1] << "'\n"
+                                     << tags::reset;
+                            }
+
                             break;
                         case 's':
                             getDiskUsage();

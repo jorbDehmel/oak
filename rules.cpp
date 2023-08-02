@@ -197,21 +197,25 @@ void doRules(vector<string> &From)
         {
             for (int ruleIndex = 0; ruleIndex < dialectRules.size() + activeRules.size(); ruleIndex++)
             {
-                if (rules.count(activeRules[ruleIndex]) == 0)
-                {
-                    // Invalid rule name
-                    continue;
-                }
-
                 int isMatch = true;
 
                 rule curRule;
                 if (ruleIndex < dialectRules.size())
                 {
+                    if (rules.count(dialectRules[ruleIndex]) == 0)
+                    {
+                        continue;
+                    }
+
                     curRule = rules[dialectRules[ruleIndex]];
                 }
                 else
                 {
+                    if (rules.count(activeRules[ruleIndex - dialectRules.size()]) == 0)
+                    {
+                        continue;
+                    }
+
                     curRule = rules[activeRules[ruleIndex - dialectRules.size()]];
                 }
 
@@ -324,15 +328,19 @@ void doRules(vector<string> &From)
     return;
 }
 
+bool dialectLock = false;
 void loadDialectFile(const string &File)
 {
-    // Temp
-    throw runtime_error("UNIMPLEMENTED");
+    if (dialectLock)
+    {
+        return;
+    }
 
     /*
     // comment
     clear
-    rule "name" "in" "out"
+    "in" "out"
+    final
     */
 
     // Open dialect file
@@ -343,9 +351,16 @@ void loadDialectFile(const string &File)
     }
 
     string line;
+    int lineNum = 0;
     while (getline(inp, line))
     {
+        lineNum++;
+
         if (line.size() > 1 && line.substr(0, 2) == "//")
+        {
+            continue;
+        }
+        else if (line.size() == 0)
         {
             continue;
         }
@@ -354,7 +369,7 @@ void loadDialectFile(const string &File)
         string cur;
 
         lineStream >> cur;
-        if (cur == "rule")
+        if (cur.size() != 0 && (cur.front() == '"' || cur.front() == '\''))
         {
             // Remember that all args must be strings, even here
 
@@ -362,14 +377,28 @@ void loadDialectFile(const string &File)
             string inputStr, outputStr;
             rule toAdd;
 
-            // Get name
+            name = "dialect_rule_" + to_string(dialectRules.size());
 
             // Insert into dialectRules list
             dialectRules.push_back(name);
 
             // Get input pattern
+            inputStr = cur;
+            while (!inputStr.empty() && (inputStr.back() != inputStr.front()))
+            {
+                lineStream >> cur;
+                inputStr += " " + cur;
+            }
+            inputStr = inputStr.substr(1, inputStr.size() - 2);
 
             // Get output pattern
+            lineStream >> outputStr;
+            while (!outputStr.empty() && (outputStr.back() != outputStr.front()))
+            {
+                lineStream >> cur;
+                outputStr += " " + cur;
+            }
+            outputStr = outputStr.substr(1, outputStr.size() - 2);
 
             // Lex patterns
             toAdd.inputPattern = lex(inputStr);
@@ -380,7 +409,27 @@ void loadDialectFile(const string &File)
         }
         else if (cur == "clear")
         {
+            // Clear all existing dialect rules
+
+            // Erase all existing dialect rules from existence
+            for (auto s : dialectRules)
+            {
+                rules.erase(s);
+            }
+
+            // Clear list of dialect rules
             dialectRules.clear();
+        }
+        else if (cur == "final")
+        {
+            // Set the current dialect as final
+            // (no more can ever be loaded in this translation)
+            dialectLock = true;
+            break;
+        }
+        else
+        {
+            throw rule_error(File + ":" + to_string(lineNum) + " Invalid line '" + line + "'");
         }
     }
 
