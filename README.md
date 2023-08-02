@@ -723,9 +723,23 @@ In the future, `Sapling` may introduce several more additional options. On such 
 
 `hi $* ( )` would match `hi hello hello hello hello ( )`, but not `hi hello hello ( hello ) ( )`.
 
+It may also introduce a stored glob operator `$+X` with `X` being another single-character variable name. For instance, `if $+a {` -> `if ( $a ) {` would auto-parenthesize `if` statements.
+
+```
+// STD Oak dialect rules
+clear
+
+"if $+a {" "if ( $a ) {"
+"while $+a {" "while ( $a ) {"
+
+// NOT final; We want to use STD_OD as a jumping-off point
+```
+
+It may also introduce the merge operator `$<` for output patterns. This would fuse the preceding and proceeding symbols, without any separation. For instance, `( $t )( $+f )` -> `to $< $t ( $f )` would convert standard cast notation into the `Oak` equivalent.
+
 ## Dialects
 
-Dialect files introduce rules that are handled before all others, and which are always enabled by the translator. This allows for the creation of `Oak` **dialects**, or syntactically different languages which use rules to collapse to regular `Oak` at translation-time.
+Dialect files introduce rules that are handled before all others and which are always enabled by the translator. This allows for the creation of `Oak` **dialects**, or syntactically different languages which use rules to collapse into regular `Oak` at translation-time.
 
 Dialect files (`.od` files, for **O**ak **d**ialect) consist of a few types of line. There can be comments, marked by `// ` (slash-slash-space). A line can read `clear`, which erases all existing dialect rules. It could also read `final`, which disables any further dialect changes. Finally, a line could read `"INPUT PATTERN HERE" "OUTPUT PATTERN HERE"`, with an input and an output pattern enclosed by quotes and separated by a space.
 

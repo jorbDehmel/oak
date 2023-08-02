@@ -1,0 +1,44 @@
+package!("std");
+include!("/usr/include/oak/std/math.oak");
+
+let main() -> i32
+{
+    let e: f64;
+    e = math_e();
+    print(e);
+    print("\n");
+
+    let pi: f64;
+    pi = math_pi() * -1.0;
+    print(pi);
+    print("\n");
+
+    pi = abs(pi);
+    print(pi);
+    print("\n");
+
+    print(to_i32(pow(2, 12)));
+    print("\n\n");
+
+    let x: f64;
+    x = -2.0 * pi;
+
+    while (x < 2.0 * pi)
+    {
+        print(sin(x));
+        print("\n");
+
+        print(cos(x));
+        print("\n");
+
+        print(tan(x));
+        print("\n");
+
+        x += 0.1;
+    }
+
+    print(tan(pi));
+    print("\n");
+
+    0
+}

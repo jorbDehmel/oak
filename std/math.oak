@@ -1,0 +1,163 @@
+package!("std");
+
+// Return the absolute value of x
+let abs(x: i32) -> i32
+{
+    let out: i32;
+    out = x;
+
+    if (out < 0)
+    {
+        out *= -1;
+    }
+
+    out
+}
+
+let abs(x: f64) -> f64
+{
+    let out: f64;
+    out = x;
+
+    if (f_to_i(out) < 0)
+    {
+        out *= -1.0;
+    }
+
+    out
+}
+
+// Return a to the power of b
+let pow(a: i32, b: i32) -> i128
+{
+    let out: i32;
+    out = 1;
+
+    let counter: i32;
+    counter = b;
+
+    while (counter > 0)
+    {
+        out *= a;
+
+        counter -= 1;
+    }
+
+    out
+}
+
+let pow(a: f64, b: i32) -> f64
+{
+    let out: f64;
+    out = 1.0;
+
+    let counter: i32;
+    counter = b;
+
+    while (counter > 0)
+    {
+        out *= a;
+
+        counter -= 1;
+    }
+
+    out
+}
+
+// Return Euler's constant e to 8 decimal places
+// $a \in \mathbb{Z}^+ : \frac{\partial}{\partial x} \left( a^x \right) = a^x$
+let math_e() -> f64
+{
+    2.71828182
+}
+
+// Return Pi to 8 decimal places
+// $a \in \mathbb{R}^+ | \sin{(2a)} = 0$
+let math_pi() -> f64
+{
+    3.14159265
+}
+
+let fact(x: i32) -> i128
+{
+    let out: i128;
+    out = to_i128(1);
+
+    let counter: i32;
+    counter = x;
+
+    while (counter > 0)
+    {
+        out *= to_i128(counter);
+        counter -= 1;
+    }
+
+    out
+}
+
+/*
+Uses a ninth-degree Taylor polynomial with x modulo-ed by pi
+$x - \frac{x^3}{3!} + \frac{x^5}{5!} - \frac{x^7}{7!} + \frac{x^9}{9!}$
+
+Coefficients:
+1           1
+-1/6        -0.1666666666666
+1/120       0.0083333333333
+-1/5040     -0.0001984126984
+1/362880    0.0000027557319
+*/
+let sin(x: f64) -> f64
+{
+    let real_x: f64;
+    real_x = x;
+
+    let pi: f64;
+    pi = math_pi();
+
+    if (real_x < 0.0)
+    {
+        while (real_x <= -1.0 * pi)
+        {
+            real_x += 2.0 * pi;
+        }
+    }
+    else
+    {
+        while (real_x >= pi)
+        {
+            real_x -= 2.0 * pi;
+        }
+    }
+
+    let out: f64;
+    out = 0.0;
+
+    out += real_x;
+    out += pow(real_x, 3) * -0.1666666666666;
+    out += pow(real_x, 5) * 0.0083333333333;
+    out += pow(real_x, 7) * -0.0001984126984;
+    out += pow(real_x, 9) * 0.0000027557319;
+
+    out
+}
+
+// Uses sin
+let cos(x: f64) -> f64
+{
+    let pi: f64;
+    pi = math_pi();
+
+    sin(x - 0.5 * pi)
+}
+
+// Uses sin and cos
+// tan = sin / cos
+let tan(x: f64) -> f64
+{
+    let s: f64;
+    let c: f64;
+    s = sin(x);
+    c = cos(x);
+
+    (s / c)
+}

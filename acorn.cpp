@@ -251,6 +251,8 @@ int main(const int argc, const char *argv[])
                                      << tags::reset;
                             }
 
+                            i++;
+
                             break;
                         case 's':
                             getDiskUsage();
