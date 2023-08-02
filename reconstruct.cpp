@@ -110,11 +110,6 @@ void reconstruct(const string &Name,
         header << "// Struct definitions\n";
         for (auto s : structData)
         {
-            if (s.second.uses == 0)
-            {
-                continue;
-            }
-
             header << "struct " << s.first << "\n{\n";
 
             for (auto m : s.second.members)
@@ -143,11 +138,6 @@ void reconstruct(const string &Name,
 
             for (__multiTableSymbol s : entry.second)
             {
-                if (s.uses == 0)
-                {
-                    continue;
-                }
-
                 if (s.type.info == function)
                 {
                     string toAdd = toStrCFunction(&s.type, name);

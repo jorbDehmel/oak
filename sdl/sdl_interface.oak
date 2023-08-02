@@ -11,6 +11,7 @@ let sdl_window: struct
 }
 
 let New(self: ^sdl_window) -> void;
+let Copy(self: ^sdl_window, w: u64, h: u64) -> void;
 let Del(self: ^sdl_window) -> void;
 
 let sdl_color: struct

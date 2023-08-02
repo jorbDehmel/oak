@@ -44,6 +44,7 @@ const string helpText = "Acorn - Oak Standard Translator\n" DASHED_LINE
                         "Option | Verbose     | Purpose\n" DASHED_LINE
                         " -c    | --compile   | Produce object files\n"
                         " -d    | --debug     | Toggle debug mode\n"
+                        " -D    | --dialect   | Uses a dialect file\n"
                         " -e    | --clean     | Toggle erasure (default on)\n"
                         " -h    | --help      | Show this\n"
                         " -i    | --install   | Install a package\n"
@@ -54,6 +55,7 @@ const string helpText = "Acorn - Oak Standard Translator\n" DASHED_LINE
                         " -p    | --pretty    | Prettify C++ files\n"
                         " -q    | --quit      | Quit immediately\n"
                         " -r    | --reinstall | Reinstall a package\n"
+                        " -R    | --remove    | Uninstalls a package\n"
                         " -s    | --size      | Show Oak disk usage\n"
                         " -t    | --translate | Produce C++ files\n"
                         " -u    | --dump      | Save dump files\n"

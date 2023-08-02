@@ -78,10 +78,20 @@ f64 sdl_tan(f64 x)
     return SDL_tan(x);
 }
 
-void New(sdl_window *window)
+void New(sdl_window *self)
 {
-    window->width = window->height = 128;
-    SDL_CreateWindowAndRenderer(window->width, window->height, 0, &window->wind, &window->rend);
+    self->width = self->height = 128;
+    SDL_CreateWindowAndRenderer(self->width, self->height, 0, &self->wind, &self->rend);
+
+    return;
+}
+
+void Copy(sdl_window *self, u64 w, u64 h)
+{
+    self->width = w;
+    self->height = h;
+    SDL_CreateWindowAndRenderer(self->width, self->height, 0, &self->wind, &self->rend);
+
     return;
 }
 

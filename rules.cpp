@@ -2,7 +2,7 @@
 using namespace std;
 
 map<string, rule> rules;
-vector<string> activeRules;
+vector<string> activeRules, dialectRules;
 map<string, vector<string>> bundles;
 
 // I is the point in Lexed at which a macro name was found
@@ -59,7 +59,7 @@ void doRules(vector<string> &From)
     vector<map<string, string>> ruleVars;
 
     // Initialize variable maps
-    for (int i = 0; i < activeRules.size(); i++)
+    for (int i = 0; i < dialectRules.size() + activeRules.size(); i++)
     {
         ruleVars.push_back(map<string, string>());
     }
@@ -195,15 +195,25 @@ void doRules(vector<string> &From)
         // Regular case; Non-rule-macro symbol. Check against active rules.
         else
         {
-            for (int ruleIndex = 0; ruleIndex < activeRules.size(); ruleIndex++)
+            for (int ruleIndex = 0; ruleIndex < dialectRules.size() + activeRules.size(); ruleIndex++)
             {
                 if (rules.count(activeRules[ruleIndex]) == 0)
                 {
+                    // Invalid rule name
                     continue;
                 }
 
                 int isMatch = true;
-                rule &curRule = rules[activeRules[ruleIndex]];
+
+                rule curRule;
+                if (ruleIndex < dialectRules.size())
+                {
+                    curRule = rules[dialectRules[ruleIndex]];
+                }
+                else
+                {
+                    curRule = rules[activeRules[ruleIndex - dialectRules.size()]];
+                }
 
                 if (i + curRule.inputPattern.size() >= From.size())
                 {
@@ -311,5 +321,70 @@ void doRules(vector<string> &From)
         }
     }
 
+    return;
+}
+
+void loadDialectFile(const string &File)
+{
+    // Temp
+    throw runtime_error("UNIMPLEMENTED");
+
+    /*
+    // comment
+    clear
+    rule "name" "in" "out"
+    */
+
+    // Open dialect file
+    ifstream inp(File);
+    if (!inp.is_open())
+    {
+        throw rule_error("Failed to open dialect file '" + File + "'");
+    }
+
+    string line;
+    while (getline(inp, line))
+    {
+        if (line.size() > 1 && line.substr(0, 2) == "//")
+        {
+            continue;
+        }
+
+        stringstream lineStream(line);
+        string cur;
+
+        lineStream >> cur;
+        if (cur == "rule")
+        {
+            // Remember that all args must be strings, even here
+
+            string name;
+            string inputStr, outputStr;
+            rule toAdd;
+
+            // Get name
+
+            // Insert into dialectRules list
+            dialectRules.push_back(name);
+
+            // Get input pattern
+
+            // Get output pattern
+
+            // Lex patterns
+            toAdd.inputPattern = lex(inputStr);
+            toAdd.outputPattern = lex(outputStr);
+
+            // Insert into rules list
+            rules[name] = toAdd;
+        }
+        else if (cur == "clear")
+        {
+            dialectRules.clear();
+        }
+    }
+
+    // Close dialect file
+    inp.close();
     return;
 }

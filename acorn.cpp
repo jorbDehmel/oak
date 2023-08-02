@@ -20,7 +20,7 @@ int main(const int argc, const char *argv[])
          << tags::reset;
 #endif
 
-    auto start = chrono::high_resolution_clock::now(), end = start;
+    auto start = chrono::high_resolution_clock::now(), end = start, compStart = start, compEnd = start;
     unsigned long long int oakElapsed = 0;
 
     vector<string> files;
@@ -168,23 +168,49 @@ int main(const int argc, const char *argv[])
                     {
                         switch (c)
                         {
-                        case 'h':
-                            cout << helpText << '\n';
-                        case 'v':
-                            cout << "Version: " << VERSION << '\n'
-                                 << "License: " << LICENSE << '\n'
-                                 << INFO << '\n';
-                            break;
-                        case 'e':
-                            system("rm -rf .oak_build");
-                            eraseTemp = !eraseTemp;
+                        case 'c':
+                            compile = true;
+                            noSave = link = false;
                             break;
                         case 'd':
                             debug = !debug;
                             cout << "Set debug to " << (debug ? "true" : "false") << '\n';
                             break;
+                        case 'D':
+                            if (i + 1 >= argc)
+                            {
+                                throw runtime_error("-D must be followed by a dialect file");
+                            }
+
+                            loadDialectFile(argv[i + 1]);
+                            i++;
+
+                            break;
+                        case 'e':
+                            system("rm -rf .oak_build");
+                            eraseTemp = !eraseTemp;
+                            break;
+                        case 'h':
+                            cout << helpText << '\n'
+                                 << "Version: " << VERSION << '\n'
+                                 << "License: " << LICENSE << '\n'
+                                 << INFO << '\n';
+
+                            break;
+                        case 'l':
+                            noSave = false;
+                            compile = link = true;
+                            break;
                         case 'm':
                             manual = !manual;
+                            break;
+                        case 'n':
+                            noSave = !noSave;
+
+                            if (noSave)
+                            {
+                                compile = link = false;
+                            }
                             break;
                         case 'o':
                             if (i + 1 >= argc)
@@ -195,39 +221,11 @@ int main(const int argc, const char *argv[])
                             out = argv[i + 1];
                             i++;
                             break;
-                        case 't':
-                            noSave = compile = link = false;
-                        case 'c':
-                            compile = true;
-                            noSave = link = false;
-                            break;
-                        case 'l':
-                            noSave = false;
-                            compile = link = true;
-                            break;
-                        case 'q':
-                            return 0;
-                            break;
                         case 'p':
                             pretty = !pretty;
                             break;
-                        case 'n':
-                            noSave = !noSave;
-
-                            if (noSave)
-                            {
-                                compile = link = false;
-                            }
-                            break;
-                        case 'i':
-                            if (i + 1 >= argc)
-                            {
-                                throw runtime_error("-i must be followed by a package name");
-                            }
-
-                            downloadPackage(argv[i + 1]);
-
-                            i++;
+                        case 'q':
+                            return 0;
                             break;
                         case 'r':
                             if (i + 1 >= argc)
@@ -239,6 +237,33 @@ int main(const int argc, const char *argv[])
 
                             i++;
                             break;
+                        case 'R':
+                            // Remove
+                            break;
+                        case 's':
+                            getDiskUsage();
+                            break;
+                        case 'S':
+                            if (i + 1 >= argc)
+                            {
+                                throw runtime_error("-S must be followed by a package name");
+                            }
+
+                            downloadPackage(argv[i + 1]);
+
+                            i++;
+                            break;
+                        case 't':
+                            noSave = compile = link = false;
+                            break;
+                        case 'u':
+                            alwaysDump = !alwaysDump;
+                            break;
+                        case 'v':
+                            cout << "Version: " << VERSION << '\n'
+                                 << "License: " << LICENSE << '\n'
+                                 << INFO << '\n';
+                            break;
                         case 'w':
                             if (i + 1 >= argc)
                             {
@@ -248,12 +273,6 @@ int main(const int argc, const char *argv[])
                             makePackage(argv[i + 1]);
 
                             i++;
-                            break;
-                        case 's':
-                            getDiskUsage();
-                            break;
-                        case 'u':
-                            alwaysDump = !alwaysDump;
                             break;
 
                         default:
@@ -344,6 +363,8 @@ int main(const int argc, const char *argv[])
         }
         else
         {
+            compStart = chrono::high_resolution_clock::now();
+
             if (compile)
             {
                 smartSystem("mkdir -p .oak_build");
@@ -365,7 +386,7 @@ int main(const int argc, const char *argv[])
                         cout << "System call `" << command << "`\n";
                     }
 
-                    smartSystem(command);
+                    assert(system(command.c_str()) == 0);
                     objects.insert(source + ".o");
                 }
 
@@ -390,9 +411,11 @@ int main(const int argc, const char *argv[])
                         cout << "System call `" << command << "`\n";
                     }
 
-                    smartSystem(command);
+                    assert(system(command.c_str()) == 0);
                 }
             }
+
+            compEnd = chrono::high_resolution_clock::now();
         }
 
         // Prettification of C++ files
@@ -403,10 +426,10 @@ int main(const int argc, const char *argv[])
 
         if (eraseTemp)
         {
-            cout << "rm -rf .oak_build\n";
-            int result = system("rm -rf .oak_build");
-            if (result != 0)
+            if (system("rm -rf .oak_build") != 0)
             {
+                cout << "rm -rf .oak_build\n";
+
                 cout << tags::yellow_bold
                      << "Warning! Failed to erase './.oak_build/'.\n"
                      << "If left unfixed, this could cause problems.\n"
@@ -504,6 +527,7 @@ int main(const int argc, const char *argv[])
     {
         end = chrono::high_resolution_clock::now();
         unsigned long long totalElapsed = chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+        unsigned long long compElapsed = chrono::duration_cast<chrono::nanoseconds>(compEnd - compStart).count();
 
         float percentAcornTime = oakElapsed / (float)totalElapsed;
         percentAcornTime *= 100;
@@ -516,6 +540,11 @@ int main(const int argc, const char *argv[])
              << "Microseconds: " << oakElapsed / 1'000.0 << '\n'
              << "Milliseconds: " << oakElapsed / 1'000'000.0 << '\n'
              << "Seconds:      " << oakElapsed / 1'000'000'000.0 << "\n\n"
+             << "Clang++-attributable time:\n"
+             << "Nanoseconds:  " << compElapsed << '\n'
+             << "Microseconds: " << compElapsed / 1'000.0 << '\n'
+             << "Milliseconds: " << compElapsed / 1'000'000.0 << '\n'
+             << "Seconds:      " << compElapsed / 1'000'000'000.0 << "\n\n"
              << "Total time:\n"
              << "Nanoseconds:  " << totalElapsed << '\n'
              << "Microseconds: " << totalElapsed / 1'000.0 << '\n'
@@ -566,14 +595,20 @@ int main(const int argc, const char *argv[])
 
         cout << "Total logged by compiler: " << total << '\n'
              << "By compiler pass (ns):\n";
+
         for (int j = 0; j < NUM_PHASES; j++)
         {
             cout << "\t" << j + 1
-                 << "\t" << passNames[j]
+                 << "\t" << ((j < passNames.size()) ? passNames[j] : "UNNAMED\t")
                  << "\t" << phaseTimes[j]
                  << ((phaseTimes[j] < 10'000'000) ? "\t\t" : "\t")
                  << (100 * (double)phaseTimes[j] / total) << "%\n";
         }
+        cout << "\t" << NUM_PHASES + 1
+             << "\tC++ via Clang\t"
+             << compElapsed
+             << ((compElapsed < 10'000'000) ? "\t\t" : "\t") << '\n';
+
         cout << "\n"
              << "Output file: " << out << '\n';
     }

@@ -12,6 +12,8 @@ GPLv3 held by author
 #include <vector>
 #include <string>
 #include <map>
+#include <fstream>
+#include <sstream>
 #include <iostream>
 #include <cstring>
 
@@ -51,7 +53,10 @@ struct rule
 };
 
 extern map<string, rule> rules;
+
 extern vector<string> activeRules;
+extern vector<string> dialectRules;
+
 extern map<string, vector<string>> bundles;
 
 // I is the point in Lexed at which a macro name was found
@@ -60,5 +65,8 @@ vector<string> getMacroArgs(vector<string> &lexed, const int &i);
 
 // Active rules should already be present in their vector
 void doRules(vector<string> &From);
+
+//
+void loadDialectFile(const string &File);
 
 #endif

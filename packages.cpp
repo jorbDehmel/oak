@@ -126,8 +126,6 @@ void cleanString(string &What)
 
 packageInfo loadPackageInfo(const string &Filepath)
 {
-    system("pwd");
-
     ifstream inp(Filepath);
     pm_assert(inp.is_open(), "Failed to load file '" + Filepath + "'");
 
@@ -290,7 +288,10 @@ void downloadPackage(const string &URLArg, const bool &Reinstall)
     try
     {
         // URL
-        sm_system(CLONE_COMMAND + URL + " " + tempFolderName, "Git resolution failure; Likely an invalid source.");
+        if (system((string(CLONE_COMMAND) + URL + " " + tempFolderName + " > /dev/null").c_str()) != 0)
+        {
+            throw package_error("Git resolution failure; Likely an invalid source.");
+        }
     }
     catch (package_error &e)
     {
@@ -343,7 +344,10 @@ void downloadPackage(const string &URLArg, const bool &Reinstall)
     try
     {
         // Ensure proper format
-        sm_system("[ -f " + tempFolderName + "/" + INFO_FILE " ]", "Malformed package; Info file is not present.");
+        if (system(("[ -f " + tempFolderName + "/" + INFO_FILE " ]").c_str()) != 0)
+        {
+            throw package_error("Malformed package; Info file is not present.");
+        }
 
         bool needsMake = false;
         needsMake = (system(("[ -f " + tempFolderName + "/Makefile ]").c_str()) == 0 || system(("[ -f " + tempFolderName + "/makefile ]").c_str()) == 0);
@@ -376,7 +380,10 @@ void downloadPackage(const string &URLArg, const bool &Reinstall)
         // Make package if needed
         if (needsMake)
         {
-            sm_system("make -C " + tempFolderName, "Make failure; See cout for details.");
+            if (system(("make -C " + tempFolderName).c_str()) != 0)
+            {
+                throw package_error("Make failure; See cout for details.");
+            }
         }
 
         // Copy files

@@ -601,7 +601,7 @@ void makePackage(const string &RawName)
     ignore.close();
 
     // git init
-    smartSystem("git init " + name + " > /dev/null");
+    assert(system(("git init " + name + " > /dev/null").c_str()) == 0);
 
     return;
 }

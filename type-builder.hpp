@@ -56,7 +56,6 @@ extern const Type nullType;
 struct __structLookupData
 {
     map<string, Type> members;
-    unsigned int uses = 0;
 };
 
 struct __templStructLookupData

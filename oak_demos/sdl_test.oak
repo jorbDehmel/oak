@@ -9,33 +9,60 @@ package!("sdl");
 
 let main() -> i32
 {
-    print("hi\n");
-
     sdl_init();
 
     let wind: sdl_window;
 
+    print("W: ");
+    print(wind.width);
+    print("\n");
+
+    print("H: ");
+    print(wind.height);
+    print("\n");
+
+    //Copy(@wind, to_u64(512), to_u64(512));
+
     let black: sdl_color;
     let white: sdl_color;
-    let red: sdl_color;
-    let green: sdl_color;
-    let blue: sdl_color;
-
     white..New(to_u8(255), to_u8(255), to_u8(255), to_u8(255));
-    red..New(to_u8(255), to_u8(0), to_u8(0), to_u8(255));
-    green..New(to_u8(0), to_u8(255), to_u8(0), to_u8(255));
-    blue..New(to_u8(0), to_u8(0), to_u8(255), to_u8(255));
-
-    wind..fill(black);
 
     let rect: sdl_rect;
     rect..New(to_u64(10), to_u64(10), to_u64(10), to_u64(10));
 
-    wind..draw_rect(rect, white);
-      
-    wind..show();
+    let y: i32;
+    y = 0;
 
-    sdl_delay(1000);
+    print("W: ");
+    print(wind.width);
+    print("\n");
+
+    print("H: ");
+    print(wind.height);
+    print("\n");
+
+    while (y < wind.height)
+    {
+        let x: i32;
+        x = 0;
+
+        while (x < wind.width)
+        {
+            rect.x = to_u64(x);
+            rect.y = to_u64(y);
+
+            wind..fill(black);
+            wind..draw_rect(rect, white);
+
+            wind..show();
+
+            sdl_delay(10);
+
+            x += 1;
+        }
+    
+        y += 1;
+    }
 
     wind..Del();
 

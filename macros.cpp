@@ -60,7 +60,7 @@ void compileMacro(const string &Name, bool debug)
 
     try
     {
-        smartSystem(command);
+        assert(system(command.c_str()) == 0);
     }
     catch (runtime_error &e)
     {
@@ -105,7 +105,7 @@ string callMacro(const string &Name, const vector<string> &Args, bool debug)
 
     try
     {
-        smartSystem(command);
+        assert(system(command.c_str()) == 0);
     }
     catch (runtime_error &e)
     {

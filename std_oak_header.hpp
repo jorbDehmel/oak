@@ -11,6 +11,11 @@ as well as its .oak source.
 */
 
 #ifndef OAK_HEAD
+#define OAK_HEAD
+
+#if (defined(_WIN32) || defined(_WIN64))
+#define WINDOWS
+#endif
 
 // Signed integer types
 typedef char i8;
