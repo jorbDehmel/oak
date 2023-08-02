@@ -1,4 +1,4 @@
-link!("/usr/include/oak/sdl/sdl_interface.o");
+link!("sdl/sdl_interface.o");
 
 let sdl_window: struct
 {

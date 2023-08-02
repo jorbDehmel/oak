@@ -12,9 +12,10 @@ GPLv3 held by author
 // Pre-translation operator substitution for Oak
 // Should be done after macros
 
+#include "symbol-table.hpp"
+
 #include <string>
 #include <vector>
-#include <cassert>
 #include <iostream>
 
 using namespace std;

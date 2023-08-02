@@ -218,7 +218,7 @@ void doFile(const string &From)
                         for (string a : args)
                         {
                             auto recStart = chrono::high_resolution_clock::now();
-                            doFile(a);
+                            doFile(OAK_DIR_PATH + a);
                             auto recEnd = chrono::high_resolution_clock::now();
                             recurseTime += chrono::duration_cast<chrono::nanoseconds>(recEnd - recStart).count();
                         }
@@ -239,6 +239,8 @@ void doFile(const string &From)
                             {
                                 args[j].pop_back();
                             }
+
+                            args[j] = OAK_DIR_PATH + args[j];
                         }
 
                         for (string a : args)
@@ -292,6 +294,42 @@ void doFile(const string &From)
                         }
                         i--;
                     }
+                    else
+                    {
+                        // Non-compiler macro definition
+                        // Nested stuff may be allowed within
+                        if (i > 0 && lexed[i - 1] == "let")
+                        {
+                            while (lexed.size() >= i && lexed[i] != "{" && lexed[i] != ";")
+                            {
+                                i++;
+                            }
+
+                            if (lexed[i] == ";")
+                            {
+                                i++;
+                            }
+                            else
+                            {
+                                int count = 1;
+                                lexed.erase(lexed.begin() + i);
+
+                                while (count != 0)
+                                {
+                                    if (lexed[i] == "{")
+                                    {
+                                        count++;
+                                    }
+                                    else if (lexed[i] == "}")
+                                    {
+                                        count--;
+                                    }
+
+                                    i++;
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -319,14 +357,12 @@ void doFile(const string &From)
                     string name, contents;
                     name = lexed[i];
 
-                    contents = "let main(argc: i16, argv: ^str) -> i16 ";
+                    contents = "let main(argc: i32, argv: ^str) -> i32 ";
 
                     lexed.erase(lexed.begin() + i);       // Name
                     lexed.erase(lexed.begin() + (i - 1)); // Let
 
-                    // let name!(argc: u16, argv: *str) { ... }
-
-                    while (lexed[i] != "{" && lexed[i] != ";")
+                    while (lexed.size() >= i && lexed[i] != "{" && lexed[i] != ";")
                     {
                         lexed.erase(lexed.begin() + i);
                     }
@@ -352,7 +388,15 @@ void doFile(const string &From)
                                 count--;
                             }
 
-                            contents += " " + lexed[i];
+                            if (lexed[i].size() < 2 || lexed[i].substr(0, 2) != "//")
+                            {
+                                contents += " " + lexed[i];
+                            }
+                            else
+                            {
+                                contents += "\n";
+                            }
+
                             lexed.erase(lexed.begin() + i);
                         }
                     }
@@ -601,7 +645,7 @@ void makePackage(const string &RawName)
     ignore.close();
 
     // git init
-    assert(system(("git init " + name + " > /dev/null").c_str()) == 0);
+    throw_assert(system(("git init " + name + " > /dev/null").c_str()) == 0);
 
     return;
 }

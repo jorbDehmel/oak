@@ -5,7 +5,7 @@ unsigned long long int getSize(const string &FilePath)
     // Run command
     if (system(("du -s " + FilePath + " > sizer_temp.txt").c_str()) != 0)
     {
-        assert(system("rm -f sizer_temp.txt") == 0);
+        throw_assert(system("rm -f sizer_temp.txt") == 0);
 
         // If file does not exist, 0 bytes
         return 0;
@@ -13,13 +13,13 @@ unsigned long long int getSize(const string &FilePath)
 
     // Load file
     ifstream inp("sizer_temp.txt");
-    assert(inp.is_open());
+    throw_assert(inp.is_open());
 
     unsigned long long int kb;
     inp >> kb;
 
     inp.close();
-    assert(system("rm -f sizer_temp.txt") == 0);
+    throw_assert(system("rm -f sizer_temp.txt") == 0);
 
     return kb;
 }

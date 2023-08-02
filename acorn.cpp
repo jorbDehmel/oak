@@ -400,7 +400,7 @@ int main(const int argc, const char *argv[])
                         cout << "System call `" << command << "`\n";
                     }
 
-                    assert(system(command.c_str()) == 0);
+                    throw_assert(system(command.c_str()) == 0);
                     objects.insert(source + ".o");
                 }
 
@@ -425,7 +425,7 @@ int main(const int argc, const char *argv[])
                         cout << "System call `" << command << "`\n";
                     }
 
-                    assert(system(command.c_str()) == 0);
+                    throw_assert(system(command.c_str()) == 0);
                 }
             }
 

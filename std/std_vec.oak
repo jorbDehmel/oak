@@ -5,8 +5,8 @@ GPLv3
 Standard vector struct.
 */
 
-include!("/usr/include/oak/std/std_mem.oak",
-    "/usr/include/oak/std/std_error.oak");
+include!("std/std_mem.oak",
+    "std/std_error.oak");
 
 let vec: struct<t>
 {

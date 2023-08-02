@@ -38,6 +38,8 @@ using namespace std;
 #define LICENSE "GPLv3"
 #define INFO "jdehmel@outlook.com"
 
+#define OAK_DIR_PATH "/usr/include/oak/"
+
 /*
 Remaining options:
 -abfgjkxyz

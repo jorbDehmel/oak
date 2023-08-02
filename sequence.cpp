@@ -121,7 +121,7 @@ sequence __createSequence(list<string> &From)
     out.info = code_line;
 
     // Misc. Invalid cases (common)
-    if (From.size() == 0)
+    if (From.empty())
     {
         return out;
     }

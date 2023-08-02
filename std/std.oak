@@ -4,12 +4,12 @@ Linkage file for the Oak standard package.
 */
 
 include!(
-    "/usr/include/oak/std/std_io.oak",
-    "/usr/include/oak/std/std_conv.oak",
-    "/usr/include/oak/std/std_ops.oak"
+    "std/std_io.oak",
+    "std/std_conv.oak",
+    "std/std_ops.oak"
 );
 
-link!("/usr/include/oak/std/misc_std.o");
+link!("std/misc_std.o");
 
 // Method rules
 new_rule!("argless_mut_method", "$a . . $b ( )", "$b ( @ $a )");

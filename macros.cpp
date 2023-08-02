@@ -39,6 +39,8 @@ void compileMacro(const string &Name, bool debug)
         return;
     }
 
+    throw_assert(system("mkdir -p " COMPILED_PATH) == 0);
+
     string rootName = purifyStr(Name.substr(0, Name.size() - 1));
 
     // Write file to be compiled
@@ -56,15 +58,48 @@ void compileMacro(const string &Name, bool debug)
     macroFile.close();
 
     // Call compiler
-    string command = COMPILER_COMMAND + (debug ? string(" --debug ") : string("")) + " --link -o " + binPath + " " + srcPath;
+    if (debug)
+    {
+        cout << tags::yellow_bold
+             << "\n-----------------------------\n"
+             << "Entering sub-file '" << srcPath << "'\n"
+             << "-----------------------------\n"
+             << "\\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/\n\n"
+             << tags::reset
+             << flush;
+    }
+
+    string command = COMPILER_COMMAND + (debug ? string(" --debug ") : string("")) + " --clean -o " + binPath + " " + srcPath;
 
     try
     {
-        assert(system(command.c_str()) == 0);
+        throw_assert(system(command.c_str()) == 0);
     }
     catch (runtime_error &e)
     {
+        if (debug)
+        {
+            cout << tags::yellow_bold
+                 << "\n/\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\\n"
+                 << "-----------------------------\n"
+                 << "Exiting sub-file '" << srcPath << "'\n"
+                 << "-----------------------------\n\n"
+                 << tags::reset
+                 << flush;
+        }
+
         throw runtime_error(string("Macro failure: ") + e.what());
+    }
+
+    if (debug)
+    {
+        cout << tags::yellow_bold
+             << "/\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\\n"
+             << "-----------------------------------------------------------------\n"
+             << "Exiting sub-file '" << srcPath << "'\n"
+             << "-----------------------------------------------------------------\n"
+             << tags::reset
+             << flush;
     }
 
     compiled.insert(Name);
@@ -103,13 +138,9 @@ string callMacro(const string &Name, const vector<string> &Args, bool debug)
 
     command += " > " + outputName;
 
-    try
+    if (system(command.c_str()) != 0)
     {
-        assert(system(command.c_str()) == 0);
-    }
-    catch (runtime_error &e)
-    {
-        throw runtime_error(string("Macro failure: ") + e.what());
+        throw runtime_error(string("Macro failure with command '" + command + "'"));
     }
 
     // Load from output file

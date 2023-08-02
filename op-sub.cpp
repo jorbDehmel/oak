@@ -308,7 +308,7 @@ void operatorSub(vector<string> &From)
 
         if (cur == "!")
         {
-            assert(false);
+            throw_assert(false);
         }
         else if (cur == "&&")
         {

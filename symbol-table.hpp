@@ -12,7 +12,6 @@ GPLv3 held by author
 #include <map>
 #include <string>
 #include <vector>
-#include <cassert>
 #include <stdexcept>
 #include <iostream>
 

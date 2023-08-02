@@ -6,7 +6,7 @@ Standard io function definitions for use
 with io.cpp.
 */
 
-link!("/usr/include/oak/std/io.o");
+link!("std/io.o");
 
 // Print to cout
 let print(what: str) -> void;

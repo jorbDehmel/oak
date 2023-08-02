@@ -1,5 +1,5 @@
 package!("std");
-include!("/usr/include/oak/std/math.oak");
+include!("std/math.oak");
 
 let main() -> i32
 {
@@ -25,13 +25,9 @@ let main() -> i32
 
     while (x < 2.0 * pi)
     {
+        print(x);
+        print("\t");
         print(sin(x));
-        print("\n");
-
-        print(cos(x));
-        print("\n");
-
-        print(tan(x));
         print("\n");
 
         x += 0.1;

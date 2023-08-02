@@ -1,0 +1,26 @@
+package!("std");
+
+let print_five_times!(argc: i32, argv: ^str) -> i32
+{
+    package!("std");
+
+    print(argv[0]);
+    print("\n");
+    print(argv[0]);
+    print("\n");
+    print(argv[0]);
+    print("\n");
+    print(argv[0]);
+    print("\n");
+    print(argv[0]);
+    print("\n");
+
+    0
+}
+
+let main() -> i32
+{
+    print_five_times!("print('hihihihihi');");
+
+    0
+}
