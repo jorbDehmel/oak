@@ -78,6 +78,7 @@ let math_pi() -> f64
     3.14159265
 }
 
+// Return the factorial of a number x
 let fact(x: i32) -> i128
 {
     let out: i128;
@@ -98,13 +99,6 @@ let fact(x: i32) -> i128
 /*
 Uses a ninth-degree Taylor polynomial with x modulo-ed by pi
 $x - \frac{x^3}{3!} + \frac{x^5}{5!} - \frac{x^7}{7!} + \frac{x^9}{9!}$
-
-Coefficients:
-1           1
--1/6        -0.1666666666666
-1/120       0.0083333333333
--1/5040     -0.0001984126984
-1/362880    0.0000027557319
 */
 let sin(x: f64) -> f64
 {
@@ -132,6 +126,8 @@ let sin(x: f64) -> f64
     let out: f64;
     out = 0.0;
 
+    // Not black magic; Just a ninth-order Taylor
+    // polynomial
     out += real_x;
     out += pow(real_x, 3) * -0.1666666666666;
     out += pow(real_x, 5) * 0.0083333333333;

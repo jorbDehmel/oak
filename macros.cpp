@@ -58,8 +58,12 @@ void compileMacro(const string &Name, bool debug)
     macroFile.close();
 
     // Call compiler
+    string command = COMPILER_COMMAND + (debug ? string(" -d") : string("")) + " -eo " + binPath + " " + srcPath;
+
     if (debug)
     {
+        cout << "Compiling via command '" << command << "'\n";
+
         cout << tags::yellow_bold
              << "\n-----------------------------\n"
              << "Entering sub-file '" << srcPath << "'\n"
@@ -68,8 +72,6 @@ void compileMacro(const string &Name, bool debug)
              << tags::reset
              << flush;
     }
-
-    string command = COMPILER_COMMAND + (debug ? string(" --debug ") : string("")) + " --clean -o " + binPath + " " + srcPath;
 
     try
     {
@@ -95,9 +97,9 @@ void compileMacro(const string &Name, bool debug)
     {
         cout << tags::yellow_bold
              << "/\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\\n"
-             << "-----------------------------------------------------------------\n"
+             << "-----------------------------\n"
              << "Exiting sub-file '" << srcPath << "'\n"
-             << "-----------------------------------------------------------------\n"
+             << "-----------------------------\n\n"
              << tags::reset
              << flush;
     }
@@ -114,7 +116,7 @@ string callMacro(const string &Name, const vector<string> &Args, bool debug)
         compileMacro(Name, debug);
     }
 
-    string outputName = COMPILED_PATH + string("__oak_macro_out_") + to_string(time(NULL)) + "_" + to_string(rand()) + ".txt";
+    string outputName = COMPILED_PATH + string("__oak_macro_out") + ".txt";
 
     string command = COMPILED_PATH + purifyStr(Name.substr(0, Name.size() - 1)) + ".out ";
 

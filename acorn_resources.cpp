@@ -312,7 +312,7 @@ void doFile(const string &From)
                             else
                             {
                                 int count = 1;
-                                lexed.erase(lexed.begin() + i);
+                                i++;
 
                                 while (count != 0)
                                 {
@@ -359,8 +359,9 @@ void doFile(const string &From)
 
                     contents = "let main(argc: i32, argv: ^str) -> i32 ";
 
-                    lexed.erase(lexed.begin() + i);       // Name
-                    lexed.erase(lexed.begin() + (i - 1)); // Let
+                    i--;
+                    lexed.erase(lexed.begin() + i); // Let
+                    lexed.erase(lexed.begin() + i); // Name
 
                     while (lexed.size() >= i && lexed[i] != "{" && lexed[i] != ";")
                     {
@@ -437,6 +438,15 @@ void doFile(const string &From)
                     string output = callMacro(name, args, debug);
                     vector<string> lexedOutput = lex(output);
 
+                    // Remove lines
+                    for (int ind = 0; ind < lexedOutput.size(); ind++)
+                    {
+                        if (lexedOutput[ind].size() > 1 && lexedOutput[ind].substr(0, 2) == "//")
+                        {
+                            lexedOutput.erase(lexedOutput.begin() + ind);
+                        }
+                    }
+
                     // Insert the new code
                     for (int j = lexedOutput.size() - 1; j >= 0; j--)
                     {
@@ -497,14 +507,14 @@ void doFile(const string &From)
     catch (runtime_error &e)
     {
         cout << tags::red_bold
-             << "Caught error '" << e.what() << "'\n"
+             << "Caught runtime error '" << e.what() << "'\n"
              << tags::reset;
 
         string name = "oak_dump_" + purifyStr(From) + ".log";
         cout << "Dump saved in " << name << "\n";
         dump(lexed, name, From, curLine, sequence(), lexedCopy);
 
-        throw runtime_error("Failure in file '" + From + "'");
+        throw runtime_error("Failure in file '" + From + "': " + e.what());
     }
     catch (...)
     {

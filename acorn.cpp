@@ -13,7 +13,6 @@ int main(const int argc, const char *argv[])
 {
     // OS warning if someone manages to compile this for windows or macOS
 #if (defined(_WIN32) || defined(_WIN64) || defined(__APPLE__))
-    SystemType OS = Windows;
     cout << tags::red_bold
          << "Severe Warning! This version of Oak is designed for Linux!\n"
          << "No other operating systems are supported!\n"
@@ -88,8 +87,12 @@ int main(const int argc, const char *argv[])
                     }
                     else if (cur == "--clean")
                     {
-                        system("rm -rf .oak_build");
                         eraseTemp = !eraseTemp;
+
+                        if (eraseTemp)
+                        {
+                            system("rm -rf .oak_build");
+                        }
                     }
                     else if (cur == "--quit")
                     {
@@ -187,8 +190,13 @@ int main(const int argc, const char *argv[])
 
                             break;
                         case 'e':
-                            system("rm -rf .oak_build");
                             eraseTemp = !eraseTemp;
+
+                            if (eraseTemp)
+                            {
+                                system("rm -rf .oak_build");
+                            }
+
                             break;
                         case 'h':
                             cout << helpText << '\n'
