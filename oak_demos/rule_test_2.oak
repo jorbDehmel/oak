@@ -1,0 +1,28 @@
+// Test for new rule symbols as of Aug 3, 23
+// Jordan Dehmel
+// Passed Aug 3, 23
+
+package!("std");
+
+new_rule!("auto_if_paren", "if $*a {", "if ( $a ) {");
+new_rule!("auto_while_paren", "while $*a {", "while ( $a ) {");
+bundle_rule!("paren", "auto_if_paren", "auto_while_paren");
+
+use_rule!("paren");
+
+new_rule!("cast", "( $a ) ( $*b )", "to_ $< $a ( $b )");
+use_rule!("cast");
+
+let main() -> i32
+{
+    if true
+    {
+        print("This should print.\n");
+    }
+    else
+    {
+        print("This should not.\n");
+    }
+
+    0
+}

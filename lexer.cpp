@@ -44,6 +44,21 @@ vector<string> lex(const string &What)
             continue;
         }
 
+        // Rule processing; Use whole word
+        else if (c == '$')
+        {
+            while (i < What.size() && What[i] != ' ' && What[i] != '\t')
+            {
+                cur += What[i];
+                i++;
+            }
+
+            out.push_back(cur);
+            cur = "";
+
+            continue;
+        }
+
         // Preproc, should NOT get to this point!
         else if (c == '#')
         {

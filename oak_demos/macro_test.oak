@@ -2,7 +2,7 @@ package!("std");
 
 let print_five_times!(argc: i32, argv: ^str) -> i32
 {
-    package!("std");
+    include!("std/std_io.oak");
 
     print("print(\"among us\\n\");");
     print("print(\"among us\\n\");");

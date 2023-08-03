@@ -23,6 +23,8 @@ bundle_rule!("std_method",
     "mut_method",
     "const_method");
 
+new_rule!("void_return", ") {", ") -> void {");
+
 // Misc
 let time() -> i64;
 

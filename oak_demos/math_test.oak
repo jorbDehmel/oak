@@ -33,7 +33,7 @@ let main() -> i32
         x += 0.1;
     }
 
-    print(tan(pi));
+    print(tan(pi / 2.0));
     print("\n");
 
     0

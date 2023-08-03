@@ -225,9 +225,9 @@ void doRules(vector<string> &From)
                 }
 
                 int posInFrom = i;
-                for (int k = 0; k < curRule.inputPattern.size(); k++)
+                for (int k = 0; posInFrom < From.size() && k < curRule.inputPattern.size(); k++)
                 {
-                    string &match = curRule.inputPattern[k];
+                    string match = curRule.inputPattern[k];
 
                     // Empty string in input match; IDK why this would happen
                     if (match == "")
@@ -266,6 +266,102 @@ void doRules(vector<string> &From)
                         continue;
                     }
 
+                    // Globs; Un-stored multi-symbol matches
+                    else if (match == "$*")
+                    {
+                        throw_assert(k + 1 < curRule.inputPattern.size());
+                        string nextSymb = curRule.inputPattern[k + 1];
+
+                        while (From[posInFrom] != nextSymb)
+                        {
+                            posInFrom++;
+
+                            if (posInFrom >= From.size())
+                            {
+                                isMatch = false;
+                                break;
+                            }
+
+                            while (From[posInFrom].size() > 1 && From[posInFrom].substr(0, 2) == "//")
+                            {
+                                posInFrom++;
+                                if (posInFrom >= From.size())
+                                {
+                                    isMatch = false;
+                                    break;
+                                }
+                            }
+                        }
+
+                        continue;
+                    }
+                    else if (match == "$+")
+                    {
+                        throw_assert(k + 1 < curRule.inputPattern.size());
+                        string nextSymb = curRule.inputPattern[k + 1];
+
+                        if (From[posInFrom] == nextSymb)
+                        {
+                            isMatch = false;
+                        }
+
+                        while (From[posInFrom] != nextSymb)
+                        {
+                            posInFrom++;
+
+                            if (posInFrom >= From.size())
+                            {
+                                isMatch = false;
+                                break;
+                            }
+
+                            while (From[posInFrom].size() > 1 && From[posInFrom].substr(0, 2) == "//")
+                            {
+                                posInFrom++;
+                                if (posInFrom >= From.size())
+                                {
+                                    isMatch = false;
+                                    break;
+                                }
+                            }
+                        }
+
+                        continue;
+                    }
+
+                    // Variable glob; Stored multi-symbol match
+                    else if (match.size() == 3 && match.substr(0, 2) == "$*")
+                    {
+                        string name = match.substr(0, 1) + match.substr(2, 1);
+
+                        throw_assert(k + 1 < curRule.inputPattern.size());
+                        string nextSymb = curRule.inputPattern[k + 1];
+
+                        while (From[posInFrom] != nextSymb)
+                        {
+                            ruleVars[ruleIndex][name] += " " + From[posInFrom];
+
+                            posInFrom++;
+                            if (posInFrom >= From.size())
+                            {
+                                isMatch = false;
+                                break;
+                            }
+
+                            while (From[posInFrom].size() > 1 && From[posInFrom].substr(0, 2) == "//")
+                            {
+                                posInFrom++;
+                                if (posInFrom >= From.size())
+                                {
+                                    isMatch = false;
+                                    break;
+                                }
+                            }
+                        }
+
+                        continue;
+                    }
+
                     // Variable; Stored match
                     else if (match.size() == 2 && match[0] == '$')
                     {
@@ -295,11 +391,41 @@ void doRules(vector<string> &From)
 
                     // Get new contents
                     vector<string> newContents;
-                    for (auto s : curRule.outputPattern)
+                    for (int sIndex = 0; sIndex < curRule.outputPattern.size(); sIndex++)
                     {
+                        string s = curRule.outputPattern[sIndex];
+
                         if (ruleVars[ruleIndex].count(s) != 0)
                         {
-                            newContents.push_back(ruleVars[ruleIndex][s]);
+                            string raw = ruleVars[ruleIndex][s];
+
+                            vector<string> lexed = lex(raw);
+                            for (auto s : lexed)
+                            {
+                                newContents.push_back(s);
+                            }
+                        }
+                        else if (s == "$<")
+                        {
+                            // Merge operator
+                            throw_assert(!newContents.empty());
+                            throw_assert(sIndex + 1 < curRule.outputPattern.size());
+
+                            string toInsert = curRule.outputPattern[sIndex + 1];
+
+                            if (ruleVars[ruleIndex].count(toInsert) != 0)
+                            {
+                                string raw = ruleVars[ruleIndex][toInsert];
+                                vector<string> lexed = lex(raw);
+
+                                toInsert = "";
+                                for (auto str : lexed)
+                                {
+                                    toInsert.append(str);
+                                }
+                            }
+
+                            newContents.back().append(toInsert);
                         }
                         else
                         {
@@ -308,7 +434,7 @@ void doRules(vector<string> &From)
                     }
 
                     // Erase old contents
-                    for (int k = 0; k < curRule.inputPattern.size(); k++)
+                    for (int k = i; k < posInFrom; k++)
                     {
                         From.erase(From.begin() + i);
                     }

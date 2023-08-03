@@ -137,21 +137,21 @@ let sin(x: f64) -> f64
     out
 }
 
-// Uses sin
+// Uses $cos(x) = sin(x - \frac{\pi}{2})$
 let cos(x: f64) -> f64
 {
     let pi: f64;
     pi = math_pi();
 
-    sin(x - 0.5 * pi)
+    sin(x + 0.5 * pi)
 }
 
-// Uses sin and cos
-// tan = sin / cos
+// Uses $tan(x) = \frac{sin(x)}{cos(x)}$
 let tan(x: f64) -> f64
 {
     let s: f64;
     let c: f64;
+
     s = sin(x);
     c = cos(x);
 
