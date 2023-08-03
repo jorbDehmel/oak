@@ -28,12 +28,26 @@ let main() -> i32
         print(x);
         print("\t");
         print(sin(x));
+        print("\t");
+        print(round(sin(x)));
         print("\n");
 
         x += 0.1;
     }
 
     print(tan(pi / 2.0));
+    print("\n");
+
+    print(floor(2.0));
+    print("\n");
+
+    print(sqrt(1666.0));
+    print("\n");
+
+    print(f_mod(12.0, 4.0));
+    print("\n");
+
+    print(ceiling(12.0));
     print("\n");
 
     0

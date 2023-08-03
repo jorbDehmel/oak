@@ -157,3 +157,86 @@ let tan(x: f64) -> f64
 
     (s / c)
 }
+
+// Return the largest integer less than or equal to x
+let floor(x: f64) -> i32
+{
+    f_to_i(x)
+}
+
+// Return the smallest integer greater than or equal to x
+let ceiling(x: f64) -> i32
+{
+    f_to_i(x + 0.9999)
+}
+
+// Return the closest integer to x
+let round(x: f64) -> i32
+{
+    let out: f64;
+    out = x;
+
+    if (out > 0.0)
+    {
+        out += 0.5;
+    }
+    else
+    {
+        out -= 0.5;
+    }
+
+    floor(out)
+
+    out
+}
+
+// Return the square root of a float
+/*
+Uses Newtonian iteration
+To find \sqrt{k}:
+x_{n + 1} = 0.5 * (x_n + \frac{k}{x_n})
+*/
+let sqrt(x: f64) -> f64
+{
+    // Get a decent guess
+    let out: f64;
+    out = x / 2.0;
+
+    // Ensure guess is not one
+    out += 1.0;
+
+    let counter: i32;
+    let temp: f64;
+
+    counter = 10;
+    while (counter > 0)
+    {
+        temp = out;
+        temp += x / out;
+        temp /= 2.0;
+
+        out = temp;
+
+        counter -= 1;
+    }
+
+    out
+}
+
+// Return the remainder of a / b
+let f_mod(a: f64, b: f64) -> f64
+{
+    let temp: f64;
+
+    // Num that b goes into a
+    temp = a / b;
+
+    // Integer version
+    temp = i_to_f(floor(temp));
+
+    // Evenly divisible amount of a
+    temp *= b;
+
+    // Return a - evenly divisible amount
+    (a - temp)
+}

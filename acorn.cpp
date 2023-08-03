@@ -312,7 +312,7 @@ int main(const int argc, const char *argv[])
 
         if (files.empty())
         {
-            throw runtime_error("No input files");
+            return 0;
         }
 
         // Actual calls
