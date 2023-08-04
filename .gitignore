@@ -4,9 +4,6 @@ bin/
 .oak_build/
 old/
 
-__translation_out.cpp
-__translation_out.hpp
-
 *.out
 *.o
 *.log

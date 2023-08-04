@@ -13,10 +13,27 @@ let New<t>(self: ^node<t>, data: t) -> void
     self.data = data;
 }
 
+let AddEq<t>(self: ^node<t>, data: t) -> void
+{
+    alloc!(self.next);
+    self.next..New(data);
+}
+
+let Del<t>(self: ^node<t>) -> void
+{
+    self.next..Del();
+    free!(self.next);
+}
+
 let main() -> i32
 {
+    // Instantiate a struct from template
+    node<i32>;
+
+    // Instantiate the New method for this type of node
     New<i32>;
 
+    // Create a node
     let head: node<i32>;
 
     head.data = 123;

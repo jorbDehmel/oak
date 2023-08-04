@@ -18,14 +18,6 @@ bool insideMethod = false;
 unsigned long long int curLine = 1;
 string curFile = "";
 
-// Any string not in this set is a symbol name
-const set<string> specials = {
-    "+", "-", "*", "/", "%", "&", "|", "<", ">", "<=", ">=", "==",
-    "!=", "!", "^", "&&", "(", ")", "{", "}", "[", "]", "||", "&&",
-    "~", ":", ";", "->", "&", "<<", ">>", "+=", "-=", "*=", "/=",
-    "&=", "|=", "=", "let", "for", "struct", "if", "else", "while",
-    "catch", "try", "switch", "case"};
-
 // Actually used in dump files, not just for debugging.
 void debugPrint(const sequence &What, int spaces, ostream &to)
 {
@@ -36,26 +28,11 @@ void debugPrint(const sequence &What, int spaces, ostream &to)
 
     switch (What.info)
     {
-    case comma_sep:
-        to << "comma_sep:";
-        break;
-    case function_call:
-        to << toStr(&What.type) << " function_call";
-        break;
-    case parenthesis:
-        to << "parenthesis";
-        break;
     case code_scope:
         to << "code_scope";
         break;
     case code_line:
         to << "code_line";
-        break;
-    case for_triple:
-        to << "for_triple";
-        break;
-    case access:
-        to << "access";
         break;
     case atom:
         to << "atom";
@@ -292,13 +269,6 @@ sequence __createSequence(list<string> &From)
     }
 
     // Keywords
-    else if (From.front() == "for")
-    {
-        // Takes a for_triple and a code scope / code line
-        sm_assert(false, "UNIMPLEMENTED");
-
-        return out;
-    }
     else if (From.front() == "if" || From.front() == "while")
     {
         // Takes a bool code line and a code scope / code line
@@ -453,7 +423,7 @@ sequence __createSequence(list<string> &From)
                 }
 
                 // This SHOULD appear during toC.
-                out.info = comma_sep;
+                out.info = code_line;
                 out.raw = "";
                 out.type = nullType;
                 out.items.clear();
@@ -686,6 +656,9 @@ sequence __createSequence(list<string> &From)
         // Line update special symbol
         string newLineNum = From.front().substr(12);
         curLine = stoull(newLineNum);
+
+        // Pop
+        From.pop_front();
     }
 
     sequence temp;
@@ -723,19 +696,6 @@ string toC(const sequence &What)
 
     switch (What.info)
     {
-    case comma_sep:
-        for (int i = 0; i < What.items.size(); i++)
-        {
-            out += toC(What.items[i]);
-
-            if (i + 1 != What.items.size())
-            {
-                out += " ";
-            }
-        }
-
-        break;
-
     case code_line:
         for (int i = 0; i < What.items.size(); i++)
         {
@@ -743,7 +703,7 @@ string toC(const sequence &What)
 
             if (i + 1 != What.items.size())
             {
-                out += ", ";
+                out += " ";
             }
         }
 
@@ -769,53 +729,6 @@ string toC(const sequence &What)
         }
 
         out += "}\n";
-
-        break;
-
-    case for_triple:
-        sm_assert(What.items.size() == 3, "For loop triple must contain 3 elements");
-        sm_assert(What.items[1].type == Type(atomic, "bool"), "Second argument of for loop triple must be convertible to bool.");
-
-        out += "(" + toC(What.items[0]) + "; " + toC(What.items[1]) + "; " + toC(What.items[2]) + ")";
-
-        break;
-
-    case function_call:
-        // Typing cannot be enforced here!
-
-        out += toC(What.items[0]);
-        out += "(";
-
-        for (int i = 1; i < What.items.size(); i++)
-        {
-            out += toC(What.items[i]);
-
-            if (i + 1 < What.items.size())
-            {
-                out += ", ";
-            }
-        }
-
-        out += ")";
-
-        break;
-
-    case parenthesis:
-        // No join characters
-
-        out += "(";
-
-        for (auto child : What.items)
-        {
-            out += toC(child) + " ";
-        }
-
-        out += ")";
-
-        break;
-
-    case access:
-        out += "[" + toC(What.items[0]) + "]";
 
         break;
 

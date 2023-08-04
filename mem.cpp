@@ -6,7 +6,7 @@ sequence getAllocSequence(Type &type, const string &name, const int &num)
     // declarations are printed verbatim during reconstruction; ergo...
 
     sequence out;
-    out.info = comma_sep;
+    out.info = code_line;
     out.type = nullType;
     out.items.clear();
 
@@ -22,7 +22,7 @@ sequence getAllocSequence(Type &type, const string &name, const int &num)
 sequence getFreeSequence(const string &name, const bool &isArr)
 {
     sequence out;
-    out.info = comma_sep;
+    out.info = code_line;
     out.type = nullType;
     out.items.clear();
 

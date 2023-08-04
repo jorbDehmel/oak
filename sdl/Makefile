@@ -1,7 +1,7 @@
 all:	sdl_interface.o
 
 %.o:	%.cpp
-	clang++ -c -o $@ $<
+	clang++ -I/usr/include/SDL2 -D_REENTRANT -c -o $@ $<
 
 clean:
 	rm *.o

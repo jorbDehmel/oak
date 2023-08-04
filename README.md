@@ -33,6 +33,8 @@ Dialect   | A syntactically-modified branch of `Oak`.
 
 To install, open a terminal in this folder and run `make install`. This repo is only compatible with Linux. This will compile and install Oak, as well as the standard Oak package. To uninstall, open this folder in terminal and run `make uninstall`. If you've already deleted this folder, you can run `sudo rm -rf /usr/include/oak /usr/bin/acorn`. Both of these will accomplish the same thing.
 
+There is also a `PKGBUILD` file included in this directory. If you use Arch Linux, you can just download this and install it via `makepkg -si`.
+
 ## Syntax
 
 In Oak, a variable is declared as follows.

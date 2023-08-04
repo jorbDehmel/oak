@@ -1,3 +1,5 @@
+# Jordan Dehmel, 2023, jdehmel@outlook.com, github.com/jorbDehmel/oak
+
 CC := clang++ -pedantic -Wall
 OBJS := build/lexer.o build/symbol-table.o \
 	build/type-builder.o build/reconstruct.o \
@@ -10,6 +12,9 @@ HEADS := lexer.hpp reconstruct.hpp symbol-table.hpp \
 	type-builder.hpp macros.hpp tags.hpp \
 	sequence.hpp packages.hpp sizer.hpp op-sub.hpp \
 	acorn_resources.hpp document.hpp rules.hpp
+
+# -O3 is best for actual installs, not for testing
+FLAGS := -O3
 
 all: bin/acorn.out
 
@@ -34,11 +39,11 @@ reinstall:
 
 build/%.o:	%.cpp $(HEADS)
 	mkdir -p build
-	$(CC) -c -o $@ $<
+	$(CC) $(FLAGS) -c -o $@ $<
 
 bin/%.out:	build/%.o $(OBJS) $(HEADS)
 	mkdir -p bin
-	$(CC) -o $@ $< $(OBJS)
+	$(CC) $(FLAGS) -o $@ $< $(OBJS)
 
 clean:
 	rm -rf bin/* build/* *.o *.out *.log

@@ -29,14 +29,9 @@ public:
 
 enum sequenceInfo
 {
-    function_call, // hi(1, 2, 3)
-    parenthesis,   // (1 == 2) <=> bool
-    code_scope,    // {1; 2; 3}
-    code_line,     // 1;
-    for_triple,    // (i: i16 = 0; i < 10; i++) <=> (NULL, bool, ANY)
-    access,        // a[5];
-    atom,          // Anything else; Uses "raw" to specify
-    comma_sep,
+    code_scope, // {1; 2; 3}
+    code_line,  // 1;
+    atom,       // Anything else; Uses "raw" to specify
     keyword,
 };
 

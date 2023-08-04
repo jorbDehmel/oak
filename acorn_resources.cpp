@@ -473,7 +473,7 @@ void doFile(const string &From)
             phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
             curPhase++;
 
-            // I: Load file stuff
+            // I: Sequencing
             start = chrono::high_resolution_clock::now();
 
             sequence fileSeq = createSequence(lexed);
