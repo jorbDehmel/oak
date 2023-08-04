@@ -2,7 +2,7 @@
 // As of 7/30/23, passed.
 
 package!("std");
-use_rule!("std_method");
+use_rule!("std");
 
 let print_twice<t>(what: t) -> void
 {

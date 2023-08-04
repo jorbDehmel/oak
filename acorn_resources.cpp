@@ -240,7 +240,10 @@ void doFile(const string &From)
                                 args[j].pop_back();
                             }
 
-                            args[j] = OAK_DIR_PATH + args[j];
+                            if (!args[j].empty() && args[j][0] != '-')
+                            {
+                                args[j] = OAK_DIR_PATH + args[j];
+                            }
                         }
 
                         for (string a : args)

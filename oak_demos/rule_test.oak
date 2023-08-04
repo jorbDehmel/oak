@@ -2,7 +2,7 @@
 // Legacy passed
 
 package!("std");
-use_rule!("std_method");
+use_rule!("std");
 
 let times_two(self: ^i32) -> i32
 {

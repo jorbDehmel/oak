@@ -3,7 +3,7 @@
 
 // Jordan Dehmel, 2023
 package!("std");
-use_rule!("std_method");
+use_rule!("std");
 
 package!("sdl");
 

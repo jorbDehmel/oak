@@ -2,7 +2,7 @@
 // As of 7/29/23, works.
 
 package!("std");
-use_rule!("std_method");
+use_rule!("std");
 
 let main() -> i32
 {

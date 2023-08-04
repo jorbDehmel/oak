@@ -2,7 +2,7 @@
 // As of 7/29/23, "while" loops work, but "for" loops don't
 
 package!("std");
-use_rule!("std_method");
+use_rule!("std");
 
 let main() -> i32
 {

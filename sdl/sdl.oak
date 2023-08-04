@@ -2,4 +2,4 @@
 link!("-L/usr/lib -lSDL2");
 
 package!("std");
-include!("sdl_interface.oak");
+include!("sdl/sdl_interface.oak");

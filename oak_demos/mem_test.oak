@@ -3,7 +3,7 @@
 // Passed Aug 3 23
 
 package!("std");
-use_rule!("std_method");
+use_rule!("std");
 
 let test: struct
 {
