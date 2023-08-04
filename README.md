@@ -1,7 +1,8 @@
 
-[comment]: # ( As of July 28, 2023, the project is about 6,500 lines of code )
-[comment]: # ( It takes 14 seconds to compile via time make clean install )
-[comment]: # ( It takes up 928 mb of disk space upon install via acorn -sq )
+[comment]: # ( As of August 3rd, 2023, acorn is about 6,972 lines of code  )
+[comment]: # ( There are 3,074 lines of code in the Oak std package(s)     )
+[comment]: # ( It takes 18 seconds to compile via time make clean install  )
+[comment]: # ( It takes up 928 kb of disk space upon install via acorn -sq )
 
 # The Oak Programming Language
 
@@ -41,13 +42,6 @@ In Oak, a variable is declared as follows.
 For instance, a boolean named  `a` would be declared:
 
 `let a: bool;`
-
-If you want to initialize it at the same time, you would instead
-do:
-
-`let a: bool = false;`
-
-(Note: This is translated into `let a: bool; a = false;`. All types must have a default and a copy constructor.)
 
 Functions are declared as follows.
 
@@ -723,19 +717,19 @@ As of version `0.0.2`, `Sapling` also has several more features. On such feature
 
 `hi $* ( )` would match `hi hello hello hello hello ( )`, but not `hi hello hello ( hello ) ( )`.
 
-This update also introduces a stored glob operator `$+X` with `X` being another single-character variable name. For instance, `if $+a {` -> `if ( $a ) {` would auto-parenthesize `if` statements.
+This update also introduces a stored glob operator `$*X` with `X` being another single-character variable name. For instance, `if $*a {` -> `if ( $a ) {` would auto-parenthesize `if` statements.
 
 ```
 // STD Oak dialect rules
 clear
 
-"if $+a {" "if ( $a ) {"
-"while $+a {" "while ( $a ) {"
+"if $*a {" "if ( $a ) {"
+"while $*a {" "while ( $a ) {"
 
 // NOT final; We want to use STD_OD as a jumping-off point
 ```
 
-It may also introduce the merge operator `$<` for output patterns. This would fuse the preceding and proceeding symbols, without any separation. For instance, `( $t )( $+f )` -> `to $< $t ( $f )` would convert standard cast notation into the `Oak` equivalent.
+It also introduces the merge operator `$<` for output patterns. This fuses the preceding and proceeding symbols, without any separation. For instance, `( $t )( $*f )` -> `to $< $t ( $f )` would convert standard cast notation into the `Oak` equivalent.
 
 ## Dialects
 
