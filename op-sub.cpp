@@ -260,19 +260,14 @@ void operatorSub(vector<string> &From)
             doSub(From, i, "ModEq", false);
             break;
         }
-        else if (cur == "^=")
-        {
-            doSub(From, i, "XorEq", false);
-            break;
-        }
         else if (cur == "++")
         {
-            doSub(From, i, "Incr", false);
+            throw_assert(false);
             break;
         }
         else if (cur == "--")
         {
-            doSub(From, i, "Decr", false);
+            throw_assert(false);
             break;
         }
         else if (cur == "&=")
@@ -287,21 +282,7 @@ void operatorSub(vector<string> &From)
         }
     }
 
-    /*
-    // Level 2: Containers
-    for (int i = 0; i < From.size(); i++)
-    {
-        string cur = From[i];
-
-        if (cur == "[")
-        {
-            // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            assert(false);
-        }
-    }
-    */
-
-    // Level 3: Booleans
+    // Level 2: Booleans
     for (int i = 0; i < From.size(); i++)
     {
         string cur = From[i];
@@ -322,7 +303,7 @@ void operatorSub(vector<string> &From)
         }
     }
 
-    // Level 4: Comparisons
+    // Level 3: Comparisons
     for (int i = 0; i < From.size(); i++)
     {
         string cur = From[i];
@@ -359,7 +340,7 @@ void operatorSub(vector<string> &From)
         }
     }
 
-    // Level 5: Multiplication, division and modulo
+    // Level 4: Multiplication, division and modulo
     for (int i = 0; i < From.size(); i++)
     {
         string cur = From[i];
@@ -381,7 +362,7 @@ void operatorSub(vector<string> &From)
         }
     }
 
-    // Level 6: Addition and subtraction
+    // Level 5: Addition and subtraction
     for (int i = 0; i < From.size(); i++)
     {
         string cur = From[i];
@@ -397,7 +378,7 @@ void operatorSub(vector<string> &From)
         }
     }
 
-    // Level 7: Bitwise
+    // Level 6: Bitwise
     for (int i = 0; i < From.size(); i++)
     {
         string cur = From[i];

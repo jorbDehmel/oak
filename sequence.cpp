@@ -174,11 +174,12 @@ sequence __createSequence(list<string> &From)
         {
             if (*item == ",")
             {
+                item++;
                 num = stoi(*item);
 
                 while (j + 1 < contents.size())
                 {
-                    contents.erase(item);
+                    item = contents.erase(item);
                 }
 
                 break;
@@ -1053,25 +1054,39 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
             }
         }
 
-        c += name + "(";
-
-        int i = 0;
-        string argC = "";
         vector<Type> argTypes;
+        vector<string> argStrs;
         for (vector<string> arg : args)
         {
             int trash = 0;
-            argTypes.push_back(resolveFunction(arg, trash, argC));
+            string cur;
 
-            if (i + 1 < args.size())
-            {
-                argC += ", ";
-            }
-
-            i++;
+            argTypes.push_back(resolveFunction(arg, trash, cur));
+            argStrs.push_back(cur);
         }
 
-        c += argC + ")";
+        // Special case; Pointer array access
+        if (name == "Get" && argTypes.size() == 2)
+        {
+            if (argTypes[0].info == pointer && argTypes[0].next != nullptr && argTypes[0].next->info == pointer)
+            {
+                c += argStrs[0] + "[" + argStrs[1] + "]";
+
+                return *argTypes[0].next;
+            }
+        }
+
+        c += name + "(";
+        for (int j = 0; j < argStrs.size(); j++)
+        {
+            if (j != 0)
+            {
+                c += ", ";
+            }
+
+            c += argStrs[j];
+        }
+        c += ")";
 
         // Search for candidates
         sm_assert(table.count(name) != 0, "Function call '" + name + "' has no registered symbols.");

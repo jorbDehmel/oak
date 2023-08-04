@@ -6,3 +6,10 @@ Acorn Sersion | Date     | Justification
 --------------|----------|-----------------------------------------
 0.0.1         | 7/28/23  | Initialization of changelog - NOT start
               |          | of project.
+              |          |
+0.0.2         | 8/3/23   | Fixed heap memory, macros, math, and
+              |          | finished rules. Basics are laid.
+
+
+TODO:
+- Generic structs

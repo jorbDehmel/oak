@@ -717,13 +717,13 @@ bundle_rule!("std_method",
     "const_method");
 ```
 
-### Future
+### Stored Globs
 
-In the future, `Sapling` may introduce several more additional options. On such feature is `$+`, which is a wildcard that matches any one or more symbols. It may not be the first or last symbol in a `Sapling` sequence, as it is terminated only by the first instance of the following symbol (if it were the first item, it would be highly inefficient). Another such, with the same rules, is `$*`. This symbol matches any zero or more symbols that are not the following symbol. With these two symbols, no occurrence of the following symbol may match anywhere within. Additionally, a variable may not occur directly after either.
+As of version `0.0.2`, `Sapling` also has several more features. On such feature is `$+`, which is a wildcard that matches any one or more symbols. It may not be the first or last symbol in a `Sapling` sequence, as it is terminated only by the first instance of the following symbol (if it were the first item, it would be highly inefficient). Another such, with the same rules, is `$*`. This symbol matches any zero or more symbols that are not the following symbol. With these two symbols, no occurrence of the following symbol may match anywhere within. Additionally, a variable may not occur directly after either.
 
 `hi $* ( )` would match `hi hello hello hello hello ( )`, but not `hi hello hello ( hello ) ( )`.
 
-It may also introduce a stored glob operator `$+X` with `X` being another single-character variable name. For instance, `if $+a {` -> `if ( $a ) {` would auto-parenthesize `if` statements.
+This update also introduces a stored glob operator `$+X` with `X` being another single-character variable name. For instance, `if $+a {` -> `if ( $a ) {` would auto-parenthesize `if` statements.
 
 ```
 // STD Oak dialect rules

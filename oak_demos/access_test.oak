@@ -1,16 +1,9 @@
 // A test of array access [] in Oak.
-// UNPASSED
-
-// TODO: Implement pointer addition
-
-// new_rule!("access_begin", "[", ". . Get (");
-// new_rule!("access_end", "]", ")");
-// bundle_rule!("access", "access_begin", "access_end");
+// Passed Aug 3, 23
 
 package!("std");
-
-// use_rule!("access");
-use_rule!("std_method");
+use_rule!("access");
+use_rule!("std");
 
 let wrapper: struct
 {
@@ -19,34 +12,41 @@ let wrapper: struct
 
 let New(self: ^wrapper) -> void
 {
-    print("Alloc called\n");
     alloc!(self.data, 10);
 }
 
 let Del(self: ^wrapper) -> void
 {
-    print("Free called\n");
     free_arr!(self.data);
 }
 
 let Get(self: ^wrapper, index: i32) -> ^i32
 {
-    //@(self.data + index)
-    self.data +++ index
+    Get(@self.data, index)
 }
 
 let main() -> i32
 {
-    let test: wrapper;  
-    Copy(test.data +++ 1, 5);
+    let test: wrapper;
 
-    print(^(test.data +++ 1));
-    print("\n");
+    let i: i32;
+    i = 0;
+    while (i < 10)
+    {
+        (^test[i] = i);
 
-    //test[1];
-    test..Get(1);
+        i += 1;
+    }
+
+    i = 0;
+    while (i < 10)
+    {
+        print(^test[i]);
+        print("\n");
+
+        i += 1;
+    }
 
     test..Del();
-
     0
 }
