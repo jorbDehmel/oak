@@ -110,6 +110,12 @@ void parenSub(vector<string> &From)
             }
             contents.clear();
 
+            // Force it to skip over arguments in function definitions
+            if (endI + 1 < From.size() && From[endI + 1] == "->")
+            {
+                continue;
+            }
+
             // Replace contents with good ones
 
             // Erase old stuff

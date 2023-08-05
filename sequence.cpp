@@ -377,19 +377,6 @@ sequence __createSequence(list<string> &From)
                 else
                 {
                     // Templated struct
-                    cout << __FILE__ << ":" << __LINE__ << " "
-                         << "Adding struct template " << name << " w/ generics '";
-                    for (auto s : generics)
-                    {
-                        cout << s << ' ';
-                    }
-                    cout << "' and data '";
-                    for (auto s : toAdd)
-                    {
-                        cout << s << ' ';
-                    }
-                    cout << "'\n";
-
                     templStructData[name] = __templStructLookupData{generics, toAdd};
                 }
 
@@ -496,13 +483,10 @@ sequence __createSequence(list<string> &From)
                 insideMethod = isMethod;
 
                 // Insert symbol
+                table[name].push_back(__multiTableSymbol{sequence{}, type});
                 if (From.front() == "{")
                 {
-                    addSymb(name, toAdd, __createSequence(From));
-                }
-                else
-                {
-                    addSymb(name, toAdd, sequence{});
+                    table[name].back().seq = __createSequence(From);
                 }
 
                 insideMethod = oldSafeness;
@@ -1075,6 +1059,7 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
     }
 
     // Function template instantiation (not struct at this stage)
+    // TODO: Modernize for multi-symbol generic replacements
     else if (What.size() > start + 1 && What[start + 1] == "<")
     {
         vector<string> generics;
@@ -1093,7 +1078,22 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
 
         sm_assert(start >= What.size() || What[start] == ";", "Template instantiation call must end with semicolon, not '" + What[start] + "'");
 
-        instantiateTemplate(name, generics);
+        try
+        {
+            // Check for function formats
+            instantiateTemplate(name, generics);
+        }
+        catch (runtime_error &e)
+        {
+            if (templStructData.count(name) == 0)
+            {
+                throw e;
+            }
+            else
+            {
+                instantiateStruct(name, generics);
+            }
+        }
     }
 
     else
@@ -1253,6 +1253,57 @@ void restoreSymbolTable(multiSymbolTable &backup)
     return;
 }
 
+string getStructCanonicalName(const string &Name, const vector<string> &GenericReplacements)
+{
+    string out = Name;
+    out += "__";
+    for (int i = 0; i < GenericReplacements.size(); i++)
+    {
+        out += GenericReplacements[i] + "_";
+    }
+
+    return out;
+}
+
+__structLookupData *instantiateStruct(const string &Name, const vector<string> &GenericReplacements)
+{
+    // Examine and verify candidates (uses raw name)
+    if (templStructData.count(Name) == 0)
+    {
+        throw parse_error("No candidates for templated struct '" + Name + "'");
+    }
+    auto candidate = templStructData[Name];
+    if (candidate.generics.size() != GenericReplacements.size())
+    {
+        throw parse_error("Cannot instantiate template with generic count " +
+                          to_string(candidate.generics.size()) + " with only " +
+                          to_string(GenericReplacements.size()) + " generics.");
+    }
+
+    // Create canonical name
+    string realName = getStructCanonicalName(Name, GenericReplacements);
+
+    // Do substitutions
+    for (int genericInd = 0; genericInd < candidate.generics.size(); genericInd++)
+    {
+        for (int i = 0; i < candidate.guts.size(); i++)
+        {
+            if (candidate.guts[i] == candidate.generics[genericInd])
+            {
+                candidate.guts[i] = GenericReplacements[genericInd];
+            }
+        }
+    }
+
+    candidate.guts[1] = realName;
+
+    // Add struct
+    addStruct(candidate.guts);
+
+    // Return newly instantiated struct type
+    return &structData[realName];
+}
+
 __multiTableSymbol *instantiateTemplate(const string &Name, const vector<string> &GenericReplacements)
 {
     // Examine candidates
@@ -1315,7 +1366,6 @@ __multiTableSymbol *instantiateTemplate(const string &Name, const vector<string>
     }
 
     Type outType = toType(toUse.returnType);
-    sequence outSeq = createSequence(toUse.guts);
 
     // Scan for existing instantiation and, if it exists, return it
     auto instantCandidates = table[Name];
@@ -1335,7 +1385,11 @@ __multiTableSymbol *instantiateTemplate(const string &Name, const vector<string>
         }
     }
 
-    table[Name].push_back(__multiTableSymbol{outSeq, outType});
+    // Append in case of recursion
+    table[Name].push_back(__multiTableSymbol{sequence{}, outType});
+
+    sequence outSeq = createSequence(toUse.guts);
+    table[Name].back().seq = createSequence(toUse.guts);
 
     return &table[Name].back();
 }

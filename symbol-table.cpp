@@ -53,6 +53,47 @@ Type toType(const vector<string> &WhatIn, const set<string> &Local)
         {
             out.append(pointer);
         }
+        else if (cur == "<")
+        {
+            throw_assert(out != nullType);
+
+            // Append to back
+            Type *cursor = &out;
+            while (cursor->next != nullptr)
+            {
+                cursor = cursor->next;
+            }
+
+            cursor->name += "_";
+
+            int count = 0;
+            while (!(count == 1 && What[i] == ">"))
+            {
+                if (What[i] == "<")
+                {
+                    count++;
+                    cursor->name += "_";
+                }
+                else if (What[i] == ">")
+                {
+                    count--;
+                }
+                else if (What[i] == ",")
+                {
+                    cursor->name += "_";
+                }
+                else
+                {
+                    cursor->name += What[i] + "_";
+                }
+
+                i++;
+                if (i > What.size())
+                {
+                    break;
+                }
+            }
+        }
         else if (cur == ",")
         {
             out.append(join);
@@ -86,6 +127,10 @@ Type toType(const vector<string> &WhatIn, const set<string> &Local)
             out.append(var_name, cur);
         }
         else if (localClone.count(cur) != 0)
+        {
+            out.append(atomic, cur);
+        }
+        else
         {
             out.append(atomic, cur);
         }
@@ -152,7 +197,31 @@ void addStruct(const vector<string> &FromIn)
             int templCount = 0;
             while (i < From.size() && !(templCount == 0 && From[i] == ","))
             {
-                lexedType.push_back(From[i]);
+                if (templCount == 0 && From[i] != "<")
+                {
+                    lexedType.push_back(From[i]);
+                }
+                else
+                {
+                    throw_assert(!lexedType.empty());
+
+                    if (From[i] == "<")
+                    {
+                        lexedType.back().append("__");
+                    }
+                    else if (From[i] == "^" || From[i] == "@")
+                    {
+                        lexedType.back().append("ptr_");
+                    }
+                    else if (From[i] == ">")
+                    {
+                        ;
+                    }
+                    else
+                    {
+                        lexedType.back().append(From[i] + "_");
+                    }
+                }
 
                 if (From[i] == "<")
                 {
@@ -207,34 +276,9 @@ void addSymb(const string &Name, const vector<string> &From, const sequence &Seq
 {
     // Scan for templating
     vector<string> toParse;
-    vector<string> generics;
-
-    set<string> genericsSet;
-
-    int count = 0;
     for (int i = 0; i < From.size() && From[i] != ";" && From[i] != "{"; i++)
     {
-        if (From[i] == "<")
-        {
-            count++;
-        }
-        else if (From[i] == ">")
-        {
-            count--;
-        }
-
-        if (count == 0)
-        {
-            toParse.push_back(From[i]);
-        }
-        else
-        {
-            if (From[i] != "," && From[i] != "<" && From[i] != ">")
-            {
-                generics.push_back(From[i]);
-                genericsSet.insert(From[i]);
-            }
-        }
+        toParse.push_back(From[i]);
     }
 
     if (toParse[0] == ">")
@@ -242,14 +286,7 @@ void addSymb(const string &Name, const vector<string> &From, const sequence &Seq
         toParse.erase(toParse.begin());
     }
 
-    if (generics.size() == 0)
-    {
-        table[Name].push_back(__multiTableSymbol{Seq, toType(toParse, genericsSet)});
-    }
-    else
-    {
-        throw runtime_error("Internal compiler error: addSymb should not be used on templates.");
-    }
+    table[Name].push_back(__multiTableSymbol{Seq, toType(toParse)});
 
     return;
 }

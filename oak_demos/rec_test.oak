@@ -1,0 +1,24 @@
+// Tests recursive functions in Oak
+// Passed Aug 4, 23
+
+package!("std");
+use_rule!("std");
+
+let do_it(what: i32) -> void
+{
+    if what == 0
+    {
+        print(what);
+    }
+    else
+    {
+        print(what);
+        do_it(Sub(what, 1));
+    }
+}
+
+let main() -> i32
+{
+    do_it(5);
+    0
+}

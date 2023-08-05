@@ -1,5 +1,8 @@
 // For testing Oak's generic structs
-// UNPASSED
+// Passed Aug 4, 23
+
+package!("std");
+use_rule!("std");
 
 // Linked list node
 let node<t>: struct
@@ -8,36 +11,31 @@ let node<t>: struct
     next: ^node<t>,
 }
 
-let New<t>(self: ^node<t>, data: t) -> void
+let New<t>(self: ^node<t>) -> void
 {
-    self.data = data;
 }
 
 let AddEq<t>(self: ^node<t>, data: t) -> void
 {
     alloc!(self.next);
-    self.next..New(data);
-}
-
-let Del<t>(self: ^node<t>) -> void
-{
-    self.next..Del();
-    free!(self.next);
+    self.next.data = data;
 }
 
 let main() -> i32
 {
-    // Instantiate a struct from template
     node<i32>;
-
-    // Instantiate the New method for this type of node
     New<i32>;
+    AddEq<i32>;
+    Del<i32>;
 
     // Create a node
     let head: node<i32>;
+    head += 2;
 
     head.data = 123;
     print(head.data);
+
+    head..Del();
 
     0
 }

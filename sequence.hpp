@@ -100,4 +100,7 @@ void restoreSymbolTable(multiSymbolTable &backup);
 
 __multiTableSymbol *instantiateTemplate(const string &Name, const vector<string> &GenericReplacements);
 
+string getStructCanonicalName(const string &Name, const vector<string> &GenericReplacements);
+__structLookupData *instantiateStruct(const string &Name, const vector<string> &GenericReplacements);
+
 #endif

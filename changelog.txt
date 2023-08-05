@@ -9,7 +9,10 @@ Acorn Sersion | Date     | Justification
               |          |
 0.0.2         | 8/3/23   | Fixed heap memory, macros, math, and
               |          | finished rules. Basics are laid.
+              |          |
+0.0.3         | 8/4/23   | Fixed basic generic structs and
+              |          | recursive functions.
 
 
 TODO:
-- Generic structs
+- Generic struct modernization for multi-symbol generics
