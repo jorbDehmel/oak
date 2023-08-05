@@ -1,0 +1,37 @@
+// A test of Oak's threading file "std/threads.oak"
+// As of Aug 5, 23, a very janky version has passed
+
+package!("std");
+use_rule!("std");
+include!("std/threads.oak");
+
+// This method MUST be overloaded in order for threads to function
+let call(self: ^thread) -> void
+{
+    let counter: i32;
+    counter = 100;
+    while (counter > 0)
+    {
+        print(counter);
+        print("\n");
+
+        counter -= 1;
+    }
+}
+
+let main() -> i32
+{
+    let a: thread;
+    let b: thread;
+    let c: thread;
+    let d: thread;
+    let e: thread;
+    
+    a..join();
+    b..join();
+    c..join();
+    d..join();
+    e..join();
+
+    0
+}

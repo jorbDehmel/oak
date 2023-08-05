@@ -1,0 +1,7 @@
+// A test of Oak's function pointers.
+// UNPASSED
+
+let main() -> i32
+{
+    0
+}

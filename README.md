@@ -2,7 +2,7 @@
 [comment]: # ( As of August 3rd, 2023, acorn is about 6,972 lines of code  )
 [comment]: # ( There are 3,074 lines of code in the Oak std package(s)     )
 [comment]: # ( It takes 34 seconds to compile via time make clean install  )
-[comment]: # ( It takes up 608 kb of disk space upon install via acorn -sq )
+[comment]: # ( It takes up 640 kb of disk space upon install via acorn -sq )
 
 # The Oak Programming Language
 
@@ -365,8 +365,6 @@ SubEq  | -=        | Decrement by a number  | let SubEq(self: ^T, other: T) -> T
 MultEq | *=        | Multiply and assign    | let MultEq(self: ^T, other: T) -> T;
 DivEq  | /=        | Divide and assign      | let DivEq(self: ^T, other: T) -> T;
 ModEq  | %=        | Modulo and assign      | let ModEq(self: ^T, other: T) -> T;
-Incr   | ++        | Increment              | let Incr(self: ^T) -> T;
-Decr   | --        | Decrement              | let Decr(self: ^T) -> T;
 AndEq  | &=        | Bitwise AND and assign | let AndEq(self: ^T, other: T) -> T;
 OrEq   | \|=       | Bitwise OR and assign  | let OrEq(self: ^T, other: T) -> T;
 Lbs    | <<        | Left bitshift          | let Lbs(self: T, other: T) -> T;
@@ -380,15 +378,16 @@ The order of operations for the above operators is as follows (with the top of t
 Level | Group Name | Member operators
 ------|------------|--------------------
 0     | Misc       | (), ^, @
-1     | Assignment | =, +=, -=, *=, /=, %=, ++, --, &=, \|=
-2     | Brackets   | [ ]
-3     | Booleans   | !, &&, \||
-4     | Comparison | ==, !=, <, >, <=, >=
-5     | Mult / Div | *, /, %
-6     | Add / Sub  | +, -
-7     | Bitwise    | &, \|, ^, <<, >>
+1     | Assignment | =, +=, -=, *=, /=, %=, &=, \|=
+2     | Booleans   | !, &&, \||
+3     | Comparison | ==, !=, <, >, <=, >=
+4     | Mult / Div | *, /, %
+5     | Add / Sub  | +, -
+6     | Bitwise    | &, \|, ^, <<, >>
 
 With a few exceptions, operator alias replacement occurs within parenthesis (either as standalone blocks for evaluation or as part of a function call). However, in cases like assignment parenthesis are inferred.
+
+`Oak` does not have `C++` streams by default, although its flexible syntax means that they aren't too hard to implement.
 
 ## Demo
 
@@ -504,6 +503,26 @@ Oak does not have automatic instantiation of generic functions via argument type
     println<i32>(5);
 }
 ```
+
+Similarly, you can define **generic structs** as follows.
+
+```
+let node<t>: struct
+{
+    data: t,
+    next: ^node<t>,
+}
+
+let main() -> i32
+{
+    // Generic instantiation call
+    node<i32>;
+
+    let head: node<i32>;
+}
+```
+
+As of version 0.0.4, you must manually instantiate all associated methods for a generic struct in addition to their definitions.
 
 ## Acorn
 Acorn is the Oak translator, compiler, and linker. Oak is first translated into `C++`, which is then compiled and linked.
@@ -658,7 +677,7 @@ For instance, the input rule `meow $$ $m meow` would match `meow woof bark meow`
 
 Input and output patterns are lexed, so spaces may or may not be required within.
 
-In a way, rules allow you to define whatever syntactic fluff you want. The rule-definition language outlined here is tenatively called `Sapling` (**S**ymbol **A**lteration **P**rogramming **L**anguage **I**mplemented by **N**ine **G**orillas). This may be stylized `$apling`.
+In a way, rules allow you to define whatever syntactic fluff you want. The rule-definition language outlined here is tentatively called `Sapling` (**S**ymbol **A**lteration **P**rogramming **L**anguage **I**mplemented by **N**ine **G**orillas). This may be stylized `$apling`.
 
 ### Defining and Using Rules
 
@@ -741,7 +760,7 @@ Dialect files (`.od` files, for **O**ak **d**ialect) consist of a few types of l
 
 Dialects are loaded via the `acorn -D filename.od` argument.
 
-## Addendum I: Translator Passes
+## Translator Passes
 
 The `Oak` translator goes through the following passes when processing a file from `Oak` to `C++`. Each of these represents (at minimum) one full pass over the entire file. In stages after stage 2, they represent symbol-wise iteration, but before then they represent character-wise iteration.
 
@@ -758,17 +777,17 @@ The `Oak` translator goes through the following passes when processing a file fr
 11 - (External) Object file creation via `clang++`
 12 - (External) Executable linking via `clang++`
 
-## Addendum II: Special Symbols
+## Special Symbols
 
 Special symbols are inserted during lexing to retain metadata. They are ignored by nearly every other stage of translation. This is, for instance, how `acorn` knows which line an error occurs on even though the `Oak` lexer erases newlines extremely early in processing. Special symbols are prefixed with two slashes, like a comment. The `line` special symbol looks like this: `//__LINE__=X`, with `X` being replaced by the current line.
 
 As a front-end user of `acorn`, you shouldn't have to worry about special symbols. They will appear in some parts of `acorn`-generated dump files, but otherwise they should not appear anywhere (even `Sapling` ignores them).
 
-## Addendum III: Time and Space Complexities
+## Time and Space Complexities
 
 `Oak` translation, in theory, runs in time complexity proportional to the sum number of characters in the included files; `O(n)`. This analysis assumes that this number of characters outnumbers the number of symbols, and that any further iterative process takes fewer steps that this. The space complexity is the same as the time complexity. These prepositions may prove to be false, however, warranting a more thorough analysis.
 
-## Addendum IV: The "std" rule
+## The "std" rule
 
 The `std` rule (included in the "std" package) allows method calls like other languages. There are four cases; zero-argument const methods, zero-argument mutable methods, argumented const methods, and argumented mutable methods. Mutable methods take pointer to the object, while const ones take a copy of it. Thus, const methods cannot change the members. Argumented and zero-argument methods refer to the appearance pre-rule-application; All methods take a reference to the object they are called upon. The rules allow the following shorthands.
 
@@ -808,7 +827,7 @@ let main() -> i32
 
 ```
 
-## Addendum V: Math
+## The std/math.oak File
 
 The `"std/math.oak"` file provides some math functions, and is analogous to `C++`'s cmath. Below is a table describing the included functions.
 
@@ -828,6 +847,33 @@ Name      | Description                            | Notes
 `sqrt`    | Returns the square root of a number    | Uses Newtonian iteration
 `f_mod`   | Returns `a` modulo `b` (floats)        |
 
+## Multithreading and the std/threads.oak File
+
+`Oak` provides some basic multithreading support as of version 0.0.4. This comes via the `"std/threads.oak"` file. To set what an instantiated thread does, define `let call(self: ^thread) -> void { ; }`. All threads which are created via the `thread` struct will execute this command on a new thread. This means that, as of `Oak` 0.0.4, all threads in a given translation unit (except the instantiating one) must share only one function. This will be fixed in a future version of `Oak`, likely without providing backwards compatibility with the current version of `"std/threads.oak"`. Thus, the programmer is advised not to get too invested in the current threading system.
+
+## SDL2 and the sdl Package
+
+**Simple DirectMedia Layer 2**, or **SDL2** is a framework for accessing low-level system IO. The `Oak` git repo includes a basic `Oak` package called `sdl` which interfaces with the `C++ SDL2` library. This allows some graphics to be created by `Oak`.
+
+## Translation Units
+
+Unlike the `C` family of languages, `Oak` has a built-in build system. No `makefiles` or command-line flags are necessary (or, indeed, allowed).
+
+For instance, to compile a file using `SDL2` in `C++`, you would need to say something like `clang++ foobar.cpp -I/usr/include/SDL2 -D_REENTRANT -L/usr/lib -lSDL2`. With proper library construction, the corresponding `Oak` command can be simply `acorn foobar.oak`.
+
+This auto-build system necessitates the concept of the **translation unit**.
+
+The term **translation unit** has been thrown around without explanation several times in this document. A translation unit in the context of `Oak` is the network of `.oak`, `.o`, `.od`, `.cpp`, `.hpp`, `.h`, and `.c` files used by `acorn` during a given command.
+
+For instance, the command `acorn oak_demos/macro_test.oak` would begin with a translation unit containing only `oak_demos/macro_test.oak`. If that test were to open with the line `package!("std");`, the translation unit would grow to include the file listed under `INCLUDE=` in the `std` package. This file (`std/std.oak`), would likely contain `link!`, `include!`, and possibly even `package!` macros, all of which would expand the translation unit.
+
+When addendum VI mentioned that only one thread function may be defined per translation unit, that means that a file is barred from using multithreading if any of its "parent" files use it.
+
+## Misc. Notes
+
+Some miscellaneous notes which are not long enough to warrant their own section in this document:
+- `Oak` does not have namespaces
+
 ## License
 
-Oak is protected by the GPLv3, which must be attached in any installation media for the software.
+Oak is protected by the GPLv3.

@@ -1,3 +1,5 @@
+link!("std/threads.o");
+
 // Mutex
 let mutex<t>: struct
 {
@@ -37,4 +39,17 @@ let return_data<t>(self: ^mutex<t>, into: ^^t) -> void
     self.in_use = false;
 }
 
-// Until Oak implements stored function pointers, we cannot implement threads.
+// Threads (experimental)
+let thread: struct
+{
+    // C++ member padding; Don't mess with
+    __a, __b, __c, __d: i128,
+}
+
+// This must be defined in order to run!
+// let call(self: ^thread) -> void;
+
+// Defined in C++
+let New(self: ^thread) -> void;
+let Del(self: ^thread) -> void;
+let join(self: ^thread) -> void;

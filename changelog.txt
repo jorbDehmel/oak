@@ -12,6 +12,8 @@ Acorn Sersion | Date     | Justification
               |          |
 0.0.3         | 8/4/23   | Fixed basic generic structs and
               |          | recursive functions.
+              |          |
+0.0.4         | 8/5/23   | Added multithreading file in std.
 
 
 TODO:
