@@ -21,6 +21,11 @@ let AddEq<t>(self: ^node<t>, data: t) -> void
     self.next.data = data;
 }
 
+let Del<t>(self: ^node<t>) -> void
+{
+    free!(self.next);
+}
+
 let main() -> i32
 {
     node<i32>;

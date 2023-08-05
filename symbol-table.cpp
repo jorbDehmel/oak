@@ -11,7 +11,7 @@ GPLv3 held by author
 multiSymbolTable table;
 
 // Converts lexed symbols into a type
-Type toType(const vector<string> &WhatIn, const set<string> &Local)
+Type toType(const vector<string> &WhatIn)
 {
     vector<string> What;
     for (string s : WhatIn)
@@ -26,19 +26,12 @@ Type toType(const vector<string> &WhatIn, const set<string> &Local)
     {
         return Type(atomic, "NULL");
     }
-
-    set<string> localClone(Local);
     int i = 0;
 
     if (What[i] == "<")
     {
         while (What[i] != ">")
         {
-            if (What[i] != "<" && What[i] != ">" && What[i] != ",")
-            {
-                localClone.insert(What[i]);
-            }
-
             i++;
         }
         i++;
@@ -125,10 +118,6 @@ Type toType(const vector<string> &WhatIn, const set<string> &Local)
         else if (What.size() > i && What[i + 1] == ":")
         {
             out.append(var_name, cur);
-        }
-        else if (localClone.count(cur) != 0)
-        {
-            out.append(atomic, cur);
         }
         else
         {
@@ -246,47 +235,6 @@ void addStruct(const vector<string> &FromIn)
     {
         throw parse_error("Malformed struct definition; Expected ';' or '{'.");
     }
-
-    return;
-}
-
-Type toType(const string &What)
-{
-    vector<string> lexed = lex(What);
-
-    set<string> local;
-    if (!lexed.empty() && lexed.front() == "let")
-    {
-        lexed.erase(lexed.begin()); // let
-        lexed.erase(lexed.begin()); // name
-    }
-
-    return toType(lexed, local);
-}
-
-void addStruct(const string &From)
-{
-    vector<string> lexed = lex(From);
-    addStruct(lexed);
-
-    return;
-}
-
-void addSymb(const string &Name, const vector<string> &From, const sequence &Seq)
-{
-    // Scan for templating
-    vector<string> toParse;
-    for (int i = 0; i < From.size() && From[i] != ";" && From[i] != "{"; i++)
-    {
-        toParse.push_back(From[i]);
-    }
-
-    if (toParse[0] == ">")
-    {
-        toParse.erase(toParse.begin());
-    }
-
-    table[Name].push_back(__multiTableSymbol{Seq, toType(toParse)});
 
     return;
 }

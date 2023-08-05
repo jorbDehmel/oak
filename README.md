@@ -1,8 +1,8 @@
 
 [comment]: # ( As of August 3rd, 2023, acorn is about 6,972 lines of code  )
 [comment]: # ( There are 3,074 lines of code in the Oak std package(s)     )
-[comment]: # ( It takes 18 seconds to compile via time make clean install  )
-[comment]: # ( It takes up 928 kb of disk space upon install via acorn -sq )
+[comment]: # ( It takes 34 seconds to compile via time make clean install  )
+[comment]: # ( It takes up 608 kb of disk space upon install via acorn -sq )
 
 # The Oak Programming Language
 
@@ -339,7 +339,7 @@ let example.Eq(...) -> bool;
 
 There are many so-called "operator aliases" which are listed below. If `self` is not a pointer, it is a const function.
 
-Oak    | `C++`       | Description            | Signature for `T`
+Oak    | `C++`     | Description            | Signature for `T`
 -------|-----------|------------------------|------------------------
 Get    | [ ]       | Get given an index     | let Get(self: ^T, i: i128) -> SOME_TYPE;
 Less   | <         | Less than              | let Less(self: T, other: T) -> bool;
@@ -427,7 +427,7 @@ Hello, world!
 
 ## Atomic Conversions (If You Don't Know Rust)
 
-`C++`                 | Oak
+`C++`               | Oak
 --------------------|-------
 unsigned char       | u8
 char                | i8
@@ -628,8 +628,8 @@ If you use VSCode, you can add this to your `.vscode/settings.json` file.
 
 There are several so-called preproc definitions which can be called upon. These will be replaced with their values before compilation. Each of these begin and end with two underscores.
 
-Name            | Type | Description
-----------------|------|----------------------
+Name             | Type | Description
+-----------------|------|----------------------
 \_\_LINE__       | i128 | The current line
 \_\_COMP_TIME__  | i128 | The UNIX time of compilation
 \_\_PREV_FILE__  | str  | The path of the previous Oak file
@@ -768,13 +768,13 @@ As a front-end user of `acorn`, you shouldn't have to worry about special symbol
 
 `Oak` translation, in theory, runs in time complexity proportional to the sum number of characters in the included files; `O(n)`. This analysis assumes that this number of characters outnumbers the number of symbols, and that any further iterative process takes fewer steps that this. The space complexity is the same as the time complexity. These prepositions may prove to be false, however, warranting a more thorough analysis.
 
-## Addendum IV: The "std_method" rule
+## Addendum IV: The "std" rule
 
-The `std_method` rule (included in the "std" package) allows method calls like other languages. There are four cases; zero-argument const methods, zero-argument mutable methods, argumented const methods, and argumented mutable methods. Mutable methods take pointer to the object, while const ones take a copy of it. Thus, const methods cannot change the members. Argumented and zero-argument methods refer to the appearance pre-rule-application; All methods take a reference to the object they are called upon. The rules allow the following shorthands.
+The `std` rule (included in the "std" package) allows method calls like other languages. There are four cases; zero-argument const methods, zero-argument mutable methods, argumented const methods, and argumented mutable methods. Mutable methods take pointer to the object, while const ones take a copy of it. Thus, const methods cannot change the members. Argumented and zero-argument methods refer to the appearance pre-rule-application; All methods take a reference to the object they are called upon. The rules allow the following shorthands.
 
 ```
 package!("std");
-use_rule!("std_method");
+use_rule!("std");
 
 let a: struct;
 
@@ -807,6 +807,26 @@ let main() -> i32
 }
 
 ```
+
+## Addendum V: Math
+
+The `"std/math.oak"` file provides some math functions, and is analogous to `C++`'s cmath. Below is a table describing the included functions.
+
+Name      | Description                            | Notes
+----------|----------------------------------------|------------------------
+`abs`     | Returns the absolute value of a number |
+`pow`     | Returns `a` to the power of `b`        | Runs in `O(b)`
+`math_pi` | Returns `pi` (3.14159...)              |
+`math_e`  | Returns `e` (2.71828...)               |
+`fact`    | Returns the factorial of a number      |
+`sin`     | Returns `sin` of a value (radians)     | Uses a 9th order Taylor polynomial
+`cos`     | Returns `cos` of a value (radians)     | Uses `sin`
+`tan`     | Returns `tan` of a value (radians)     | Uses `sin` and `cos`
+`floor`   | Rounds a number down                   |
+`ceiling` | Rounds a number up                     |
+`round`   | Rounds a number                        |
+`sqrt`    | Returns the square root of a number    | Uses Newtonian iteration
+`f_mod`   | Returns `a` modulo `b` (floats)        |
 
 ## License
 

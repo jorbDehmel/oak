@@ -1,0 +1,40 @@
+// Mutex
+let mutex<t>: struct
+{
+    in_use: bool,
+    data: t,
+}
+
+let wait_for_lock<t>(self: ^mutex<t>) -> void
+{
+    while (self.in_use)
+    {
+        ;
+    }
+}
+
+let get_data<t>(self: ^mutex<t>, into: ^^t) -> bool
+{
+    let out: bool;
+    if (self.in_use)
+    {
+        out = false;
+    }
+    else
+    {
+        out = true;
+
+        self.in_use = true;
+        ^into = @data;
+    }
+
+    out
+}
+
+let return_data<t>(self: ^mutex<t>, into: ^^t) -> void
+{
+    ^into = 0;
+    self.in_use = false;
+}
+
+// Until Oak implements stored function pointers, we cannot implement threads.

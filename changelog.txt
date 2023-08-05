@@ -16,3 +16,4 @@ Acorn Sersion | Date     | Justification
 
 TODO:
 - Generic struct modernization for multi-symbol generics
+- Storable function pointers

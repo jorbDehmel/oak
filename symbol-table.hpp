@@ -67,18 +67,12 @@ extern multiSymbolTable table;
 string toC(const sequence &What);
 
 // Converts lexed symbols into a type
-Type toType(const vector<string> &What, const set<string> &Local = set<string>());
-Type toType(const string &What);
+Type toType(const vector<string> &What);
 
 // Can throw errors (IE malformed definitions)
 // Takes in the whole definition, starting at let
 // and ending after }. (Oak has no trailing semicolon)
 // Can also handle templating
 void addStruct(const vector<string> &From);
-void addStruct(const string &From);
-
-// Takes full definition, possibly including "let"
-// Could also be a template!
-void addSymb(const string &Name, const vector<string> &From, const sequence &Seq);
 
 #endif
