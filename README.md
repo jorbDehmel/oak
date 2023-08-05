@@ -760,6 +760,8 @@ Dialect files (`.od` files, for **O**ak **d**ialect) consist of a few types of l
 
 Dialects are loaded via the `acorn -D filename.od` argument.
 
+Theoretically, `Oak`'s ability to construct and use dialects means that it can be used to process other languages into itself. A properly-constructed dialect file could instruct `acorn` to turn a `Rust` file into `Oak` and compile it. This is obviously a long way off, however, and will require a more advanced language than `Sapling`.
+
 ## Translator Passes
 
 The `Oak` translator goes through the following passes when processing a file from `Oak` to `C++`. Each of these represents (at minimum) one full pass over the entire file. In stages after stage 2, they represent symbol-wise iteration, but before then they represent character-wise iteration.
@@ -869,10 +871,44 @@ For instance, the command `acorn oak_demos/macro_test.oak` would begin with a tr
 
 When addendum VI mentioned that only one thread function may be defined per translation unit, that means that a file is barred from using multithreading if any of its "parent" files use it.
 
+## Member Padding in Interface Libraries
+
+This section is confusing and is only necessary to read if you are developing an interfacial library.
+
+It is sometimes required for the `C++` version of a struct to have more members than its `Oak` counterpart. For instance, the interface for the `sdl` package defines the `sdl_window` struct. On the `C++` side of the interface, this struct contains a `SDL_Window *` member and a `SDL_Renderer *` member. These two items are not included in `Oak` because they would require too many useless symbols to be loaded into memory. If they were included, all structs and definitions which are somehow related to them would need to be interfaced and loaded as well. `Oak`'s solution to this is **member padding**. It is perfectly legal to have mismatched struct members across an interface, as long as one is not smaller than the other and padding is never touched. This explains why the `sdl_window` struct has the confusing line `__a, __b, __c, __d: i128,`. This adds four `i128` members, effectively requiring 64 bytes of space at the end of the struct. This space holds the extra members on the `C++` side.
+
+If a program were to modify the padding of a padded struct, the other side of the interface would have its data destroyed and made nonsensical.
+
+```
+// sdl/sdl_interface.cpp
+
+struct sdl_window
+{
+    u64 width, height;
+
+    SDL_Window *wind;
+    SDL_Renderer *rend;
+};
+
+```
+
+```
+// sdl/sdl_interface.oak
+
+let sdl_window: struct
+{
+    width, height: i32,
+    __a, __b, __c, __d: i128,
+}
+
+```
+
 ## Misc. Notes
 
 Some miscellaneous notes which are not long enough to warrant their own section in this document:
 - `Oak` does not have namespaces
+- It is highly likely that `Oak` will one day translate to `x86` assembly or `C` instead of `C++`
+- `Oak` does not have stack-stored arrays; Only heap-stored ones
 
 ## License
 

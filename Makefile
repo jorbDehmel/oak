@@ -37,6 +37,24 @@ uninstall:
 reinstall:
 	$(MAKE) -C . uninstall clean install
 
+test: bin/acorn.out
+	acorn -e oak_demos/access_test.oak
+	acorn -e oak_demos/cond_test.oak
+	acorn -e oak_demos/conv_test.oak
+	acorn -e oak_demos/hello_world.oak
+	acorn -e oak_demos/loop_test.oak
+	acorn -e oak_demos/macro_test.oak
+	acorn -e oak_demos/math_test.oak
+	acorn -e oak_demos/mem_test.oak
+	acorn -e oak_demos/quine.oak
+	acorn -e oak_demos/rec_test.oak
+	acorn -e oak_demos/rule_test.oak
+	acorn -e oak_demos/rule_test_2.oak
+	acorn -e oak_demos/sdl_test.oak
+	acorn -e oak_demos/thread_test.oak
+	acorn -e oak_demos/gen_struct_test.oak
+	acorn -e oak_demos/generic_test.oak
+
 build/%.o:	%.cpp $(HEADS)
 	mkdir -p build
 	$(CC) $(FLAGS) -c -o $@ $<
