@@ -1385,11 +1385,8 @@ __multiTableSymbol *instantiateTemplate(const string &Name, const vector<string>
         }
     }
 
-    // Append in case of recursion
-    table[Name].push_back(__multiTableSymbol{sequence{}, outType});
-
-    sequence outSeq = createSequence(toUse.guts);
-    table[Name].back().seq = createSequence(toUse.guts);
+    // Recursion-safe way
+    table[Name].push_back(__multiTableSymbol{createSequence(toUse.guts), outType});
 
     return &table[Name].back();
 }

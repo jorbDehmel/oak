@@ -428,15 +428,20 @@ void dump(const vector<string> &Lexed, const string &Where, const string &FileNa
 
     for (auto p : table)
     {
-        file << p.first << ":\n";
+        bool hasPrinted = false;
 
         for (auto item : p.second)
         {
-            file << '\t' << toStr(&item.type) << '\n';
-
             if (item.seq.items.size() != 0)
             {
-                file << "\t\t" << toC(item.seq) << '\n';
+                if (!hasPrinted)
+                {
+                    file << p.first << ":\n";
+                    hasPrinted = true;
+                }
+
+                file << '\t' << toStr(&item.type) << '\n'
+                     << "\t\t" << toC(item.seq) << '\n';
             }
         }
     }
