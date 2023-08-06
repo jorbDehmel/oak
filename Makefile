@@ -38,22 +38,22 @@ reinstall:
 	$(MAKE) -C . uninstall clean install
 
 test: bin/acorn.out
-	acorn -e oak_demos/access_test.oak
-	acorn -e oak_demos/cond_test.oak
-	acorn -e oak_demos/conv_test.oak
-	acorn -e oak_demos/hello_world.oak
-	acorn -e oak_demos/loop_test.oak
-	acorn -e oak_demos/macro_test.oak
-	acorn -e oak_demos/math_test.oak
-	acorn -e oak_demos/mem_test.oak
-	acorn -e oak_demos/quine.oak
-	acorn -e oak_demos/rec_test.oak
-	acorn -e oak_demos/rule_test.oak
-	acorn -e oak_demos/rule_test_2.oak
-	acorn -e oak_demos/sdl_test.oak
-	acorn -e oak_demos/thread_test.oak
-	acorn -e oak_demos/gen_struct_test.oak
-	acorn -e oak_demos/generic_test.oak
+	acorn -e oak_demos/access_test.oak -o access_test.out
+	acorn -e oak_demos/cond_test.oak -o cond_test.out
+	acorn -e oak_demos/conv_test.oak -o conv_test.out
+	acorn -e oak_demos/hello_world.oak -o hello_world.out
+	acorn -e oak_demos/loop_test.oak -o loop_test.out
+	acorn -e oak_demos/macro_test.oak -o macro_test.out
+	acorn -e oak_demos/math_test.oak -o math_test.out
+	acorn -e oak_demos/mem_test.oak -o mem_test.out
+	acorn -e oak_demos/quine.oak -o quine.out
+	acorn -e oak_demos/rec_test.oak -o rec_test.out
+	acorn -e oak_demos/rule_test.oak -o rule_test.out
+	acorn -e oak_demos/rule_test_2.oak -o rule_test_2.out
+	acorn -e oak_demos/sdl_test.oak -o sdl_test.out
+	acorn -e oak_demos/thread_test.oak -o thread_test.out
+	acorn -e oak_demos/gen_struct_test.oak -o gen_struct_test.out
+	acorn -e oak_demos/generic_test.oak -o generic_test.out
 
 build/%.o:	%.cpp $(HEADS)
 	mkdir -p build

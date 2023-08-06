@@ -2,20 +2,23 @@ Acorn Oak compiler changelog
 Jordan Dehmel, jdehmel@outlook.com
 github.com/jorbDehmel/oak
 
-Acorn Sersion | Date     | Justification
---------------|----------|-----------------------------------------
-0.0.1         | 7/28/23  | Initialization of changelog - NOT start
-              |          | of project.
-              |          |
-0.0.2         | 8/3/23   | Fixed heap memory, macros, math, and
-              |          | finished rules. Basics are laid.
-              |          |
-0.0.3         | 8/4/23   | Fixed basic generic structs and
-              |          | recursive functions.
-              |          |
-0.0.4         | 8/5/23   | Added multithreading file in std.
-
-
 TODO:
 - Generic struct modernization for multi-symbol generics
 - Storable function pointers
+
+Acorn Version   |          |
+(Newest at top) | Date     | Justification
+----------------|----------|-----------------------------------------
+0.0.5           | 8/6/23   | Fixed bug with templated functions and
+                |          | recursion.
+                |          |
+0.0.4           | 8/5/23   | Added multithreading file in std.
+                |          |
+0.0.3           | 8/4/23   | Fixed basic generic structs and
+                |          | recursive functions.
+                |          |
+0.0.2           | 8/3/23   | Fixed heap memory, macros, math, and
+                |          | finished rules. Basics are laid.
+                |          |
+0.0.1           | 7/28/23  | Initialization of changelog - NOT start
+                |          | of project.
