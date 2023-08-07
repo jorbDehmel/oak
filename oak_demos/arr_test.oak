@@ -1,0 +1,24 @@
+package!("std");
+include!("std/arr.oak");
+
+let main() -> i32
+{
+    arr<i32>;
+    
+    New<i32>;
+    Get<i32>;
+    Del<i32>;
+
+    //Init<i32>;
+
+    // Initialize empty array
+    let a: arr<i32>;
+
+    // Make array be of size 10
+    //Init(a, 10);
+
+    // Delete array
+    Del(@a);
+
+    0
+}
