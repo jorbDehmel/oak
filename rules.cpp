@@ -436,7 +436,15 @@ void doRules(vector<string> &From)
                     // Erase old contents
                     for (int k = i; k < posInFrom; k++)
                     {
-                        From.erase(From.begin() + i);
+                        if (From[i].size() > 1 && From[i].substr(2) == "//")
+                        {
+                            i++;
+                            k--;
+                        }
+                        else
+                        {
+                            From.erase(From.begin() + i);
+                        }
                     }
 
                     // Insert new contents

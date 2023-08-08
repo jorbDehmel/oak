@@ -1,0 +1,38 @@
+// The standard Oak dialect
+// These rules can also be activated via std.oak
+// Jordan Dehmel, 2023
+
+clear
+
+// Access rules
+"; $*p [ $*a ]"     "; $p . . Get ( $a )"
+"^ $*p [ $*a ]"     "^ $p . . Get ( $a )"
+"@ $*p [ $*a ]"     "@ $p . . Get ( $a )"
+", $*p [ $*a ]"     ", $p . . Get ( $a )"
+"[ $*p [ $*a ]"     "[ $p . . Get ( $a )"
+"] $*p [ $*a ]"     "] $p . . Get ( $a )"
+"( $*p [ $*a ]"     "( $p . . Get ( $a )"
+") $*p [ $*a ]"     ") $p . . Get ( $a )"
+"{ $*p [ $*a ]"     "{ $p . . Get ( $a )"
+"} $*p [ $*a ]"     "} $p . . Get ( $a )"
+
+// Void return rule
+"let $a ( $*b ) {"      "let $a ( $b ) -> void {"
+
+// Auto-parenthesize rules
+"if $*a {"          "if ( $a ) {"
+"while $*a {"       "while ( $a ) {"
+
+// Method rules
+"$a . . $b ( )"     "$b ( @ $a )"
+"$a . . $b ("       "$b ( @ $a ,"
+"$a . $b ( )"       "$b ( $a )"
+"$a . $b ("         "$b ( $a ,"
+
+// Definition-Instantiation rule
+"let $a : $b = "        "let $a : $b ; $a = "
+
+// For loop rule
+"for ( $*a ; $*b ; $*c ) { $*d }"       "{ $a ; while ( $b ) { $d $c ; } }"
+
+// NOT final, as we want people to build on these
