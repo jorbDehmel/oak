@@ -13,6 +13,14 @@ use_rule!("paren");
 new_rule!("cast", "( $a ) ( $*b )", "to_ $< $a ( $b )");
 use_rule!("cast");
 
+new_rule!("for",
+    "for ( $*a ; $*b ; $*c ) { $*d }",
+    "{ $a ; while ( $b ) { $d $c ; } }");
+use_rule!("for");
+
+new_rule!("def_init", "let $a : $b = ", "let $a : $b ; $a = ");
+use_rule!("def_init");
+
 let main() -> i32
 {
     if true
@@ -22,6 +30,12 @@ let main() -> i32
     else
     {
         print("This should not.\n");
+    }
+
+    for (let i: i32 = 0; i < 10; i += 1)
+    {
+        print(i);
+        print("\n");
     }
 
     0

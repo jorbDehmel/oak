@@ -47,6 +47,14 @@ new_rule!("mut_method", "$a . . $b (", "$b ( @ $a ,");
 new_rule!("argless_method", "$a . $b ( )", "$b ( $a )");
 new_rule!("const_method", "$a . $b (", "$b ( $a ,");
 
+// Definition-Instantiation rule
+new_rule!("def_init", "let $a : $b = ", "let $a : $b ; $a = ");
+
+// For loop rule
+new_rule!("for",
+    "for ( $*a ; $*b ; $*c ) { $*d }",
+    "{ $a ; while ( $b ) { $d $c ; } }");
+
 bundle_rule!("std",
     "void_return",
     "auto_if_paren",
@@ -54,7 +62,9 @@ bundle_rule!("std",
     "argless_mut_method",
     "mut_method",
     "argless_method",
-    "const_method");
+    "const_method",
+    "def_init",
+    "for");
 
 // Misc
 let time() -> i64;
