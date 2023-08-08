@@ -19,11 +19,6 @@ bool Copy(bool *self, bool other)
     return (*self);
 }
 
-i8 Get(str self, u128 index)
-{
-    return self[index];
-}
-
 bool Eq(str self, str other)
 {
     int l = 0, r = 0;

@@ -17,7 +17,7 @@ GPLv3 held by author
 using namespace std;
 
 // Returns the sequence which allocates an array of size num and type type.
-sequence getAllocSequence(Type &type, const string &name, const int &num = 1);
+sequence getAllocSequence(Type &type, const string &name, const string &num = "1");
 
 // Returns the sequence which frees the referenced memory
 sequence getFreeSequence(const string &name, const bool &isArr = false);

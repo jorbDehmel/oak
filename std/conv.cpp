@@ -168,3 +168,13 @@ i128 to_i128(i32 what)
 {
     return what;
 }
+
+i8 Get(str *self, u128 index)
+{
+    return (*self)[index];
+}
+
+i8 Get(str self, u128 index)
+{
+    return self[index];
+}

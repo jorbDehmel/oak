@@ -1,0 +1,117 @@
+package!("std");
+
+let string: struct
+{
+    data: ^i8,
+    size: u128,
+}
+
+let New(self: ^string) -> void
+{
+    self.size = to_u128(0);
+}
+
+let New(self: ^string, size: u128) -> void
+{
+    self.size = size;
+    alloc!(self.data, self.size);
+}
+
+let New(self: ^string, from: str) -> void
+{
+    // Clear self if needed
+    if (self.size != to_u128(0))
+    {
+        free_arr!(self.data);
+        self.size = to_u128(0);
+    }
+
+    // Poll size of from (including null termination)
+    let size: u128;
+    size = to_u128(0);
+    while (Get(@from, size) != to_i8(0))
+    {
+        size += to_u128(1);
+    }
+
+    // Alloc self
+    self.size = size;
+    alloc!(self.data, self.size);
+
+    // Copy data (including null termination)
+    while (size != to_u128(0))
+    {
+        Copy(Get(@self.data, size), Get(@from, size));
+
+        size -= to_u128(1);
+    }
+    Copy(Get(@self.data, to_u128(0)), Get(@from, to_u128(0)));
+}
+
+let Del(self: ^string) -> void
+{
+    free_arr!(self.data);
+    self.size = to_u128(0);
+}
+
+let clear(self: ^string) -> void
+{
+    let i: u128;
+    i = to_u128(0);
+
+    while (i < self.size)
+    {
+        Copy(Get(@self.data, i), to_i8(0));
+
+        i += to_u128(1);
+    }
+}
+
+let Eq(self: ^string, other: string) -> bool
+{
+    let out: bool;
+    out = true;
+
+    if (self.size != other.size)
+    {
+        out = false;
+    }
+    else
+    {
+        let cur: u128;
+        cur = to_u128(0);
+
+        while (cur < self.size)
+        {
+            if (^Get(@self.data, cur) != ^Get(@self.data, cur))
+            {
+                out = false;
+                cur = self.size;
+            }
+        }
+    }
+
+    out
+}
+
+let Neq(self: ^string, other: string) -> bool
+{
+    let out: bool;
+    out = Eq(self, other);
+
+    if (out)
+    {
+        out = false;
+    }
+    else
+    {
+        out = true;
+    }
+
+    out
+}
+
+let Get(self: ^string, index: u128) -> ^i8
+{
+    Get(@self.data, index)
+}

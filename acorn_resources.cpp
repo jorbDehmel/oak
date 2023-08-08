@@ -507,6 +507,54 @@ void doFile(const string &From)
             cout << "Skipping repeated file '" << From << "'\n";
         }
     }
+    catch (rule_error &e)
+    {
+        cout << tags::red_bold
+             << "Caught rule error '" << e.what() << "'\n"
+             << tags::reset;
+
+        string name = "oak_dump_" + purifyStr(From) + ".log";
+        cout << "Dump saved in " << name << "\n";
+        dump(lexed, name, From, curLine, sequence(), lexedCopy);
+
+        throw runtime_error("Failure in file '" + From + "': " + e.what());
+    }
+    catch (sequencing_error &e)
+    {
+        cout << tags::red_bold
+             << "Caught sequencing error '" << e.what() << "'\n"
+             << tags::reset;
+
+        string name = "oak_dump_" + purifyStr(From) + ".log";
+        cout << "Dump saved in " << name << "\n";
+        dump(lexed, name, From, curLine, sequence(), lexedCopy);
+
+        throw runtime_error("Failure in file '" + From + "': " + e.what());
+    }
+    catch (parse_error &e)
+    {
+        cout << tags::red_bold
+             << "Caught parse error '" << e.what() << "'\n"
+             << tags::reset;
+
+        string name = "oak_dump_" + purifyStr(From) + ".log";
+        cout << "Dump saved in " << name << "\n";
+        dump(lexed, name, From, curLine, sequence(), lexedCopy);
+
+        throw runtime_error("Failure in file '" + From + "': " + e.what());
+    }
+    catch (package_error &e)
+    {
+        cout << tags::red_bold
+             << "Caught package error '" << e.what() << "'\n"
+             << tags::reset;
+
+        string name = "oak_dump_" + purifyStr(From) + ".log";
+        cout << "Dump saved in " << name << "\n";
+        dump(lexed, name, From, curLine, sequence(), lexedCopy);
+
+        throw runtime_error("Failure in file '" + From + "': " + e.what());
+    }
     catch (runtime_error &e)
     {
         cout << tags::red_bold

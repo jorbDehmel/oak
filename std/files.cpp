@@ -8,6 +8,9 @@ fstream library.
 
 #include "std_oak_header.hpp"
 #include <fstream>
+
+#include <iostream>
+
 using namespace std;
 
 // Struct definitions
@@ -24,18 +27,12 @@ struct o_file
 // Method definitions
 void New(i_file *self)
 {
-    if (self->raw_strm == nullptr)
-    {
-        self->raw_strm = new ifstream;
-    }
+    self->raw_strm = new ifstream;
 }
 
 void New(o_file *self)
 {
-    if (self->raw_strm == nullptr)
-    {
-        self->raw_strm = new ofstream;
-    }
+    self->raw_strm = new ofstream;
 }
 
 void Del(i_file *self)
@@ -66,14 +63,20 @@ void Del(o_file *self)
 
 void open(i_file *self, str name)
 {
-    New(self);
+    if (self->raw_strm == nullptr)
+    {
+        New(self);
+    }
 
     self->raw_strm->open(name);
 }
 
 void open(o_file *self, str name)
 {
-    New(self);
+    if (self->raw_strm == nullptr)
+    {
+        New(self);
+    }
 
     self->raw_strm->open(name);
 }

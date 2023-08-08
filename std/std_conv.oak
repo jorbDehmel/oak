@@ -51,3 +51,6 @@ let to_u64(what: i32) -> u64;
 let to_i64(what: i32) -> i64;
 let to_u128(what: i32) -> u128;
 let to_i128(what: i32) -> i128;
+
+let Get(self: ^str, index: u128) -> i8;
+let Get(self: str, index: u128) -> i8;

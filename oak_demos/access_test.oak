@@ -12,7 +12,7 @@ let wrapper: struct
 
 let New(self: ^wrapper) -> void
 {
-    alloc!(self.data, 10);
+    alloc!(self.data, to_u128(10));
 }
 
 let Del(self: ^wrapper) -> void
@@ -20,9 +20,14 @@ let Del(self: ^wrapper) -> void
     free_arr!(self.data);
 }
 
-let Get(self: ^wrapper, index: i32) -> ^i32
+let Get(self: ^wrapper, index: u128) -> ^i32
 {
     Get(@self.data, index)
+}
+
+let Get(self: ^wrapper, index: i32) -> ^i32
+{
+    Get(self, to_u128(index))
 }
 
 let main() -> i32

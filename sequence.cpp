@@ -113,6 +113,10 @@ sequence __createSequence(list<string> &From)
         From.pop_front();
         return __createSequence(From);
     }
+    else if (From.front() == ",")
+    {
+        return out;
+    }
 
     // Memory Keywords
     else if (From.front() == "alloc!")
@@ -144,33 +148,34 @@ sequence __createSequence(list<string> &From)
             From.pop_front();
         } while (!From.empty() && count != 0);
 
-        int num = 1;
-
-        int j = 0;
-        for (auto item = contents.begin(); item != contents.end(); item++)
-        {
-            if (*item == ",")
-            {
-                item++;
-                num = stoi(*item);
-
-                while (j + 1 < contents.size())
-                {
-                    item = contents.erase(item);
-                }
-
-                break;
-            }
-
-            j++;
-        }
+        string num = "1";
 
         sequence temp = __createSequence(contents);
         string name = toC(temp);
 
+        while (contents.front() == ",")
+        {
+            contents.pop_front();
+        }
+
+        sequence numSeq = __createSequence(contents);
+        num = toC(numSeq);
+
         Type tempType = temp.type;
+        Type numType = numSeq.type;
+
         sm_assert(tempType.info == pointer, "'alloc!' returns a pointer.");
+        sm_assert(tempType.next != nullptr, "'alloc!' received a malformed first argument.");
         temp.type = *tempType.next;
+
+        if (numType == nullType)
+        {
+            num = "1";
+            numType.info = atomic;
+            numType.name = "u128";
+        }
+
+        sm_assert(numType.info == atomic && numType.name == "u128", "'alloc!' takes 'u128', not '" + toStr(&numType) + "'.");
 
         out = getAllocSequence(temp.type, name, num);
 

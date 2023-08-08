@@ -1,4 +1,4 @@
-include!("std/arr.oak");
+include!("std/string.oak");
 link!("std/files.o");
 
 // An input file
@@ -38,50 +38,39 @@ let seek(self: ^i_file, pos: u128) -> void;
 let seek(self: ^o_file, pos: u128) -> void;
 
 // Defined in Oak
-let read(self: ^i_file, size: u128) -> arr<i8>
+let read(self: ^i_file, size: u128) -> string
 {
-    // Generic instantiations
-    arr<i8>;
-    New<i8>;
-    Init<i8>;
-    Del<i8>;
-    Get<i8>;
-
-    let out: arr<i8>;
-    Init(@out, size);
+    let out: string;
+    New(@out, size);
 
     let buf: i8;
-    buf = 0;
+    buf = to_i8(0);
 
     let pos: u128;
-    pos = 0;
+    pos = to_u128(0);
     while (pos < size)
     {
         buf = read_char(self);
         Copy(Get(@out, pos), buf);
 
-        pos += 1;
+        pos += to_u128(1);
     }
 
     out
 }
 
-let write(self: ^o_file, data: ^arr<i8>) -> void
+let write(self: ^o_file, data: string) -> void
 {
-    // Generic instantiations
-    arr<i8>;
-    Get<i8>;
-
     let buf: i8;
-    buf = 0;
+    buf = to_i8(0);
 
     let pos: u128;
-    pos = 0;
-    while (pos < size)
+    pos = to_u128(0);
+    while (pos < data.size)
     {
-        buf = Get(arr, pos);
+        buf = ^Get(@data, pos);
         write_char(self, buf);
 
-        pos += 1;
+        pos += to_u128(1);
     }
 }
