@@ -1,0 +1,39 @@
+package!("std");
+include!("std/files.oak");
+include!("std/string.oak");
+use_rule!("std");
+
+let main() -> i32
+{
+    // Write test file
+    let out: o_file;
+    let to_write: string;
+    out..open("hi.txt");
+    New(@to_write, "abcdefghijklmnopqrstuvwxyz\n");
+    out..write(to_write);
+    out..close();
+    to_write..Del();
+    out..Del();
+
+    // Read test file
+    let str_a: string;
+    let str_b: string;
+
+    let inp: i_file;
+    inp..open("hi.txt");
+    str_a = inp..read(to_u128(5));
+    str_b = inp..read(to_u128(5));
+
+    print("a: ");
+    print(str_a);
+    print("\nb: ");
+    print(str_b);
+    print("\n");
+
+    inp..close();
+    str_a..Del();
+    str_b..Del();
+    inp..Del();
+    
+    0
+}

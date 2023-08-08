@@ -31,6 +31,12 @@ void print(f64 what)
     return;
 }
 
+void print(i8 what)
+{
+    cout << (char)what;
+    return;
+}
+
 void print_err(str what)
 {
     cerr << what;

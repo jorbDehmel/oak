@@ -115,3 +115,40 @@ let Get(self: ^string, index: u128) -> ^i8
 {
     Get(@self.data, index)
 }
+
+let Copy(self: ^string, from: string) -> void
+{
+    // Clear self if needed
+    if (self.size != to_u128(0))
+    {
+        free_arr!(self.data);
+        self.size = to_u128(0);
+    }
+
+    // Alloc self
+    self.size = from.size;
+    alloc!(self.data, self.size);
+
+    // Copy data (including null termination)
+    let i: u128;
+    i = self.size;
+    while (i != to_u128(0))
+    {
+        Copy(Get(@self.data, i), ^Get(@from, i));
+
+        i -= to_u128(1);
+    }
+    Copy(Get(@self.data, to_u128(0)), ^Get(@from, to_u128(0)));
+}
+
+let print(what: string) -> void
+{
+    let i: u128;
+    i = to_u128(0);
+    while (i < what.size())
+    {
+        print(^Get(@what.data, i));
+        
+        i += to_u128(1);
+    }
+}

@@ -55,6 +55,8 @@ test: bin/acorn.out
 	acorn -e oak_demos/gen_struct_test.oak -o gen_struct_test.out
 	acorn -e oak_demos/generic_test.oak -o generic_test.out
 	acorn -e oak_demos/file_test.oak -o file_test.out
+	acorn -ue oak_demos/i_file_test.oak -o i_file_test.out
+	rm -rf *.log .oak_build
 
 build/%.o:	%.cpp $(HEADS)
 	mkdir -p build

@@ -1,7 +1,7 @@
 # Maintainer: Jordan Dehmel <jdehmel@outlook.com>
 
 pkgname="oak-git"
-pkgver="0.0.4"
+pkgver="0.0.6"
 pkgrel="1"
 pkgdesc="The Oak programming language and Acorn compiler"
 arch=("x86_64")

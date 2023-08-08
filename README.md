@@ -1,8 +1,8 @@
 
-[comment]: # ( As of August 3rd, 2023, acorn is about 6,972 lines of code  )
-[comment]: # ( There are 3,074 lines of code in the Oak std package(s)     )
-[comment]: # ( It takes 34 seconds to compile via time make clean install  )
-[comment]: # ( It takes up 640 kb of disk space upon install via acorn -sq )
+[comment]: # ( As of August 3rd, 2023:                                     )
+[comment]: # ( There are 8,800 L.O.C. via `cat * | wc -l`                  )
+[comment]: # ( It takes 20 seconds to compile via time make clean install  )
+[comment]: # ( It takes up 660 kb of disk space upon install via acorn -sq )
 
 # The Oak Programming Language
 
@@ -859,7 +859,7 @@ Name      | Description                            | Notes
 
 ## Translation Units
 
-Unlike the `C` family of languages, `Oak` has a built-in build system. No `makefiles` or command-line flags are necessary (or, indeed, allowed).
+Unlike the `C` family of languages, `Oak` has a built-in build system. No `makefiles` or command-line flags are necessary (or, for the latter, allowed).
 
 For instance, to compile a file using `SDL2` in `C++`, you would need to say something like `clang++ foobar.cpp -I/usr/include/SDL2 -D_REENTRANT -L/usr/lib -lSDL2`. With proper library construction, the corresponding `Oak` command can be simply `acorn foobar.oak`.
 
@@ -903,12 +903,71 @@ let sdl_window: struct
 
 ```
 
+## 'str' vs 'string'
+
+The atomic `str` struct is exclusively for statically-stored string literals. Anything that is included in your source code surrounded by quotations is a `str`. These are of fixed size, and are stored directly in the compiled source code. On the other hand, the `string` struct (available through the `std/string.oak` file) is a dynamically-resizing container for storing strings. These structs keep their memory on the heap, so they can be of any size. These are much more useful, as they can be the return type of functions and `Oak` can more easily interface with them. Internally, `strings` are dynamically-resizing arrays of `i8` atomics (in `C++` terms, a `vector` of `char`'s). `string` structs were introduced in `Oak` 0.0.6.
+
+## Input and Output Files
+
+The `std/files.oak` file defines the `i_file` and `o_file` structs, which handle input and output to and from files respectively. `i_file`s read from files, and `o_file`s write to files. `std/files.oak` is an interface to the `C++` `fstream` library.
+
+`i_file`s and `o_file`s do **not** open a file when they are created! You must call the `open` method before they can be used to read or write.
+
+Here is a useful demonstration of both structs.
+
+```
+package!("std");
+include!("std/files.oak");
+include!("std/string.oak");
+use_rule!("std");
+
+let main() -> i32
+{
+    // Write test file
+    let out: o_file;
+    let to_write: string;
+
+    out..open("hi.txt");
+    
+    New(@to_write, "abcdefghijklmnopqrstuvwxyz\n");
+    
+    out..write(to_write);
+    
+    out..close();
+    to_write..Del();
+    out..Del();
+
+    // Read test file
+    let str_a: string;
+    let str_b: string;
+
+    let inp: i_file;
+    inp..open("hi.txt");
+    str_a = inp..read(to_u128(5));
+    str_b = inp..read(to_u128(5));
+
+    print("a: ");
+    print(str_a);
+    print("\nb: ");
+    print(str_b);
+    print("\n");
+
+    inp..close();
+    inp..Del();
+    str_a..Del();
+    str_b..Del();
+    
+    0
+}
+
+```
+
 ## Misc. Notes
 
 Some miscellaneous notes which are not long enough to warrant their own section in this document:
 - `Oak` does not have namespaces
 - It is highly likely that `Oak` will one day translate to `x86` assembly or `C` instead of `C++`
-- `Oak` does not have stack-stored arrays; Only heap-stored ones
+- `Oak` does not have stack-stored arrays; Only heap-stored ones. In fact, all heap-stored data is technically array-based.
 
 ## License
 
