@@ -47,7 +47,7 @@ pair<string, string> save(const stringstream &header, const stringstream &body, 
 pair<string, string> reconstructAndSave(const string &Name);
 
 // Return the C++ format-version of a type, to be followed by symbol name
-string toStrC(Type *What);
+string toStrC(Type *What, const string &Name = "");
 
 // Return the C++ format-version of a function, INCLUDING symbol name
 string toStrCFunction(Type *What, const string &Name);

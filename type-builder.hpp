@@ -51,6 +51,9 @@ public:
     Type *next = nullptr;
 };
 
+// More efficient than Type::pop_front()
+void popTypeFront(Type &What);
+
 extern const Type nullType;
 
 struct __structLookupData

@@ -1,7 +1,30 @@
 // A test of Oak's function pointers.
 // UNPASSED
 
+package!("std");
+
+let a(what: i32) -> i32
+{
+    what
+}
+
+let b(what: i32) -> i32
+{
+    (2 * what)
+}
+
 let main() -> i32
 {
+    let f: ^(i32) -> i32;
+    f = @a;
+
+    print(f(1));
+    print("\n");
+
+    f = @b;
+
+    print(f(1));
+    print("\n");
+
     0
 }

@@ -422,8 +422,15 @@ sequence __createSequence(list<string> &From)
 
                 Type type = toType(toAdd);
 
-                out.items.push_back(sequence{nullType, vector<sequence>(), atom, toStrC(&type)});
-                out.items.push_back(sequence{nullType, vector<sequence>(), atom, name});
+                out.items.push_back(sequence{nullType, vector<sequence>(), atom, toStrC(&type, name)});
+
+                if (!(
+                        type.info == pointer &&
+                        type.next != nullptr &&
+                        type.next->info == function))
+                {
+                    out.items.push_back(sequence{nullType, vector<sequence>(), atom, name});
+                }
 
                 // Insert into table
                 table[name].push_back(__multiTableSymbol{sequence{type, vector<sequence>(), atom, ""}, type});
@@ -762,7 +769,13 @@ vector<pair<string, Type>> getArgs(Type &type)
     vector<pair<string, Type>> out;
 
     Type *cur = &type;
-    if (cur->info != function)
+
+    while (cur != nullptr && cur->info == pointer)
+    {
+        cur = cur->next;
+    }
+
+    if (cur != nullptr && cur->info != function)
     {
         return out;
     }
@@ -775,22 +788,15 @@ vector<pair<string, Type>> getArgs(Type &type)
     {
         if (cur->info == maps)
         {
-            if (symbName != "")
-            {
-                out.push_back(make_pair(symbName, symbType));
-            }
-
+            out.push_back(make_pair(symbName, symbType));
             break;
         }
         else if (cur->info == join)
         {
-            if (symbName != "")
-            {
-                out.push_back(make_pair(symbName, symbType));
+            out.push_back(make_pair(symbName, symbType));
 
-                symbName = "";
-                symbType = nullType;
-            }
+            symbName = "";
+            symbType = nullType;
         }
         else if (cur->info == var_name)
         {
@@ -970,11 +976,68 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
         // Special case; Pointer array access
         if (name == "Get" && argTypes.size() == 2)
         {
-            if (argTypes[0].info == pointer && argTypes[0].next != nullptr && argTypes[0].next->info == pointer)
+            if (argTypes[0].info == pointer &&
+                argTypes[0].next != nullptr &&
+                argTypes[0].next->info == pointer)
             {
                 c += argStrs[0] + "[" + argStrs[1] + "]";
 
                 return *argTypes[0].next;
+            }
+        }
+
+        // Special case; Function pointer copy
+        else if (name == "Copy" && argTypes.size() == 2)
+        {
+            // IE Copy(^^(i32) -> i32, ^(what: i32) -> i32)
+            // Double pointer in first, single in second
+            // Identical types after pointer stuff
+
+            if (argTypes[0].info == pointer &&
+                argTypes[0].next != nullptr &&
+                argTypes[0].next->info == pointer &&
+                argTypes[0].next->next != nullptr &&
+                argTypes[0].next->next->info == function &&
+                argTypes[1].info == pointer &&
+                argTypes[1].next != nullptr &&
+                argTypes[1].next->info == function)
+            {
+                // Ensure equality; If not, throw error
+                Type *left, *right;
+
+                left = argTypes[0].next->next;
+                right = argTypes[1].next;
+
+                bool isValid = true;
+                while (left != nullptr && right != nullptr)
+                {
+                    // DO ITERATION HERE
+                    while (left->info == var_name)
+                    {
+                        left = left->next;
+                    }
+                    while (right->info == var_name)
+                    {
+                        right = right->next;
+                    }
+
+                    if (left->info != right->info || left->name != right->name)
+                    {
+                        isValid = false;
+                        break;
+                    }
+
+                    left = left->next;
+                    right = right->next;
+                }
+
+                sm_assert(isValid, "Cannot assign fn ptr '" + toStr(&argTypes[1]) + "' to '" + toStr(&argTypes[0]) + "'.");
+
+                // Turn to C
+                c += "(*" + argStrs[0] + ") = " + argStrs[1];
+
+                // Return nullType (Copy yields void)
+                return nullType;
             }
         }
 
@@ -999,7 +1062,21 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
         // Weed out any candidates which do not have the correct argument types
         for (int j = 0; j < candidates.size(); j++)
         {
-            auto candArgs = getArgs(candidates[j].type);
+            Type curType = candidates[j].type;
+            while (curType != nullType && curType.info == pointer)
+            {
+                popTypeFront(curType);
+            }
+
+            auto candArgs = getArgs(curType);
+            for (int k = 0; k < candArgs.size(); k++)
+            {
+                if (candArgs[k].second == nullType)
+                {
+                    candArgs.erase(candArgs.begin() + k);
+                    k--;
+                }
+            }
 
             if (candArgs.size() != argTypes.size())
             {
@@ -1103,7 +1180,7 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
 
     else
     {
-        // Non-function
+        // Non-function-call
 
         // Literal check
         Type litType = checkLiteral(What[start]);
@@ -1114,7 +1191,7 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
             auto candidates = table[What[start]];
             sm_assert(candidates.size() != 0, "No definitions exist for symbol '" + What[start] + "'.");
 
-            type = getReturnType(candidates.back().type);
+            type = candidates.back().type;
         }
         else
         {

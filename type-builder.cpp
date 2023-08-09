@@ -200,6 +200,22 @@ string toStr(const Type *const What)
     return out;
 }
 
+// More efficient than Type::pop_front()
+void popTypeFront(Type &What)
+{
+    if (What.next != nullptr)
+    {
+        auto oldFront = What;
+        What = *oldFront.next;
+    }
+    else
+    {
+        What = nullType;
+    }
+
+    return;
+}
+
 void Type::pop_front()
 {
     if (next == nullptr)

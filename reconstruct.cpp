@@ -288,10 +288,68 @@ string toStrCFunction(Type *What, const string &Name)
 
 string toStrCFunctionRef(Type *What, const string &Name)
 {
-    return toStrCFunction(What, string("(*") + Name + ")");
+    // function -> ARGS -> maps -> RETURN_TYPE
+
+    parse_assert(What != nullptr && What->info == function);
+    Type *current = What->next;
+
+    // Second section, between function and maps, will be arguments.
+    // This is a series of 'join'-separated types with NO 'var_name's
+    string arguments = "";
+    Type cur;
+    for (; current != nullptr && current->info != maps; current = current->next)
+    {
+        if (current->info == join)
+        {
+            if (arguments != "")
+            {
+                arguments += ", ";
+            }
+
+            arguments += toStrC(&cur);
+            cur = nullType;
+        }
+        else
+        {
+            cur.append(current->info, current->name);
+        }
+    }
+
+    // Final append
+    if (cur != nullType)
+    {
+        if (arguments != "")
+        {
+            arguments += ", ";
+        }
+
+        arguments += toStrC(&cur);
+    }
+
+    if (current == nullptr || current->info != maps)
+    {
+        cout << "Function '" << arguments << "' has no return type.\n";
+        parse_assert(current != nullptr);
+    }
+
+    current = current->next;
+
+    // Next, after maps, we will have the return type.
+    string returnType = toStrC(current);
+
+    if (returnType == "")
+    {
+        returnType = "void";
+    }
+
+    // Assemble and return
+    string out;
+    out = returnType + " (*" + Name + ")(" + arguments + ")";
+
+    return out;
 }
 
-string toStrC(Type *What)
+string toStrC(Type *What, const string &Name)
 {
     string out = "";
 
@@ -299,6 +357,13 @@ string toStrC(Type *What)
     if (What == nullptr)
     {
         return out;
+    }
+
+    if (What->info == pointer &&
+        What->next != nullptr &&
+        What->next->info == function)
+    {
+        return toStrCFunctionRef(What->next, Name);
     }
 
     switch (What->info)

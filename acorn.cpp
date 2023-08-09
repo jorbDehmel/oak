@@ -17,6 +17,8 @@ int main(const int argc, const char *argv[])
          << "Severe Warning! This version of Oak is designed for Linux!\n"
          << "No other operating systems are supported!\n"
          << tags::reset;
+#else
+#define LINUX
 #endif
 
     auto start = chrono::high_resolution_clock::now(), end = start, compStart = start, compEnd = start;
@@ -601,7 +603,7 @@ int main(const int argc, const char *argv[])
             "lexing\t",
             "preproc defs",
             "compile macros",
-            "rules\t",
+            "rules / dialect",
             "macro defs",
             "macro calls",
             "op subs\t",
@@ -631,8 +633,26 @@ int main(const int argc, const char *argv[])
              << compElapsed
              << ((compElapsed < 10'000'000) ? "\t\t" : "\t") << '\n';
 
-        cout << "\n"
-             << "Output file: " << out << '\n';
+#ifdef LINUX
+        cout << tags::green_bold
+             << "\nPeak memory usage:\n";
+
+        ifstream memUse("/proc/self/status");
+        string line;
+        while (getline(memUse, line))
+        {
+            if (line.substr(0, 6) == "VmPeak")
+            {
+                cout << line << '\n';
+                break;
+            }
+        }
+        memUse.close();
+
+        cout << tags::reset << "\n";
+#endif
+
+        cout << "Output file: " << out << '\n';
     }
 
     return 0;
