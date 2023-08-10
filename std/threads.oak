@@ -46,10 +46,9 @@ let thread: struct
     __a, __b, __c, __d: i128,
 }
 
-// This must be defined in order to run!
-// let call(self: ^thread) -> void;
-
 // Defined in C++
 let New(self: ^thread) -> void;
 let Del(self: ^thread) -> void;
+
+let start(self: ^thread, to_do: ^() -> void) -> void;
 let join(self: ^thread) -> void;

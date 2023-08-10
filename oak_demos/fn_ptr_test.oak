@@ -1,5 +1,5 @@
 // A test of Oak's function pointers.
-// UNPASSED
+// Passed Aug 8, 23
 
 package!("std");
 

@@ -8,6 +8,8 @@
 #include <vector>
 using namespace std;
 
+#define DB_INFO __FILE__ << ':' << __LINE__ << ' '
+
 class Type;
 
 enum TypeInfo

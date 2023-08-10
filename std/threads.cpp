@@ -11,7 +11,13 @@ void call(thread *self);
 // Create new thread
 void New(thread *self)
 {
-    self->rawThread = new std::thread(call, self);
+    self->rawThread = nullptr;
+}
+
+// let start(self: ^thread, to_do: ^() -> void) -> void;
+void start(thread *self, void (*to_do)())
+{
+    self->rawThread = new std::thread(to_do);
 }
 
 // End a thread

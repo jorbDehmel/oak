@@ -1,0 +1,21 @@
+// A test of Oak's function pointers.
+// UNPASSED
+
+package!("std");
+
+let thing(what: i32) -> void
+{
+    print("among us\n");
+}
+
+let do_thing(what: ^(i32) -> void) -> void
+{
+    what(12);
+}
+
+let main() -> i32
+{
+    do_thing(@thing);
+
+    0
+}

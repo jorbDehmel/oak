@@ -51,12 +51,13 @@ test: bin/acorn.out
 	acorn -e oak_demos/rule_test.oak -o rule_test.out
 	acorn -e oak_demos/rule_test_2.oak -o rule_test_2.out
 	acorn -e oak_demos/sdl_test.oak -o sdl_test.out
-	acorn -e oak_demos/thread_test.oak -o thread_test.out
 	acorn -e oak_demos/gen_struct_test.oak -o gen_struct_test.out
 	acorn -e oak_demos/generic_test.oak -o generic_test.out
 	acorn -e oak_demos/file_test.oak -o file_test.out
 	acorn -ue oak_demos/i_file_test.oak -o i_file_test.out
 	acorn -e oak_demos/fn_ptr_test.oak -o fn_ptr_test.out
+	acorn -e oak_demos/thread_test.oak -o thread_test.out
+	acorn -e oak_demos/fn_ptr_test_2.oak -o fn_ptr_test_2.out
 	rm -rf *.log .oak_build
 
 build/%.o:	%.cpp $(HEADS)

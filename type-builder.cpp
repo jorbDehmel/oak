@@ -157,6 +157,11 @@ Type &Type::operator=(const Type &Other)
 
 string toStr(const Type *const What)
 {
+    if (What == nullptr)
+    {
+        return "";
+    }
+
     string out = "";
 
     switch (What->info)

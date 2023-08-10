@@ -6,7 +6,7 @@ use_rule!("std");
 include!("std/threads.oak");
 
 // This method MUST be overloaded in order for threads to function
-let call(self: ^thread) -> void
+let call() -> void
 {
     let counter: i32;
     counter = 100;
@@ -26,6 +26,12 @@ let main() -> i32
     let c: thread;
     let d: thread;
     let e: thread;
+
+    a..start(@call);
+    b..start(@call);
+    c..start(@call);
+    d..start(@call);
+    e..start(@call);
     
     a..join();
     b..join();

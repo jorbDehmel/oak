@@ -233,11 +233,12 @@ string toStrCFunction(Type *What, const string &Name)
 
     // Second section, between function and maps, will be arguments.
     string arguments = "";
-    for (; current != nullptr && current->info != maps; current = current->next)
+    for (; current != nullptr; current = current->next)
     {
         // (a: *const map<string, int>, b: u32)
         // (const map<string, int> *a, u32 b)
 
+        // Var names can only occur in non-fn-ptr types
         if (current->info == var_name)
         {
             string name = current->name;
@@ -260,7 +261,12 @@ string toStrCFunction(Type *What, const string &Name)
                 arguments += ", ";
             }
 
-            arguments += toStrC(&temp) + " " + name;
+            arguments += toStrC(&temp, name);
+        }
+
+        else if (current->info == maps)
+        {
+            break;
         }
     }
 
@@ -272,8 +278,18 @@ string toStrCFunction(Type *What, const string &Name)
 
     current = current->next;
 
+    // Jump past any remaining maps (idk why this is necessary)
+    Type *toUse = current;
+    for (auto temp = current; temp != nullptr; temp = temp->next)
+    {
+        if (temp->info == maps)
+        {
+            toUse = temp;
+        }
+    }
+
     // Next, after maps, we will have the return type.
-    string returnType = toStrC(current);
+    string returnType = toStrC(toUse);
 
     if (returnType == "")
     {
@@ -283,68 +299,99 @@ string toStrCFunction(Type *What, const string &Name)
     // Assemble and return: SEMICOLON IS HANDLED ELSEWHERE
     string out;
     out = returnType + " " + Name + "(" + arguments + ")";
+
     return out;
 }
 
 string toStrCFunctionRef(Type *What, const string &Name)
 {
-    // function -> ARGS -> maps -> RETURN_TYPE
+    // pointer -> function -> ARGS -> maps -> RETURN_TYPE
+    // RETURN_TYPE (*Name)(ARGS);
+    // cout << __FILE__ << ":" << __LINE__ << " called upon '" << toStr(What) << "'\n";
 
-    parse_assert(What != nullptr && What->info == function);
-    Type *current = What->next;
+    parse_assert(Name != "");
+    parse_assert(What != nullptr);
+    parse_assert(What->info == pointer);
+    parse_assert(What->next != nullptr);
+    parse_assert(What->next->info == function);
 
-    // Second section, between function and maps, will be arguments.
-    // This is a series of 'join'-separated types with NO 'var_name's
+    string returnType = "";
     string arguments = "";
-    Type cur;
-    for (; current != nullptr && current->info != maps; current = current->next)
+    Type *cur = What->next;
+    Type argType;
+    int count = 0;
+
+    // Then some number of args, possibly containing maps
+    do
     {
-        if (current->info == join)
+        if (cur->info == function)
         {
+            count++;
+        }
+        else if (cur->info == maps)
+        {
+            count--;
+
+            if (count == 0)
+            {
+                // Final append
+
+                // Append to arguments string
+                if (arguments != "")
+                {
+                    arguments += ", ";
+                }
+
+                arguments += toStrC(&argType);
+
+                // Erase current argType
+                argType = nullType;
+            }
+        }
+        else if (cur->info == var_name)
+        {
+            cur = cur->next;
+            continue;
+        }
+        else if (cur->info == join)
+        {
+            // Append to arguments string
             if (arguments != "")
             {
                 arguments += ", ";
             }
 
-            arguments += toStrC(&cur);
-            cur = nullType;
+            arguments += toStrC(&argType);
+
+            // Erase current argType
+            argType = nullType;
         }
         else
         {
-            cur.append(current->info, current->name);
-        }
-    }
-
-    // Final append
-    if (cur != nullType)
-    {
-        if (arguments != "")
-        {
-            arguments += ", ";
+            // Type append to argType
+            argType.append(cur->info, cur->name);
         }
 
-        arguments += toStrC(&cur);
-    }
+        cur = cur->next;
+    } while (cur != nullptr && count != 0);
 
-    if (current == nullptr || current->info != maps)
-    {
-        cout << "Function '" << arguments << "' has no return type.\n";
-        parse_assert(current != nullptr);
-    }
+    // Then the maps corresponding to the opening function
+    // (this is skipped past in the loop)
 
-    current = current->next;
-
-    // Next, after maps, we will have the return type.
-    string returnType = toStrC(current);
-
-    if (returnType == "")
+    // Then the return type is the remainder
+    if (cur == nullptr)
     {
         returnType = "void";
     }
+    else
+    {
+        returnType = toStrC(cur);
+    }
 
-    // Assemble and return
-    string out;
-    out = returnType + " (*" + Name + ")(" + arguments + ")";
+    // Reconstruct out of partial strings
+    string out = returnType + " (*" + Name + ")(" + arguments + ")";
+
+    // cout << __FILE__ << ":" << __LINE__ << " Outputs '" << out << "'\n";
 
     return out;
 }
@@ -359,11 +406,13 @@ string toStrC(Type *What, const string &Name)
         return out;
     }
 
+    // cout << __FILE__ << ":" << __LINE__ << " calling '" << toStr(What) << "'\n";
+
     if (What->info == pointer &&
         What->next != nullptr &&
         What->next->info == function)
     {
-        return toStrCFunctionRef(What->next, Name);
+        return toStrCFunctionRef(What, Name);
     }
 
     switch (What->info)
@@ -399,6 +448,11 @@ string toStrC(Type *What, const string &Name)
 
     default:
         throw parse_error("Unforeseen info enum option for Type object.");
+    }
+
+    if (Name != "")
+    {
+        out += " " + Name;
     }
 
     return out;

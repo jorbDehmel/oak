@@ -424,14 +424,6 @@ sequence __createSequence(list<string> &From)
 
                 out.items.push_back(sequence{nullType, vector<sequence>(), atom, toStrC(&type, name)});
 
-                if (!(
-                        type.info == pointer &&
-                        type.next != nullptr &&
-                        type.next->info == function))
-                {
-                    out.items.push_back(sequence{nullType, vector<sequence>(), atom, name});
-                }
-
                 // Insert into table
                 table[name].push_back(__multiTableSymbol{sequence{type, vector<sequence>(), atom, ""}, type});
 
@@ -751,12 +743,23 @@ Type getReturnType(const Type &T)
 {
     Type temp(T);
 
+    int count = 0;
     for (Type *cur = &temp; cur != nullptr; cur = cur->next)
     {
+        if (cur->info == function)
+        {
+            count++;
+        }
+
         if (cur->info == maps)
         {
-            Type out(*cur->next);
-            return out;
+            count--;
+
+            if (count == 0)
+            {
+                Type out(*cur->next);
+                return out;
+            }
         }
     }
 
@@ -766,48 +769,101 @@ Type getReturnType(const Type &T)
 vector<pair<string, Type>> getArgs(Type &type)
 {
     // Get everything between final function and maps
+    // For the case of function pointers, all variable names will be the unit string
     vector<pair<string, Type>> out;
-
+    string curName = "";
+    Type curType = nullType;
     Type *cur = &type;
+    int count = 0;
 
+    // Dereference
     while (cur != nullptr && cur->info == pointer)
     {
         cur = cur->next;
     }
 
-    if (cur != nullptr && cur->info != function)
+    // Should now point to first 'function'
+
+    // Do iteration
+    while (cur != nullptr)
     {
-        return out;
+        if (cur->info == function)
+        {
+            count++;
+        }
+        else if (cur->info == maps)
+        {
+            count--;
+
+            if (count == 0)
+            {
+                // Final append
+                out.push_back(make_pair(curName, curType));
+                break;
+            }
+
+            // Skip to the end of the return type
+            int subCount = 1;
+            curType.append(cur->info);
+            cur = cur->next;
+            while (cur != nullptr)
+            {
+                if (cur->info == function)
+                {
+                    subCount++;
+                }
+                else if (cur->info == maps)
+                {
+                    subCount--;
+                }
+
+                if (subCount == 0)
+                {
+                    if (cur->info == maps || cur->info == join)
+                    {
+                        break;
+                    }
+                }
+
+                curType.append(cur->info, cur->name);
+
+                cur = cur->next;
+            }
+
+            // cout << __FILE__ << ":" << __LINE__ << " " << toStr(cur) << '\n';
+
+            continue;
+        }
+
+        if (count == 1 && cur->info == var_name)
+        {
+            curName = cur->name;
+        }
+        else if (count == 1 && cur->info == join)
+        {
+            out.push_back(make_pair(curName, curType));
+            curName = "";
+            curType = nullType;
+        }
+        else if (count != 1 || cur->info != function)
+        {
+            // Append to curType
+            curType.append(cur->info, cur->name);
+        }
+
+        // Increment at end
+        cur = cur->next;
     }
 
-    cur = cur->next;
-
-    string symbName;
-    Type symbType;
-    for (; cur != nullptr; cur = cur->next)
+    /*
+    cout << __FILE__ << ":" << __LINE__ << " output arguments:\n";
+    for (auto p : out)
     {
-        if (cur->info == maps)
-        {
-            out.push_back(make_pair(symbName, symbType));
-            break;
-        }
-        else if (cur->info == join)
-        {
-            out.push_back(make_pair(symbName, symbType));
-
-            symbName = "";
-            symbType = nullType;
-        }
-        else if (cur->info == var_name)
-        {
-            symbName = cur->name;
-        }
-        else
-        {
-            symbType.append(cur->info, cur->name);
-        }
+        cout << '\t' << p.first << '\t' << toStr(&p.second) << '\n';
     }
+    */
 
+    // Return
     return out;
 }
 
@@ -1105,7 +1161,14 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
             cout << "Candidates:\n";
             for (auto c : candidates)
             {
-                cout << name << " has type " << toStr(&c.type) << '\n';
+                cout << name << " has type " << toStr(&c.type) << '\n'
+                     << "Candidate arguments:\n";
+
+                auto candArgs = getArgs(c.type);
+                for (auto arg : candArgs)
+                {
+                    cout << "\t" << arg.first << "\t" << toStr(&arg.second) << '\n';
+                }
             }
 
             cout << "Arguments:\n(";

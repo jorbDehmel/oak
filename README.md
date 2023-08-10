@@ -962,6 +962,51 @@ let main() -> i32
 
 ```
 
+## Function Pointers
+
+A variable can store a pointer to a function. For instance, a variable `f` can hold a pointer to a function taking an `i32` and yielding an `i32` via the code `let f: ^(i32) -> i32;`. The argument types go inside the parenthesis, and the return type after the `->` yield operator. This variable can later be made to point to any function mapping the argument list to the yield type. It can be called in the same way as any other functions.
+
+For example, the program
+
+```
+package!("std");
+
+let a(what: i32) -> i32
+{
+    what
+}
+
+let b(what: i32) -> i32
+{
+    (2 * what)
+}
+
+let main() -> i32
+{
+    let f: ^(i32) -> i32;
+    f = @a;
+
+    print(f(1));
+    print("\n");
+
+    f = @b;
+
+    print(f(1));
+    print("\n");
+
+    0
+}
+
+```
+
+would print
+
+```
+1
+2
+
+```
+
 ## Misc. Notes
 
 Some miscellaneous notes which are not long enough to warrant their own section in this document:
