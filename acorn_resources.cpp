@@ -198,6 +198,7 @@ void doFile(const string &From)
             {
                 if (lexed[i] != "!" && lexed[i].back() == '!')
                 {
+                    // File handling / translation unit macros
                     if (lexed[i] == "include!")
                     {
                         vector<string> args = getMacroArgs(lexed, i);
@@ -423,6 +424,12 @@ void doFile(const string &From)
                 {
                     // Special cases: Memory macros
                     if (lexed[i] == "alloc!" || lexed[i] == "free!" || lexed[i] == "free_arr!")
+                    {
+                        continue;
+                    }
+
+                    // Another special case: Erasure macro
+                    else if (lexed[i] == "erase!")
                     {
                         continue;
                     }

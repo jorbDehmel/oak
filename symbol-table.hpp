@@ -48,6 +48,8 @@ struct __multiTableSymbol
 {
     sequence seq;
     Type type;
+
+    bool erased = false;
 };
 
 // For later instantiation

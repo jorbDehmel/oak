@@ -1,0 +1,25 @@
+package!("std");
+
+let hide: struct
+{
+    data: i32,
+}
+
+let intern: struct
+{
+    h: hide,
+}
+
+let New(self: ^intern) -> void
+{
+    self.h.data = 123;
+}
+
+erase!("hide");
+
+let main() -> i32
+{
+    let a: intern;
+
+    0
+}

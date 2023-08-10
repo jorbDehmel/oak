@@ -1,14 +1,5 @@
 #include "type-builder.hpp"
 
-set<string> atomics = {
-    "u8", "u16", "u32", "u64", "u128",
-    "i8", "i16", "i32", "i64", "i128",
-    "f32", "f64", "f128", "str", "void",
-    "bool", "struct", "live"};
-
-set<string> modifiers = {
-    "const", "mut"};
-
 set<string> deps;
 map<string, __structLookupData> structData;
 

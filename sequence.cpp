@@ -118,6 +118,70 @@ sequence __createSequence(list<string> &From)
         return out;
     }
 
+    // Erasure macro; Erases types or struct members from existence
+    // Technically just moves them to another spot, as
+    else if (From.front() == "erase!")
+    {
+        int count = 0;
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        From.pop_front();
+        list<string> contents;
+
+        do
+        {
+            if (From.front() == "(")
+            {
+                count++;
+            }
+            else if (From.front() == ")")
+            {
+                count--;
+            }
+
+            if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")"))
+            {
+                if (From.front() != ",")
+                {
+                    contents.push_back(From.front());
+                }
+            }
+
+            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+            From.pop_front();
+        } while (!From.empty() && count != 0);
+
+        for (auto s : contents)
+        {
+            if (!((s.front() == '"' && s.back() == '"') || (s.front() == '\'' && s.back() == '\'')))
+            {
+                throw parse_error("All arguments to 'erase!' must be strings.");
+            }
+
+            // Trim quotes
+            string symb = s.substr(1, s.size() - 2);
+
+            if (structData.count(symb) != 0)
+            {
+                structData[symb].erased = true;
+            }
+            else if (table.count(symb) != 0)
+            {
+                for (int l = 0; l < table[symb].size(); l++)
+                {
+                    table[symb][l].erased = true;
+                }
+            }
+            else
+            {
+                cout << tags::yellow_bold
+                     << "Warning! No symbols were erase!-ed via the symbol '" << symb << "'\n"
+                     << tags::reset;
+            }
+        }
+
+        return out;
+    }
+
     // Memory Keywords
     else if (From.front() == "alloc!")
     {
@@ -1134,7 +1198,7 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
                 }
             }
 
-            if (candArgs.size() != argTypes.size())
+            if (candArgs.size() != argTypes.size() || candidates[j].erased)
             {
                 candidates.erase(candidates.begin() + j);
                 j--;
@@ -1143,7 +1207,7 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
 
             for (int k = 0; k < candArgs.size(); k++)
             {
-                if (candArgs[k].second != argTypes[k])
+                if (!typesAreSame(&candArgs[k].second, &argTypes[k]))
                 {
                     candidates.erase(candidates.begin() + j);
                     j--;
@@ -1158,25 +1222,41 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
             // Get all theoretical candidates again
             candidates = table[name];
 
-            cout << "Candidates:\n";
+            cout << "\nCandidates:\n";
             for (auto c : candidates)
             {
                 cout << name << " has type " << toStr(&c.type) << '\n'
-                     << "Candidate arguments:\n";
-
+                     << "Candidate arguments (";
                 auto candArgs = getArgs(c.type);
+                cout << candArgs.size() << "):\n";
+
                 for (auto arg : candArgs)
                 {
                     cout << "\t" << arg.first << "\t" << toStr(&arg.second) << '\n';
                 }
+
+                // Provide reason for elimination
+                if (candArgs.size() != argTypes.size())
+                {
+                    cout << "\t(Too " << ((candArgs.size() < argTypes.size()) ? "few" : "many")
+                         << " arguments)\n";
+                }
+                else if (c.erased)
+                {
+                    cout << "\t(Erased / private symbol)\n";
+                }
+                else
+                {
+                    cout << "\t(Incompatible argument type(s))\n";
+                }
             }
 
-            cout << "Arguments:\n(";
+            cout << "\nProvided arguments (" << argTypes.size() << "):\n(";
             for (auto a : argTypes)
             {
                 cout << toStr(&a) << ", ";
             }
-            cout << ")\n";
+            cout << ")\n\n";
 
             throw sequencing_error("Function call '" + name + "' has no viable candidates.");
         }
@@ -1286,6 +1366,7 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
         string structName = type.name;
 
         sm_assert(structData.count(structName) != 0, "Struct type '" + structName + "' does not exist.");
+        sm_assert(!structData[structName].erased, "Struct '" + structName + "' exists, but is erased (private).");
         sm_assert(structData[structName].members.count(What[start + 2]) != 0, "Struct '" + structName + "' has no member '" + What[start + 2] + "'.");
 
         type = structData[structName].members[What[start + 2]];
@@ -1299,6 +1380,46 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
 
     // Return function return type
     return type;
+}
+
+// Ignores all var_names
+bool typesAreSame(Type *A, Type *B)
+{
+    Type *left, *right;
+    left = A, right = B;
+
+    while (left != nullptr && right != nullptr)
+    {
+        while (left != nullptr && left->info == var_name)
+        {
+            left = left->next;
+        }
+
+        while (right != nullptr && right->info == var_name)
+        {
+            right = right->next;
+        }
+
+        if (left->info != right->info)
+        {
+            // Failure
+            return false;
+        }
+        else
+        {
+            if (left->info == atomic && left->name != right->name)
+            {
+                // Failure
+                return false;
+            }
+        }
+
+        // Success; Move on
+        left = left->next;
+        right = right->next;
+    }
+
+    return true;
 }
 
 Type checkLiteral(const string &From)

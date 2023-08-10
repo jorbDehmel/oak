@@ -20,6 +20,7 @@ set<string> compiled = {
     "use_rule!",
     "rem_rule!",
     "bundle_rule!",
+    "erase!",
 };
 map<string, string> macros;
 

@@ -92,6 +92,9 @@ Type getReturnType(const Type &T);
 
 vector<pair<string, Type>> getArgs(Type &type);
 
+// Ignores all var_names
+bool typesAreSame(Type *A, Type *B);
+
 void debugPrint(const sequence &What, int spaces = 0, ostream &to = cout);
 
 Type resolveFunction(const vector<string> &What, int &start, string &c);

@@ -851,7 +851,7 @@ Name      | Description                            | Notes
 
 ## Multithreading and the std/threads.oak File
 
-`Oak` provides some basic multithreading support as of version 0.0.4. This comes via the `"std/threads.oak"` file. To set what an instantiated thread does, define `let call(self: ^thread) -> void { ; }`. All threads which are created via the `thread` struct will execute this command on a new thread. This means that, as of `Oak` 0.0.4, all threads in a given translation unit (except the instantiating one) must share only one function. This will be fixed in a future version of `Oak`, likely without providing backwards compatibility with the current version of `"std/threads.oak"`. Thus, the programmer is advised not to get too invested in the current threading system.
+`Oak` provides some basic multithreading support as of version 0.0.4. This comes via the `"std/threads.oak"` file. A `thread` begins a new thread when you call `start(@t, @f)`, where `t` is the `thread` and `f` is a function mapping void to void (`let f() -> void`). After a `thread` has begun, you must wait for it to complete. To halt the execution of the instantiating thread until the instantiated thread has finished, call `join(@t)` for some `t: thread`. See later for more help on function pointers.
 
 ## SDL2 and the sdl Package
 

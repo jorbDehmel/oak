@@ -24,7 +24,6 @@ enum TypeInfo
 };
 
 // To be expanded with struct definitions
-extern set<string> atomics, modifiers;
 extern set<string> deps;
 
 class Type
@@ -61,6 +60,8 @@ extern const Type nullType;
 struct __structLookupData
 {
     map<string, Type> members;
+
+    bool erased = false;
 };
 
 struct __templStructLookupData

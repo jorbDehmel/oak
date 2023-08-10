@@ -168,8 +168,6 @@ void reconstruct(const string &Name,
     // End header enclosure
     header << "\n#endif\n";
 
-    // Part B1: Insert all function definitions
-
     return;
 }
 
@@ -307,7 +305,6 @@ string toStrCFunctionRef(Type *What, const string &Name)
 {
     // pointer -> function -> ARGS -> maps -> RETURN_TYPE
     // RETURN_TYPE (*Name)(ARGS);
-    // cout << __FILE__ << ":" << __LINE__ << " called upon '" << toStr(What) << "'\n";
 
     parse_assert(Name != "");
     parse_assert(What != nullptr);
@@ -331,22 +328,6 @@ string toStrCFunctionRef(Type *What, const string &Name)
         else if (cur->info == maps)
         {
             count--;
-
-            if (count == 0)
-            {
-                // Final append
-
-                // Append to arguments string
-                if (arguments != "")
-                {
-                    arguments += ", ";
-                }
-
-                arguments += toStrC(&argType);
-
-                // Erase current argType
-                argType = nullType;
-            }
         }
         else if (cur->info == var_name)
         {
@@ -375,6 +356,17 @@ string toStrCFunctionRef(Type *What, const string &Name)
         cur = cur->next;
     } while (cur != nullptr && count != 0);
 
+    // Final append
+    if (argType != nullType)
+    {
+        if (arguments != "")
+        {
+            arguments += ", ";
+        }
+
+        arguments += toStrC(&argType);
+    }
+
     // Then the maps corresponding to the opening function
     // (this is skipped past in the loop)
 
@@ -390,8 +382,6 @@ string toStrCFunctionRef(Type *What, const string &Name)
 
     // Reconstruct out of partial strings
     string out = returnType + " (*" + Name + ")(" + arguments + ")";
-
-    // cout << __FILE__ << ":" << __LINE__ << " Outputs '" << out << "'\n";
 
     return out;
 }

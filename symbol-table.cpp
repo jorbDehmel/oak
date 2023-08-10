@@ -107,14 +107,6 @@ Type toType(const vector<string> &WhatIn)
         {
             i++;
         }
-        else if (modifiers.count(cur) != 0)
-        {
-            out.append(modifier, cur);
-        }
-        else if (atomics.count(cur) != 0)
-        {
-            out.append(atomic, cur);
-        }
         else if (What.size() > i && What[i + 1] == ":")
         {
             out.append(var_name, cur);
@@ -156,8 +148,6 @@ void addStruct(const vector<string> &FromIn)
     i++;
     parse_assert(From[i] == "struct");
     i++;
-
-    atomics.insert(name);
 
     if (From[i] == "{")
     {
