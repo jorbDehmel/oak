@@ -13,15 +13,7 @@ let main() -> i32
 
     let wind: sdl_window;
 
-    print("W: ");
-    print(wind.width);
-    print("\n");
-
-    print("H: ");
-    print(wind.height);
-    print("\n");
-
-    //Copy(@wind, to_u64(512), to_u64(512));
+    Copy(@wind, to_u64(512), to_u64(512));
 
     let black: sdl_color;
     let white: sdl_color;
@@ -33,20 +25,12 @@ let main() -> i32
     let y: i32;
     y = 0;
 
-    print("W: ");
-    print(wind.width);
-    print("\n");
-
-    print("H: ");
-    print(wind.height);
-    print("\n");
-
-    while (y < wind.height)
+    while (y < to_i32(wind.height))
     {
         let x: i32;
         x = 0;
 
-        while (x < wind.width)
+        while (x < to_i32(wind.width))
         {
             rect.x = to_u64(x);
             rect.y = to_u64(y);
@@ -56,12 +40,12 @@ let main() -> i32
 
             wind..show();
 
-            sdl_delay(10);
+            //sdl_delay(10);
 
-            x += 1;
+            x += 10;
         }
     
-        y += 1;
+        y += 10;
     }
 
     wind..Del();

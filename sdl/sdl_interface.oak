@@ -2,7 +2,7 @@ link!("sdl/sdl_interface.o");
 
 let sdl_window: struct
 {
-    width, height: i32,
+    width, height: u64,
 
     // DON'T MESS WITH THESE!
     // This is how you add

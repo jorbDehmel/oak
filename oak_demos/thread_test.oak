@@ -1,5 +1,5 @@
 // A test of Oak's threading file "std/threads.oak"
-// As of Aug 5, 23, a very janky version has passed
+// Passed with modern fn ptrs
 
 package!("std");
 use_rule!("std");
@@ -19,6 +19,19 @@ let call() -> void
     }
 }
 
+let mega_call() -> void
+{
+    let counter: i32;
+    counter = 1000;
+    while (counter > 0)
+    {
+        print(counter);
+        print("\n");
+
+        counter -= 1;
+    }
+}
+
 let main() -> i32
 {
     let a: thread;
@@ -28,7 +41,7 @@ let main() -> i32
     let e: thread;
 
     a..start(@call);
-    b..start(@call);
+    b..start(@mega_call);
     c..start(@call);
     d..start(@call);
     e..start(@call);

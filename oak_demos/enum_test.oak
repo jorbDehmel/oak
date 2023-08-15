@@ -1,0 +1,23 @@
+// A test of Oak's enums
+// UNPASSED
+
+/*
+This feature is far-off
+*/
+
+let a: struct
+{
+    data: i128,
+}
+
+let test: enum
+{
+    a, // Can take existing structs
+    b, // Any non-existing structs will be unit structs
+    c,
+}
+
+let main() -> i32
+{
+    0
+}

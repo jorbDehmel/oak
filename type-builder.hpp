@@ -60,6 +60,7 @@ extern const Type nullType;
 struct __structLookupData
 {
     map<string, Type> members;
+    vector<string> order;
 
     bool erased = false;
 };

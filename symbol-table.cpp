@@ -218,6 +218,7 @@ void addStruct(const vector<string> &FromIn)
             for (string varName : names)
             {
                 structData[name].members[varName] = toAdd;
+                structData[name].order.push_back(varName);
             }
         }
     }

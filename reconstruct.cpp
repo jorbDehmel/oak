@@ -112,9 +112,9 @@ void reconstruct(const string &Name,
         {
             header << "struct " << s.first << "\n{\n";
 
-            for (auto m : s.second.members)
+            for (auto m : s.second.order)
             {
-                header << "\t" << toStrC(&m.second) << " " << m.first << ";\n";
+                header << '\t' << toStrC(&s.second.members[m]) << ' ' << m << ";\n";
             }
 
             header << "};\n\n";
