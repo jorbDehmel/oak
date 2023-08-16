@@ -142,3 +142,10 @@ void draw_rect(sdl_window *window, sdl_rect rect, sdl_color color)
     SDL_RenderFillRect(window->rend, &tempRect);
     return;
 }
+
+///////////////////////////////////// Event stuff /////////////////////////////////////
+
+struct sdl_event
+{
+    u32 type, timestamp;
+};

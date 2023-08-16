@@ -6,12 +6,13 @@ OBJS := build/lexer.o build/symbol-table.o \
 	build/macros.o build/sequence.o \
 	build/packages.o build/sizer.o build/op-sub.o \
 	build/mem.o build/acorn_resources.o \
-	build/document.o build/rules.o
+	build/document.o build/rules.o enums.o
 
 HEADS := lexer.hpp reconstruct.hpp symbol-table.hpp \
 	type-builder.hpp macros.hpp tags.hpp \
 	sequence.hpp packages.hpp sizer.hpp op-sub.hpp \
-	acorn_resources.hpp document.hpp rules.hpp
+	acorn_resources.hpp document.hpp rules.hpp \
+	enums.hpp
 
 # -O3 is best for actual installs, not for testing
 FLAGS := -O3
@@ -59,6 +60,7 @@ test: install
 	acorn -e oak_demos/thread_test.oak -o thread_test.out
 	acorn -e oak_demos/fn_ptr_test_2.oak -o fn_ptr_test_2.out
 	acorn -e oak_demos/erase_test.oak -o erase_test.out
+	acorn -e oak_demos/enum_test.oak -o enum_test.out
 	rm -rf *.log .oak_build
 
 build/%.o:	%.cpp $(HEADS)

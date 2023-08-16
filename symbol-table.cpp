@@ -142,7 +142,19 @@ void addStruct(const vector<string> &FromIn)
 
     parse_assert(From[i] == "let");
     i++;
+
     string name = From[i];
+
+    if (structData.count(name) != 0)
+    {
+        cout << tags::yellow_bold
+             << "Warning! Redefinition of struct '" << name << "'.\n"
+             << tags::reset;
+    }
+
+    // Ensures unit structs still get added
+    structData[name];
+
     i++;
     parse_assert(From[i] == ":");
     i++;

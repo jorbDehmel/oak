@@ -110,6 +110,11 @@ void reconstruct(const string &Name,
         header << "// Struct definitions\n";
         for (auto s : structData)
         {
+            if (enumData.count(s.first) != 0)
+            {
+                continue;
+            }
+
             header << "struct " << s.first << "\n{\n";
 
             for (auto m : s.second.order)
@@ -121,7 +126,16 @@ void reconstruct(const string &Name,
         }
     }
 
-    // Step A4: Insert global definitions into header
+    // Step A4: Enumeration definitions
+    {
+        header << "// Enumeration definitions\n";
+        for (auto e : enumData)
+        {
+            header << enumToC(e.first) << '\n';
+        }
+    }
+
+    // Step A5: Insert global definitions into header
     // (Translate Oak syntax into C++ syntax)
     {
         header << "// Global function definitions\n";
@@ -526,7 +540,20 @@ void dump(const vector<string> &Lexed, const string &Where, const string &FileNa
 
         for (auto m : s.second.members)
         {
-            file << m.first << '\t' << toStr(&m.second) << '\n';
+            file << '\t' << m.first << '\t' << toStr(&m.second) << '\n';
+        }
+    }
+
+    file << sep
+         << "// Enums:\n";
+
+    for (auto e : enumData)
+    {
+        file << e.first << "\n";
+
+        for (auto m : e.second.options)
+        {
+            file << '\t' << m.first << '\t' << toStr(&m.second) << '\n';
         }
     }
 
@@ -555,7 +582,7 @@ void dump(const vector<string> &Lexed, const string &Where, const string &FileNa
         }
     }
 
-    file << "\n// Generics:\n";
+    file << "\n// Generic functions:\n";
 
     for (auto p : templTable)
     {
@@ -586,6 +613,40 @@ void dump(const vector<string> &Lexed, const string &Where, const string &FileNa
                 }
                 file << '\n';
             }
+        }
+    }
+
+    file << "\n// Generic structs:\n";
+
+    for (auto p : templStructData)
+    {
+        file << p.first << "<";
+        for (auto g : p.second.generics)
+        {
+            file << g << ", ";
+        }
+        file << ">:\n\t";
+
+        for (auto item : p.second.guts)
+        {
+            file << item << ' ';
+        }
+    }
+
+    file << "\n// Generic enums:\n";
+
+    for (auto p : templEnumData)
+    {
+        file << p.first << "<";
+        for (auto g : p.second.generics)
+        {
+            file << g << ", ";
+        }
+        file << ">:\n\t";
+
+        for (auto item : p.second.guts)
+        {
+            file << item << ' ';
         }
     }
 
@@ -642,4 +703,37 @@ void dump(const vector<string> &Lexed, const string &Where, const string &FileNa
 
     file.close();
     return;
+}
+
+string enumToC(const string &name)
+{
+    // Basic error checking; Should NOT constitute the entirety
+    // of safety checks!!! This just ensures a lack of internal
+    // errors.
+    if (name == "" || enumData.count(name) == 0)
+    {
+        throw runtime_error(string(__FILE__) + ":" + to_string(__LINE__) + " Error in enumeration toC.");
+    }
+
+    __enumLookupData &cur = enumData[name];
+
+    string out = "struct " + name + " {\nenum {\n";
+
+    // names
+    for (auto name : cur.order)
+    {
+        out += name + ",\n";
+    }
+
+    out += "\n} __info;\nunion {\n";
+
+    // types
+    for (auto name : cur.order)
+    {
+        out += toStrC(&cur.options[name]) + " " + name + "_data" + ";\n";
+    }
+
+    out += "\n} __data;\n};";
+
+    return out;
 }

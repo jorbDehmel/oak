@@ -45,6 +45,7 @@ non-sequential parser.
 #include "type-builder.hpp"
 #include "symbol-table.hpp"
 #include "reconstruct.hpp"
+#include "enums.hpp"
 
 #include "tags.hpp"
 
@@ -105,5 +106,10 @@ __multiTableSymbol *instantiateTemplate(const string &Name, const vector<string>
 
 string getStructCanonicalName(const string &Name, const vector<string> &GenericReplacements);
 __structLookupData *instantiateStruct(const string &Name, const vector<string> &GenericReplacements);
+
+string getEnumCanonicalName(const string &Name, const vector<string> &GenericReplacements);
+__enumLookupData *instantiateEnum(const string &Name, const vector<string> &GenericReplacements);
+
+void addEnum(const vector<string> &FromIn);
 
 #endif

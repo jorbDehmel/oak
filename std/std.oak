@@ -84,3 +84,5 @@ let c_time(when: i64) -> str;
 
 // Run a system command
 let sys(command: str) -> i32;
+
+let unit: struct;

@@ -1,23 +1,48 @@
 // A test of Oak's enums
 // UNPASSED
 
-/*
-This feature is far-off
-*/
+package!("std");
+use_rule!("std");
 
-let a: struct
+let a_data: struct
 {
     data: i128,
 }
 
 let test: enum
 {
-    a, // Can take existing structs
-    b, // Any non-existing structs will be unit structs
-    c,
+    a: a_data, // Can take existing structs
+    b: unit,   // Any non-existing structs should be unit structs
+    c: unit,
+}
+
+let fn_test(a: test) -> void
+{
 }
 
 let main() -> i32
 {
+    let obj: test;
+
+    /*
+    match (obj)
+    {
+        case a(data)
+        {
+            ;
+        }
+
+        case b()
+        {
+            ;
+        }
+
+        default
+        {
+            ;
+        }
+    }
+    */
+
     0
 }

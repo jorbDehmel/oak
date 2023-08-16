@@ -25,6 +25,7 @@ agnostic with respect to input (as much as possible).
 #include "sequence.hpp"
 #include "symbol-table.hpp"
 #include "rules.hpp"
+#include "enums.hpp"
 
 #define OAK_HEADER_PATH "/usr/include/std_oak_header.hpp"
 
@@ -58,5 +59,7 @@ string toStrCFunctionRef(Type *What, const string &Name);
 // Dump data to file
 void dump(const vector<string> &Lexed, const string &Where, const string &FileName,
           const int &Line, const sequence &FileSeq, const vector<string> LexedBackup);
+
+string enumToC(const string &name);
 
 #endif

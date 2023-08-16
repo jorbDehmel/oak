@@ -411,12 +411,13 @@ sequence __createSequence(list<string> &From)
             sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
             From.pop_front();
 
-            if (!From.empty() && From.front() == "struct")
+            if (!From.empty() && (From.front() == "struct" || From.front() == "enum"))
             {
                 // addStruct takes in the full struct definition, from
                 // let to end curly bracket. So we must first parse this.
 
                 vector<string> toAdd = {"let", name, ":"};
+                string front = From.front();
 
                 int count = 0;
                 while (count != 0 || (!From.empty() && From.front() != "}" && From.front() != ";"))
@@ -440,13 +441,29 @@ sequence __createSequence(list<string> &From)
 
                 if (generics.empty())
                 {
-                    // Non-templated struct
-                    addStruct(toAdd);
+                    if (front == "struct")
+                    {
+                        // Non-templated struct
+                        addStruct(toAdd);
+                    }
+                    else if (front == "enum")
+                    {
+                        // Non-templated enum
+                        addEnum(toAdd);
+                    }
                 }
                 else
                 {
-                    // Templated struct
-                    templStructData[name] = __templStructLookupData{generics, toAdd};
+                    if (front == "struct")
+                    {
+                        // Templated struct
+                        templStructData[name] = __templStructLookupData{generics, toAdd};
+                    }
+                    else if (front == "enum")
+                    {
+                        // Templated enum
+                        templEnumData[name] = __templEnumLookupData{generics, toAdd};
+                    }
                 }
 
                 // This should be left out of toC, as it should only be used
@@ -1519,6 +1536,8 @@ void restoreSymbolTable(multiSymbolTable &backup)
     return;
 }
 
+/////////////////////////////////////////
+
 string getStructCanonicalName(const string &Name, const vector<string> &GenericReplacements)
 {
     string out = Name;
@@ -1655,4 +1674,189 @@ __multiTableSymbol *instantiateTemplate(const string &Name, const vector<string>
     table[Name].push_back(__multiTableSymbol{createSequence(toUse.guts), outType});
 
     return &table[Name].back();
+}
+
+//////////////////////////////////// Enums
+
+string getEnumCanonicalName(const string &Name, const vector<string> &GenericReplacements)
+{
+    string out = Name;
+    out += "__";
+    for (int i = 0; i < GenericReplacements.size(); i++)
+    {
+        out += GenericReplacements[i] + "_";
+    }
+
+    return out;
+}
+
+__enumLookupData *instantiateEnum(const string &Name, const vector<string> &GenericReplacements)
+{
+    // Examine and verify candidates (uses raw name)
+    if (templEnumData.count(Name) == 0)
+    {
+        throw parse_error("No candidates for templated enum '" + Name + "'");
+    }
+    auto candidate = templEnumData[Name];
+    if (candidate.generics.size() != GenericReplacements.size())
+    {
+        throw parse_error("Cannot instantiate template enum with generic count " +
+                          to_string(candidate.generics.size()) + " with only " +
+                          to_string(GenericReplacements.size()) + " generics.");
+    }
+
+    // Create canonical name
+    string realName = getEnumCanonicalName(Name, GenericReplacements);
+
+    // Do substitutions
+    for (int genericInd = 0; genericInd < candidate.generics.size(); genericInd++)
+    {
+        for (int i = 0; i < candidate.guts.size(); i++)
+        {
+            if (candidate.guts[i] == candidate.generics[genericInd])
+            {
+                candidate.guts[i] = GenericReplacements[genericInd];
+            }
+        }
+    }
+
+    candidate.guts[1] = realName;
+
+    // Add
+    addEnum(candidate.guts);
+
+    // Return newly instantiated enum type
+    return &enumData[realName];
+}
+
+// Can throw errors (IE malformed definitions)
+void addEnum(const vector<string> &FromIn)
+{
+    vector<string> From;
+
+    // Clean input of any special symbols
+    for (auto f : FromIn)
+    {
+        if (f.size() < 2 || f.substr(0, 2) != "//")
+        {
+            From.push_back(f);
+        }
+    }
+
+    // Assert the expression can be properly-formed
+    parse_assert(From.size() >= 4);
+
+    // Get name and check against malformations
+    int i = 0;
+
+    parse_assert(From[i] == "let");
+    i++;
+
+    string name = From[i];
+
+    if (enumData.count(name) != 0)
+    {
+        cout << tags::yellow_bold
+             << "Warning! Redefinition of enum '" << name << "'.\n"
+             << tags::reset;
+    }
+    else if (structData.count(name) != 0)
+    {
+        cout << tags::yellow_bold
+             << "Warning! Definition of enum '" << name << "' erases struct of the same name.\n"
+             << tags::reset;
+    }
+
+    // Ensure for unit enums
+    enumData[name];
+
+    // Insert enum as unit struct
+    structData[name];
+
+    i++;
+
+    parse_assert(From[i] == ":");
+    i++;
+    parse_assert(From[i] == "enum");
+    i++;
+
+    if (From[i] == "{")
+    {
+        i++;
+        for (; i < From.size() && From[i] != "}"; i++)
+        {
+            // name : type ,
+            // name , name2 , name3 : type < string , hi > , name4 : type2 ,
+            vector<string> names, lexedType;
+
+            while (i + 1 < From.size() && From[i + 1] == ",")
+            {
+                names.push_back(From[i]);
+
+                i += 2;
+            }
+
+            names.push_back(From[i]);
+
+            parse_assert(i + 1 < From.size());
+            parse_assert(From[i + 1] == ":");
+
+            i += 2;
+
+            // Get lexed type (can be multiple symbols due to templating)
+            int templCount = 0;
+            while (i < From.size() && !(templCount == 0 && From[i] == ","))
+            {
+                if (templCount == 0 && From[i] != "<")
+                {
+                    lexedType.push_back(From[i]);
+                }
+                else
+                {
+                    throw_assert(!lexedType.empty());
+
+                    if (From[i] == "<")
+                    {
+                        lexedType.back().append("__");
+                    }
+                    else if (From[i] == "^" || From[i] == "@")
+                    {
+                        lexedType.back().append("ptr_");
+                    }
+                    else if (From[i] == ">")
+                    {
+                        ;
+                    }
+                    else
+                    {
+                        lexedType.back().append(From[i] + "_");
+                    }
+                }
+
+                if (From[i] == "<")
+                {
+                    templCount++;
+                }
+                else if (From[i] == ">")
+                {
+                    templCount--;
+                }
+
+                i++;
+            }
+
+            Type toAdd = toType(lexedType);
+            for (string varName : names)
+            {
+                enumData[name].options[varName] = toAdd;
+                enumData[name].order.push_back(varName);
+            }
+        }
+    }
+    else if (From[4] != ";")
+    {
+        throw parse_error("Malformed enum definition; Expected ';' or '{'.");
+    }
+
+    return;
 }

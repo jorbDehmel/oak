@@ -1007,6 +1007,56 @@ would print
 
 ```
 
+## Enums
+
+Enums in `Oak` are essentially ways for one type to encompass multiple types. Enums are very similar to structs, except that they can hold only one of their values at once. However, unlike a `C++` union, the type of an `Oak` enum is also stored. In this way, it is like a combination of `C++`'s enum and union. An `Oak` enum declaration looks like this:
+
+```
+let example: enum
+{
+    option_a: i32,
+    option_b: unit,
+    option_c: preexisting_struct_name,
+}
+```
+
+Note that an `Oak` enum looks exactly like an `Oak` struct. Enums are handled through use of the `match` statement as below.
+
+```
+let main() -> i32
+{
+    // Assume the previous code chunk is included
+    let obj: example;
+
+    match (obj)
+    {
+        case option_a(data)
+        {
+            // `data` becomes the i32 which option_a entails
+        }
+
+        case option_b()
+        {
+            // In this case, no variable is captured from option_b
+            // This is almost always the case for unit structs (obviously)
+            // but can also be done with non-unit structs.
+        }
+
+        default
+        {
+            // There can be no capture in a default option,
+            // because the capture's type could not be known at
+            // compile-time.
+        }
+    }
+
+    0
+}
+
+```
+
+The `match` statement is the only way to access the data inside enums in `Oak`.
+
 ## Misc. Notes
 
 Some miscellaneous notes which are not long enough to warrant their own section in this document:
