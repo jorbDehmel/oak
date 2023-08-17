@@ -733,7 +733,62 @@ string enumToC(const string &name)
         out += toStrC(&cur.options[name]) + " " + name + "_data" + ";\n";
     }
 
-    out += "\n} __data;\n};";
+    out += "\n} __data;\n};\n";
+
+    // That's the end of the easy part.
+    // Now, it must generate constructors.
+
+    string enumTypeStr = name;
+    for (auto optionName : cur.order)
+    {
+        string optionTypeStr = toStrC(&cur.options[optionName]);
+
+        if (cur.options[optionName].info == atomic && cur.options[optionName].name == "unit")
+        {
+            // Unit struct; Single argument constructor
+
+            // Generate C version
+            out += "void init_" + optionName + "(" + enumTypeStr + " *self)\n{\n";
+            out += "self->__info = " + enumTypeStr + "::" + optionName + ";\n}\n";
+
+            // Insert Oak version
+            Type constructorType = nullType;
+            constructorType.append(function);
+            constructorType.append(var_name, "self");
+            constructorType.append(pointer);
+            constructorType.append(atomic, enumTypeStr);
+            constructorType.append(maps);
+            constructorType.append(atomic, "void");
+
+            table["init_" + optionName].push_back(__multiTableSymbol{sequence{}, constructorType, false});
+        }
+        else
+        {
+            // Double argument constructor
+
+            // Generate C version
+            out += "void init_" + optionName + "(" + enumTypeStr + " *self, ";
+            out += optionTypeStr + " data)\n";
+            out += "{\n";
+            out += "self->__info = " + enumTypeStr + "::" + optionName + ";\n";
+            out += "self->__data." + optionName + "_data = data;\n";
+            out += "}\n";
+
+            // Insert Oak version
+            Type constructorType = nullType;
+            constructorType.append(function);
+            constructorType.append(var_name, "self");
+            constructorType.append(pointer);
+            constructorType.append(atomic, enumTypeStr);
+            constructorType.append(join);
+            constructorType.append(var_name, "data");
+            constructorType.append(atomic, optionTypeStr);
+            constructorType.append(maps);
+            constructorType.append(atomic, "void");
+
+            table["init_" + optionName].push_back(__multiTableSymbol{sequence{}, constructorType, false});
+        }
+    }
 
     return out;
 }

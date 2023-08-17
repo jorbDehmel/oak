@@ -1055,7 +1055,9 @@ let main() -> i32
 
 ```
 
-The `match` statement is the only way to access the data inside enums in `Oak`.
+The `match` statement is one of two ways to access the data inside enums in `Oak`, with the other being the compiler-generated "init" methods. The compiler generates `let init_OPTION_NAME(self: ^ENUM_NAME, data: OPTION_TYPE) -> void` for each option `OPTION_NAME` in an enum `ENUM_NAME`. This wraps the data variable into the enum. This all happens via a compiler `C++` interface.
+
+Note that, if the type of an enum option is the unit struct, the compiler will instead generate a single-argument "init" method, taking only the self.
 
 ## Misc. Notes
 

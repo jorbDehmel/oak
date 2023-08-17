@@ -16,6 +16,39 @@ let test: enum
     c: unit,
 }
 
+let New(self: ^test) -> void
+{
+}
+
+/*
+#define match(what) switch (what.__info)
+int main()
+{
+    main_struct obj;
+
+    match(obj)
+    {
+    case main_struct::a:
+        auto data = obj.__data.a_data;
+
+        data.a += 2;
+
+        break;
+    default:
+        break;
+    }
+
+    return 0;
+}
+*/
+
+/*
+The following will be generated automatically:
+let NewA(self: ^test, data: ^a_data) -> void;
+let NewB(self: ^test) -> void;
+let NewC(self: ^test) -> void;
+*/
+
 let fn_test(a: test) -> void
 {
 }
