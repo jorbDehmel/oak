@@ -43,7 +43,7 @@ let main() -> i32
         case a(data)
         {
             print("hi");
-            //print(to_i32(data.data));
+            print(to_i32(data.data));
         }
 
         case b()

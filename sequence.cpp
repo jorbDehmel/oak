@@ -95,6 +95,7 @@ sequence createSequence(const vector<string> &From)
 }
 
 // Internal consumptive version: Erases from vector, so not safe for frontend
+string prevMatchTypeStr = "NULL";
 sequence __createSequence(list<string> &From)
 {
     sequence out;
@@ -360,8 +361,13 @@ sequence __createSequence(list<string> &From)
         sm_assert(out.items[0].type.info == atomic && enumData.count(out.items[0].type.name) != 0, out.raw + " statement argument must be enum. Instead, '" + toStr(&out.items[0].type) + "'");
         sm_assert(!From.empty(), "Missing statement after " + out.raw + "");
 
+        string old = prevMatchTypeStr;
+        prevMatchTypeStr = out.items[0].type.name;
+
         // This is for the code chunk
         out.items.push_back(__createSequence(From));
+
+        prevMatchTypeStr = old;
 
         // Ensure internal safety
         for (int j = 1; j < out.items.size(); j++)
@@ -387,6 +393,7 @@ sequence __createSequence(list<string> &From)
     else if (From.front() == "case")
     {
         // case NAME() {}
+        sm_assert(prevMatchTypeStr != "NULL", "'case' statement must occur within a 'match' statement.");
 
         // Takes a code scope / code line
         out.info = enum_keyword;
@@ -398,6 +405,7 @@ sequence __createSequence(list<string> &From)
 
         sm_assert(!From.empty(), "'case' must be followed by enumeration option name.");
         out.items.push_back(sequence{nullType, vector<sequence>{}, atom, From.front()});
+        string optionName = From.front();
 
         sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
         From.pop_front();
@@ -407,11 +415,16 @@ sequence __createSequence(list<string> &From)
         From.pop_front();
 
         sm_assert(!From.empty(), "Capture group is missing name or closing parenthesis.");
+        string captureName = "NULL";
 
         if (From.front() != ")")
         {
+            captureName = From.front();
             out.items.push_back(sequence{nullType, vector<sequence>{}, atom, From.front()});
             From.pop_front();
+
+            table[captureName].push_back(__multiTableSymbol{sequence{}, pointer, false});
+            table[captureName].back().type.append(enumData[prevMatchTypeStr].options[optionName]);
         }
         else
         {
@@ -420,13 +433,18 @@ sequence __createSequence(list<string> &From)
         }
 
         sm_assert(!From.empty() && From.front() == ")", "Capture parenthesis must contain at most one symbol.");
-        string captureName = From.front();
 
         sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
         From.pop_front();
 
         // Get actual code scope
         out.items.push_back(__createSequence(From));
+
+        // Remove capture group from Oak table if needed
+        if (captureName != "NULL")
+        {
+            table[captureName].pop_back();
+        }
 
         return out;
     }
@@ -960,23 +978,12 @@ string toC(const sequence &What)
                     if (captureName != "NULL")
                     {
                         out += "auto *" + captureName + " = &" + itemStr + ".__data." + optionName + "_data;\n";
-
-                        table[captureName].push_back(__multiTableSymbol{sequence{}, pointer, false});
-                        table[captureName].back().type.append(enumData[typeStr].options[optionName]);
-
-                        cout << "Inserted captured variable '" << captureName << "' w/ type " << toStr(&table[captureName].back().type) << "\n";
                     }
 
                     // Add capture group to Oak table if needed
 
                     out += toC(cur.items[2]);
                     out += "\n}\n";
-
-                    // Remove capture group from Oak table if needed
-                    if (captureName != "NULL")
-                    {
-                        table[captureName].pop_back();
-                    }
                 }
                 else if (What.items[1].items[ind].raw == "default")
                 {
