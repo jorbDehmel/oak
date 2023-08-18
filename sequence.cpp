@@ -40,6 +40,9 @@ void debugPrint(const sequence &What, int spaces, ostream &to)
     case keyword:
         to << "keyword";
         break;
+    case enum_keyword:
+        to << "enum_keyword";
+        break;
     }
 
     to << " w/ raw " << What.raw << ", type " << toStr(&What.type) << ":\n";
@@ -337,7 +340,114 @@ sequence __createSequence(list<string> &From)
         return toReturn;
     }
 
-    // Keywords
+    // Keywords below
+
+    // Enums- VERY C++ dependant!
+    else if (From.front() == "match")
+    {
+        // Takes an enum code line and a code scope / code line
+        out.info = enum_keyword;
+        out.raw = From.front();
+        out.type = nullType;
+
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        From.pop_front();
+
+        // Pops the first full sequence from the remaining front
+        // This is for the enum
+        out.items.push_back(__createSequence(From));
+
+        sm_assert(out.items[0].type.info == atomic && enumData.count(out.items[0].type.name) != 0, out.raw + " statement argument must be enum. Instead, '" + toStr(&out.items[0].type) + "'");
+        sm_assert(!From.empty(), "Missing statement after " + out.raw + "");
+
+        // This is for the code chunk
+        out.items.push_back(__createSequence(From));
+
+        // Ensure internal safety
+        for (int j = 1; j < out.items.size(); j++)
+        {
+            if (out.items[j].raw == "")
+            {
+                continue;
+            }
+
+            if (out.items[j].raw != "case" && out.items[j].raw != "default")
+            {
+                throw sequencing_error("Match statement must contain only 'case' and 'default' statements, not '" + out.items[j].raw + "'.");
+            }
+
+            if (out.items[j].raw == "default" && j != out.items.size() - 1)
+            {
+                throw sequencing_error("Default statement must be the final branch of a match statement.");
+            }
+        }
+
+        return out;
+    }
+    else if (From.front() == "case")
+    {
+        // case NAME() {}
+
+        // Takes a code scope / code line
+        out.info = enum_keyword;
+        out.raw = From.front();
+        out.type = nullType;
+
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        From.pop_front();
+
+        sm_assert(!From.empty(), "'case' must be followed by enumeration option name.");
+        out.items.push_back(sequence{nullType, vector<sequence>{}, atom, From.front()});
+
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        From.pop_front();
+
+        sm_assert(!From.empty() && From.front() == "(", "Enumeration option must be followed by capture parenthesis (IE name(capture_here)).");
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        From.pop_front();
+
+        sm_assert(!From.empty(), "Capture group is missing name or closing parenthesis.");
+
+        if (From.front() != ")")
+        {
+            out.items.push_back(sequence{nullType, vector<sequence>{}, atom, From.front()});
+            From.pop_front();
+        }
+        else
+        {
+            // Padding so that this spot will always refer to the capture variable
+            out.items.push_back(sequence{nullType, vector<sequence>{}, atom, "NULL"});
+        }
+
+        sm_assert(!From.empty() && From.front() == ")", "Capture parenthesis must contain at most one symbol.");
+        string captureName = From.front();
+
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        From.pop_front();
+
+        // Get actual code scope
+        out.items.push_back(__createSequence(From));
+
+        return out;
+    }
+    else if (From.front() == "default")
+    {
+        // default {}
+
+        // Takes a code scope / code line
+        out.info = enum_keyword;
+        out.raw = From.front();
+        out.type = nullType;
+
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        From.pop_front();
+
+        out.items.push_back(__createSequence(From));
+
+        return out;
+    }
+
+    // Conditionals and junk
     else if (From.front() == "if" || From.front() == "while")
     {
         // Takes a bool code line and a code scope / code line
@@ -814,6 +924,96 @@ string toC(const sequence &What)
         }
 
         break;
+
+    case enum_keyword:
+        // These get special treatment because they are heavily C++-dependant.
+        if (What.raw == "match")
+        {
+            // VERY different!
+            // First item is object to capture.
+            // Remaining items are case or defaults.
+
+            string itemStr = toC(What.items[0]);
+
+            Type type = What.items[0].type;
+            string typeStr = toStrC(&type);
+
+            // debugPrint(What);
+
+            for (int ind = 0; ind < What.items[1].items.size(); ind++)
+            {
+                if (What.items[1].items[ind].raw == "case")
+                {
+                    auto &cur = What.items[1].items[ind];
+                    string optionName = cur.items[0].raw;
+                    string captureName = cur.items[1].raw;
+
+                    auto backupTable = table;
+
+                    if (ind != 0)
+                    {
+                        out += "else ";
+                    }
+
+                    out += "if (" + itemStr + ".__info == " + typeStr + "::" + optionName + ")\n{";
+
+                    if (captureName != "NULL")
+                    {
+                        out += "auto *" + captureName + " = &" + itemStr + ".__data." + optionName + "_data;\n";
+
+                        table[captureName].push_back(__multiTableSymbol{sequence{}, pointer, false});
+                        table[captureName].back().type.append(enumData[typeStr].options[optionName]);
+
+                        cout << "Inserted captured variable '" << captureName << "' w/ type " << toStr(&table[captureName].back().type) << "\n";
+                    }
+
+                    // Add capture group to Oak table if needed
+
+                    out += toC(cur.items[2]);
+                    out += "\n}\n";
+
+                    // Remove capture group from Oak table if needed
+                    if (captureName != "NULL")
+                    {
+                        table[captureName].pop_back();
+                    }
+                }
+                else if (What.items[1].items[ind].raw == "default")
+                {
+                    sm_assert(ind + 1 == What.items[1].items.size(), "Default statement must be final branch of match statement.");
+                    auto &cur = What.items[1].items[ind];
+
+                    string contents = toC(cur.items[0]);
+
+                    if (ind == 0)
+                    {
+                        out += "{\n" + contents + "\n}\n";
+                    }
+                    else
+                    {
+                        out += "else\n{\n" + contents + "\n}\n";
+                    }
+                }
+                else if (What.items[1].items[ind].raw != "")
+                {
+                    sm_assert(false, "Invalid option '" + What.items[1].items[ind].raw + "' in match statement.");
+                }
+            }
+        }
+        else
+        {
+            cout << tags::yellow_bold
+                 << "Warning! Unknown enum keyword '" << What.raw << "'. Treating as regular keyword.\n"
+                 << tags::reset;
+
+            out += What.raw + " ";
+            for (auto child : What.items)
+            {
+                out += toC(child) + " ";
+            }
+        }
+
+        break;
     }
 
     return out;
@@ -911,8 +1111,6 @@ vector<pair<string, Type>> getArgs(Type &type)
                 cur = cur->next;
             }
 
-            // cout << __FILE__ << ":" << __LINE__ << " " << toStr(cur) << '\n';
-
             continue;
         }
 
@@ -936,19 +1134,12 @@ vector<pair<string, Type>> getArgs(Type &type)
         cur = cur->next;
     }
 
-    /*
-    cout << __FILE__ << ":" << __LINE__ << " output arguments:\n";
-    for (auto p : out)
-    {
-        cout << '\t' << p.first << '\t' << toStr(&p.second) << '\n';
-    }
-    */
-
     // Return
     return out;
 }
 
 // This should only be called after method replacement
+// I know I wrote this, but it still feels like black magic and I don't really understand it
 Type resolveFunction(const vector<string> &What, int &start, string &c)
 {
     if (What.empty() || start >= What.size())
@@ -1768,10 +1959,10 @@ void addEnum(const vector<string> &FromIn)
     }
 
     // Ensure for unit enums
-    enumData[name];
+    enumData[name] = __enumLookupData{};
 
     // Insert enum as unit struct
-    structData[name];
+    structData[name] = __structLookupData{};
 
     i++;
 
@@ -1856,6 +2047,47 @@ void addEnum(const vector<string> &FromIn)
     else if (From[4] != ";")
     {
         throw parse_error("Malformed enum definition; Expected ';' or '{'.");
+    }
+
+    __enumLookupData &cur = enumData[name];
+    string enumTypeStr = name;
+    for (auto optionName : cur.order)
+    {
+        string optionTypeStr = toStrC(&cur.options[optionName]);
+
+        if (cur.options[optionName].info == atomic && cur.options[optionName].name == "unit")
+        {
+            // Unit struct; Single argument constructor
+
+            // Insert Oak version
+            Type constructorType = nullType;
+            constructorType.append(function);
+            constructorType.append(var_name, "self");
+            constructorType.append(pointer);
+            constructorType.append(atomic, enumTypeStr);
+            constructorType.append(maps);
+            constructorType.append(atomic, "void");
+
+            table["wrap_" + optionName].push_back(__multiTableSymbol{sequence{}, constructorType, false});
+        }
+        else
+        {
+            // Double argument constructor
+
+            // Insert Oak version
+            Type constructorType = nullType;
+            constructorType.append(function);
+            constructorType.append(var_name, "self");
+            constructorType.append(pointer);
+            constructorType.append(atomic, enumTypeStr);
+            constructorType.append(join);
+            constructorType.append(var_name, "data");
+            constructorType.append(atomic, optionTypeStr);
+            constructorType.append(maps);
+            constructorType.append(atomic, "void");
+
+            table["wrap_" + optionName].push_back(__multiTableSymbol{sequence{}, constructorType, false});
+        }
     }
 
     return;

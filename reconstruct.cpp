@@ -748,45 +748,20 @@ string enumToC(const string &name)
             // Unit struct; Single argument constructor
 
             // Generate C version
-            out += "void init_" + optionName + "(" + enumTypeStr + " *self)\n{\n";
+            out += "void wrap_" + optionName + "(" + enumTypeStr + " *self)\n{\n";
             out += "self->__info = " + enumTypeStr + "::" + optionName + ";\n}\n";
-
-            // Insert Oak version
-            Type constructorType = nullType;
-            constructorType.append(function);
-            constructorType.append(var_name, "self");
-            constructorType.append(pointer);
-            constructorType.append(atomic, enumTypeStr);
-            constructorType.append(maps);
-            constructorType.append(atomic, "void");
-
-            table["init_" + optionName].push_back(__multiTableSymbol{sequence{}, constructorType, false});
         }
         else
         {
             // Double argument constructor
 
             // Generate C version
-            out += "void init_" + optionName + "(" + enumTypeStr + " *self, ";
+            out += "void wrap_" + optionName + "(" + enumTypeStr + " *self, ";
             out += optionTypeStr + " data)\n";
             out += "{\n";
             out += "self->__info = " + enumTypeStr + "::" + optionName + ";\n";
             out += "self->__data." + optionName + "_data = data;\n";
             out += "}\n";
-
-            // Insert Oak version
-            Type constructorType = nullType;
-            constructorType.append(function);
-            constructorType.append(var_name, "self");
-            constructorType.append(pointer);
-            constructorType.append(atomic, enumTypeStr);
-            constructorType.append(join);
-            constructorType.append(var_name, "data");
-            constructorType.append(atomic, optionTypeStr);
-            constructorType.append(maps);
-            constructorType.append(atomic, "void");
-
-            table["init_" + optionName].push_back(__multiTableSymbol{sequence{}, constructorType, false});
         }
     }
 

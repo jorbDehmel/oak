@@ -1055,9 +1055,11 @@ let main() -> i32
 
 ```
 
-The `match` statement is one of two ways to access the data inside enums in `Oak`, with the other being the compiler-generated "init" methods. The compiler generates `let init_OPTION_NAME(self: ^ENUM_NAME, data: OPTION_TYPE) -> void` for each option `OPTION_NAME` in an enum `ENUM_NAME`. This wraps the data variable into the enum. This all happens via a compiler `C++` interface.
+The `match` statement is one of two ways to access the data inside enums in `Oak`, with the other being the compiler-generated "wrap" methods. The compiler generates `let wrap_OPTION_NAME(self: ^ENUM_NAME, data: OPTION_TYPE) -> void` for each option `OPTION_NAME` in an enum `ENUM_NAME`. This wraps the data variable into the enum. This all happens via a compiler `C++` interface.
 
-Note that, if the type of an enum option is the unit struct, the compiler will instead generate a single-argument "init" method, taking only the self.
+Note that, if the type of an enum option is the unit struct, the compiler will instead generate a single-argument "wrap" method, taking only the self.
+
+Generally speaking, a wrap method puts data into an enum, and a match statement accesses it.
 
 ## Misc. Notes
 

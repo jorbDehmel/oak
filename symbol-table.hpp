@@ -33,6 +33,7 @@ enum sequenceInfo
     code_line,  // 1;
     atom,       // Anything else; Uses "raw" to specify
     keyword,
+    enum_keyword,
 };
 
 struct sequence

@@ -9,6 +9,11 @@ let a_data: struct
     data: i128,
 }
 
+let New(self: ^a_data) -> void
+{
+    self.data = to_i128(0);
+}
+
 let test: enum
 {
     a: a_data, // Can take existing structs
@@ -20,35 +25,6 @@ let New(self: ^test) -> void
 {
 }
 
-/*
-#define match(what) switch (what.__info)
-int main()
-{
-    main_struct obj;
-
-    match(obj)
-    {
-    case main_struct::a:
-        auto data = obj.__data.a_data;
-
-        data.a += 2;
-
-        break;
-    default:
-        break;
-    }
-
-    return 0;
-}
-*/
-
-/*
-The following will be generated automatically:
-let NewA(self: ^test, data: ^a_data) -> void;
-let NewB(self: ^test) -> void;
-let NewC(self: ^test) -> void;
-*/
-
 let fn_test(a: test) -> void
 {
 }
@@ -57,25 +33,29 @@ let main() -> i32
 {
     let obj: test;
 
-    /*
+    let to_wrap: a_data;
+    to_wrap.data = to_i128(5);
+
+    obj..wrap_a(to_wrap);
+
     match (obj)
     {
         case a(data)
         {
-            ;
+            print("hi");
+            //print(to_i32(data.data));
         }
 
         case b()
         {
-            ;
+            print("hihi");
         }
 
         default
         {
-            ;
+            print("hihihi");
         }
     }
-    */
 
     0
 }

@@ -39,6 +39,7 @@ reinstall:
 	$(MAKE) -C . uninstall clean install
 
 test: install
+	acorn -e oak_demos/enum_test.oak -o enum_test.out
 	acorn -e oak_demos/access_test.oak -o access_test.out
 	acorn -e oak_demos/cond_test.oak -o cond_test.out
 	acorn -e oak_demos/conv_test.oak -o conv_test.out
@@ -60,7 +61,6 @@ test: install
 	acorn -e oak_demos/thread_test.oak -o thread_test.out
 	acorn -e oak_demos/fn_ptr_test_2.oak -o fn_ptr_test_2.out
 	acorn -e oak_demos/erase_test.oak -o erase_test.out
-	acorn -e oak_demos/enum_test.oak -o enum_test.out
 	rm -rf *.log .oak_build
 
 build/%.o:	%.cpp $(HEADS)
