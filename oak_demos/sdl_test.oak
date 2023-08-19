@@ -40,12 +40,32 @@ let main() -> i32
 
             wind..show();
 
-            //sdl_delay(10);
-
             x += 10;
         }
     
         y += 10;
+
+        let event: sdl_event;
+        let flag: bool;
+
+        flag = true;
+        while (flag)
+        {
+            event = sdl_poll_event();
+
+            match (event)
+            {
+                case sdl_none()
+                {
+                    flag = false;
+                }
+
+                default
+                {
+                    ;
+                }
+            }
+        }
     }
 
     wind..Del();

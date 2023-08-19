@@ -5,13 +5,14 @@ github.com/jorbDehmel/oak
 TODO:
 - Generic struct modernization for multi-symbol generics
 - State machine based rule matching to reduce cost
-- erase! macro for simulacrum of private members
 - auto-instantiation for generic functions/methods
-- enumerations
 
 Acorn Version   |          |
 (Newest at top) | Date     | Justification
 ----------------|----------|-----------------------------------------
+0.0.9           | 8/18/23  | Added enums and match, case, and default
+                |          | statements.
+                |          |
 0.0.8           | 8/15/23  | Fixed bug with struct member order in
                 |          | interfacial files.
                 |          |

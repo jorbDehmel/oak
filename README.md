@@ -1032,7 +1032,7 @@ let main() -> i32
     {
         case option_a(data)
         {
-            // `data` becomes the i32 which option_a entails
+            // `data` becomes a pointer to the i32 which option_a entails
         }
 
         case option_b()

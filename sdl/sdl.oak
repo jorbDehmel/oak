@@ -3,3 +3,4 @@ link!("-L/usr/lib -lSDL2");
 
 package!("std");
 include!("sdl/sdl_interface.oak");
+include!("sdl/events.oak");

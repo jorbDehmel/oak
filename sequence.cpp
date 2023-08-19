@@ -636,8 +636,8 @@ sequence __createSequence(list<string> &From)
                 // Insert into table
                 table[name].push_back(__multiTableSymbol{sequence{type, vector<sequence>(), atom, ""}, type});
 
-                // Call constructor (pointers do not get constructors)
-                if (type.info != pointer)
+                // Call constructor (pointers and enums do not get constructors)
+                if (type.info != pointer && enumData.count(type.name) == 0)
                 {
                     // Syntactically necessary
                     out.items.push_back(sequence{nullType, vector<sequence>(), atom, ";"});
@@ -650,8 +650,6 @@ sequence __createSequence(list<string> &From)
                     toAppend.type = resolveFunction(newCall, garbage, toAppend.raw);
 
                     out.items.push_back(toAppend);
-
-                    // out.items.push_back(sequence{nullType, vector<sequence>(), atom, "; New(&" + name + ")"});
                 }
 
                 return out;
@@ -957,13 +955,27 @@ string toC(const sequence &What)
             string typeStr = toStrC(&type);
 
             // debugPrint(What);
+            sm_assert(enumData.count(typeStr) != 0, "'match' may only be used on enums.");
+            vector<string> options = enumData[typeStr].order;
+
+            map<string, bool> usedOptions;
+            for (auto opt : enumData[typeStr].order)
+            {
+                usedOptions[opt] = false;
+            }
 
             for (int ind = 0; ind < What.items[1].items.size(); ind++)
             {
                 if (What.items[1].items[ind].raw == "case")
                 {
                     auto &cur = What.items[1].items[ind];
+
                     string optionName = cur.items[0].raw;
+
+                    sm_assert(enumData[typeStr].options.count(optionName) != 0, "'" + optionName + "' is not an option for enum '" + typeStr + "'");
+                    sm_assert(usedOptions.count(optionName) != 0, "Option '" + optionName + "' cannot be used multiple times in a match statement.");
+                    usedOptions.erase(optionName);
+
                     string captureName = cur.items[1].raw;
 
                     auto backupTable = table;
@@ -988,6 +1000,8 @@ string toC(const sequence &What)
                 else if (What.items[1].items[ind].raw == "default")
                 {
                     sm_assert(ind + 1 == What.items[1].items.size(), "Default statement must be final branch of match statement.");
+                    usedOptions.clear();
+
                     auto &cur = What.items[1].items[ind];
 
                     string contents = toC(cur.items[0]);
@@ -1005,6 +1019,19 @@ string toC(const sequence &What)
                 {
                     sm_assert(false, "Invalid option '" + What.items[1].items[ind].raw + "' in match statement.");
                 }
+            }
+
+            if (usedOptions.size() != 0)
+            {
+                cout << tags::yellow_bold
+                     << "Warning! Match statement does not handle option(s) of enum '" << typeStr << "':\n";
+
+                for (auto opt : usedOptions)
+                {
+                    cout << '\t' << opt.first << '\n';
+                }
+
+                cout << tags::reset;
             }
         }
         else
