@@ -102,6 +102,18 @@ void Del(sdl_window *window)
     return;
 }
 
+void sdl_enable_window_fullscreen(sdl_window *self)
+{
+    SDL_SetWindowFullscreen(self->wind, SDL_WINDOW_FULLSCREEN_DESKTOP);
+    return;
+}
+
+void sdl_disable_window_fullscreen(sdl_window *self)
+{
+    SDL_SetWindowFullscreen(self->wind, 0);
+    return;
+}
+
 void show(sdl_window *window)
 {
     SDL_RenderPresent(window->rend);

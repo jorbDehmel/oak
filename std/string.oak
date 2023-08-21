@@ -48,6 +48,37 @@ let New(self: ^string, from: str) -> void
     Copy(Get(@self.data, to_u128(0)), Get(@from, to_u128(0)));
 }
 
+let New(self: ^string, from: string) -> void
+{
+    // Clear self if needed
+    if (self.size != to_u128(0))
+    {
+        free_arr!(self.data);
+        self.size = to_u128(0);
+    }
+
+    // Poll size of from (including null termination)
+    let size: u128;
+    size = to_u128(0);
+    while (^Get(@from.data, size) != to_i8(0))
+    {
+        size += to_u128(1);
+    }
+
+    // Alloc self
+    self.size = size;
+    alloc!(self.data, self.size);
+
+    // Copy data (including null termination)
+    while (size != to_u128(0))
+    {
+        Copy(Get(@self.data, size), ^Get(@from.data, size));
+
+        size -= to_u128(1);
+    }
+    Copy(Get(@self.data, to_u128(0)), ^Get(@from.data, to_u128(0)));
+}
+
 let Del(self: ^string) -> void
 {
     free_arr!(self.data);
@@ -151,4 +182,38 @@ let print(what: string) -> void
         
         i += to_u128(1);
     }
+}
+
+let Add(a: string, b: string) -> string
+{
+    let out: string;
+
+    // Accounts for null termination
+    let size: u128;
+    size = a.size + b.size;
+
+    New(@out, size);
+
+    let i: u128;
+    i = to_u128(0);
+
+    while (i < a.size)
+    {
+        Copy(Get(@out.data, i), ^Get(@a.data, i));
+
+        i += to_u128(1);
+    }
+
+    let b_pos: u128;
+    b_pos = to_u128(0);
+
+    while (b_pos < b.size)
+    {
+        Copy(Get(@out.data, i), ^Get(@b.data, b_pos));
+
+        b_pos += to_u128(1);
+        i += to_u128(1);
+    }
+
+    out
 }

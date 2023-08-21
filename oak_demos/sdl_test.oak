@@ -1,7 +1,7 @@
 // For testing Oak's experimental SDL package
 // Legacy passed
-
 // Jordan Dehmel, 2023
+
 package!("std");
 use_rule!("std");
 
@@ -14,6 +14,7 @@ let main() -> i32
     let wind: sdl_window;
 
     Copy(@wind, to_u64(512), to_u64(512));
+    wind..sdl_enable_window_fullscreen();
 
     let black: sdl_color;
     let white: sdl_color;
@@ -22,13 +23,13 @@ let main() -> i32
     let rect: sdl_rect;
     rect..New(to_u64(10), to_u64(10), to_u64(10), to_u64(10));
 
-    let y: i32;
-    y = 0;
+    let y: i32 = 0;
+    let frame: i32 = 0;
+    let start_time: i64 = time();
 
     while (y < to_i32(wind.height))
     {
-        let x: i32;
-        x = 0;
+        let x: i32 = 0;
 
         while (x < to_i32(wind.width))
         {
@@ -39,6 +40,7 @@ let main() -> i32
             wind..draw_rect(rect, white);
 
             wind..show();
+            frame += 1;
 
             x += 10;
         }
@@ -46,11 +48,11 @@ let main() -> i32
         y += 10;
 
         let event: sdl_event;
-        let flag: bool;
+        let flag: bool = true;
 
-        flag = true;
         while (flag)
         {
+            event..wrap_sdl_none();
             event = sdl_poll_event();
 
             match (event)
@@ -58,6 +60,14 @@ let main() -> i32
                 case sdl_none()
                 {
                     flag = false;
+                }
+
+                case sdl_key_down_event(data)
+                {
+                    let keycode: i128 = data.keycode;
+
+                    print(sdl_keycode_to_str(keycode));
+                    print("\n");
                 }
 
                 default
@@ -68,12 +78,27 @@ let main() -> i32
         }
     }
 
-    wind..Del();
+    let end_time: i64 = time();
 
+    let elapsed_s: i64 = end_time - start_time;
+
+    wind..sdl_disable_window_fullscreen();
+    wind..Del();
     sdl_quit();
 
-    let i: i32;
-    i = 0;
+    let fps: f64 = i_to_f(frame) / i_to_f(to_i32(elapsed_s));
+
+    print("Frames: ");
+    print(frame);
+    print("\n");
+
+    print("Elapsed seconds: ");
+    print(to_i32(elapsed_s));
+    print("\n");
+
+    print("FPS: ");
+    print(fps);
+    print("\n");
 
     0
 }

@@ -1,0 +1,27 @@
+package!("std");
+use_rule!("std");
+include!("std/string.oak");
+
+let main() -> i32
+{
+    let test_a: string;
+    test_a..New("hello, ");
+    print(test_a);
+    print("\n");
+
+    let test_b: string;
+    test_b..New("world!");
+    print(test_b);
+    print("\n");
+
+    print(test_a + test_b);
+    print("\n");
+
+    let test_c: string;
+    test_c = test_a + test_b;
+
+    print(test_c);
+    print("\n");
+
+    0
+}

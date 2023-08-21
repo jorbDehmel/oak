@@ -67,3 +67,4 @@ let Copy(self: ^sdl_event, other: sdl_event) -> void
 }
 
 let sdl_poll_event() -> sdl_event;
+let sdl_keycode_to_str(keycode: i128) -> str;

@@ -1,4 +1,9 @@
 #include "std_oak_header.hpp"
+#include "keys.hpp"
+
+// FOR DEBUGGING ONLY
+#include <stdio.h>
+
 #include <SDL2/SDL.h>
 
 // Struct definitions
@@ -108,4 +113,166 @@ sdl_event sdl_poll_event()
     }
 
     return out;
+}
+
+str sdl_keycode_to_str(i128 keycode)
+{
+    // Letters
+    if (keys::a <= keycode && keycode <= keys::z)
+    {
+        char out[2] = " ";
+        out[0] = (char)(keycode);
+        return out;
+    }
+
+    // Numbers
+    else if (keys::zero <= keycode && keycode <= keys::nine)
+    {
+        char out[2] = " ";
+        out[0] = (char)(keycode);
+        return out;
+    }
+
+    // f1 - f12
+    else if (keys::f1 <= keycode && keycode <= keys::f12)
+    {
+        if (keycode == keys::f1)
+        {
+            return "f1";
+        }
+        else if (keycode == keys::f2)
+        {
+            return "f2";
+        }
+        else if (keycode == keys::f3)
+        {
+            return "f3";
+        }
+        else if (keycode == keys::f4)
+        {
+            return "f4";
+        }
+        else if (keycode == keys::f5)
+        {
+            return "f5";
+        }
+        else if (keycode == keys::f6)
+        {
+            return "f6";
+        }
+        else if (keycode == keys::f7)
+        {
+            return "f7";
+        }
+        else if (keycode == keys::f8)
+        {
+            return "f8";
+        }
+        else if (keycode == keys::f9)
+        {
+            return "f9";
+        }
+        else if (keycode == keys::f10)
+        {
+            return "f10";
+        }
+        else if (keycode == keys::f11)
+        {
+            return "f11";
+        }
+        else if (keycode == keys::f12)
+        {
+            return "f12";
+        }
+    }
+
+    // Special characters
+    else
+    {
+        switch (keycode)
+        {
+        case keys::space:
+            return "space";
+
+        case keys::esc:
+            return "escape";
+
+        case keys::enter:
+            return "enter";
+
+        case keys::rightArrow:
+            return "right_arrow";
+
+        case keys::leftArrow:
+            return "left_arrow";
+
+        case keys::downArrow:
+            return "down_arrow";
+
+        case keys::upArrow:
+            return "up_arrow";
+
+        case keys::tab:
+            return "tab";
+
+        case keys::capslock:
+            return "capslock";
+
+        case keys::leftShift:
+            return "left_shift";
+
+        case keys::leftControl:
+            return "left_control";
+
+        case keys::leftAlt:
+            return "left_alt";
+
+        case keys::rightShift:
+            return "right_shift";
+
+        case keys::backspace:
+            return "backspace";
+
+        case keys::del:
+            return "delete";
+
+        case keys::backtick:
+            return "`";
+
+        case keys::dash:
+            return "-";
+
+        case keys::equals:
+            return "=";
+
+        case keys::leftSquareBracket:
+            return "[";
+
+        case keys::rightSquareBracket:
+            return "]";
+
+        case keys::backslash:
+            return "\\";
+
+        case keys::semicolon:
+            return ";";
+
+        case keys::quote:
+            return "'";
+
+        case keys::comma:
+            return ",";
+
+        case keys::period:
+            return ".";
+
+        case keys::slash:
+            return "/";
+
+        default:
+            break;
+        }
+    }
+
+    return "UNKOWN";
 }
