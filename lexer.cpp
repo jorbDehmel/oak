@@ -99,6 +99,12 @@ vector<string> lex(const string &What)
                 }
                 else
                 {
+                    if (What[i] == '\n')
+                    {
+                        line++;
+                        out.push_back("//__LINE__=" + to_string(line));
+                    }
+
                     i++;
                 }
             }

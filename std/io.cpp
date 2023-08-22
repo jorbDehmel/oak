@@ -37,6 +37,12 @@ void print(i8 what)
     return;
 }
 
+void print(i8 *what)
+{
+    cout << what;
+    return;
+}
+
 void print_err(str what)
 {
     cerr << what;

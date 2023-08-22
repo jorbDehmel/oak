@@ -1,0 +1,12 @@
+package!("std");
+include!("std/printf.oak");
+use_rule!("std");
+
+let main() -> i32
+{
+    let i: i32 = 5;
+
+    printf!("The number five: %\nThe number six: %\n", 5, 6);
+
+    0
+}

@@ -361,7 +361,7 @@ void doFile(const string &From)
                     string name, contents;
                     name = lexed[i];
 
-                    contents = "let main(argc: i32, argv: ^str) -> i32 ";
+                    contents = "let main(argc: i32, argv: ^^i8) -> i32 ";
 
                     i--;
                     lexed.erase(lexed.begin() + i); // Let
