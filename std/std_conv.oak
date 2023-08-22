@@ -56,5 +56,5 @@ let Get(self: ^str, index: u128) -> i8;
 let Get(self: str, index: u128) -> i8;
 
 // Get the i8 (char) version of a string
-// as long as it is one character.
-// let to_i8(what: str) -> i8;
+// (only uses the first character)
+let to_i8(what: str) -> i8;

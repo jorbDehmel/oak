@@ -178,3 +178,8 @@ i8 Get(str self, u128 index)
 {
     return self[index];
 }
+
+i8 to_i8(str what)
+{
+    return what[0];
+}
