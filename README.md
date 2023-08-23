@@ -35,6 +35,10 @@ To install, open a terminal in this folder and run `make install`. This repo is 
 
 There is also a `PKGBUILD` file included in this directory. If you use Arch Linux, you can just download this and install it via `makepkg -si`.
 
+## For More Help
+
+For examples on the concepts presented in this document, see the `./oak_demos/` directory included in this `git` repo. The files therein are labeled `CONCEPT_test.oak`, where `CONCEPT` is the concept covered within. These files are both demos and unit tests for `Oak` and `acorn`. Consequently, you can compile all demos via `make test`.
+
 ## Syntax
 
 In Oak, a variable is declared as follows.
@@ -107,45 +111,7 @@ let fn() -> void {
 }
 ```
 
-Ensure you always have some sort of return statement, even when it is unreachable. Principles take precedent over literal compiler interpretation.
-
-For instance, do this:
-
-```
-let fn() -> void
-{
-    ;
-
-    void
-}
-
-let fn2() -> void
-{
-    if (true)
-    {
-        void
-    }
-
-    void
-}
-```
-
-NEVER this:
-
-```
-let fn() -> void
-{
-    ;
-}
-
-let fn2() -> void
-{
-    if (true)
-    {
-        void
-    }
-}
-```
+Ensure you always have some sort of return statement (except `-> void` functions), even when it is unreachable. Principles take precedent over literal compiler interpretation.
 
 Oak exclusively uses underscored variable names. Camelcase variable names should never be used, and capitalized variables are illegal at compile time.
 
@@ -157,8 +123,11 @@ let long_variable_name_with_multiple_words: i32;
 let longVariableNameWithMultipleWords: i32;
 let longvariablenamewithmultiplewords: i32;
 
-// Won't compile
+// Only allowed for methods which use dynamic allocation
+// or for operator method aliases
 let LongVariableNameWithMultipleWords: i32;
+
+// Why? No?!?
 let Long_variable_name_with_multiple_words: i32;
 ```
 
@@ -214,6 +183,8 @@ let main(argc: i32, argv: ^str) -> i32;
 let main(argc: i32, argv: ^^i8) -> i32;
 ```
 
+All macros will use this third form (`(argc: i32, argv: ^^i8) -> i32`). Note that these two variables can be named anything. A common form is `(c: i32, v: ^^i8) -> i32`.
+
 ## Object Oriented Programming
 
 Oak does not have classes, nor does it have internally defined methods. Methods are converted into equivalent function calls during translation as follows.
@@ -225,7 +196,7 @@ OBJ.METHOD_NAME(ARG, ARG, ...);
 Becomes
 
 ```
-METHOD_NAME(&OBJ, ARG, ARG, ...);
+METHOD_NAME(@OBJ, ARG, ARG, ...);
 ```
 
 Thus, you can define a method as follows.
@@ -254,7 +225,7 @@ let linked_list<t>: struct
     next: ^linked_list<t>,
 }
 
-let linked_list<t>.append(self: *linked_list<t>, what: t) -> void
+let append(self: ^linked_list<t>, what: t) -> void
 {
     // Alloc is equivalent to `C++`'s new keyword
     alloc!(next);
@@ -262,7 +233,7 @@ let linked_list<t>.append(self: *linked_list<t>, what: t) -> void
 }
 ```
 
-Oak does not have private members, nor does it have inheritance. Eventually, traits will be implemented as in `Rust`.
+Oak does not have private members, nor does it have inheritance.
 
 ## Division Of Labor
 
@@ -306,9 +277,9 @@ let main() -> i32
 }
 ```
 
-## Interchangeability With `C++`
+## Interchangeability With C++
 
-The Acorn compiler will have some automated `C++`-to-`Oak` translation capabilities. For instance, using a `include!` macro statement on a `C`-based file will translate the function signatures within into Oak notation and add them to the symbol table. This allows the merging of the two languages to take place later, with object files. Since `Oak` is translated into `C++`, this is exceedingly simple. You can also define only the function signatures in `Oak` and define them in `C++`, as is done in the Oak `std` (standard) package.
+The Acorn compiler will have some automated `C++`-to-`Oak` translation capabilities. For instance, using a `include!` macro statement on a `C`-based file will translate the function signatures within into Oak notation and add them to the symbol table. This allows the merging of the two languages to take place later, with object files. Since `Oak` is translated into `C++`, this is exceedingly simple. You can also define only the function signatures in `Oak` and define them in `C++`, as is done in the Oak `std` (standard) package. This is called **interfacing**. These pairs of dual-language files are **interfacial files**, and any package primarily porting one language's features to `Oak` is an **interfacial package**.
 
 ## Operator Overloading / Aliases
 
@@ -333,8 +304,8 @@ let example: struct
     ,
 }
 
-let example.Copy(...) -> void;
-let example.Eq(...) -> bool;
+let Copy(self: ^example, ...) -> void;
+let Eq(self: ^example, ...) -> bool;
 ```
 
 There are many so-called "operator aliases" which are listed below. If `self` is not a pointer, it is a const function.
@@ -395,7 +366,10 @@ File: `main.oak`
 
 ```
 // Import the Oak standard package
-package!(std);
+package!("std");
+
+// Use the standard Oak ruleset
+use_rule!("std");
 
 let main(argc: i32, argv: ^str)
 {
@@ -412,7 +386,8 @@ let main(argc: i32, argv: ^str)
 Commands (bash):
 
 ```
-acorn --link main.oak && .oak_build/a.out
+acorn main.oak -o hello.out
+./hello.out
 ```
 
 Output:
@@ -524,6 +499,8 @@ let main() -> i32
 
 As of version 0.0.4, you must manually instantiate all associated methods for a generic struct in addition to their definitions.
 
+Generic enumerations are defined exactly like structs (see later for more information on enumerations).
+
 ## Acorn
 Acorn is the Oak translator, compiler, and linker. Oak is first translated into `C++`, which is then compiled and linked.
 
@@ -567,9 +544,9 @@ You can also define your own macros as follows. If you wanted to create a macro 
 Macro arguments are always treated as strings. For instance, `link!(foobar)` is equivalent to `link!("foobar")`. You are encouraged to put quotations around any filenames.
 
 ```
-let hi!(argc: i32, argv: ^str) -> i32
+let hi!(argc: i32, argv: ^^i8) -> i32
 {
-    include!("/usr/include/oak/std/std_io.oak");
+    include!("std/std_io.oak");
 
     print("print(\"hello world\")");
 
@@ -1060,6 +1037,36 @@ The `match` statement is one of two ways to access the data inside enums in `Oak
 Note that, if the type of an enum option is the unit struct, the compiler will instead generate a single-argument "wrap" method, taking only the self.
 
 Generally speaking, a wrap method puts data into an enum, and a match statement accesses it.
+
+## The printf! macro
+
+The `printf!` (print formatted) macro is a very useful and compact way to print things. It is available via `include!("std/printf.oak");`. This is similar, but not exactly like, `C`'s printf function. The first argument to the `printf!` is a format string. Any percentage signs `%` within this format string will be replaced by the macro arguments which follow. For instance, `printf!("hello %\n", 5);` would print `hello 5`. This works with literals or variables- anything for which the single-argument `print` function is defined. The first argument after the format string corresponds to the first `%`, the second to the second, and so on. For instance, `printf!("% % % % %", 1, 2, 3, 4, 5);` would print `1 2 3 4 5`.
+
+```
+package!("std");
+include!("std/printf.oak");
+use_rule!("std");
+
+let main() -> i32
+{
+    printf!("The number five: % \nThe number six: % \n", 5, 6);
+    printf!("The following should be a literal percentage sign: \\%\n");
+
+    printf!("This test the failure system of printf % \n");
+
+    let i: i32 = 5;
+    let j: f64 = 1.234;
+    printf!(
+        "Variable i is %, j is %, and some text is '%'.\n",
+        i,
+        j,
+        "some text here"
+    );
+
+    0
+}
+
+```
 
 ## Misc. Notes
 

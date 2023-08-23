@@ -66,8 +66,7 @@ let printf!(argc: i32, argv: ^^i8) -> i32
         {
             if (cur_arg >= argc)
             {
-                print("print(__LINE__);\n");
-                print("print(\": MALFORMED PRINTF CALL\");\n");
+                print("print(\"<MALFORMED PRINTF CALL>\");\n");
             }
             else
             {
