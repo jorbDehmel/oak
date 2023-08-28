@@ -2,7 +2,7 @@
 #include "keys.hpp"
 
 // FOR DEBUGGING ONLY
-#include <stdio.h>
+// #include <stdio.h>
 
 #include <SDL2/SDL.h>
 

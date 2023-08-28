@@ -63,6 +63,11 @@ void sdl_delay(i32 ms)
     return;
 }
 
+i32 sdl_get_ticks()
+{
+    return SDL_GetTicks();
+}
+
 f64 sdl_sin(f64 x)
 {
     return SDL_sin(x);
@@ -90,7 +95,8 @@ void Copy(sdl_window *self, u64 w, u64 h)
 {
     self->width = w;
     self->height = h;
-    SDL_CreateWindowAndRenderer(w, h, 0, &self->wind, &self->rend);
+
+    SDL_SetWindowSize(self->wind, w, h);
 
     return;
 }

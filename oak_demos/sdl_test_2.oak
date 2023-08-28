@@ -1,0 +1,110 @@
+package!("std");
+package!("sdl");
+
+include!("std/printf.oak");
+
+use_rule!("std");
+
+let main() -> i32
+{
+    let black: sdl_color;
+    let white: sdl_color;
+    white..New(to_u8(255), to_u8(255), to_u8(255), to_u8(255));
+
+    let w: i32 = 512;
+    let h: i32 = 512;
+
+    let wind: sdl_window;
+    Copy(@wind, to_u64(w), to_u64(h));
+
+    let event: sdl_event;
+    let rect: sdl_rect;
+    rect..New(to_u64(w / 2), to_u64(h / 2), to_u64(8), to_u64(8));
+
+    let start: i32;
+    let end: i32;
+    let elapsed: i32;
+    let fps: f64;
+
+    let running: bool = true;
+    while running
+    {
+        start = sdl_get_ticks();
+
+        // Clear screen
+        wind..fill(black);
+
+        // Draw character
+        wind..draw_rect(rect, white);
+
+        // Present
+        wind..show();
+
+        // Poll events
+        let flag: bool = true;
+        while flag
+        {
+            event..wrap_sdl_none();
+            event = sdl_poll_event();
+
+            match (event)
+            {
+                case sdl_none()
+                {
+                    flag = false;
+                }
+
+                case sdl_key_down_event(data)
+                {
+                    let keycode: i128 = data.keycode;
+
+                    if (keycode == to_i128(27))
+                    {
+                        running = false;
+                    }
+                    else if (keycode == to_i128(to_i32(to_i8("w"))))
+                    {
+                        if (rect.y > to_u64(0))
+                        {
+                            rect.y -= to_u64(1);
+                        }
+                    }
+                    else if (keycode == to_i128(to_i32(to_i8("s"))))
+                    {
+                        if (rect.y < to_u64(h))
+                        {
+                            rect.y += to_u64(1);
+                        }
+                    }
+                    else if (keycode == to_i128(to_i32(to_i8("a"))))
+                    {
+                        if (rect.x > to_u64(0))
+                        {
+                            rect.x -= to_u64(1);
+                        }
+                    }
+                    else if (keycode == to_i128(to_i32(to_i8("d"))))
+                    {
+                        if (rect.x < to_u64(w))
+                        {
+                            rect.x += to_u64(1);
+                        }
+                    }
+                }
+
+                default
+                {
+                    ;
+                }
+            }
+        }
+
+        end = sdl_get_ticks();
+        elapsed = end - start;
+
+        fps = 1000.0 / i_to_f(elapsed);
+        printf!("FPS: %\n", fps);
+    }
+
+    0
+}

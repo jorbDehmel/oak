@@ -6,7 +6,7 @@ OBJS := build/lexer.o build/symbol-table.o \
 	build/macros.o build/sequence.o \
 	build/packages.o build/sizer.o build/op-sub.o \
 	build/mem.o build/acorn_resources.o \
-	build/document.o build/rules.o enums.o
+	build/document.o build/rules.o build/enums.o
 
 HEADS := lexer.hpp reconstruct.hpp symbol-table.hpp \
 	type-builder.hpp macros.hpp tags.hpp \

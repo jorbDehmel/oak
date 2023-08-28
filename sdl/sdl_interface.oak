@@ -77,6 +77,7 @@ let sdl_tan(x: f64) -> f64;
 let sdl_init() -> void;
 let sdl_quit() -> void;
 let sdl_delay(ms: i32) -> void;
+let sdl_get_ticks() -> i32;
 
 let show(window: ^sdl_window) -> void;
 let fill(window: ^sdl_window, color: sdl_color) -> void;
