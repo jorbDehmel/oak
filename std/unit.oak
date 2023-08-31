@@ -1,0 +1,4 @@
+// This file provides the unit struct, and nothing else
+// Jordan Dehmel, 2023
+
+let unit: struct;

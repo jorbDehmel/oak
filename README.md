@@ -9,11 +9,13 @@ Jordan Dehmel, jdehmel@outlook.com, github.com/jorbDehmel/oak
 
 `Oak` is a modern, compiled, low-level, statically-typed programming language. It uses `Rust`-like typing, without `Rust`'s lifetimes system. It is analogous to `C++` with stronger macro support, modern typing, compile-time syntax modification and integrated package management. It's like if `C` let you shape the language to your liking. It is named Oak because nature imagery is desperately needed in the mind of a programmer.
 
+This document outlines the basics of `Oak`, as well as the canonical formatting of `Oak` code. Deviation from this formatting style is unadvisable, and considered bad form.
+
 Oak is, as of now, a translated language; Oak code is translated via the `acorn` command (see later) into `C++`. `acorn` can also compile `Oak` into object code, or link it to create executables.
 
 Oak has modifiable syntax (see the section on preprocessor rules), making it highly customizable and flexible in a way that no other mainstream languages are. It supports the creation of "dialects", which are `Oak` variants which use preprocessor rules to support independent syntactical structures. In this way, `Oak` provides a strong central core to many branches.
 
-The Oak programming language outlined here bears no relation nor resemblance to the Java prototype of the same name; I was not aware of it until significantly into development.
+The Oak programming language outlined here bears no relation nor resemblance to the Java prototype of the same name; I was not aware of it until significantly into development. I figure that, since Java-Oak was never widely deployed, I can continue using the name (especially since no part of this project's development is in any way commercial).
 
 ## Names
 
@@ -126,11 +128,11 @@ let LongVariableNameWithMultipleWords: i32;
 let Long_variable_name_with_multiple_words: i32;
 ```
 
-The same naming tips go for structs. Structs should not have any special name conventions. The only symbols which have different naming conventions are the operator aliases (see later), which use upper camelcase.
+The same naming tips go for structs and enums. Structs and enums should not have any special name conventions. The only symbols which have different naming conventions are the operator aliases (see later), which use upper camelcase.
 
 These naming conventions are also extended to package names (unless for some reason incompatible with the git host website they are on) and file names. Unlike standard practice in `C++` and most other languages, generics types (see later) should still be lower-underscore-case.
 
-Single-line comments should start with "`// `" (slash, slash, space), and multi-line comments should start with `/*` and end with `*/` (just like `C++`).
+Single-line comments should start with "`// `" (slash, slash, space), and multi-line comments should start with `/*` (slash-star-newline) and end with `*/` (newline-star-slash) (just like `C++`).
 
 ```
 // Correct single line comment
@@ -1069,6 +1071,8 @@ Some miscellaneous notes which are not long enough to warrant their own section 
 - `Oak` does not have namespaces
 - It is highly likely that `Oak` will one day translate to `x86` assembly or `C` instead of `C++`
 - `Oak` does not have stack-stored arrays; Only heap-stored ones. In fact, all heap-stored data is technically array-based.
+- As of version `0.0.10`, the `New` and `Del` operator aliases are single-argument only. Just use `Copy` for anything else.
+- You can call a multi-argument `=` operator (`Copy`) like this: `a = (b, c, d);` (as of `Oak` `0.0.10`)
 
 ## License
 

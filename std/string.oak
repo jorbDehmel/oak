@@ -11,13 +11,13 @@ let New(self: ^string) -> void
     self.size = to_u128(0);
 }
 
-let New(self: ^string, size: u128) -> void
+let Copy(self: ^string, size: u128) -> void
 {
     self.size = size;
     alloc!(self.data, self.size);
 }
 
-let New(self: ^string, from: str) -> void
+let Copy(self: ^string, from: str) -> void
 {
     // Clear self if needed
     if (self.size != to_u128(0))
@@ -48,7 +48,7 @@ let New(self: ^string, from: str) -> void
     Copy(Get(@self.data, to_u128(0)), Get(@from, to_u128(0)));
 }
 
-let New(self: ^string, from: string) -> void
+let Copy(self: ^string, from: string) -> void
 {
     // Clear self if needed
     if (self.size != to_u128(0))
@@ -192,7 +192,7 @@ let Add(a: string, b: string) -> string
     let size: u128;
     size = a.size + b.size;
 
-    New(@out, size);
+    Copy(@out, size);
 
     let i: u128;
     i = to_u128(0);

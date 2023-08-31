@@ -9,7 +9,7 @@ let main() -> i32
 {
     let black: sdl_color;
     let white: sdl_color;
-    white..New(to_u8(255), to_u8(255), to_u8(255), to_u8(255));
+    white..Copy(to_u8(255), to_u8(255), to_u8(255), to_u8(255));
 
     let w: i32 = 512;
     let h: i32 = 512;
@@ -19,7 +19,7 @@ let main() -> i32
 
     let event: sdl_event;
     let rect: sdl_rect;
-    rect..New(to_u64(w / 2), to_u64(h / 2), to_u64(8), to_u64(8));
+    rect..Copy(to_u64(w / 2), to_u64(h / 2), to_u64(8), to_u64(8));
 
     let start: i32;
     let end: i32;

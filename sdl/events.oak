@@ -1,6 +1,5 @@
 link!("sdl/events.o");
-
-let unit: struct;
+include!("std/unit.oak");
 
 let sdl_key_event_data: struct
 {

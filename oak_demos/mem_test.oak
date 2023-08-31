@@ -17,13 +17,6 @@ let New(self: ^test) -> void
     alloc!(self.data, to_u128(5));
 }
 
-let New(self: ^test, size: i32) -> void
-{   
-    print("Alloc called\n");
-
-    alloc!(self.data, to_u128(size));
-}
-
 let Del(self: ^test) -> void
 {
     print("Free called\n");
@@ -37,7 +30,6 @@ let main() -> i32
     a..Del();
 
     let b: test;
-    b..New(10);
     b..Del();
 
     0

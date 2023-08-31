@@ -53,6 +53,8 @@ test: install
 	acorn -e oak_demos/rule_test.oak -o rule_test.out
 	acorn -e oak_demos/rule_test_2.oak -o rule_test_2.out
 	acorn -e oak_demos/sdl_test.oak -o sdl_test.out
+	acorn -e oak_demos/sdl_test_2.oak -o sdl_test_2.out
+	acorn -e oak_demos/sdl_test_3.oak -o sdl_test_3.out
 	acorn -e oak_demos/gen_struct_test.oak -o gen_struct_test.out
 	acorn -e oak_demos/generic_test.oak -o generic_test.out
 	acorn -e oak_demos/file_test.oak -o file_test.out

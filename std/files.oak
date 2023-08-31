@@ -41,7 +41,7 @@ let seek(self: ^o_file, pos: u128) -> void;
 let read(self: ^i_file, size: u128) -> string
 {
     let out: string;
-    New(@out, size);
+    Copy(@out, size);
 
     let buf: i8;
     buf = to_i8(0);

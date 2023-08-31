@@ -690,6 +690,25 @@ sequence __createSequence(list<string> &From)
                     }
                 }
 
+                bool isSingleArg = true;
+                for (Type *ptr = &type; ptr != nullptr; ptr = ptr->next)
+                {
+                    if (ptr->info == join)
+                    {
+                        isSingleArg = false;
+                        break;
+                    }
+                }
+
+                // Restrictions upon some types of methods
+                if (isMethod && !isSingleArg)
+                {
+                    if (name == "New" || name == "Del")
+                    {
+                        throw runtime_error("Illegal method definition! Method '" + name + "' must have exactly one argument.");
+                    }
+                }
+
                 bool oldSafeness = insideMethod;
                 insideMethod = isMethod;
 

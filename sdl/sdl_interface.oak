@@ -30,7 +30,7 @@ let New(self: ^sdl_color) -> void
     self.a = to_u8(0);
 }
 
-let New(self: ^sdl_color, r: u8, g: u8, b: u8, a: u8) -> void
+let Copy(self: ^sdl_color, r: u8, g: u8, b: u8, a: u8) -> void
 {
     self.r = r;
     self.g = g;
@@ -43,7 +43,13 @@ let sdl_coord: struct
     x, y: u64,
 }
 
-let New(self: ^sdl_coord, x: u64, y: u64) -> void
+let New(self: ^sdl_coord) -> void
+{
+    self.x = to_u64(0);
+    self.y = to_u64(0);
+}
+
+let Copy(self: ^sdl_coord, x: u64, y: u64) -> void
 {
     self.x = x;
     self.y = y;
@@ -62,7 +68,7 @@ let New(self: ^sdl_rect) -> void
     self.h = to_u64(0);
 }
 
-let New(self: ^sdl_rect, x: u64, y: u64, w: u64, h: u64) -> void
+let Copy(self: ^sdl_rect, x: u64, y: u64, w: u64, h: u64) -> void
 {
     self.x = x;
     self.y = y;

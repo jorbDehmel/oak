@@ -9,7 +9,9 @@ let main() -> i32
     let out: o_file;
     let to_write: string;
     out..open("hi.txt");
-    New(@to_write, "abcdefghijklmnopqrstuvwxyz\n");
+    
+    to_write = "abcdefghijklmnopqrstuvwxyz\n";
+
     out..write(to_write);
     out..close();
     to_write..Del();

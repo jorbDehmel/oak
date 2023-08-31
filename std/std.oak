@@ -6,7 +6,8 @@ Linkage file for the Oak standard package.
 include!(
     "std/std_io.oak",
     "std/std_conv.oak",
-    "std/std_ops.oak"
+    "std/std_ops.oak",
+    "std/unit.oak"
 );
 
 link!("std/misc_std.o");
@@ -84,8 +85,6 @@ let c_time(when: i64) -> str;
 
 // Run a system command
 let sys(command: str) -> i32;
-
-let unit: struct;
 
 /*
 // Idea for a future rule- Idealized copy constructors.

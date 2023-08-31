@@ -9,7 +9,7 @@ let main() -> i32
     out..open("hi.txt");
 
     let to_write: string;
-    New(@to_write, "Hello, world!\n");
+    to_write = "Hello, world!\n";
     
     out..write(to_write);
     

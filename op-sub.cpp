@@ -27,6 +27,19 @@ void doSub(vector<string> &From, const int &i, const string &SubName, const bool
     operatorSub(prevGroup);
     operatorSub(postGroup);
 
+    // Trim hanging parenthesis (which are not function calls)
+    while (prevGroup.size() >= 2 && prevGroup.front() == "(" && prevGroup.back() == ")")
+    {
+        prevGroup.erase(prevGroup.begin());
+        prevGroup.pop_back();
+    }
+
+    while (postGroup.size() >= 2 && postGroup.front() == "(" && postGroup.back() == ")")
+    {
+        postGroup.erase(postGroup.begin());
+        postGroup.pop_back();
+    }
+
     // Reconstruct
     toAdd.push_back(SubName);
     toAdd.push_back("(");

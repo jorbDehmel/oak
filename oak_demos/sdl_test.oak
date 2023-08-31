@@ -18,10 +18,10 @@ let main() -> i32
 
     let black: sdl_color;
     let white: sdl_color;
-    white..New(to_u8(255), to_u8(255), to_u8(255), to_u8(255));
+    white..Copy(to_u8(255), to_u8(255), to_u8(255), to_u8(255));
 
     let rect: sdl_rect;
-    rect..New(to_u64(10), to_u64(10), to_u64(10), to_u64(10));
+    rect..Copy(to_u64(10), to_u64(10), to_u64(10), to_u64(10));
 
     let y: i32 = 0;
     let frame: i32 = 0;
