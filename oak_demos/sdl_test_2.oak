@@ -26,6 +26,11 @@ let main() -> i32
     let elapsed: i32;
     let fps: f64;
 
+    let up_is_pressed: bool = false;
+    let down_is_pressed: bool = false;
+    let left_is_pressed: bool = false;
+    let right_is_pressed: bool = false;
+
     let running: bool = true;
     while running
     {
@@ -64,31 +69,41 @@ let main() -> i32
                     }
                     else if (keycode == to_i128(to_i32(to_i8("w"))))
                     {
-                        if (rect.y > to_u64(0))
-                        {
-                            rect.y -= to_u64(1);
-                        }
+                        up_is_pressed = true;
                     }
                     else if (keycode == to_i128(to_i32(to_i8("s"))))
                     {
-                        if (rect.y < to_u64(h))
-                        {
-                            rect.y += to_u64(1);
-                        }
+                        down_is_pressed = true;
                     }
                     else if (keycode == to_i128(to_i32(to_i8("a"))))
                     {
-                        if (rect.x > to_u64(0))
-                        {
-                            rect.x -= to_u64(1);
-                        }
+                        left_is_pressed = true;
                     }
                     else if (keycode == to_i128(to_i32(to_i8("d"))))
                     {
-                        if (rect.x < to_u64(w))
-                        {
-                            rect.x += to_u64(1);
-                        }
+                        right_is_pressed = true;
+                    }
+                }
+
+                case sdl_key_up_event(data)
+                {
+                    let keycode: i128 = data.keycode;
+
+                    if (keycode == to_i128(to_i32(to_i8("w"))))
+                    {
+                        up_is_pressed = false;
+                    }
+                    else if (keycode == to_i128(to_i32(to_i8("s"))))
+                    {
+                        down_is_pressed = false;
+                    }
+                    else if (keycode == to_i128(to_i32(to_i8("a"))))
+                    {
+                        left_is_pressed = false;
+                    }
+                    else if (keycode == to_i128(to_i32(to_i8("d"))))
+                    {
+                        right_is_pressed = false;
                     }
                 }
 
@@ -99,11 +114,45 @@ let main() -> i32
             }
         }
 
+        if up_is_pressed
+        {
+            if rect.y > to_u64(0)
+            {
+                rect.y -= to_u64(1);
+            }
+        }
+
+        if down_is_pressed
+        {
+            if rect.y < to_u64(h)
+            {
+                rect.y += to_u64(1);
+            }
+        }
+
+        if left_is_pressed
+        {
+            if rect.x > to_u64(0)
+            {
+                rect.x -= to_u64(1);
+            }
+        }
+
+        if right_is_pressed
+        {
+            if rect.x < to_u64(w)
+            {
+                rect.x += to_u64(1);
+            }
+        }
+
         end = sdl_get_ticks();
         elapsed = end - start;
 
-        fps = 1000.0 / i_to_f(elapsed);
-        printf!("FPS: %\n", fps);
+        if elapsed < 32
+        {
+            sdl_delay(32 - elapsed);
+        }
     }
 
     0

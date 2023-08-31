@@ -141,9 +141,21 @@ string callMacro(const string &Name, const vector<string> &Args, bool debug)
 
     command += " > " + outputName;
 
-    if (system(command.c_str()) != 0)
+    if (debug)
     {
-        throw runtime_error(string("Macro failure with command '" + command + "'"));
+        cout << "Macro call `" << command << "`\n";
+    }
+
+    try
+    {
+        if (system(command.c_str()) != 0)
+        {
+            throw runtime_error(string("Self-reported macro failure with command '" + command + "'"));
+        }
+    }
+    catch (...)
+    {
+        throw runtime_error(string("Macro system failure with command '" + command + "'"));
     }
 
     // Load from output file
@@ -162,6 +174,12 @@ string callMacro(const string &Name, const vector<string> &Args, bool debug)
     }
 
     file.close();
+
+    if (debug)
+    {
+        cout << "Macro returned\n```\n"
+             << out << "\n```\n";
+    }
 
     return out;
 }

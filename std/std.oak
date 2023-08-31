@@ -86,3 +86,19 @@ let c_time(when: i64) -> str;
 let sys(command: str) -> i32;
 
 let unit: struct;
+
+/*
+// Idea for a future rule- Idealized copy constructors.
+
+a = (e, f, g);
+// Becomes
+Copy(@a, e, f, g);
+
+// Symbex:
+// "= $<$($)$>$ $>a" -> "$a$1$-1$1"
+// (Using extended variable iteration notation)
+
+// Sapling:
+// "$*a = ( $*b )" -> "Copy ( @ $a , $b )"
+
+*/

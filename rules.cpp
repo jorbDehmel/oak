@@ -13,7 +13,7 @@ vector<string> getMacroArgs(vector<string> &lexed, const int &i)
 
     lexed.erase(lexed.begin() + i);
 
-    if (lexed[i].size() > 2 && lexed[i].substr(0, 2) == "//")
+    while (lexed[i].size() > 2 && lexed[i].substr(0, 2) == "//")
     {
         lexed.erase(lexed.begin() + i);
     }
@@ -23,17 +23,29 @@ vector<string> getMacroArgs(vector<string> &lexed, const int &i)
         throw runtime_error("Internal error; Malformed call to getMacroArgs.");
     }
 
+    // Erase opening parenthesis
     lexed.erase(lexed.begin() + i);
 
-    if (lexed[i].size() > 2 && lexed[i].substr(0, 2) == "//")
+    while (lexed[i].size() > 2 && lexed[i].substr(0, 2) == "//")
     {
         lexed.erase(lexed.begin() + i);
     }
 
     string cur = "";
+    int count = 1;
+
     while (!lexed.empty() && lexed[i] != ";")
     {
-        if (lexed[i] == "," || lexed[i] == ")")
+        if (lexed[i] == "(")
+        {
+            count++;
+        }
+        else if (lexed[i] == ")")
+        {
+            count--;
+        }
+
+        if ((lexed[i] == "," && count == 1) || (lexed[i] == ")" && count == 0))
         {
             out.push_back(cur);
             cur = "";

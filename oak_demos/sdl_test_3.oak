@@ -1,0 +1,92 @@
+package!("std");
+package!("sdl");
+
+include!("std/printf.oak");
+
+use_rule!("std");
+
+let main() -> i32
+{
+    let black: sdl_color;
+    let white: sdl_color;
+    white..New(to_u8(255), to_u8(255), to_u8(255), to_u8(255));
+
+    let w: i32 = 512;
+    let h: i32 = 512;
+
+    let wind: sdl_window;
+    Copy(@wind, to_u64(w), to_u64(h));
+
+    let event: sdl_event;
+    let rect: sdl_rect;
+    rect..New(to_u64(w / 2), to_u64(h / 2), to_u64(8), to_u64(8));
+
+    let start: i32;
+    let end: i32;
+    let elapsed: i32;
+    let fps: f64;
+
+    let running: bool = true;
+    while running
+    {
+        start = sdl_get_ticks();
+
+        // Clear screen
+        wind..fill(black);
+
+        wind..draw_rect(rect, white);
+
+        // Present
+        wind..show();
+
+        // Poll events
+        let flag: bool = true;
+        while flag
+        {
+            event..wrap_sdl_none();
+            event = sdl_poll_event();
+
+            match (event)
+            {
+                case sdl_none()
+                {
+                    flag = false;
+                }
+
+                case sdl_key_down_event(data)
+                {
+                    if data.keycode == to_i128(27)
+                    {
+                        running = false;
+                    }
+                }
+
+                case sdl_mouse_move_event(data)
+                {
+                    rect.x = to_u64(to_i32(data.x));
+                    rect.y = to_u64(to_i32(data.y));
+                }
+
+                case sdl_mouse_button_down_event(data)
+                {
+                    printf!("A mouse button was clicked w/ code %\n", to_i32(data.code));
+                }
+
+                default
+                {
+                    ;
+                }
+            }
+        }
+
+        end = sdl_get_ticks();
+        elapsed = end - start;
+
+        if elapsed < 32
+        {
+            sdl_delay(32 - elapsed);
+        }
+    }
+
+    0
+}

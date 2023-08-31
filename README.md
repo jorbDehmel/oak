@@ -1,9 +1,4 @@
 
-[comment]: # ( As of August 3rd, 2023:                                     )
-[comment]: # ( There are 8,800 L.O.C. via `cat * | wc -l`                  )
-[comment]: # ( It takes 20 seconds to compile via time make clean install  )
-[comment]: # ( It takes up 660 kb of disk space upon install via acorn -sq )
-
 # The Oak Programming Language
 
 Jordan Dehmel, jdehmel@outlook.com, github.com/jorbDehmel/oak

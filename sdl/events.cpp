@@ -80,7 +80,7 @@ sdl_event sdl_poll_event()
     {
         sdl_key_event_data to_wrap;
         to_wrap.keycode = event.key.keysym.sym;
-        wrap_sdl_key_down_event(&out, to_wrap);
+        wrap_sdl_key_up_event(&out, to_wrap);
     }
     else if (event.type == SDL_MOUSEMOTION)
     {

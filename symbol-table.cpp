@@ -13,6 +13,11 @@ multiSymbolTable table;
 // Converts lexed symbols into a type
 Type toType(const vector<string> &WhatIn)
 {
+    if (WhatIn.size() == 0)
+    {
+        return Type(atomic, "NULL");
+    }
+
     vector<string> What;
     for (string s : WhatIn)
     {
@@ -26,8 +31,8 @@ Type toType(const vector<string> &WhatIn)
     {
         return Type(atomic, "NULL");
     }
-    int i = 0;
 
+    int i = 0;
     if (What[i] == "<")
     {
         while (What[i] != ">")
