@@ -1,3 +1,6 @@
+// A test of the std/prinf.oak file
+// Legacy passed
+
 package!("std");
 include!("std/printf.oak");
 use_rule!("std");

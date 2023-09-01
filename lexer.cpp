@@ -87,13 +87,24 @@ vector<string> lex(const string &What)
         // Multi-line comments, ditto as above
         else if (c == '/' && i + 1 < What.size() && What[i + 1] == '*')
         {
+            int count = 0;
+
             while (true)
             {
+                if (i + 2 < What.size() && What.substr(i, 2) == "/*")
+                {
+                    count++;
+                }
+                else if (i + 2 < What.size() && What.substr(i, 2) == "*/")
+                {
+                    count--;
+                }
+
                 if (i + 1 >= What.size())
                 {
                     break;
                 }
-                else if (What[i] == '*' && What[i + 1] == '/')
+                else if (count == 0 && What[i] == '*' && What[i + 1] == '/')
                 {
                     break;
                 }

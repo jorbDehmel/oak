@@ -1,5 +1,5 @@
-// A test of Oak's threading file "std/threads.oak"
-// Passed with modern fn ptrs
+// A test of Oak's multi-threading file "std/threads.oak"
+// Legacy passed
 
 package!("std");
 use_rule!("std");

@@ -2,7 +2,8 @@
 Jordan Dehmel, 2023
 GPLv3
 
-Standard conversion functions.
+Standard conversion functions. Also includes some
+common aliases.
 */
 
 link!("std/conv.o");
@@ -16,14 +17,8 @@ let s_to_b(what: str) -> bool;
 // String to float
 let s_to_f(what: str) -> f64;
 
-// Int to string
-let i_to_s(what: i32) -> str;
-
 // Bool to string
 let b_to_s(what: bool) -> str;
-
-// Float to string
-let f_to_s(what: f64) -> str;
 
 // Int to float
 let i_to_f(what: i32) -> f64;
@@ -58,3 +53,25 @@ let Get(self: str, index: u128) -> i8;
 // Get the i8 (char) version of a string
 // (only uses the first character)
 let to_i8(what: str) -> i8;
+
+// Common aliases below
+
+let to_bool(what: str) -> bool
+{
+    s_to_b(what)
+}
+
+let to_f64(what: str) -> f64
+{
+    s_to_f(what)
+}
+
+let to_f64(what: i32) -> f64
+{
+    i_to_f(what)
+}
+
+let to_i32(what: f64) -> i32
+{
+    f_to_i(what)
+}

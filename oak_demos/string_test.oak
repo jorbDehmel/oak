@@ -1,3 +1,6 @@
+// A test of std/string.oak
+// Legacy passed
+
 package!("std");
 use_rule!("std");
 include!("std/string.oak");

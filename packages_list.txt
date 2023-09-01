@@ -1,1 +1,1 @@
-std github.com/jorbDehmel/oak
+std https://github.com/jorbDehmel/oak

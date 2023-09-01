@@ -1,3 +1,6 @@
+// A test of Oak's output files
+// Legacy passed
+
 package!("std");
 include!("std/files.oak");
 include!("std/string.oak");

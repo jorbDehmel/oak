@@ -1,3 +1,9 @@
+/*
+Jordan Dehmel, 2023
+
+Basic non-resizing heap string.
+*/
+
 package!("std");
 
 let string: struct
@@ -13,6 +19,13 @@ let New(self: ^string) -> void
 
 let Copy(self: ^string, size: u128) -> void
 {
+    // Clear self if needed
+    if (self.size != to_u128(0))
+    {
+        free_arr!(self.data);
+        self.size = to_u128(0);
+    }
+
     self.size = size;
     alloc!(self.data, self.size);
 }

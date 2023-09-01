@@ -1,5 +1,7 @@
-package!("std");
+// A test of Oak's macros
 // Passed Aug 3, 23
+
+package!("std");
 
 let print_five_times!(argc: i32, argv: ^str) -> i32
 {

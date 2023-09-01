@@ -1,3 +1,6 @@
+// A test of the erase! macro
+// UNPASSED, EXPERIMENTAL
+
 package!("std");
 
 let hide: struct

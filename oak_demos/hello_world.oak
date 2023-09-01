@@ -1,4 +1,5 @@
 // Jordan Dehmel, 2023
+// Legacy passed
 
 package!("std");
 

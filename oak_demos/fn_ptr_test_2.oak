@@ -1,5 +1,5 @@
 // A test of Oak's function pointers.
-// UNPASSED
+// Legacy passed
 
 package!("std");
 

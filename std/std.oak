@@ -85,19 +85,3 @@ let c_time(when: i64) -> str;
 
 // Run a system command
 let sys(command: str) -> i32;
-
-/*
-// Idea for a future rule- Idealized copy constructors.
-
-a = (e, f, g);
-// Becomes
-Copy(@a, e, f, g);
-
-// Symbex:
-// "= $<$($)$>$ $>a" -> "$a$1$-1$1"
-// (Using extended variable iteration notation)
-
-// Sapling:
-// "$*a = ( $*b )" -> "Copy ( @ $a , $b )"
-
-*/

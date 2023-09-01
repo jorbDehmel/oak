@@ -7,15 +7,15 @@ Jordan Dehmel, jdehmel@outlook.com, github.com/jorbDehmel/oak
 
 ## Overview
 
-`Oak` is a modern, compiled, low-level, statically-typed programming language. It uses `Rust`-like typing, without `Rust`'s lifetimes system. It is analogous to `C++` with stronger macro support, modern typing, compile-time syntax modification and integrated package management. It's like if `C` let you shape the language to your liking. It is named Oak because nature imagery is desperately needed in the mind of a programmer.
+`Oak` is a modern, compiled, low-level, statically-typed programming language. It uses `Rust`-like typing, without `Rust`'s lifetimes system. It is analogous to `C++` with stronger macro support, modern typing, compile-time syntax modification and integrated package management. It's like if `C` let you shape the language to your liking. It is named `Oak` because nature imagery is desperately needed in the mind of a programmer.
 
 This document outlines the basics of `Oak`, as well as the canonical formatting of `Oak` code. Deviation from this formatting style is unadvisable, and considered bad form.
 
-Oak is, as of now, a translated language; Oak code is translated via the `acorn` command (see later) into `C++`. `acorn` can also compile `Oak` into object code, or link it to create executables.
+`Oak` is, as of now, a translated language; `Oak` code is translated via the `acorn` command (see later) into `C++`. `acorn` can also compile `Oak` into object code, or link it to create executables.
 
-Oak has modifiable syntax (see the section on preprocessor rules), making it highly customizable and flexible in a way that no other mainstream languages are. It supports the creation of "dialects", which are `Oak` variants which use preprocessor rules to support independent syntactical structures. In this way, `Oak` provides a strong central core to many branches.
+`Oak` has modifiable syntax (see the section on preprocessor rules), making it highly customizable and flexible in a way that no other mainstream languages are. It supports the creation of "dialects", which are `Oak` variants which use preprocessor rules to support independent syntactical structures. In this way, `Oak` provides a strong central core to many branches.
 
-The Oak programming language outlined here bears no relation nor resemblance to the Java prototype of the same name; I was not aware of it until significantly into development. I figure that, since Java-Oak was never widely deployed, I can continue using the name (especially since no part of this project's development is in any way commercial).
+The `Oak` programming language outlined here bears no relation nor resemblance to the Java prototype of the same name; I was not aware of it until significantly into development. I figure that, since Java-`Oak` was never widely deployed, I can continue using the name (especially since no part of this project's development is in any way commercial).
 
 ## Names
 
@@ -28,7 +28,7 @@ Dialect   | A syntactically-modified branch of `Oak`.
 
 ## Compilation, Installation, and Uninstallation
 
-To install, open a terminal in this folder and run `make install`. This repo is only compatible with Linux. This will compile and install Oak, as well as the standard Oak package. To uninstall, open this folder in terminal and run `make uninstall`. If you've already deleted this folder, you can run `sudo rm -rf /usr/include/oak /usr/bin/acorn`. Both of these will accomplish the same thing.
+To install, open a terminal in this folder and run `make install`. This repo is only compatible with Linux. This will compile and install `Oak`, as well as the standard `Oak` package. To uninstall, open this folder in terminal and run `make uninstall`. If you've already deleted this folder, you can run `sudo rm -rf /usr/include/oak /usr/bin/acorn`. Both of these will accomplish the same thing.
 
 There is also a `PKGBUILD` file included in this directory. If you use Arch Linux, you can just download this and install it via `makepkg -si`.
 
@@ -38,7 +38,7 @@ For examples on the concepts presented in this document, see the `./oak_demos/` 
 
 ## Syntax
 
-In Oak, a variable is declared as follows.
+In `Oak`, a variable is declared as follows.
 
 `let NAME: TYPE;`
 
@@ -70,7 +70,7 @@ let is_bigger_than_five(a: i32) -> bool
 }
 ```
 
-Note that leaving off a semicolon is equivalent to `C++`'s `return` statement. Oak has no `return` keyword.
+Note that leaving off a semicolon is equivalent to `C++`'s `return` statement. `Oak` has no `return` keyword.
 
 Pointers are `^` (IE a pointer to a bool is `^bool`). The "get address" operator is `@`.
 
@@ -110,7 +110,7 @@ let fn() -> void {
 
 Ensure you always have some sort of return statement (except `-> void` functions), even when it is unreachable. Principles take precedent over literal compiler interpretation.
 
-Oak exclusively uses underscored variable names. Camelcase variable names should never be used, and capitalized variables are illegal at compile time.
+`Oak` exclusively uses underscored variable names. Camelcase variable names should never be used, and capitalized variables are illegal at compile time.
 
 ```
 // Good
@@ -184,7 +184,7 @@ All macros will use this third form (`(argc: i32, argv: ^^i8) -> i32`). Note tha
 
 ## Object Oriented Programming
 
-Oak does not have classes, nor does it have internally defined methods. Methods are converted into equivalent function calls during translation as follows.
+`Oak` does not have classes, nor does it have internally defined methods. Methods are converted into equivalent function calls during translation as follows.
 
 ```
 OBJ.METHOD_NAME(ARG, ARG, ...);
@@ -210,7 +210,7 @@ let i32.to_double(self: ^i32) -> f64;
 
 This frees the programmer from the bounds of the initial class definition.
 
-In Oak, you can define new data structures as structs, and define any methods upon it later. For instance, a linked list could be broadly defined as follows.
+In `Oak`, you can define new data structures as structs, and define any methods upon it later. For instance, a linked list could be broadly defined as follows.
 
 ```
 // Alloc is defined in std's std_mem.oak
@@ -230,17 +230,17 @@ let append(self: ^linked_list<t>, what: t) -> void
 }
 ```
 
-Oak does not have private members, nor does it have inheritance.
+`Oak` does not have private members, nor does it have inheritance.
 
 ## Division Of Labor
 
-Oak does not have explicit header files like C / `C++`, but there is no reason why you could not use a `.oak` file like a `.hpp / .h`. For example, a `.oak` can establish function signatures without explicitly defining them, allowing another `.oak` to define them. This allows easy division of labor, as in `C / C++`. This is obviously vital for any project of scale. Additionally, the translator will detect and prevent circular dependencies, eliminating any analogy to `pragma once`.
+`Oak` does not have explicit header files like C / `C++`, but there is no reason why you could not use a `.oak` file like a `.hpp / .h`. For example, a `.oak` can establish function signatures without explicitly defining them, allowing another `.oak` to define them. This allows easy division of labor, as in `C / C++`. This is obviously vital for any project of scale. Additionally, the translator will detect and prevent circular dependencies, eliminating any analogy to `pragma once`.
 
 ## Memory Safety and Heap Memory Allocation
 
 The `alloc!` and `free!` functions are akin to `C++`'s `new` and `delete` keywords, respectively. Alloc requests a memory position on the heap with the size of `t`, and free correspondingly releases that memory. These two functions are only legal in operator alias methods (see below) for memory safety. This means that any data allocated on the heap must be wrapped in a struct. This allows the "parent" variable to fall out of scope, thereby calling its destructor and ensuring some memory safety.
 
-Oak is not very memory safe. It is more so than `C++`, but less than `Rust`. It is the author's opinion that `Rust`'s lifetime and ownership policies create countless issues and programming "walls" that are only worth it in some scenarios. I believe that programmers should hold the responsibility for their own memory safety, rather than a compiler, and that belief is reflected in Oak.
+`Oak` is not very memory safe. It is more so than `C++`, but less than `Rust`. It is the author's opinion that `Rust`'s lifetime and ownership policies create countless issues and programming "walls" that are only worth it in some scenarios. I believe that programmers should hold the responsibility for their own memory safety, rather than a compiler, and that belief is reflected in `Oak`.
 
 Example of `alloc!`, `free!`, and `free_arr!`:
 
@@ -276,7 +276,7 @@ let main() -> i32
 
 ## Interchangeability With C++
 
-The Acorn compiler will have some automated `C++`-to-`Oak` translation capabilities. For instance, using a `include!` macro statement on a `C`-based file will translate the function signatures within into Oak notation and add them to the symbol table. This allows the merging of the two languages to take place later, with object files. Since `Oak` is translated into `C++`, this is exceedingly simple. You can also define only the function signatures in `Oak` and define them in `C++`, as is done in the Oak `std` (standard) package. This is called **interfacing**. These pairs of dual-language files are **interfacial files**, and any package primarily porting one language's features to `Oak` is an **interfacial package**.
+The Acorn compiler will have some automated `C++`-to-`Oak` translation capabilities. For instance, using a `include!` macro statement on a `C`-based file will translate the function signatures within into `Oak` notation and add them to the symbol table. This allows the merging of the two languages to take place later, with object files. Since `Oak` is translated into `C++`, this is exceedingly simple. You can also define only the function signatures in `Oak` and define them in `C++`, as is done in the `Oak` `std` (standard) package. This is called **interfacing**. These pairs of dual-language files are **interfacial files**, and any package primarily porting one language's features to `Oak` is an **interfacial package**.
 
 ## Operator Overloading / Aliases
 
@@ -292,7 +292,7 @@ public:
 };
 ```
 
-In Oak you would write
+In `Oak` you would write
 
 ```
 // The unit struct; No members
@@ -307,7 +307,7 @@ let Eq(self: ^example, ...) -> bool;
 
 There are many so-called "operator aliases" which are listed below. If `self` is not a pointer, it is a const function.
 
-Oak    | `C++`     | Description            | Signature for `T`
+`Oak`  | `C++`     | Description            | Signature for `T`
 -------|-----------|------------------------|------------------------
 Get    | [ ]       | Get given an index     | let Get(self: ^T, i: i128) -> SOME_TYPE;
 Less   | <         | Less than              | let Less(self: T, other: T) -> bool;
@@ -339,7 +339,7 @@ Lbs    | <<        | Left bitshift          | let Lbs(self: T, other: T) -> T;
 Rbs    | >>        | Right bitshift         | let Rbs(self: T, other: T) -> T;
 New    | TYPE_NAME | Instantiation          | let New(self: ^T) -> ^T;
 
-There is no Oak equivalent to `C++`'s prefix increment or decrement operator.
+There is no `Oak` equivalent to `C++`'s prefix increment or decrement operator.
 
 The order of operations for the above operators is as follows (with the top of the list being evaluated first and the bottom last)
 
@@ -362,10 +362,10 @@ With a few exceptions, operator alias replacement occurs within parenthesis (eit
 File: `main.oak`
 
 ```
-// Import the Oak standard package
+// Import the `Oak` standard package
 package!("std");
 
-// Use the standard Oak ruleset
+// Use the standard `Oak` ruleset
 use_rule!("std");
 
 let main(argc: i32, argv: ^str)
@@ -398,7 +398,7 @@ Hello, world!
 
 ## Atomic Conversions (If You Don't Know Rust)
 
-`C++`               | Oak
+`C++`               | `Oak`
 --------------------|-------
 unsigned char       | u8
 char                | i8
@@ -419,7 +419,7 @@ T[]                 | ^t
 T*                  | ^t
 template\<class T\> | \<t\>
 
-The last few entries show two things; That Oak does not have references or arrays (both are replaced with pointers), and that Oak has smart templating. Additionally note that there are no multi-word types (IE unsigned long long int) in Oak, and that pointers are moved to before the type they point to.
+The last few entries show two things; That `Oak` does not have references or arrays (both are replaced with pointers), and that `Oak` has smart templating. Additionally note that there are no multi-word types (IE unsigned long long int) in `Oak`, and that pointers are moved to before the type they point to.
 
 For instance,
 
@@ -444,7 +444,7 @@ let generic_fn_demo<t>(arg1: t, arg2: bool, arg3: *t) -> t;
 
 This allows a generic type `t` (you can use whatever name you want) to enter the function's scope temporarily. On a compiler level, generic functions do not exist until they are called. Upon compiler detection of a call, it is ensured that an appropriately-typed function exists (otherwise, such a function is instantiated).
 
-Oak does not have automatic instantiation of generic functions via argument type analysis. For instance, you must say `println<i32>(5)`, not `println(5)`. However, this is only true for the first time a generic function is called.
+`Oak` does not have automatic instantiation of generic functions via argument type analysis. For instance, you must say `println<i32>(5)`, not `println(5)`. However, this is only true for the first time a generic function is called.
 
 ```
 // Always valid:
@@ -499,7 +499,8 @@ As of version 0.0.4, you must manually instantiate all associated methods for a 
 Generic enumerations are defined exactly like structs (see later for more information on enumerations).
 
 ## Acorn
-Acorn is the Oak translator, compiler, and linker. Oak is first translated into `C++`, which is then compiled and linked.
+
+Acorn is the `Oak` translator, compiler, and linker. `Oak` is first translated into `C++`, which is then compiled and linked.
 
 Acorn command line arguments:
 
@@ -519,7 +520,7 @@ Name | Verbose     | Function
  -q  | --quit      | Quit immediately
  -r  | --reinstall | Reinstall a package
  -R  | --remove    | Uninstalls a package
- -s  | --size      | Show Oak disk usage
+ -s  | --size      | Show `Oak` disk usage
  -S  | --install   | Install a package
  -t  | --translate | Produce `C++` files
  -u  | --dump      | Produce dump files
@@ -578,7 +579,7 @@ If you were to call `print_five_times!(a)`, it would expand into `aaaaa`. If you
 
 ## Packages
 
-The `package!(WHAT)` macro imports a package. If it is not yet installed on the compiling device, it can be cloned via Git by using `acorn --install PACKAGE_URL`. You can update or reinstall a package via `acorn --reinstall PACKAGE_URL`.
+The `package!(WHAT)` macro imports a package. If it is not yet installed on the compiling device, it can be cloned via Git by using `acorn --install PACKAGE_URL`. You can update or reinstall a package via `acorn --reinstall PACKAGE_URL`. A few packages have known URLs, meaning you can just say `acorn --install NAME`, rather than the full URL. Installed packages keep their files in `/usr/include/oak/NAME`. Note: You can use `--install` or `-S`.
 
 ### Creating Packages
 
@@ -605,6 +606,8 @@ For instance, the `STD` (standard) library has a central linking file named `std
 
 `SYS_DEPS` is a string containing space-separated packages required to be installed by your operating system. For instance, if a package used SDL2 and Git, it would include the line `SYS_DEPS = "SDL2 git"`.
 
+Packages are **only** managed by `Git`. The canonical host website is currently `github`.
+
 ## Editing Oak
 
 If you use VSCode, you can add this to your `.vscode/settings.json` file.
@@ -615,7 +618,7 @@ If you use VSCode, you can add this to your `.vscode/settings.json` file.
     }
 ```
 
-`Rust` is similar enough to Oak that you won't notice any major issues, so long as you don't enable any `Rust` extensions.
+`Rust` is similar enough to `Oak` that you won't notice any major issues, so long as you don't enable any `Rust` extensions.
 
 ## Preproc Definitions
 
@@ -625,9 +628,9 @@ Name             | Type | Description
 -----------------|------|----------------------
 \_\_LINE__       | i128 | The current line
 \_\_COMP_TIME__  | i128 | The UNIX time of compilation
-\_\_PREV_FILE__  | str  | The path of the previous Oak file
-\_\_FILE__       | str  | The path of the current Oak file
-\_\_CONTENTS__   | str  | The contents of the current Oak file
+\_\_PREV_FILE__  | str  | The path of the previous `Oak` file
+\_\_FILE__       | str  | The path of the current `Oak` file
+\_\_CONTENTS__   | str  | The contents of the current `Oak` file
 
 ## Preproc Rules and Sapling
 
@@ -1076,4 +1079,4 @@ Some miscellaneous notes which are not long enough to warrant their own section 
 
 ## License
 
-Oak is protected by the GPLv3.
+`Oak` is protected by the GPLv3.

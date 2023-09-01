@@ -1,3 +1,12 @@
+/*
+Jordan Dehmel, 2023
+
+Basic Oak multithreading functions and
+objects.
+
+As of 0.0.10, mutex is experimental.
+*/
+
 link!("std/threads.o");
 
 // Mutex

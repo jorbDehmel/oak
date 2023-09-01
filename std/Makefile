@@ -1,5 +1,5 @@
 all:	io.o float_math.o int_math.o misc_math.o conv.o \
-		misc_std.o threads.o files.o
+		misc_std.o threads.o files.o extra_math.o
 
 %.o:	%.cpp
 	clang++ -c -o $@ $<

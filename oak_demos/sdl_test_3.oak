@@ -1,3 +1,6 @@
+// Basic SDL functionality testing 3
+// Legacy passed
+
 package!("std");
 package!("sdl");
 

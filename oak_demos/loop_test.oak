@@ -1,5 +1,5 @@
 // For testing Oak's loops
-// As of 7/29/23, "while" loops work, but "for" loops don't
+// Legacy passed
 
 package!("std");
 use_rule!("std");

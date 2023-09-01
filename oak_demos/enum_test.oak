@@ -1,5 +1,5 @@
 // A test of Oak's enums
-// UNPASSED
+// Legacy passed
 
 package!("std");
 use_rule!("std");

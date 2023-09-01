@@ -305,9 +305,11 @@ void downloadPackage(const string &URLArg, const bool &Reinstall)
             // Local file
             sm_system("cp -r " + URL + " " + tempFolderName, "Local copy failed; Is neither URL nor filepath.");
         }
-        catch (...)
+        catch (package_error &e)
         {
             // Package from packages_list.txt
+
+            cout << "Checking /usr/include/oak/packages_list.txt...\n";
 
             // Load packages_list.txt
             ifstream packagesList(PACKAGES_LIST_PATH);
@@ -326,18 +328,34 @@ void downloadPackage(const string &URLArg, const bool &Reinstall)
 
                     // name source
                     string name, source;
+
                     auto breakPoint = line.find(' ');
 
-                    name = line.substr(0, breakPoint + 1);
-                    source = line.substr(breakPoint);
+                    name = line.substr(0, breakPoint);
+                    source = line.substr(breakPoint + 1);
 
                     if (name == URL)
                     {
+                        cout << "Package '" << name << "' found in /usr/include/oak/packages_list.txt w/ repo URL of '" << source << "'\n";
+
                         downloadPackage(source, Reinstall);
                         return;
                     }
                 }
             }
+
+            // If it has gotten to this point, the following is true:
+            // - It is not present in packages_list.txt
+            // - It is not a valid URL
+            // - It is not a valid local file
+            // So it should error rather than proceed.
+
+            cout << tags::red_bold
+                 << "\nPackage '" << URLArg << "'\n"
+                 << "does not exist locally, is not a valid Git repo, and\n"
+                 << "does not have an installation URL known by Oak.\n"
+                 << tags::reset;
+            throw package_error("Package '" + URLArg + "' does not exist in any form.");
         }
     }
 
@@ -346,6 +364,11 @@ void downloadPackage(const string &URLArg, const bool &Reinstall)
         // Ensure proper format
         if (system(("[ -f " + tempFolderName + "/" + INFO_FILE " ]").c_str()) != 0)
         {
+            cout << tags::red_bold
+                 << "\nPackage '" << URLArg << "'\n"
+                 << "exists, but is ill-formed.\n"
+                 << tags::reset;
+
             throw package_error("Malformed package; Info file is not present.");
         }
 
