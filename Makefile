@@ -63,6 +63,7 @@ test: install
 	acorn -e oak_demos/thread_test.oak -o thread_test.out
 	acorn -e oak_demos/fn_ptr_test_2.oak -o fn_ptr_test_2.out
 	acorn -e oak_demos/erase_test.oak -o erase_test.out
+	acorn -e oak_demos/err_test.oak -o err_test.out
 	rm -rf *.log .oak_build
 
 build/%.o:	%.cpp $(HEADS)

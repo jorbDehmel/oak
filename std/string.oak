@@ -6,6 +6,9 @@ Basic non-resizing heap string.
 
 package!("std");
 
+// For debugging
+include!("std/printf.oak");
+
 let string: struct
 {
     data: ^i8,
@@ -72,24 +75,24 @@ let Copy(self: ^string, from: string) -> void
 
     // Poll size of from (including null termination)
     let size: u128;
-    size = to_u128(0);
-    while (^Get(@from.data, size) != to_i8(0))
-    {
-        size += to_u128(1);
-    }
+    size = from.size;
 
     // Alloc self
     self.size = size;
-    alloc!(self.data, self.size);
 
-    // Copy data (including null termination)
-    while (size != to_u128(0))
+    if (self.size != to_u128(0))
     {
-        Copy(Get(@self.data, size), ^Get(@from.data, size));
+        alloc!(self.data, self.size);
 
-        size -= to_u128(1);
+        // Copy data (including null termination)
+        while (size != to_u128(0))
+        {
+            Copy(Get(@self.data, size), ^Get(@from.data, size));
+
+            size -= to_u128(1);
+        }
+        Copy(Get(@self.data, to_u128(0)), ^Get(@from.data, to_u128(0)));
     }
-    Copy(Get(@self.data, to_u128(0)), ^Get(@from.data, to_u128(0)));
 }
 
 let Del(self: ^string) -> void
@@ -111,7 +114,7 @@ let clear(self: ^string) -> void
     }
 }
 
-let Eq(self: ^string, other: string) -> bool
+let Eq(self: string, other: string) -> bool
 {
     let out: bool;
     out = true;
@@ -138,7 +141,7 @@ let Eq(self: ^string, other: string) -> bool
     out
 }
 
-let Neq(self: ^string, other: string) -> bool
+let Neq(self: string, other: string) -> bool
 {
     let out: bool;
     out = Eq(self, other);
@@ -189,7 +192,7 @@ let print(what: string) -> void
 {
     let i: u128;
     i = to_u128(0);
-    while (i < what.size())
+    while (i < what.size)
     {
         print(^Get(@what.data, i));
         

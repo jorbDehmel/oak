@@ -108,18 +108,19 @@ void reconstruct(const string &Name,
     // Step A3: Struct definitions
     {
         header << "// Struct definitions\n";
-        for (auto s : structData)
+        for (auto name : structOrder)
         {
-            if (enumData.count(s.first) != 0)
+
+            if (enumData.count(name) != 0)
             {
                 continue;
             }
 
-            header << "struct " << s.first << "\n{\n";
+            header << "struct " << name << "\n{\n";
 
-            for (auto m : s.second.order)
+            for (auto m : structData[name].order)
             {
-                header << '\t' << toStrC(&s.second.members[m]) << ' ' << m << ";\n";
+                header << '\t' << toStrC(&structData[name].members[m]) << ' ' << m << ";\n";
             }
 
             header << "};\n\n";
@@ -129,9 +130,9 @@ void reconstruct(const string &Name,
     // Step A4: Enumeration definitions
     {
         header << "// Enumeration definitions\n";
-        for (auto e : enumData)
+        for (auto name : enumOrder)
         {
-            header << enumToC(e.first) << '\n';
+            header << enumToC(name) << '\n';
         }
     }
 

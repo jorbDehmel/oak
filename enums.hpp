@@ -75,6 +75,7 @@ struct __templEnumLookupData
 };
 
 extern map<string, __enumLookupData> enumData;
+extern vector<string> enumOrder;
 
 // Instantiating a templated enum should function EXACTLY like a struct.
 extern map<string, __templEnumLookupData> templEnumData;

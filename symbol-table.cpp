@@ -159,6 +159,7 @@ void addStruct(const vector<string> &FromIn)
 
     // Ensures unit structs still get added
     structData[name];
+    structOrder.push_back(name);
 
     i++;
     parse_assert(From[i] == ":");

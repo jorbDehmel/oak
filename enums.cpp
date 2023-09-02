@@ -38,3 +38,4 @@ struct NAME
 
 map<string, __enumLookupData> enumData;
 map<string, __templEnumLookupData> templEnumData;
+vector<string> enumOrder;

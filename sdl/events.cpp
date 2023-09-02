@@ -53,6 +53,7 @@ struct sdl_event
 
     } __data;
 };
+
 void wrap_sdl_key_down_event(sdl_event *self, sdl_key_event_data data);
 void wrap_sdl_key_up_event(sdl_event *self, sdl_key_event_data data);
 void wrap_sdl_mouse_move_event(sdl_event *self, sdl_mouse_move_event_data data);
@@ -118,18 +119,10 @@ sdl_event sdl_poll_event()
 str sdl_keycode_to_str(i128 keycode)
 {
     // Letters
-    if (keys::a <= keycode && keycode <= keys::z)
+    if (keys::a <= keycode && keycode <= keys::z || keys::zero <= keycode && keycode <= keys::nine)
     {
-        char out[2] = " ";
-        out[0] = (char)(keycode);
-        return out;
-    }
-
-    // Numbers
-    else if (keys::zero <= keycode && keycode <= keys::nine)
-    {
-        char out[2] = " ";
-        out[0] = (char)(keycode);
+        // Static for warning suppression
+        static const char out[2] = {(char)(keycode), '\0'};
         return out;
     }
 

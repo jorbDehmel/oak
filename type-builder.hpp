@@ -72,6 +72,7 @@ struct __templStructLookupData
 };
 
 extern map<string, __structLookupData> structData;
+extern vector<string> structOrder;
 
 // Return the standard C / C++ representation of this type
 string toStr(const Type *const What);

@@ -1,0 +1,30 @@
+package!("std");
+use_rule!("std");
+
+include!("std/error.oak");
+include!("std/printf.oak");
+
+let fn_which_sets_errors() -> void
+{
+    throw_error("This is the error message", to_i128(5));
+}
+
+let main() -> i32
+{
+    error_str..New();
+    error_code..New();
+
+    let old: error_state = get_error_state();
+
+    fn_which_sets_errors();
+
+    let did_error: bool = poll_error_change(old);
+    if did_error
+    {
+        printf!("An error occured: Message '%' with code %.\n", error_str, to_i32(error_code));
+    }
+
+    restore_error_state(@old);
+
+    0
+}

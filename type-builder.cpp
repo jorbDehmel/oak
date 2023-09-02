@@ -2,6 +2,7 @@
 
 set<string> deps;
 map<string, __structLookupData> structData;
+vector<string> structOrder;
 
 const Type nullType(atomic, "NULL");
 

@@ -11,6 +11,9 @@ TODO:
 Acorn Version   |          |
 (Newest at top) | Date     | Justification
 ----------------|----------|-----------------------------------------
+0.0.11          | 9/1/23   | Added std/error.oak for runtime errors.
+                |          | (Note: Real exceptions are not allowed).
+                |          |
 0.0.10          | 8/31/23  | Added caveat that New and Del must be
                 |          | single-argument. Also added the multi
                 |          | argument copy constructor syntax

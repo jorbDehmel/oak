@@ -1068,6 +1068,10 @@ let main() -> i32
 
 ```
 
+## Efforts to Reduce Undefined Behaviour
+
+To cut down on undefined behaviour (resulting from unitialized variables), every datatype in `Oak` has one and only one "default" constructor. The default constructors of all struct members are called upon instantiation. This default value is said to be the "canonical" or "unit" value of that datatype.
+
 ## Misc. Notes
 
 Some miscellaneous notes which are not long enough to warrant their own section in this document:

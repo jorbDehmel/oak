@@ -2013,9 +2013,11 @@ void addEnum(const vector<string> &FromIn)
 
     // Ensure for unit enums
     enumData[name] = __enumLookupData{};
+    enumOrder.push_back(name);
 
     // Insert enum as unit struct
     structData[name] = __structLookupData{};
+    structOrder.push_back(name);
 
     i++;
 
