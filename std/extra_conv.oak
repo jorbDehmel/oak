@@ -1,0 +1,143 @@
+include!("std/int_math.oak");
+include!("std/std_conv.oak");
+
+// Common int inits from i32
+
+let Copy(self: ^i8, other: i32) -> void
+{
+    ^self = to_i8(other);
+}
+
+let Copy(self: ^u8, other: i32) -> void
+{
+    ^self = to_u8(other);
+}
+
+let Copy(self: ^i16, other: i32) -> void
+{
+    ^self = to_i16(other);
+}
+
+let Copy(self: ^u16, other: i32) -> void
+{
+    ^self = to_u16(other);
+}
+
+let Copy(self: ^u32, other: i32) -> void
+{
+    ^self = to_u32(other);
+}
+
+let Copy(self: ^i64, other: i32) -> void
+{
+    ^self = to_i64(other);
+}
+
+let Copy(self: ^u64, other: i32) -> void
+{
+    ^self = to_u64(other);
+}
+
+let Copy(self: ^i128, other: i32) -> void
+{
+    ^self = to_i128(other);
+}
+
+let Copy(self: ^u128, other: i32) -> void
+{
+    ^self = to_u128(other);
+}
+
+// Common incrementations
+
+let AddEq(self: ^i8, other: i32) -> void
+{
+    ^self += to_i8(other);
+}
+
+let AddEq(self: ^u8, other: i32) -> void
+{
+    ^self += to_u8(other);
+}
+
+let AddEq(self: ^i16, other: i32) -> void
+{
+    ^self += to_i16(other);
+}
+
+let AddEq(self: ^u16, other: i32) -> void
+{
+    ^self += to_u16(other);
+}
+
+let AddEq(self: ^u32, other: i32) -> void
+{
+    ^self += to_u32(other);
+}
+
+let AddEq(self: ^i64, other: i32) -> void
+{
+    ^self += to_i64(other);
+}
+
+let AddEq(self: ^u64, other: i32) -> void
+{
+    ^self += to_u64(other);
+}
+
+let AddEq(self: ^i128, other: i32) -> void
+{
+    ^self += to_i128(other);
+}
+
+let AddEq(self: ^u128, other: i32) -> void
+{
+    ^self += to_u128(other);
+}
+
+// Common decrementations
+
+let SubEq(self: ^i8, other: i32) -> void
+{
+    ^self -= to_i8(other);
+}
+
+let SubEq(self: ^u8, other: i32) -> void
+{
+    ^self -= to_u8(other);
+}
+
+let SubEq(self: ^i16, other: i32) -> void
+{
+    ^self -= to_i16(other);
+}
+
+let SubEq(self: ^u16, other: i32) -> void
+{
+    ^self -= to_u16(other);
+}
+
+let SubEq(self: ^u32, other: i32) -> void
+{
+    ^self -= to_u32(other);
+}
+
+let SubEq(self: ^i64, other: i32) -> void
+{
+    ^self -= to_i64(other);
+}
+
+let SubEq(self: ^u64, other: i32) -> void
+{
+    ^self -= to_u64(other);
+}
+
+let SubEq(self: ^i128, other: i32) -> void
+{
+    ^self -= to_i128(other);
+}
+
+let SubEq(self: ^u128, other: i32) -> void
+{
+    ^self -= to_u128(other);
+}

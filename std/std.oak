@@ -7,8 +7,11 @@ include!(
     "std/std_io.oak",
     "std/std_conv.oak",
     "std/std_ops.oak",
-    "std/unit.oak"
+    "std/unit.oak",
+    "std/extra_conv.oak"
 );
+
+// "std/extra_conv.oak"
 
 link!("std/misc_std.o");
 

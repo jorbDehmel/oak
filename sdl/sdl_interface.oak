@@ -10,9 +10,20 @@ let sdl_window: struct
     __a, __b, __c, __d: i128,
 }
 
-let New(self: ^sdl_window) -> void;
+let ExtInit(self: ^sdl_window) -> void;
+let ExtDel(Self: ^sdl_window) -> void;
+
+let New(self: ^sdl_window) -> void
+{
+    ExtInit(self);
+}
+
+let Del(self: ^sdl_window) -> void
+{
+    ExtDel(self);
+}
+
 let Copy(self: ^sdl_window, w: u64, h: u64) -> void;
-let Del(self: ^sdl_window) -> void;
 
 let sdl_enable_window_fullscreen(self: ^sdl_window) -> void;
 let sdl_disable_window_fullscreen(self: ^sdl_window) -> void;

@@ -5,6 +5,7 @@ Jordan Dehmel, 2023
 */
 
 package!("std");
+use_rule!("std");
 
 // Return the absolute value of x
 let abs(x: i32) -> i32
@@ -108,8 +109,7 @@ $x - \frac{x^3}{3!} + \frac{x^5}{5!} - \frac{x^7}{7!} + \frac{x^9}{9!}$
 */
 let sin(x: f64) -> f64
 {
-    let real_x: f64;
-    real_x = x;
+    let real_x: f64 = x;
 
     let pi: f64;
     pi = math_pi();

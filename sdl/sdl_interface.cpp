@@ -83,7 +83,7 @@ f64 sdl_tan(f64 x)
     return SDL_tan(x);
 }
 
-void New(sdl_window *self)
+void ExtInit(sdl_window *self)
 {
     self->width = self->height = 128;
     SDL_CreateWindowAndRenderer(128, 128, 0, &self->wind, &self->rend);
@@ -101,7 +101,7 @@ void Copy(sdl_window *self, u64 w, u64 h)
     return;
 }
 
-void Del(sdl_window *window)
+void ExtDel(sdl_window *window)
 {
     SDL_DestroyWindow(window->wind);
     SDL_DestroyRenderer(window->rend);

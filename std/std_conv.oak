@@ -32,6 +32,8 @@ let to_i32(what: i8) -> i32;
 let to_i32(what: u16) -> i32;
 let to_i32(what: i16) -> i32;
 
+let to_i32(what: u32) -> i32;
+
 let to_i32(what: u64) -> i32;
 let to_i32(what: i64) -> i32;
 let to_i32(what: u128) -> i32;
@@ -41,6 +43,8 @@ let to_u8(what: i32) -> u8;
 let to_i8(what: i32) -> i8;
 let to_u16(what: i32) -> u16;
 let to_i16(what: i32) -> i16;
+
+let to_u32(what: i32) -> u32;
 
 let to_u64(what: i32) -> u64;
 let to_i64(what: i32) -> i64;

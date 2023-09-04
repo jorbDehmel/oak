@@ -25,17 +25,17 @@ struct o_file
 };
 
 // Method definitions
-void New(i_file *self)
+void ExtInit(i_file *self)
 {
     self->raw_strm = new ifstream;
 }
 
-void New(o_file *self)
+void ExtInit(o_file *self)
 {
     self->raw_strm = new ofstream;
 }
 
-void Del(i_file *self)
+void ExtDel(i_file *self)
 {
     if (self->raw_strm != nullptr)
     {
@@ -48,7 +48,7 @@ void Del(i_file *self)
     }
 }
 
-void Del(o_file *self)
+void ExtDel(o_file *self)
 {
     if (self->raw_strm != nullptr)
     {
@@ -65,7 +65,7 @@ void open(i_file *self, str name)
 {
     if (self->raw_strm == nullptr)
     {
-        New(self);
+        ExtInit(self);
     }
 
     self->raw_strm->open(name);
@@ -75,7 +75,7 @@ void open(o_file *self, str name)
 {
     if (self->raw_strm == nullptr)
     {
-        New(self);
+        ExtInit(self);
     }
 
     self->raw_strm->open(name);

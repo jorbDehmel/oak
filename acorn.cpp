@@ -508,7 +508,17 @@ int main(const int argc, const char *argv[])
 
         cout << tags::red_bold
              << "\n"
-             << curFile << " " << curLine << '\n'
+             << curFile << ":" << curLine << "\n"
+             << tags::violet_bold
+             << "In code line: `";
+
+        for (auto s : curLineSymbols)
+        {
+            cout << s << ' ';
+        }
+
+        cout << "`\n\n"
+             << tags::red_bold
              << "A runtime error occurred with message:\n"
              << e.what()
              << "\n"

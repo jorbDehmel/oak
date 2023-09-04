@@ -109,6 +109,11 @@ i32 to_i32(i16 what)
     return what;
 }
 
+i32 to_i32(u32 what)
+{
+    return what;
+}
+
 i32 to_i32(u64 what)
 {
     return what;
@@ -145,6 +150,11 @@ u16 to_u16(i32 what)
 }
 
 i16 to_i16(i32 what)
+{
+    return what;
+}
+
+u32 to_u32(i32 what)
 {
     return what;
 }

@@ -9,7 +9,7 @@ struct thread
 void call(thread *self);
 
 // Create new thread
-void New(thread *self)
+void ExtInit(thread *self)
 {
     self->rawThread = nullptr;
 }
@@ -22,17 +22,6 @@ void start(thread *self, void (*to_do)())
 
 // End a thread
 void join(thread *self)
-{
-    if (self->rawThread != nullptr)
-    {
-        self->rawThread->join();
-        delete self->rawThread;
-        self->rawThread = nullptr;
-    }
-}
-
-// Same as join
-void Del(thread *self)
 {
     if (self->rawThread != nullptr)
     {

@@ -8,12 +8,12 @@ include!("std/string.oak");
 let main() -> i32
 {
     let test_a: string;
-    test_a..New("hello, ");
+    test_a..Copy("hello, ");
     print(test_a);
     print("\n");
 
     let test_b: string;
-    test_b..New("world!");
+    test_b..Copy("world!");
     print(test_b);
     print("\n");
 

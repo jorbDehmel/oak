@@ -60,6 +60,9 @@ extern const set<string> specials;
 extern unsigned long long int curLine;
 extern string curFile;
 
+// For error trace
+extern vector<string> curLineSymbols;
+
 class sequencing_error : public runtime_error
 {
 public:
@@ -100,7 +103,7 @@ void debugPrint(const sequence &What, int spaces = 0, ostream &to = cout);
 
 Type resolveFunction(const vector<string> &What, int &start, string &c);
 Type checkLiteral(const string &From);
-void restoreSymbolTable(multiSymbolTable &backup);
+string restoreSymbolTable(multiSymbolTable &backup);
 
 __multiTableSymbol *instantiateTemplate(const string &Name, const vector<string> &GenericReplacements);
 

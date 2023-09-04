@@ -21,10 +21,6 @@ let test: enum
     c: unit,
 }
 
-let New(self: ^test) -> void
-{
-}
-
 let fn_test(a: test) -> void
 {
 }

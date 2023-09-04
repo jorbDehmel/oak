@@ -64,37 +64,6 @@ let Copy(self: ^string, from: str) -> void
     Copy(Get(@self.data, to_u128(0)), Get(@from, to_u128(0)));
 }
 
-let Copy(self: ^string, from: string) -> void
-{
-    // Clear self if needed
-    if (self.size != to_u128(0))
-    {
-        free_arr!(self.data);
-        self.size = to_u128(0);
-    }
-
-    // Poll size of from (including null termination)
-    let size: u128;
-    size = from.size;
-
-    // Alloc self
-    self.size = size;
-
-    if (self.size != to_u128(0))
-    {
-        alloc!(self.data, self.size);
-
-        // Copy data (including null termination)
-        while (size != to_u128(0))
-        {
-            Copy(Get(@self.data, size), ^Get(@from.data, size));
-
-            size -= to_u128(1);
-        }
-        Copy(Get(@self.data, to_u128(0)), ^Get(@from.data, to_u128(0)));
-    }
-}
-
 let Del(self: ^string) -> void
 {
     free_arr!(self.data);

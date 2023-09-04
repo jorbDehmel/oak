@@ -15,12 +15,32 @@ let o_file: struct
     __a, __b, __c, __d: i128,
 }
 
-// Methods defined in C++
-let New(self: ^i_file) -> void;
-let New(self: ^o_file) -> void;
+let ExtInit(self: ^i_file) -> void;
+let ExtInit(self: ^o_file) -> void;
 
-let Del(self: ^i_file) -> void;
-let Del(self: ^o_file) -> void;
+let ExtDel(self: ^i_file) -> void;
+let ExtDel(self: ^o_file) -> void;
+
+// Methods defined in C++
+let New(self: ^i_file) -> void
+{
+    ExtInit(self);
+}
+
+let New(self: ^o_file) -> void
+{
+    ExtInit(self);
+}
+
+let Del(self: ^i_file) -> void
+{
+    ExtDel(self);
+}
+
+let Del(self: ^o_file) -> void
+{
+    ExtDel(self);
+}
 
 let open(self: ^i_file, name: str) -> void;
 let open(self: ^o_file, name: str) -> void;

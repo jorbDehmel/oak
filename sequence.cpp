@@ -15,6 +15,8 @@ map<string, __templStructLookupData> templStructData;
 // Activates "dirty" mode, where mem alloc and free are allowed
 bool insideMethod = false;
 
+vector<string> curLineSymbols;
+
 unsigned long long int curLine = 1;
 string curFile = "";
 
@@ -112,6 +114,24 @@ sequence __createSequence(list<string> &From)
         string newLineNum = From.front().substr(11);
 
         curLine = stoull(newLineNum);
+
+        // Erase current line vector and replace it with the next line
+        curLineSymbols.clear();
+        if (From.size() != 0)
+        {
+            for (auto it = From.begin();
+                 it != From.end() && !(it != From.begin() &&
+                                       it->size() > 11 && it->substr(0, 11) == "//__LINE__=");
+                 it++)
+            {
+                curLineSymbols.push_back(*it);
+            }
+        }
+
+        if (curLineSymbols.size() != 0)
+        {
+            curLineSymbols.erase(curLineSymbols.begin());
+        }
 
         sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
         From.pop_front();
@@ -713,10 +733,70 @@ sequence __createSequence(list<string> &From)
                 insideMethod = isMethod;
 
                 // Insert symbol
+
+                table[name];
                 table[name].push_back(__multiTableSymbol{sequence{}, type});
-                if (From.front() == "{")
+
+                if (From.size() > 0 && From.front() == "{")
                 {
-                    table[name].back().seq = __createSequence(From);
+                    if (table[name].size() > 1)
+                    {
+                        // Erase all previous unit definitions
+                        int j = 0;
+                        for (auto def = table[name].begin(); j < table[name].size() && def != table[name].end(); def++)
+                        {
+                            if (def->type == type && j + 1 < table[name].size())
+                            {
+                                // If unit, erase
+                                if (def->seq.items.size() == 0 || (def->seq.items[0].info == atom && def->seq.items[0].raw == "//AUTOGEN"))
+                                {
+                                    table[name].erase(def);
+                                    def = table[name].begin() + j - 1;
+                                    continue;
+                                }
+
+                                // Else, throw error
+                                else
+                                {
+                                    throw sequencing_error("Cannot overload identical function '" + name + "'");
+                                }
+
+                                if (table[name].size() == 1)
+                                {
+                                    break;
+                                }
+                            }
+
+                            j++;
+                        }
+                    }
+
+                    sequence toAdd = __createSequence(From);
+
+                    table[name].back().seq = toAdd;
+                }
+                else
+                {
+                    if (table[name].size() > 1)
+                    {
+                        // Erase all previous unit definitions
+                        int j = 0;
+                        for (auto def = table[name].begin(); j < table[name].size() && def != table[name].end(); def++)
+                        {
+                            if (def->type == type && j + 1 != table[name].size())
+                            {
+                                // If unit, erase
+                                if (def->seq.items.size() == 0 || (def->seq.items[0].info == atom && def->seq.items[0].raw == "//AUTOGEN"))
+                                {
+                                    table[name].erase(def);
+                                    def = table[name].begin() + j - 1;
+                                    continue;
+                                }
+                            }
+
+                            j++;
+                        }
+                    }
                 }
 
                 insideMethod = oldSafeness;
@@ -841,8 +921,12 @@ sequence __createSequence(list<string> &From)
         }
 
         // Restore symbol table
+
         // This copies only newly instantiated functions; No other symbols.
-        restoreSymbolTable(oldTable);
+        string output = restoreSymbolTable(oldTable);
+
+        // Call destructors
+        out.items.push_back(sequence{nullType, vector<sequence>(), atom, output});
 
         // Check if/else validity
         for (int i = 1; i < out.items.size(); i++)
@@ -1018,7 +1102,10 @@ string toC(const sequence &What)
                 }
                 else if (What.items[1].items[ind].raw == "default")
                 {
-                    sm_assert(ind + 1 == What.items[1].items.size(), "Default statement must be final branch of match statement.");
+                    // Causes errors with destructor calls
+                    // debugPrint(What.items[1]);
+
+                    sm_assert(ind + 2 >= What.items[1].items.size(), "Default statement must be final branch of match statement.");
                     usedOptions.clear();
 
                     auto &cur = What.items[1].items[ind];
@@ -1195,6 +1282,11 @@ vector<pair<string, Type>> getArgs(Type &type)
 // I know I wrote this, but it still feels like black magic and I don't really understand it
 Type resolveFunction(const vector<string> &What, int &start, string &c)
 {
+    while (start < What.size() && What[start].size() > 1 && What[start].substr(0, 2) == "//")
+    {
+        start++;
+    }
+
     if (What.empty() || start >= What.size())
     {
         return nullType;
@@ -1741,8 +1833,10 @@ Type checkLiteral(const string &From)
     return nullType;
 }
 
-void restoreSymbolTable(multiSymbolTable &backup)
+string restoreSymbolTable(multiSymbolTable &backup)
 {
+    string output = "";
+
     multiSymbolTable newTable = backup;
     for (auto p : table)
     {
@@ -1756,6 +1850,7 @@ void restoreSymbolTable(multiSymbolTable &backup)
             {
                 if (s.type.info == function)
                 {
+                    // Newly instantiated function: Does not fall out of scope
                     bool present = false;
                     for (auto ss : backup[p.first])
                     {
@@ -1771,13 +1866,30 @@ void restoreSymbolTable(multiSymbolTable &backup)
                         newTable[p.first].push_back(s);
                     }
                 }
+                else
+                {
+                    // Variable falling out of scope
+                    // Do not call Del if is atomic literal
+                    if (!(s.type.info == atomic && (s.type.name == "u8" || s.type.name == "i8" ||
+                                                    s.type.name == "u16" || s.type.name == "i16" ||
+                                                    s.type.name == "u32" || s.type.name == "i32" ||
+                                                    s.type.name == "u64" || s.type.name == "i64" ||
+                                                    s.type.name == "u128" || s.type.name == "i128" ||
+                                                    s.type.name == "f32" || s.type.name == "f64" ||
+                                                    s.type.name == "f128" || s.type.name == "bool" ||
+                                                    s.type.name == "str")) &&
+                        s.type.info != function && s.type.info != pointer)
+                    {
+                        output += "Del(&" + p.first + ");\n";
+                    }
+                }
             }
         }
     }
 
     table = newTable;
 
-    return;
+    return output;
 }
 
 /////////////////////////////////////////
@@ -2018,6 +2130,30 @@ void addEnum(const vector<string> &FromIn)
     // Insert enum as unit struct
     structData[name] = __structLookupData{};
     structOrder.push_back(name);
+
+    // Auto-create unit New and Del
+
+    Type t;
+    t.append(function);
+    t.append(var_name, "what");
+    t.append(pointer);
+    t.append(atomic, name);
+    t.append(maps);
+    t.append(atomic, "void");
+
+    sequence s;
+    s.info = code_scope;
+    s.type = Type(atomic, "void");
+    s.items.push_back(sequence{});
+    s.items.back().info = atom;
+    s.items.back().raw = ";";
+
+    // Ensure these keys exist
+    table["New"];
+    table["Del"];
+
+    table["New"].push_back(__multiTableSymbol{s, t, false});
+    table["Del"].push_back(__multiTableSymbol{s, t, false});
 
     i++;
 

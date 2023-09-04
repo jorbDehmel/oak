@@ -161,6 +161,29 @@ void addStruct(const vector<string> &FromIn)
     structData[name];
     structOrder.push_back(name);
 
+    // Auto-create unit New and Del
+    Type t;
+    t.append(function);
+    t.append(var_name, "what");
+    t.append(pointer);
+    t.append(atomic, name);
+    t.append(maps);
+    t.append(atomic, "void");
+
+    sequence s;
+    s.info = code_scope;
+    s.type = Type(atomic, "void");
+    s.items.push_back(sequence{});
+    s.items.back().info = atom;
+    s.items.back().raw = "//AUTOGEN";
+
+    // Ensure these keys exist
+    table["New"];
+    table["Del"];
+
+    table["New"].push_back(__multiTableSymbol{s, t, false});
+    table["Del"].push_back(__multiTableSymbol{s, t, false});
+
     i++;
     parse_assert(From[i] == ":");
     i++;

@@ -1,0 +1,149 @@
+package!("std");
+use_rule!("std");
+
+let string: struct
+{
+    capacity: u128,
+    current_length: u128,
+    data: ^i8,
+}
+
+let New(self: ^string) -> void
+{
+    self.capacity = 8;
+    self.current_length = 0;
+
+    alloc!(self.data, self.capacity);
+}
+
+let Del(self: ^string) -> void
+{
+    self.capacity = 0;
+    self.current_length = 0;
+
+    free_arr!(self.data);
+}
+
+// Doubles the current capacity
+let Upsize(self: ^string) -> void
+{
+    let new_data: ^i8;
+    alloc!(new_data, self.capacity * to_u128(2));
+
+    for (let i: u128 = to_u128(0); i < self.current_length; i += 1)
+    {
+        ^new_data[i] = ^self.data[i];
+    }
+
+    free_arr!(self.data);
+    
+    //self.data = new_data;
+    Copy(@self.data, new_data);
+    
+    self.capacity *= 2;
+}
+
+// Halves the current capacity if possible
+let Downsize(self: ^string) -> void
+{
+    if (self.current_length * 2 < self.capacity)
+    {
+        let new_data: ^i8;
+        alloc!(new_data, self.capacity / 2);
+
+        for (let i: u128 = to_u128(0); i < self.current_length; i += 1)
+        {
+            new_data[i] = self.data[i];
+        }
+
+        free_arr!(self.data);
+        self.data = new_data;
+        self.capacity /= 2;
+    }
+}
+
+let Copy(self: ^string, other: str) -> void
+{
+    self.current_length = to_u128(0);
+
+    // Poll size of from (including null termination)
+    let size: u128;
+    size = 0;
+    while (Get(@from, size) != to_i8(0))
+    {
+        size += to_u128(1);
+    }
+
+    while (self.capacity < size)
+    {
+        Upsize(this);
+    }
+}
+
+let Copy(self: ^string, other: string) -> void
+{
+    while (self.capacity < other.current_length)
+    {
+        Upsize(self);
+    }
+
+    for (let i: u128 = to_u128(0); i < other.current_length; i++)
+    {
+        self.data[i] = other.data[i];
+    }
+}
+
+let AddEq(self: ^string, other: string) -> void
+{
+    // Poll size of from (including null termination)
+    let size: u128 = other.current_length;
+
+    while (self.capacity < self.current_length + size)
+    {
+        Upsize(self);
+    }
+
+    // Copy over data
+    for (let i: u128 = 0; i < size; i += 1)
+    {
+        Copy(Get(@self.data, self.current_length + i), Get(@from, i));
+    }
+
+    // Increase size
+    self.current_length += size;
+}
+
+let AddEq(self: ^string, other: str) -> void
+{
+    // Poll size of from (including null termination)
+    let size: u128;
+    size = 0;
+    while (Get(@from, size) != to_i8(0))
+    {
+        size += to_u128(1);
+    }
+
+    while (self.capacity < self.current_length + size)
+    {
+        Upsize(self);
+    }
+
+    // Copy over data
+    for (let i: i32 = 0; i < size; i += 1)
+    {
+        Copy(Get(@self.data, self.current_length + i), Get(@from, i));
+    }
+
+    // Increase size
+    self.current_length += size;
+}
+
+let Add(a: string, b: string) -> string
+{
+    // Kicks call over to Copy and AddEq
+
+    let out: string = a;
+    out += b;
+
+    out
+}

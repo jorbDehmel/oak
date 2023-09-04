@@ -56,8 +56,16 @@ let thread: struct
 }
 
 // Defined in C++
-let New(self: ^thread) -> void;
-let Del(self: ^thread) -> void;
-
+let ExtInit(self: ^thread) -> void;
 let start(self: ^thread, to_do: ^() -> void) -> void;
 let join(self: ^thread) -> void;
+
+let New(self: ^thread) -> void
+{
+    ExtInit(self);
+}
+
+let Del(self: ^thread) -> void
+{
+    join(self);
+}
