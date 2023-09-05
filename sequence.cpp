@@ -9,8 +9,8 @@ GPLv3 held by author
 #include "sequence.hpp"
 
 // Global instantiations
-multiTemplTable templTable;
-map<string, __templStructLookupData> templStructData;
+// multiTemplTable templTable;
+// map<string, __templStructLookupData> templStructData;
 
 // Activates "dirty" mode, where mem alloc and free are allowed
 bool insideMethod = false;
@@ -605,12 +605,18 @@ sequence __createSequence(list<string> &From)
                     if (front == "struct")
                     {
                         // Templated struct
-                        templStructData[name] = __templStructLookupData{generics, toAdd};
+
+                        // templStructData[name] = __templStructLookupData{generics, toAdd};
+
+                        throw sequencing_error(__FILE__ + to_string(__LINE__) + "Error: As of Oak 0.0.12, generics are not implemented.");
                     }
                     else if (front == "enum")
                     {
                         // Templated enum
-                        templEnumData[name] = __templEnumLookupData{generics, toAdd};
+
+                        // templEnumData[name] = __templEnumLookupData{generics, toAdd};
+
+                        throw sequencing_error(__FILE__ + to_string(__LINE__) + "Error: As of Oak 0.0.12, generics are not implemented.");
                     }
                 }
 
@@ -854,7 +860,9 @@ sequence __createSequence(list<string> &From)
                 } while (count != 0);
 
                 // Insert template
-                templTable[name].push_back(__template_info{generics, toAdd, returnType});
+                // templTable[name].push_back(__template_info{generics, toAdd, returnType});
+
+                throw sequencing_error(__FILE__ + to_string(__LINE__) + "Error: As of Oak 0.0.12, generics are not implemented.");
             }
         }
 
@@ -1656,9 +1664,13 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
 
         sm_assert(start >= What.size() || What[start] == ";", "Template instantiation call must end with semicolon, not '" + What[start] + "'");
 
+        throw sequencing_error(__FILE__ + to_string(__LINE__) + "Error: As of Oak 0.0.12, generics are not implemented.");
+
+        /*
         try
         {
             // Check for function formats
+
             instantiateTemplate(name, generics);
         }
         catch (runtime_error &e)
@@ -1672,6 +1684,7 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
                 instantiateStruct(name, generics);
             }
         }
+        */
     }
 
     else
@@ -1906,6 +1919,7 @@ string getStructCanonicalName(const string &Name, const vector<string> &GenericR
     return out;
 }
 
+/*
 __structLookupData *instantiateStruct(const string &Name, const vector<string> &GenericReplacements)
 {
     // Examine and verify candidates (uses raw name)
@@ -1944,7 +1958,9 @@ __structLookupData *instantiateStruct(const string &Name, const vector<string> &
     // Return newly instantiated struct type
     return &structData[realName];
 }
+*/
 
+/*
 __multiTableSymbol *instantiateTemplate(const string &Name, const vector<string> &GenericReplacements)
 {
     // Examine candidates
@@ -2031,6 +2047,7 @@ __multiTableSymbol *instantiateTemplate(const string &Name, const vector<string>
 
     return &table[Name].back();
 }
+*/
 
 //////////////////////////////////// Enums
 
@@ -2046,6 +2063,7 @@ string getEnumCanonicalName(const string &Name, const vector<string> &GenericRep
     return out;
 }
 
+/*
 __enumLookupData *instantiateEnum(const string &Name, const vector<string> &GenericReplacements)
 {
     // Examine and verify candidates (uses raw name)
@@ -2084,6 +2102,7 @@ __enumLookupData *instantiateEnum(const string &Name, const vector<string> &Gene
     // Return newly instantiated enum type
     return &enumData[realName];
 }
+*/
 
 // Can throw errors (IE malformed definitions)
 void addEnum(const vector<string> &FromIn)

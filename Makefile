@@ -41,6 +41,8 @@ reinstall:
 	$(MAKE) -C . uninstall clean install
 
 test: install
+	$(TEST) oak_demos/string_test.oak -o string_test.out
+	
 	$(TEST) oak_demos/enum_test.oak -o enum_test.out
 	$(TEST) oak_demos/access_test.oak -o access_test.out
 	$(TEST) oak_demos/cond_test.oak -o cond_test.out
@@ -64,8 +66,6 @@ test: install
 	$(TEST) oak_demos/sdl_test.oak -o sdl_test.out
 	$(TEST) oak_demos/sdl_test_2.oak -o sdl_test_2.out
 	$(TEST) oak_demos/sdl_test_3.oak -o sdl_test_3.out
-
-	$(TEST) oak_demos/string_test.oak -o string_test.out
 
 	rm -rf *.log .oak_build
 

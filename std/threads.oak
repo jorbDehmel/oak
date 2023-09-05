@@ -9,7 +9,8 @@ As of 0.0.10, mutex is experimental.
 
 link!("std/threads.o");
 
-// Mutex
+/*
+// Mutex (experimental)
 let mutex<t>: struct
 {
     in_use: bool,
@@ -47,8 +48,9 @@ let return_data<t>(self: ^mutex<t>, into: ^^t) -> void
     ^into = 0;
     self.in_use = false;
 }
+*/
 
-// Threads (experimental)
+// Threads
 let thread: struct
 {
     // C++ member padding; Don't mess with

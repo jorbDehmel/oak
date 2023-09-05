@@ -65,11 +65,13 @@ struct __structLookupData
     bool erased = false;
 };
 
+/*
 struct __templStructLookupData
 {
     vector<string> generics;
     vector<string> guts;
 };
+*/
 
 extern map<string, __structLookupData> structData;
 extern vector<string> structOrder;

@@ -1,5 +1,9 @@
+// Temporary file for the testing of a rewrite to std/string.oak
+
 package!("std");
 use_rule!("std");
+
+include!("std/printf.oak");
 
 let string: struct
 {
@@ -27,8 +31,10 @@ let Del(self: ^string) -> void
 // Doubles the current capacity
 let Upsize(self: ^string) -> void
 {
+    printf!("Calling upsize upon %\n", self.capacity);
+
     let new_data: ^i8;
-    alloc!(new_data, self.capacity * to_u128(2));
+    alloc!(new_data, self.capacity);
 
     for (let i: u128 = to_u128(0); i < self.current_length; i += 1)
     {
@@ -36,34 +42,49 @@ let Upsize(self: ^string) -> void
     }
 
     free_arr!(self.data);
-    
-    //self.data = new_data;
-    Copy(@self.data, new_data);
-    
-    self.capacity *= 2;
+    self.capacity *= to_u128(2);
+
+    alloc!(self.data, self.capacity);
+
+    for (let i: u128 = to_u128(0); i < self.current_length; i += 1)
+    {
+        ^self.data[i] = ^new_data[i];
+    }
+
+    free_arr!(new_data);
 }
 
 // Halves the current capacity if possible
 let Downsize(self: ^string) -> void
 {
-    if (self.current_length * 2 < self.capacity)
+    if (self.current_length * to_u128(2) < self.capacity)
     {
         let new_data: ^i8;
-        alloc!(new_data, self.capacity / 2);
+        alloc!(new_data, self.capacity / to_u128(2));
 
         for (let i: u128 = to_u128(0); i < self.current_length; i += 1)
         {
-            new_data[i] = self.data[i];
+            ^new_data[i] = ^self.data[i];
         }
 
         free_arr!(self.data);
-        self.data = new_data;
-        self.capacity /= 2;
+        self.capacity /= to_u128(2);
+
+        alloc!(self.data, self.capacity);
+
+        for (let i: u128 = to_u128(0); i < self.current_length; i += 1)
+        {
+            ^self.data[i] = ^new_data[i];
+        }
+
+        free_arr!(new_data);
     }
 }
 
-let Copy(self: ^string, other: str) -> void
+let Copy(self: ^string, from: str) -> void
 {
+    printf!("Attempting to copy '%'\n", from);
+
     self.current_length = to_u128(0);
 
     // Poll size of from (including null termination)
@@ -74,10 +95,21 @@ let Copy(self: ^string, other: str) -> void
         size += to_u128(1);
     }
 
+    printf!("Has size %\n", size);
+
     while (self.capacity < size)
     {
-        Upsize(this);
+        Upsize(self);
     }
+
+    printf!("Finished upsizing.\n");
+
+    for (let i: u128 = to_u128(0); i < size; i += 1)
+    {
+        Copy(Get(@self.data, i), Get(@from, i));
+    }
+
+    printf!("Done.\n");
 }
 
 let Copy(self: ^string, other: string) -> void
@@ -87,9 +119,10 @@ let Copy(self: ^string, other: string) -> void
         Upsize(self);
     }
 
-    for (let i: u128 = to_u128(0); i < other.current_length; i++)
+    self.current_length = other.current_length;
+    for (let i: u128 = to_u128(0); i < other.current_length; i += 1)
     {
-        self.data[i] = other.data[i];
+        Copy(Get(@self.data, i), ^Get(@other.data, i));
     }
 }
 
@@ -106,7 +139,7 @@ let AddEq(self: ^string, other: string) -> void
     // Copy over data
     for (let i: u128 = 0; i < size; i += 1)
     {
-        Copy(Get(@self.data, self.current_length + i), Get(@from, i));
+        Copy(Get(@self.data, (self.current_length + i)), ^Get(@other.data, i));
     }
 
     // Increase size
@@ -118,7 +151,7 @@ let AddEq(self: ^string, other: str) -> void
     // Poll size of from (including null termination)
     let size: u128;
     size = 0;
-    while (Get(@from, size) != to_i8(0))
+    while (Get(@other, size) != to_i8(0))
     {
         size += to_u128(1);
     }
@@ -129,9 +162,9 @@ let AddEq(self: ^string, other: str) -> void
     }
 
     // Copy over data
-    for (let i: i32 = 0; i < size; i += 1)
+    for (let i: u128 = 0; i < size; i += 1)
     {
-        Copy(Get(@self.data, self.current_length + i), Get(@from, i));
+        Copy(Get(@self.data, (self.current_length + i)), Get(@other, i));
     }
 
     // Increase size
@@ -146,4 +179,17 @@ let Add(a: string, b: string) -> string
     out += b;
 
     out
+}
+
+let Get(self: ^string, index: u128) -> i8
+{
+    ^Get(@self.data, index)
+}
+
+let print(what: string) -> void
+{
+    for (let i: u128 = 0; i < what.current_length; i += 1)
+    {
+        print(Get(@what, i));
+    }
 }

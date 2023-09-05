@@ -1,6 +1,8 @@
 // For testing Oak's generic functions
 // As of 7/30/23, passed.
 
+// UNSUPPORTED AS OF 0.0.12
+
 package!("std");
 use_rule!("std");
 

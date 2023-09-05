@@ -74,11 +74,6 @@ str b_to_s(bool what)
     return (what ? "true" : "false");
 }
 
-f64 s_to_f(str what)
-{
-    throw -1;
-}
-
 f64 i_to_f(i32 what)
 {
     return (f64)what;
@@ -175,6 +170,16 @@ u128 to_u128(i32 what)
 }
 
 i128 to_i128(i32 what)
+{
+    return what;
+}
+
+f64 to_f64(f32 what)
+{
+    return what;
+}
+
+f64 to_f64(f128 what)
 {
     return what;
 }

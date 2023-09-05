@@ -14,9 +14,6 @@ let s_to_i(what: str) -> i32;
 // String to bool
 let s_to_b(what: str) -> bool;
 
-// String to float
-let s_to_f(what: str) -> f64;
-
 // Bool to string
 let b_to_s(what: bool) -> str;
 
@@ -51,6 +48,9 @@ let to_i64(what: i32) -> i64;
 let to_u128(what: i32) -> u128;
 let to_i128(what: i32) -> i128;
 
+let to_f64(what: f32) -> f64;
+let to_f64(what: f128) -> f64;
+
 let Get(self: ^str, index: u128) -> i8;
 let Get(self: str, index: u128) -> i8;
 
@@ -63,11 +63,6 @@ let to_i8(what: str) -> i8;
 let to_bool(what: str) -> bool
 {
     s_to_b(what)
-}
-
-let to_f64(what: str) -> f64
-{
-    s_to_f(what)
 }
 
 let to_f64(what: i32) -> f64

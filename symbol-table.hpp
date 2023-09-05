@@ -62,7 +62,8 @@ struct __template_info
 };
 
 typedef map<string, vector<__multiTableSymbol>> multiSymbolTable;
-typedef map<string, vector<__template_info>> multiTemplTable;
+
+// typedef map<string, vector<__template_info>> multiTemplTable;
 
 extern multiSymbolTable table;
 

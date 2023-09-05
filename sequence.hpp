@@ -53,8 +53,9 @@ using namespace std;
 
 // Globals
 
-extern multiTemplTable templTable;
-extern map<string, __templStructLookupData> templStructData;
+// extern multiTemplTable templTable;
+
+// extern map<string, __templStructLookupData> templStructData;
 
 extern const set<string> specials;
 extern unsigned long long int curLine;
@@ -105,13 +106,12 @@ Type resolveFunction(const vector<string> &What, int &start, string &c);
 Type checkLiteral(const string &From);
 string restoreSymbolTable(multiSymbolTable &backup);
 
-__multiTableSymbol *instantiateTemplate(const string &Name, const vector<string> &GenericReplacements);
+// __multiTableSymbol *instantiateTemplate(const string &Name, const vector<string> &GenericReplacements);
+// __structLookupData *instantiateStruct(const string &Name, const vector<string> &GenericReplacements);
+// __enumLookupData *instantiateEnum(const string &Name, const vector<string> &GenericReplacements);
 
 string getStructCanonicalName(const string &Name, const vector<string> &GenericReplacements);
-__structLookupData *instantiateStruct(const string &Name, const vector<string> &GenericReplacements);
-
 string getEnumCanonicalName(const string &Name, const vector<string> &GenericReplacements);
-__enumLookupData *instantiateEnum(const string &Name, const vector<string> &GenericReplacements);
 
 void addEnum(const vector<string> &FromIn);
 

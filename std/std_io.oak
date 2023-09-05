@@ -6,6 +6,8 @@ Standard io function definitions for use
 with io.cpp.
 */
 
+include!("std/std_conv.oak", "std/extra_conv.oak");
+
 link!("std/io.o");
 
 // Print to cout
@@ -25,3 +27,34 @@ let get_char() -> i8;
 
 // Read a number of chars from cin into a string
 let read(into: str, length: u128) -> void;
+
+// Commonly used prints
+let print(what: u32) -> void
+{
+    print(to_i32(what));
+}
+
+let print(what: i64) -> void
+{
+    print(to_i32(what));
+}
+
+let print(what: u64) -> void
+{
+    print(to_i32(what));
+}
+
+let print(what: i128) -> void
+{
+    print(to_i32(what));
+}
+
+let print(what: u128) -> void
+{
+    print(to_i32(what));
+}
+
+let print(what: f32) -> void
+{
+    print(to_f64(what));
+}

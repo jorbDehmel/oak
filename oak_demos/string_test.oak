@@ -3,17 +3,17 @@
 
 package!("std");
 use_rule!("std");
-include!("std/string.oak");
+include!("std/smart_string.oak");
 
 let main() -> i32
 {
-    let test_a: string;
-    test_a..Copy("hello, ");
+    let test_a: string = "hello, ";
+
     print(test_a);
     print("\n");
 
-    let test_b: string;
-    test_b..Copy("world!");
+    let test_b: string = "world!";
+    
     print(test_b);
     print("\n");
 

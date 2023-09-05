@@ -583,6 +583,7 @@ void dump(const vector<string> &Lexed, const string &Where, const string &FileNa
         }
     }
 
+    /*
     file << "\n// Generic functions:\n";
 
     for (auto p : templTable)
@@ -650,6 +651,7 @@ void dump(const vector<string> &Lexed, const string &Where, const string &FileNa
             file << item << ' ';
         }
     }
+    */
 
     file << sep
          << "// Full anatomy:\n";
