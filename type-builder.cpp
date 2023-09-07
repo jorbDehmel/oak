@@ -108,7 +108,7 @@ bool Type::operator==(const Type &Other) const
     {
         return false;
     }
-    else if ((info == atomic || info == modifier) && name != Other.name)
+    else if (info == atomic && name != Other.name)
     {
         return false;
     }

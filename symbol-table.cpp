@@ -62,35 +62,29 @@ Type toType(const vector<string> &WhatIn)
                 cursor = cursor->next;
             }
 
-            cursor->name += "_";
+            // Collect generics
+            vector<string> genericContents;
+            genericContents.push_back(cursor->name);
 
             int count = 0;
-            while (!(count == 1 && What[i] == ">"))
+            while (i < What.size() && !(count == 1 && What[i] == ">"))
             {
                 if (What[i] == "<")
                 {
                     count++;
-                    cursor->name += "_";
                 }
                 else if (What[i] == ">")
                 {
                     count--;
                 }
-                else if (What[i] == ",")
-                {
-                    cursor->name += "_";
-                }
-                else
-                {
-                    cursor->name += What[i] + "_";
-                }
+
+                genericContents.push_back(What[i]);
 
                 i++;
-                if (i > What.size())
-                {
-                    break;
-                }
             }
+            genericContents.push_back(">");
+
+            cursor->name = mangle(genericContents);
         }
         else if (cur == ",")
         {
@@ -150,6 +144,31 @@ void addStruct(const vector<string> &FromIn)
 
     string name = From[i];
 
+    // Scrape generics here (and mangle)
+    vector<string> generics;
+
+    i++;
+    while (i < From.size() && From[i] != ":" && From[i] != "{")
+    {
+        generics.push_back(From[i]);
+        i++;
+    }
+
+    if (generics.size() != 0 && generics.front() == "<")
+    {
+        generics.erase(generics.begin());
+    }
+
+    if (generics.size() != 0 && generics.back() == ">")
+    {
+        generics.pop_back();
+    }
+
+    if (generics.size() != 0)
+    {
+        name = mangleStruct(name, generics);
+    }
+
     if (structData.count(name) != 0)
     {
         cout << tags::yellow_bold
@@ -184,8 +203,7 @@ void addStruct(const vector<string> &FromIn)
     table["New"].push_back(__multiTableSymbol{s, t, false});
     table["Del"].push_back(__multiTableSymbol{s, t, false});
 
-    i++;
-    parse_assert(From[i] == ":");
+    parse_assert(i < From.size() && From[i] == ":");
     i++;
     parse_assert(From[i] == "struct");
     i++;
@@ -215,6 +233,8 @@ void addStruct(const vector<string> &FromIn)
 
             // Get lexed type (can be multiple symbols due to templating)
             int templCount = 0;
+            vector<string> genericHolder;
+
             while (i < From.size() && !(templCount == 0 && From[i] == ","))
             {
                 if (templCount == 0 && From[i] != "<")
@@ -223,24 +243,7 @@ void addStruct(const vector<string> &FromIn)
                 }
                 else
                 {
-                    throw_assert(!lexedType.empty());
-
-                    if (From[i] == "<")
-                    {
-                        lexedType.back().append("__");
-                    }
-                    else if (From[i] == "^" || From[i] == "@")
-                    {
-                        lexedType.back().append("ptr_");
-                    }
-                    else if (From[i] == ">")
-                    {
-                        ;
-                    }
-                    else
-                    {
-                        lexedType.back().append(From[i] + "_");
-                    }
+                    genericHolder.push_back(From[i]);
                 }
 
                 if (From[i] == "<")
@@ -250,6 +253,17 @@ void addStruct(const vector<string> &FromIn)
                 else if (From[i] == ">")
                 {
                     templCount--;
+
+                    if (templCount == 0)
+                    {
+                        string toAdd = mangle(genericHolder);
+                        genericHolder.clear();
+
+                        if (toAdd != "")
+                        {
+                            lexedType.back().append("_" + toAdd);
+                        }
+                    }
                 }
 
                 i++;

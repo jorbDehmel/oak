@@ -564,7 +564,24 @@ sequence __createSequence(list<string> &From)
                 // addStruct takes in the full struct definition, from
                 // let to end curly bracket. So we must first parse this.
 
-                vector<string> toAdd = {"let", name, ":"};
+                vector<string> toAdd = {"let", name};
+
+                // Add generics back in here
+                if (generics.size() != 0)
+                {
+                    toAdd.push_back("<");
+                    for (int i = 0; i < generics.size(); i++)
+                    {
+                        toAdd.push_back(generics[i]);
+                        if (i + 1 < generics.size())
+                        {
+                            toAdd.push_back(",");
+                        }
+                    }
+                    toAdd.push_back(">");
+                }
+
+                toAdd.push_back(":");
                 string front = From.front();
 
                 int count = 0;
@@ -587,7 +604,20 @@ sequence __createSequence(list<string> &From)
                 sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
                 From.pop_front();
 
-                if (generics.empty())
+                bool exempt = false;
+                for (auto s : generics)
+                {
+                    if (structData.count(s) != 0 ||
+                        s == "u8" || s == "i8" || s == "u16" || s == "i16" ||
+                        s == "u32" || s == "i32" || s == "u64" || s == "i64" ||
+                        s == "u128" || s == "i128" || s == "str" || s == "bool")
+                    {
+                        exempt = true;
+                        break;
+                    }
+                }
+
+                if (generics.size() == 0 || exempt)
                 {
                     if (front == "struct")
                     {
@@ -602,22 +632,7 @@ sequence __createSequence(list<string> &From)
                 }
                 else
                 {
-                    if (front == "struct")
-                    {
-                        // Templated struct
-
-                        // templStructData[name] = __templStructLookupData{generics, toAdd};
-
-                        throw sequencing_error(__FILE__ + to_string(__LINE__) + "Error: As of Oak 0.0.12, generics are not implemented.");
-                    }
-                    else if (front == "enum")
-                    {
-                        // Templated enum
-
-                        // templEnumData[name] = __templEnumLookupData{generics, toAdd};
-
-                        throw sequencing_error(__FILE__ + to_string(__LINE__) + "Error: As of Oak 0.0.12, generics are not implemented.");
-                    }
+                    addGeneric(toAdd, name, generics);
                 }
 
                 // This should be left out of toC, as it should only be used
@@ -862,7 +877,9 @@ sequence __createSequence(list<string> &From)
                 // Insert template
                 // templTable[name].push_back(__template_info{generics, toAdd, returnType});
 
-                throw sequencing_error(__FILE__ + to_string(__LINE__) + "Error: As of Oak 0.0.12, generics are not implemented.");
+                addGeneric(toAdd, name, generics);
+
+                // throw sequencing_error(__FILE__ + to_string(__LINE__) + "Error: As of Oak 0.0.12, generics are not implemented.");
             }
         }
 
@@ -1645,7 +1662,6 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
     }
 
     // Function template instantiation (not struct at this stage)
-    // TODO: Modernize for multi-symbol generic replacements
     else if (What.size() > start + 1 && What[start + 1] == "<")
     {
         vector<string> generics;
@@ -1664,27 +1680,7 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
 
         sm_assert(start >= What.size() || What[start] == ";", "Template instantiation call must end with semicolon, not '" + What[start] + "'");
 
-        throw sequencing_error(__FILE__ + to_string(__LINE__) + "Error: As of Oak 0.0.12, generics are not implemented.");
-
-        /*
-        try
-        {
-            // Check for function formats
-
-            instantiateTemplate(name, generics);
-        }
-        catch (runtime_error &e)
-        {
-            if (templStructData.count(name) == 0)
-            {
-                throw e;
-            }
-            else
-            {
-                instantiateStruct(name, generics);
-            }
-        }
-        */
+        instantiateGeneric(name, generics);
     }
 
     else
@@ -1907,6 +1903,7 @@ string restoreSymbolTable(multiSymbolTable &backup)
 
 /////////////////////////////////////////
 
+/*
 string getStructCanonicalName(const string &Name, const vector<string> &GenericReplacements)
 {
     string out = Name;
@@ -1918,6 +1915,7 @@ string getStructCanonicalName(const string &Name, const vector<string> &GenericR
 
     return out;
 }
+*/
 
 /*
 __structLookupData *instantiateStruct(const string &Name, const vector<string> &GenericReplacements)
@@ -2051,6 +2049,7 @@ __multiTableSymbol *instantiateTemplate(const string &Name, const vector<string>
 
 //////////////////////////////////// Enums
 
+/*
 string getEnumCanonicalName(const string &Name, const vector<string> &GenericReplacements)
 {
     string out = Name;
@@ -2062,6 +2061,7 @@ string getEnumCanonicalName(const string &Name, const vector<string> &GenericRep
 
     return out;
 }
+*/
 
 /*
 __enumLookupData *instantiateEnum(const string &Name, const vector<string> &GenericReplacements)

@@ -11,6 +11,10 @@ TODO:
 Acorn Version   |          |
 (Newest at top) | Date     | Justification
 ----------------|----------|-----------------------------------------
+0.0.13          | 9/7/23   | Modernized generics (reintroduced). Also
+                |          | added mangling, setting scene for lower
+                |          | level translations later on.
+                |          |
 0.0.12          | 9/4/23   | Killed generics again, pending a future
                 |          | overhaul. Also revamped destructor and
                 |          | automatic constructor calls.

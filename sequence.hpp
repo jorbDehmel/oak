@@ -46,6 +46,8 @@ non-sequential parser.
 #include "symbol-table.hpp"
 #include "reconstruct.hpp"
 #include "enums.hpp"
+#include "mangler.hpp"
+#include "generics.hpp"
 
 #include "tags.hpp"
 
@@ -110,8 +112,8 @@ string restoreSymbolTable(multiSymbolTable &backup);
 // __structLookupData *instantiateStruct(const string &Name, const vector<string> &GenericReplacements);
 // __enumLookupData *instantiateEnum(const string &Name, const vector<string> &GenericReplacements);
 
-string getStructCanonicalName(const string &Name, const vector<string> &GenericReplacements);
-string getEnumCanonicalName(const string &Name, const vector<string> &GenericReplacements);
+// string getStructCanonicalName(const string &Name, const vector<string> &GenericReplacements);
+// string getEnumCanonicalName(const string &Name, const vector<string> &GenericReplacements);
 
 void addEnum(const vector<string> &FromIn);
 

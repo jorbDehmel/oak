@@ -430,10 +430,6 @@ string toStrC(Type *What, const string &Name)
         out += ",";
         out += toStrC(What->next);
         break;
-    case modifier:
-        out += What->name + " ";
-        out += toStrC(What->next);
-        break;
     case pointer:
         out += toStrC(What->next);
         out += "*";

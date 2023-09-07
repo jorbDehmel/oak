@@ -17,7 +17,6 @@ enum TypeInfo
     pointer,  // A pointer to the type specified by next
     atomic,   // An atomic type (or struct/class definition)
     join,     // A comma; Syntactic fluff, more or less
-    modifier, // IE const, unsigned, signed, etc...
     function, // Function start (mostly fluff)
     maps,     // Syntactic fluff for functions
     var_name, // A variable name for functions

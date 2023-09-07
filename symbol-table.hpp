@@ -27,6 +27,9 @@ public:
 
 #define parse_assert(what) ((bool)(what)) ? true : (throw parse_error("Assertion '" #what "' failed (file " __FILE__ "line " + to_string(__LINE__) + ")"))
 
+// External definition
+string mangle(const vector<string> &what);
+
 enum sequenceInfo
 {
     code_scope, // {1; 2; 3}
@@ -78,5 +81,8 @@ Type toType(const vector<string> &What);
 // and ending after }. (Oak has no trailing semicolon)
 // Can also handle templating
 void addStruct(const vector<string> &From);
+
+// Extern def
+string mangleStruct(const string &name, const vector<string> &generics);
 
 #endif
