@@ -35,7 +35,7 @@ Type toType(const vector<string> &WhatIn)
     int i = 0;
     if (What[i] == "<")
     {
-        while (What[i] != ">")
+        while (i < What.size() && What[i] != ">")
         {
             i++;
         }

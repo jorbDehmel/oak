@@ -9,6 +9,8 @@
 using namespace std;
 
 #define DB_INFO __FILE__ << ':' << __LINE__ << ' '
+#define DB_START cout << DB_INFO << "<" << flush
+#define DB_END cout << DB_INFO << ">\n" << flush
 
 class Type;
 

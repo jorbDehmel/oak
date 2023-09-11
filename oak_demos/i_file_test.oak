@@ -2,9 +2,10 @@
 // Legacy passed
 
 package!("std");
-include!("std/files.oak");
-include!("std/string.oak");
 use_rule!("std");
+
+include!("std/string.oak");
+include!("std/files.oak");
 
 let main() -> i32
 {
@@ -35,10 +36,10 @@ let main() -> i32
     print(str_b);
     print("\n");
 
-    inp..close();
-    str_a..Del();
-    str_b..Del();
-    inp..Del();
+    close(@inp);
+    Del(@str_a);
+    Del(@str_b);
+    Del(@inp);
     
     0
 }

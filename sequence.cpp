@@ -8,9 +8,8 @@ GPLv3 held by author
 
 #include "sequence.hpp"
 
-// Global instantiations
-// multiTemplTable templTable;
-// map<string, __templStructLookupData> templStructData;
+// DEFINE FOR DEBUG ONLY
+#undef PRINT_EACH_LINE
 
 // Activates "dirty" mode, where mem alloc and free are allowed
 bool insideMethod = false;
@@ -19,6 +18,40 @@ vector<string> curLineSymbols;
 
 unsigned long long int curLine = 1;
 string curFile = "";
+
+// Destroy all unit, temp, or autogen definitions matching a given type.
+// Can throw errors if doThrow is true.
+// Mostly used for New and Del, Oak ~0.0.14
+void destroyUnits(const string &name, const Type &type, const bool &doThrow)
+{
+    // Safety check
+    if (table.count(name) != 0 && table[name].size() != 0)
+    {
+        // Iterate over items
+        for (int i = 0; i < table[name].size(); i++)
+        {
+            if (table[name][i].type == type)
+            {
+                // If is unit, erase
+                if (table[name][i].seq.items.size() == 0 || (table[name][i].seq.items.size() == 1 &&
+                                                             table[name][i].seq.items[0].raw.size() > 8 &&
+                                                             table[name][i].seq.items[0].raw.substr(0, 9) == "//AUTOGEN"))
+                {
+                    table.at(name).erase(table[name].begin() + i);
+                    i--;
+                }
+
+                // Else if doThrow, throw redef error
+                else if (doThrow)
+                {
+                    throw sequencing_error("Function " + name + toStr(&type) + "' cannot have multiple explicit definitions.");
+                }
+            }
+        }
+    }
+
+    return;
+}
 
 // Actually used in dump files, not just for debugging.
 void debugPrint(const sequence &What, int spaces, ostream &to)
@@ -116,6 +149,16 @@ sequence __createSequence(list<string> &From)
         curLine = stoull(newLineNum);
 
         // Erase current line vector and replace it with the next line
+#ifdef PRINT_EACH_LINE
+        cout << DB_INFO << "PRINT_EACH_LINE " << curFile << ':' << curLine
+             << " '";
+        for (auto i : curLineSymbols)
+        {
+            cout << i << ' ';
+        }
+        cout << "'\n";
+#endif
+
         curLineSymbols.clear();
         if (From.size() != 0)
         {
@@ -699,7 +742,6 @@ sequence __createSequence(list<string> &From)
         else if (From.front() == "(")
         {
             // Function definition
-
             if (generics.size() == 0)
             {
                 // Arguments
@@ -742,9 +784,9 @@ sequence __createSequence(list<string> &From)
                 }
 
                 // Restrictions upon some types of methods
-                if (isMethod && !isSingleArg)
+                if (name == "New" || name == "Del")
                 {
-                    if (name == "New" || name == "Del")
+                    if (!isSingleArg)
                     {
                         throw runtime_error("Illegal method definition! Method '" + name + "' must have exactly one argument.");
                     }
@@ -753,71 +795,25 @@ sequence __createSequence(list<string> &From)
                 bool oldSafeness = insideMethod;
                 insideMethod = isMethod;
 
-                // Insert symbol
-
-                table[name];
-                table[name].push_back(__multiTableSymbol{sequence{}, type});
-
+                // Insert explicit symbol
                 if (From.size() > 0 && From.front() == "{")
                 {
-                    if (table[name].size() > 1)
-                    {
-                        // Erase all previous unit definitions
-                        int j = 0;
-                        for (auto def = table[name].begin(); j < table[name].size() && def != table[name].end(); def++)
-                        {
-                            if (def->type == type && j + 1 < table[name].size())
-                            {
-                                // If unit, erase
-                                if (def->seq.items.size() == 0 || (def->seq.items[0].info == atom && def->seq.items[0].raw == "//AUTOGEN"))
-                                {
-                                    table[name].erase(def);
-                                    def = table[name].begin() + j - 1;
-                                    continue;
-                                }
+                    destroyUnits(name, type, true);
 
-                                // Else, throw error
-                                else
-                                {
-                                    throw sequencing_error("Cannot overload identical function '" + name + "'");
-                                }
-
-                                if (table[name].size() == 1)
-                                {
-                                    break;
-                                }
-                            }
-
-                            j++;
-                        }
-                    }
-
-                    sequence toAdd = __createSequence(From);
-
-                    table[name].back().seq = toAdd;
+                    table[name].push_back(__multiTableSymbol{sequence{}, type});
+                    table[name].back().seq = __createSequence(From);
                 }
                 else
                 {
-                    if (table[name].size() > 1)
-                    {
-                        // Erase all previous unit definitions
-                        int j = 0;
-                        for (auto def = table[name].begin(); j < table[name].size() && def != table[name].end(); def++)
-                        {
-                            if (def->type == type && j + 1 != table[name].size())
-                            {
-                                // If unit, erase
-                                if (def->seq.items.size() == 0 || (def->seq.items[0].info == atom && def->seq.items[0].raw == "//AUTOGEN"))
-                                {
-                                    table[name].erase(def);
-                                    def = table[name].begin() + j - 1;
-                                    continue;
-                                }
-                            }
+                    // Casual reference
+                    // IE let to_i32(what: bool) -> i32;
+                    // Destroys all autogen, requires
+                    // actual definition.
 
-                            j++;
-                        }
-                    }
+                    destroyUnits(name, type, false);
+
+                    // Ensure exactly one unit declaration
+                    table[name].push_back(__multiTableSymbol{sequence{}, type});
                 }
 
                 insideMethod = oldSafeness;
@@ -1092,7 +1088,14 @@ string toC(const sequence &What)
                 usedOptions[opt] = false;
             }
 
-            for (int ind = 0; ind < What.items[1].items.size(); ind++)
+            // Skips any vestigial "Del" statements
+            int max = What.items[1].items.size();
+            while (max >= 0 && What.items[1].items[max - 1].raw.substr(0, 3) == "Del")
+            {
+                max--;
+            }
+
+            for (int ind = 0; ind < max; ind++)
             {
                 if (What.items[1].items[ind].raw == "case")
                 {
@@ -1472,84 +1475,62 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
         }
 
         // Special case; Pointer array access
-        if (name == "Get" && argTypes.size() == 2)
+        if (name == "Get" && argTypes.size() == 2 &&
+            argTypes[0].info == pointer &&
+            argTypes[0].next != nullptr &&
+            argTypes[0].next->info == pointer)
         {
-            if (argTypes[0].info == pointer &&
-                argTypes[0].next != nullptr &&
-                argTypes[0].next->info == pointer)
-            {
-                c += argStrs[0] + "[" + argStrs[1] + "]";
+            c += argStrs[0] + "[" + argStrs[1] + "]";
 
-                return *argTypes[0].next;
-            }
+            return *argTypes[0].next;
         }
 
-        // Special case; Function pointer copy
-        else if (name == "Copy" && argTypes.size() == 2)
+        // Special case; Pointer copy
+        else if (name == "Copy" && argTypes.size() == 2 &&
+                 argTypes[0].info == pointer &&
+                 argTypes[0].next != nullptr &&
+                 argTypes[0].next->info == pointer &&
+                 argTypes[0].next->next != nullptr &&
+                 argTypes[1].info == pointer &&
+                 argTypes[1].next != nullptr)
         {
-            // IE Copy(^^(i32) -> i32, ^(what: i32) -> i32)
-            // Double pointer in first, single in second
-            // Identical types after pointer stuff
+            // Ensure equality; If not, throw error
+            Type *left, *right;
 
-            if (argTypes[0].info == pointer &&
-                argTypes[0].next != nullptr &&
-                argTypes[0].next->info == pointer &&
-                argTypes[0].next->next != nullptr &&
-                argTypes[0].next->next->info == function &&
-                argTypes[1].info == pointer &&
-                argTypes[1].next != nullptr &&
-                argTypes[1].next->info == function)
+            left = argTypes[0].next->next;
+            right = argTypes[1].next;
+
+            bool isValid = true;
+            while (left != nullptr && right != nullptr)
             {
-                // Ensure equality; If not, throw error
-                Type *left, *right;
-
-                left = argTypes[0].next->next;
-                right = argTypes[1].next;
-
-                bool isValid = true;
-                while (left != nullptr && right != nullptr)
+                // DO ITERATION HERE
+                while (left->info == var_name)
                 {
-                    // DO ITERATION HERE
-                    while (left->info == var_name)
-                    {
-                        left = left->next;
-                    }
-                    while (right->info == var_name)
-                    {
-                        right = right->next;
-                    }
-
-                    if (left->info != right->info || left->name != right->name)
-                    {
-                        isValid = false;
-                        break;
-                    }
-
                     left = left->next;
+                }
+                while (right->info == var_name)
+                {
                     right = right->next;
                 }
 
-                sm_assert(isValid, "Cannot assign fn ptr '" + toStr(&argTypes[1]) + "' to '" + toStr(&argTypes[0]) + "'.");
+                if (left->info != right->info || left->name != right->name)
+                {
+                    isValid = false;
+                    break;
+                }
 
-                // Turn to C
-                c += "(*" + argStrs[0] + ") = " + argStrs[1];
-
-                // Return nullType (Copy yields void)
-                return nullType;
-            }
-        }
-
-        c += name + "(";
-        for (int j = 0; j < argStrs.size(); j++)
-        {
-            if (j != 0)
-            {
-                c += ", ";
+                left = left->next;
+                right = right->next;
             }
 
-            c += argStrs[j];
+            sm_assert(isValid, "Cannot ptr '" + toStr(&argTypes[1]) + "' to '" + toStr(&argTypes[0]) + "'.");
+
+            // Turn to C
+            c += "(*" + argStrs[0] + ") = " + argStrs[1];
+
+            // Return nullType (Copy yields void)
+            return nullType;
         }
-        c += ")";
 
         // Search for candidates
         sm_assert(table.count(name) != 0, "Function call '" + name + "' has no registered symbols.");
@@ -1658,6 +1639,18 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
         // Single candidate
         type = getReturnType(candidates[0].type);
 
+        c += name + "(";
+        for (int j = 0; j < argStrs.size(); j++)
+        {
+            if (j != 0)
+            {
+                c += ", ";
+            }
+
+            c += argStrs[j];
+        }
+        c += ")";
+
         start--;
     }
 
@@ -1762,6 +1755,11 @@ bool typesAreSame(Type *A, Type *B)
             right = right->next;
         }
 
+        if (left == nullptr || right == nullptr)
+        {
+            break;
+        }
+
         if (left->info != right->info)
         {
             // Failure
@@ -1842,39 +1840,81 @@ Type checkLiteral(const string &From)
     return nullType;
 }
 
+/*
+Erases any non-function symbols which were not present
+in the original table. However, skips all functions.
+If not contradicted by the above rules, bases off of
+the current table (not backup).
+
+for name in table
+{
+    for symb in table[name]
+    {
+        if symb is fn
+        {
+            add for sure
+        }
+        else if symb not in backup
+        {
+            if symb is atom
+            {
+                fall from scope without destructor
+            }
+            else
+            {
+                fall from scope with destructor
+            }
+        }
+        else
+        {
+            // symb is in backup, meaning global; Doesn't fall from scope
+            add for sure
+        }
+    }
+}
+
+*/
 string restoreSymbolTable(multiSymbolTable &backup)
 {
     string output = "";
 
-    multiSymbolTable newTable = backup;
+    multiSymbolTable newTable;
     for (auto p : table)
     {
-        if (p.second.size() == backup[p.first].size())
+        for (auto s : p.second)
         {
-            continue;
-        }
-        else
-        {
-            for (auto s : p.second)
+            // Functions are always added- the logic for
+            // this is handled elsewhere.
+            if (s.type.info == function)
             {
-                if (s.type.info == function)
-                {
-                    // Newly instantiated function: Does not fall out of scope
-                    bool present = false;
-                    for (auto ss : backup[p.first])
-                    {
-                        if (ss.type == s.type)
-                        {
-                            present = true;
-                            break;
-                        }
-                    }
+                // Add to new table for sure
+                newTable[p.first];
+                newTable[p.first].push_back(s);
+            }
 
-                    if (!present)
+            // Variables are more complicated
+            else
+            {
+                // Check for presence in backup
+                bool present = false;
+                for (auto cand : backup[p.first])
+                {
+                    if (cand.type == s.type)
                     {
-                        newTable[p.first].push_back(s);
+                        present = true;
+                        break;
                     }
                 }
+
+                // If was present in backup, add for sure
+                if (present)
+                {
+                    // Add to table for sure
+                    newTable[p.first];
+                    newTable[p.first].push_back(s);
+                }
+
+                // Otherwise, do not add (do destructor literal check)
                 else
                 {
                     // Variable falling out of scope
@@ -1887,7 +1927,8 @@ string restoreSymbolTable(multiSymbolTable &backup)
                                                     s.type.name == "f32" || s.type.name == "f64" ||
                                                     s.type.name == "f128" || s.type.name == "bool" ||
                                                     s.type.name == "str")) &&
-                        s.type.info != function && s.type.info != pointer)
+                        s.type.info != function && s.type.info != pointer &&
+                        p.first != "")
                     {
                         output += "Del(&" + p.first + ");\n";
                     }
@@ -1902,207 +1943,6 @@ string restoreSymbolTable(multiSymbolTable &backup)
 }
 
 /////////////////////////////////////////
-
-/*
-string getStructCanonicalName(const string &Name, const vector<string> &GenericReplacements)
-{
-    string out = Name;
-    out += "__";
-    for (int i = 0; i < GenericReplacements.size(); i++)
-    {
-        out += GenericReplacements[i] + "_";
-    }
-
-    return out;
-}
-*/
-
-/*
-__structLookupData *instantiateStruct(const string &Name, const vector<string> &GenericReplacements)
-{
-    // Examine and verify candidates (uses raw name)
-    if (templStructData.count(Name) == 0)
-    {
-        throw parse_error("No candidates for templated struct '" + Name + "'");
-    }
-    auto candidate = templStructData[Name];
-    if (candidate.generics.size() != GenericReplacements.size())
-    {
-        throw parse_error("Cannot instantiate template with generic count " +
-                          to_string(candidate.generics.size()) + " with only " +
-                          to_string(GenericReplacements.size()) + " generics.");
-    }
-
-    // Create canonical name
-    string realName = getStructCanonicalName(Name, GenericReplacements);
-
-    // Do substitutions
-    for (int genericInd = 0; genericInd < candidate.generics.size(); genericInd++)
-    {
-        for (int i = 0; i < candidate.guts.size(); i++)
-        {
-            if (candidate.guts[i] == candidate.generics[genericInd])
-            {
-                candidate.guts[i] = GenericReplacements[genericInd];
-            }
-        }
-    }
-
-    candidate.guts[1] = realName;
-
-    // Add struct
-    addStruct(candidate.guts);
-
-    // Return newly instantiated struct type
-    return &structData[realName];
-}
-*/
-
-/*
-__multiTableSymbol *instantiateTemplate(const string &Name, const vector<string> &GenericReplacements)
-{
-    // Examine candidates
-    auto candidates = templTable[Name];
-    if (candidates.size() == 0)
-    {
-        throw parse_error("No candidates exist for templated function '" + Name + "'");
-    }
-    bool found = false;
-    __template_info toUse;
-    for (int i = 0; i < candidates.size(); i++)
-    {
-        if (candidates[i].generics.size() == GenericReplacements.size())
-        {
-            found = true;
-            toUse = candidates[i];
-            break;
-        }
-    }
-
-    if (!found)
-    {
-        for (auto c : candidates)
-        {
-            cout << "Candidate '" << Name << "' had " << c.generics.size() << " generics:\n\t";
-            for (auto g : c.generics)
-            {
-                cout << '\t' << g;
-            }
-            cout << '\n';
-        }
-
-        cout << "Required generic count: " << GenericReplacements.size() << '\n';
-
-        throw parse_error("No template candidates match generics count for function '" + Name + "'");
-    }
-
-    // At this point we can be assured that our template is legit
-
-    // Do replacing
-    for (int i = 0; i < GenericReplacements.size(); i++)
-    {
-        // Replace in guts
-        for (int j = 0; j < toUse.guts.size(); j++)
-        {
-            if (toUse.guts[j] == toUse.generics[i])
-            {
-                toUse.guts[j] = GenericReplacements[i];
-            }
-        }
-
-        // Replace in return type
-        for (int j = 0; j < toUse.returnType.size(); j++)
-        {
-            if (toUse.returnType[j] == toUse.generics[i])
-            {
-                toUse.returnType[j] = GenericReplacements[i];
-            }
-        }
-    }
-
-    Type outType = toType(toUse.returnType);
-
-    // Scan for existing instantiation and, if it exists, return it
-    auto instantCandidates = table[Name];
-    for (int i = 0; i < instantCandidates.size(); i++)
-    {
-        if (instantCandidates[i].type == outType)
-        {
-            cout << tags::yellow_bold
-                 << "Warning! Generic function "
-                 << Name
-                 << toStr(&outType)
-                 << " has already been instantiated;\n"
-                 << "Repeated instantiation calls are redundant.\n"
-                 << tags::reset;
-
-            return &table[Name][i];
-        }
-    }
-
-    // Recursion-safe way
-    table[Name].push_back(__multiTableSymbol{createSequence(toUse.guts), outType});
-
-    return &table[Name].back();
-}
-*/
-
-//////////////////////////////////// Enums
-
-/*
-string getEnumCanonicalName(const string &Name, const vector<string> &GenericReplacements)
-{
-    string out = Name;
-    out += "__";
-    for (int i = 0; i < GenericReplacements.size(); i++)
-    {
-        out += GenericReplacements[i] + "_";
-    }
-
-    return out;
-}
-*/
-
-/*
-__enumLookupData *instantiateEnum(const string &Name, const vector<string> &GenericReplacements)
-{
-    // Examine and verify candidates (uses raw name)
-    if (templEnumData.count(Name) == 0)
-    {
-        throw parse_error("No candidates for templated enum '" + Name + "'");
-    }
-    auto candidate = templEnumData[Name];
-    if (candidate.generics.size() != GenericReplacements.size())
-    {
-        throw parse_error("Cannot instantiate template enum with generic count " +
-                          to_string(candidate.generics.size()) + " with only " +
-                          to_string(GenericReplacements.size()) + " generics.");
-    }
-
-    // Create canonical name
-    string realName = getEnumCanonicalName(Name, GenericReplacements);
-
-    // Do substitutions
-    for (int genericInd = 0; genericInd < candidate.generics.size(); genericInd++)
-    {
-        for (int i = 0; i < candidate.guts.size(); i++)
-        {
-            if (candidate.guts[i] == candidate.generics[genericInd])
-            {
-                candidate.guts[i] = GenericReplacements[genericInd];
-            }
-        }
-    }
-
-    candidate.guts[1] = realName;
-
-    // Add
-    addEnum(candidate.guts);
-
-    // Return newly instantiated enum type
-    return &enumData[realName];
-}
-*/
 
 // Can throw errors (IE malformed definitions)
 void addEnum(const vector<string> &FromIn)
@@ -2165,7 +2005,7 @@ void addEnum(const vector<string> &FromIn)
     s.type = Type(atomic, "void");
     s.items.push_back(sequence{});
     s.items.back().info = atom;
-    s.items.back().raw = ";";
+    s.items.back().raw = "//AUTOGEN";
 
     // Ensure these keys exist
     table["New"];

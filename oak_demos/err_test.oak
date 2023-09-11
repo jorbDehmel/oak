@@ -21,7 +21,7 @@ let main() -> i32
     let did_error: bool = poll_error_change(old);
     if did_error
     {
-        printf!("An error occured: Message '%' with code %.\n", error_str, to_i32(error_code));
+        printf!("An error occurred: Message '%' with code %.\n", error_str, to_i32(error_code));
     }
 
     restore_error_state(@old);

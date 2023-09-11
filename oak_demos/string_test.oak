@@ -3,7 +3,7 @@
 
 package!("std");
 use_rule!("std");
-include!("std/smart_string.oak");
+include!("std/string.oak");
 
 let main() -> i32
 {

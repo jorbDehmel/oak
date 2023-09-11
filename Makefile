@@ -16,9 +16,9 @@ HEADS := lexer.hpp reconstruct.hpp symbol-table.hpp \
 	enums.hpp mangler.hpp generics.hpp
 
 # -O3 is best for actual installs, not for testing
-FLAGS := -O3
+FLAGS :=
 
-TEST := acorn -e
+TEST := acorn
 
 all: bin/acorn.out
 
@@ -42,9 +42,7 @@ reinstall:
 	$(MAKE) -C . uninstall clean install
 
 test: install
-	$(TEST) oak_demos/string_test.oak -o string_test.out
 	$(TEST) oak_demos/enum_test.oak -o enum_test.out
-	$(TEST) oak_demos/access_test.oak -o access_test.out
 	$(TEST) oak_demos/cond_test.oak -o cond_test.out
 	$(TEST) oak_demos/conv_test.oak -o conv_test.out
 	$(TEST) oak_demos/hello_world.oak -o hello_world.out
@@ -58,19 +56,21 @@ test: install
 	$(TEST) oak_demos/fn_ptr_test.oak -o fn_ptr_test.out
 	$(TEST) oak_demos/fn_ptr_test_2.oak -o fn_ptr_test_2.out
 	$(TEST) oak_demos/erase_test.oak -o erase_test.out
-	$(TEST) oak_demos/err_test.oak -o err_test.out
-	$(TEST) oak_demos/file_test.oak -o file_test.out
+	$(TEST) oak_demos/i_file_test.oak -o i_file_test.out
+	$(TEST) oak_demos/string_test.oak -o string_test.out
 	$(TEST) oak_demos/generic_test.oak -o generic_test.out
 	$(TEST) oak_demos/gen_struct_test.oak -o gen_struct_test.out
 	$(TEST) oak_demos/thread_test.oak -o thread_test.out
 	$(TEST) oak_demos/math_test.oak -o math_test.out
+	$(TEST) oak_demos/access_test.oak -o access_test.out
+	$(TEST) oak_demos/file_test.oak -o file_test.out
 	$(TEST) oak_demos/sdl_test.oak -o sdl_test.out
 	$(TEST) oak_demos/sdl_test_2.oak -o sdl_test_2.out
 	$(TEST) oak_demos/sdl_test_3.oak -o sdl_test_3.out
 
-	# $(TEST) oak_demos/i_file_test.oak -o i_file_test.out
-
 	rm -rf *.log .oak_build
+
+	# $(TEST) oak_demos/err_test.oak -o err_test.out -e
 
 build/%.o:	%.cpp $(HEADS)
 	mkdir -p build

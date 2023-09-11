@@ -8,17 +8,27 @@ let node<t>: struct
 {
     data: t,
     next: ^node<t>,
+    has_next: bool,
+}
+
+let New<t>(self: ^node<t>) -> void
+{
+    self.has_next = false;
 }
 
 let AddEq<t>(self: ^node<t>, data: t) -> void
 {
     alloc!(self.next);
     self.next.data = data;
+    self.has_next = true;
 }
 
 let Del<t>(self: ^node<t>) -> void
 {
-    free!(self.next);
+    if (self.has_next)
+    {
+        free!(self.next);
+    }
 }
 
 let main() -> i32
@@ -30,6 +40,8 @@ let main() -> i32
     // Create a node
     let head: node<i32>;
     head.data = 123;
+
+    print(head.data);
 
     Del(@head);
 

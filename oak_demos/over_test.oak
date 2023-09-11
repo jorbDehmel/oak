@@ -1,0 +1,36 @@
+include!("std/std_io.oak");
+
+// Test for the verification of Autogen systems in Oak
+
+let test: struct
+{
+    a: i32,
+}
+
+// Autogen of:
+// New(what: ^test) -> void
+
+// Now casual mention: Should erase autogen
+let New(what: ^test) -> void;
+let hi() -> void;
+
+// Now explicit definition: Should erase casual
+let New(what: ^test) -> void
+{
+    print("Hello, there!\n");
+}
+
+let hi() -> void
+{
+    print("Called hi.\n");
+}
+
+let main() -> i32
+{
+    0
+}
+
+/*
+Results:
+- Early attempt: No erasure of autogen
+*/

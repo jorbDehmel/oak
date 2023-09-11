@@ -26,6 +26,7 @@ agnostic with respect to input (as much as possible).
 #include "symbol-table.hpp"
 #include "rules.hpp"
 #include "enums.hpp"
+#include "mangler.hpp"
 
 #define OAK_HEADER_PATH "/usr/include/std_oak_header.hpp"
 

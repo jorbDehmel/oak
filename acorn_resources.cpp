@@ -24,6 +24,8 @@ set<string> objects;
 map<string, string> preprocDefines;
 vector<unsigned long long> phaseTimes;
 
+string debugTreePrefix = "";
+
 // Prints the cumulative disk usage of Oak (in human-readable)
 void getDiskUsage()
 {
@@ -107,7 +109,8 @@ void doFile(const string &From)
 
             if (debug)
             {
-                cout << "Loading file '" << From << "'\n";
+                cout << debugTreePrefix << "Loading file '" << From << "'\n";
+                debugTreePrefix.append("|");
             }
 
             // A: Load file
@@ -251,7 +254,7 @@ void doFile(const string &From)
                         {
                             if (debug)
                             {
-                                cout << "Inserting object " << a << '\n';
+                                cout << debugTreePrefix << "Inserting object " << a << '\n';
                             }
 
                             objects.insert(a);
@@ -287,7 +290,7 @@ void doFile(const string &From)
                             {
                                 if (debug)
                                 {
-                                    cout << "Loading package file '" << f << "'...\n";
+                                    cout << debugTreePrefix << "Loading package file '" << f << "'...\n";
                                 }
 
                                 auto recStart = chrono::high_resolution_clock::now();
@@ -503,15 +506,21 @@ void doFile(const string &From)
 
                 if (debug)
                 {
-                    cout << "Saving dump file '" << name << "'\n";
+                    cout << debugTreePrefix << "Saving dump file '" << name << "'\n";
                 }
 
                 dump(lexed, name, From, curLine, fileSeq, lexedCopy);
             }
+
+            if (debug)
+            {
+                debugTreePrefix.pop_back();
+                cout << debugTreePrefix << "Finished file '" << From << "'\n";
+            }
         }
         else if (debug)
         {
-            cout << "Skipping repeated file '" << From << "'\n";
+            cout << debugTreePrefix << "Skipping repeated file '" << From << "'\n";
         }
     }
     catch (rule_error &e)

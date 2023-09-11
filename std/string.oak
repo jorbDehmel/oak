@@ -7,7 +7,7 @@ Basic non-resizing heap string.
 package!("std");
 
 // For debugging
-include!("std/printf.oak");
+// include!("std/printf.oak");
 
 let string: struct
 {
@@ -66,8 +66,11 @@ let Copy(self: ^string, from: str) -> void
 
 let Del(self: ^string) -> void
 {
-    free_arr!(self.data);
-    self.size = to_u128(0);
+    if (self.size != to_u128(0))
+    {
+        free_arr!(self.data);
+        self.size = to_u128(0);
+    }
 }
 
 let clear(self: ^string) -> void

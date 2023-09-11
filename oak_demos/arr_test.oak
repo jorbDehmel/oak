@@ -1,0 +1,53 @@
+package!("std");
+use_rule!("std");
+
+include!("std/printf.oak");
+
+let arr<t>: struct
+{
+    size: u128,
+    data: ^t,
+}
+
+let New<t>(self: ^arr<t>) -> void
+{
+    self.size = to_u128(0);
+}
+
+let Del<t>(self: ^arr<t>) -> void
+{
+    if self.size != to_u128(0)
+    {
+        free_arr!(self.data);
+    }
+}
+
+let Copy<t>(self: ^arr<t>, size: u128) -> void
+{
+    if self.size != to_u128(0)
+    {
+        printf!("Deallocating %\n", size);
+        free_arr!(self.data);
+    }
+
+    self.size = size;
+    alloc!(self.data, size);
+}
+
+let Get<t>(self: ^arr<t>, index: u128) -> t
+{
+    ^Get(data, index)
+}
+
+let main() -> i32
+{
+    arr<i32>;
+    New<i32>;
+    Del<i32>;
+    Copy<i32>;
+
+    let a: arr<i32>;
+    a = to_u128(5);
+
+    0
+}

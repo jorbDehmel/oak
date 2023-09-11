@@ -17,6 +17,8 @@ as well as its .oak source.
 #define WINDOWS
 #endif
 
+#include <stdbool.h>
+
 // Signed integer types
 typedef char i8;
 typedef short int i16;
