@@ -63,28 +63,46 @@ Type toType(const vector<string> &WhatIn)
             }
 
             // Collect generics
-            vector<string> genericContents;
-            genericContents.push_back(cursor->name);
-
+            vector<string> generics, curGen;
             int count = 0;
-            while (i < What.size() && !(count == 1 && What[i] == ">"))
+            do
             {
                 if (What[i] == "<")
                 {
                     count++;
+
+                    if (count > 1)
+                    {
+                        curGen.push_back(What[i]);
+                    }
                 }
                 else if (What[i] == ">")
                 {
                     count--;
+
+                    if (count > 0)
+                    {
+                        curGen.push_back(What[i]);
+                    }
+
+                    generics.push_back(mangle(curGen));
+                    curGen.clear();
+                }
+                else if (What[i] == "," && count == 1)
+                {
+                    generics.push_back(mangle(curGen));
+                    curGen.clear();
+                }
+                else
+                {
+                    curGen.push_back(What[i]);
                 }
 
-                genericContents.push_back(What[i]);
-
                 i++;
-            }
-            genericContents.push_back(">");
+            } while (i < What.size() && count != 0);
+            i--;
 
-            cursor->name = mangle(genericContents);
+            cursor->name = instantiateGeneric(cursor->name, generics);
         }
         else if (cur == ",")
         {

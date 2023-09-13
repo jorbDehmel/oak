@@ -82,7 +82,7 @@ void parenSub(vector<string> &From)
             int startI = i, endI = i + 1;
             vector<string> contents, finalContents;
 
-            int count = 1;
+            int count = 1, genCount = 0;
             while (count != 0 && endI < From.size())
             {
                 if (From[endI] == "(")
@@ -97,7 +97,35 @@ void parenSub(vector<string> &From)
                         break;
                     }
                 }
-                else if ((From[endI] == "," || From[endI] == ";") && count == 1)
+                else if (From[endI] == "<")
+                {
+                    bool isTemplating = false;
+
+                    int j = endI;
+                    for (; j < From.size(); j++)
+                    {
+                        if (From[j] == ";" || From[j] == ")")
+                        {
+                            isTemplating = false;
+                            break;
+                        }
+                        else if (From[j] == ">")
+                        {
+                            isTemplating = true;
+                            break;
+                        }
+                    }
+
+                    if (isTemplating)
+                    {
+                        genCount++;
+                    }
+                }
+                else if (From[endI] == ">" && genCount != 0)
+                {
+                    genCount--;
+                }
+                else if ((From[endI] == "," || From[endI] == ";") && count == 1 && genCount == 0)
                 {
                     parenSub(contents);
                     operatorSub(contents);
@@ -329,14 +357,44 @@ void operatorSub(vector<string> &From)
 
         if (cur == "<")
         {
-            doSub(From, i, "Less", true);
-            break;
+            /*
+            If a ) or ; occurs before the next >, do sub.
+            Otherwise, is templating; Advance i past all of this.
+            */
+
+            bool isTemplating = false;
+            int j = i;
+            for (; j < From.size(); j++)
+            {
+                if (From[j] == ";" || From[j] == ")")
+                {
+                    isTemplating = false;
+                    break;
+                }
+                else if (From[j] == ">")
+                {
+                    isTemplating = true;
+                    break;
+                }
+            }
+
+            if (isTemplating)
+            {
+                i = j;
+                break;
+            }
+            else
+            {
+                doSub(From, i, "Less", true);
+                break;
+            }
         }
         else if (cur == ">")
         {
             doSub(From, i, "Great", true);
             break;
         }
+
         else if (cur == "<=")
         {
             doSub(From, i, "Leq", true);

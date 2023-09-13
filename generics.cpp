@@ -12,17 +12,30 @@ map<pair<string, int>, genericInfo> generics;
 string instantiateGeneric(const string &what, const vector<string> &genericSubs)
 {
     // Ensure it exists
-    if (generics.count(make_pair(what, genericSubs.size())) == 0)
+    pair<string, int> key = make_pair(what, genericSubs.size());
+    if (generics.count(key) == 0)
     {
-        throw generic_error("Error! No template exists with which to instantiate generic '" + what + "'.");
+        cout << tags::red_bold
+             << "During attempt to instantiate template '" << what << "' w/ generics:\n";
+
+        for (auto s : genericSubs)
+        {
+            cout << '\t' << s << '\n';
+        }
+
+        cout << tags::reset << '\n';
+
+        throw generic_error("Error! No template exists with which to instantiate template '" + what + "' w/ " + to_string(genericSubs.size()) + " generics.");
     }
 
     // Get mangled version
     string mangle = mangleStruct(what, genericSubs);
 
     // Check for pre-existing instantiation
-    if (table.count(mangle) == 0)
+    if (!generics[key].hasBeenInstantiated)
     {
+        generics[key].hasBeenInstantiated = true;
+
         // All templates for generics exist in the global space,
         // so the result of this doesn't matter.
 
@@ -68,7 +81,39 @@ void addGeneric(const vector<string> &what, const string &name, const vector<str
     toAdd.genericNames = genericsList;
     toAdd.symbols = what;
 
-    generics[make_pair(name, (int)genericsList.size())] = toAdd;
+    pair<string, int> key = make_pair(name, (int)genericsList.size());
+
+    if (generics.count(key) == 0)
+    {
+        generics[key] = toAdd;
+    }
+    else
+    {
+        // Adjust generics to existing ones; A call to this will now instantiate
+        // both the old and the new.
+
+        // Build substitution dictionary
+        map<string, string> substitutions;
+        for (int i = 0; i < toAdd.genericNames.size(); i++)
+        {
+            substitutions[toAdd.genericNames[i]] = generics[key].genericNames[i];
+        }
+
+        // Iterate and replace, appending along the way.
+        for (int i = 0; i < toAdd.symbols.size(); i++)
+        {
+            // Substitute if possible
+            if (substitutions.count(toAdd.symbols[i]) != 0)
+            {
+                toAdd.symbols[i] = substitutions[toAdd.symbols[i]];
+            }
+
+            generics[key].symbols.push_back(toAdd.symbols[i]);
+        }
+
+        // Important! Allow reinstantiation
+        generics[key].hasBeenInstantiated = false;
+    }
 
     return;
 }

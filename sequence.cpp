@@ -1402,339 +1402,407 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
 
         return toReturn;
     }
-
-    // Function call
-    else if (What.size() > start + 1 && What[start + 1] == "(")
+    else
     {
-        // get args within parenthesis
-        vector<string> curArg;
-        vector<vector<string>> args;
-
-        int count = 0;
-        start++;
-        do
+        // Template instantiation
+        bool didTemplate = false;
+        if (What.size() > start + 1 && What[start + 1] == "<")
         {
-            if (What[start] == "(")
-            {
-                count++;
-            }
-            else if (What[start] == ")")
-            {
-                count--;
-            }
-
-            if (What[start] == "," && count == 1)
-            {
-                args.push_back(curArg);
-                curArg.clear();
-            }
-
-            curArg.push_back(What[start]);
-
             start++;
-        } while (start < What.size() && count != 0);
 
-        if (!curArg.empty())
-        {
-            args.push_back(curArg);
-        }
-
-        // Erase commas, open parenthesis on first one
-        for (int i = 0; i < args.size(); i++)
-        {
-            if (!args[i].empty())
+            vector<string> generics, curGen;
+            int count = 0;
+            do
             {
-                args[i].erase(args[i].begin());
-            }
-        }
-
-        // Erase end parenthesis
-        if (!args.empty() && !args.back().empty())
-        {
-            args.back().pop_back();
-        }
-
-        for (int i = 0; i < args.size(); i++)
-        {
-            if (args[i].size() == 0)
-            {
-                args.erase(args.begin() + i);
-                i--;
-            }
-        }
-
-        vector<Type> argTypes;
-        vector<string> argStrs;
-        for (vector<string> arg : args)
-        {
-            int trash = 0;
-            string cur;
-
-            argTypes.push_back(resolveFunction(arg, trash, cur));
-            argStrs.push_back(cur);
-        }
-
-        // Special case; Pointer array access
-        if (name == "Get" && argTypes.size() == 2 &&
-            argTypes[0].info == pointer &&
-            argTypes[0].next != nullptr &&
-            argTypes[0].next->info == pointer)
-        {
-            c += argStrs[0] + "[" + argStrs[1] + "]";
-
-            return *argTypes[0].next;
-        }
-
-        // Special case; Pointer copy
-        else if (name == "Copy" && argTypes.size() == 2 &&
-                 argTypes[0].info == pointer &&
-                 argTypes[0].next != nullptr &&
-                 argTypes[0].next->info == pointer &&
-                 argTypes[0].next->next != nullptr &&
-                 argTypes[1].info == pointer &&
-                 argTypes[1].next != nullptr)
-        {
-            // Ensure equality; If not, throw error
-            Type *left, *right;
-
-            left = argTypes[0].next->next;
-            right = argTypes[1].next;
-
-            bool isValid = true;
-            while (left != nullptr && right != nullptr)
-            {
-                // DO ITERATION HERE
-                while (left->info == var_name)
+                if (What[start] == "<")
                 {
-                    left = left->next;
+                    count++;
+
+                    if (count > 1)
+                    {
+                        curGen.push_back(What[start]);
+                    }
                 }
-                while (right->info == var_name)
+                else if (What[start] == ">")
                 {
-                    right = right->next;
+                    count--;
+
+                    if (count > 0)
+                    {
+                        curGen.push_back(What[start]);
+                    }
+
+                    generics.push_back(mangle(curGen));
+                    curGen.clear();
                 }
-
-                if (left->info != right->info || left->name != right->name)
+                else if (What[start] == "," && count == 1)
                 {
-                    isValid = false;
-                    break;
-                }
-
-                left = left->next;
-                right = right->next;
-            }
-
-            sm_assert(isValid, "Cannot ptr '" + toStr(&argTypes[1]) + "' to '" + toStr(&argTypes[0]) + "'.");
-
-            // Turn to C
-            c += "(*" + argStrs[0] + ") = " + argStrs[1];
-
-            // Return nullType (Copy yields void)
-            return nullType;
-        }
-
-        // Search for candidates
-        sm_assert(table.count(name) != 0, "Function call '" + name + "' has no registered symbols.");
-        sm_assert(table[name].size() != 0, "Function call '" + name + "' has no registered symbols.");
-
-        auto candidates = table[name];
-
-        // Weed out any candidates which do not have the correct argument types
-        for (int j = 0; j < candidates.size(); j++)
-        {
-            Type curType = candidates[j].type;
-            while (curType != nullType && curType.info == pointer)
-            {
-                popTypeFront(curType);
-            }
-
-            auto candArgs = getArgs(curType);
-            for (int k = 0; k < candArgs.size(); k++)
-            {
-                if (candArgs[k].second == nullType)
-                {
-                    candArgs.erase(candArgs.begin() + k);
-                    k--;
-                }
-            }
-
-            if (candArgs.size() != argTypes.size() || candidates[j].erased)
-            {
-                candidates.erase(candidates.begin() + j);
-                j--;
-                continue;
-            }
-
-            for (int k = 0; k < candArgs.size(); k++)
-            {
-                if (!typesAreSame(&candArgs[k].second, &argTypes[k]))
-                {
-                    candidates.erase(candidates.begin() + j);
-                    j--;
-                    break;
-                }
-            }
-        }
-
-        // If no candidates, throw error
-        if (candidates.size() == 0)
-        {
-            // Get all theoretical candidates again
-            candidates = table[name];
-
-            cout << "\nCandidates:\n";
-            for (auto c : candidates)
-            {
-                cout << name << " has type " << toStr(&c.type) << '\n'
-                     << "Candidate arguments (";
-                auto candArgs = getArgs(c.type);
-                cout << candArgs.size() << "):\n";
-
-                for (auto arg : candArgs)
-                {
-                    cout << "\t" << arg.first << "\t" << toStr(&arg.second) << '\n';
-                }
-
-                // Provide reason for elimination
-                if (candArgs.size() != argTypes.size())
-                {
-                    cout << "\t(Too " << ((candArgs.size() < argTypes.size()) ? "few" : "many")
-                         << " arguments)\n";
-                }
-                else if (c.erased)
-                {
-                    cout << "\t(Erased / private symbol)\n";
+                    generics.push_back(mangle(curGen));
+                    curGen.clear();
                 }
                 else
                 {
-                    cout << "\t(Incompatible argument type(s))\n";
+                    curGen.push_back(What[start]);
+                }
+
+                start++;
+            } while (start < What.size() && count != 0);
+
+            // should leave w/ what[start] == ';' or '(' (past closing >)
+
+            string result = instantiateGeneric(name, generics);
+
+            start--;
+
+            didTemplate = true;
+        }
+
+        // If not function call
+        // Function call
+        if (What.size() > start + 1 && What[start + 1] == "(")
+        {
+            // get args within parenthesis
+            vector<string> curArg;
+            vector<vector<string>> args;
+
+            int count = 0, templCount = 0;
+            start++;
+            do
+            {
+                if (What[start] == "(")
+                {
+                    count++;
+                }
+                else if (What[start] == ")")
+                {
+                    count--;
+                }
+                else if (What[start] == "<")
+                {
+                    templCount++;
+                }
+                else if (What[start] == ">")
+                {
+                    templCount--;
+                }
+
+                if (What[start] == "," && count == 1 && templCount == 0)
+                {
+                    args.push_back(curArg);
+                    curArg.clear();
+                }
+
+                curArg.push_back(What[start]);
+
+                start++;
+            } while (start < What.size() && count != 0);
+
+            if (!curArg.empty())
+            {
+                args.push_back(curArg);
+            }
+
+            // Erase commas, open parenthesis on first one
+            for (int i = 0; i < args.size(); i++)
+            {
+                if (!args[i].empty())
+                {
+                    args[i].erase(args[i].begin());
                 }
             }
 
-            cout << "\nProvided arguments (" << argTypes.size() << "):\n(";
-            for (auto a : argTypes)
+            // Erase end parenthesis
+            if (!args.empty() && !args.back().empty())
             {
-                cout << toStr(&a) << ", ";
+                args.back().pop_back();
             }
-            cout << ")\n\n";
 
-            throw sequencing_error("Function call '" + name + "' has no viable candidates.");
-        }
+            for (int i = 0; i < args.size(); i++)
+            {
+                if (args[i].size() == 0)
+                {
+                    args.erase(args.begin() + i);
+                    i--;
+                }
+            }
 
-        // If multiple candidates, ensure all return types are the same
-        else if (candidates.size() > 1)
-        {
+            vector<Type> argTypes;
+            vector<string> argStrs;
+            for (vector<string> arg : args)
+            {
+                int trash = 0;
+                string cur;
+
+                argTypes.push_back(resolveFunction(arg, trash, cur));
+                argStrs.push_back(cur);
+            }
+
+            // Special case; Pointer array access
+            if (name == "Get" && argTypes.size() == 2 &&
+                argTypes[0].info == pointer &&
+                argTypes[0].next != nullptr &&
+                argTypes[0].next->info == pointer)
+            {
+                c += argStrs[0] + "[" + argStrs[1] + "]";
+
+                return *argTypes[0].next;
+            }
+
+            // Special case; Pointer copy
+            else if (name == "Copy" && argTypes.size() == 2 &&
+                     argTypes[0].info == pointer &&
+                     argTypes[0].next != nullptr &&
+                     argTypes[0].next->info == pointer &&
+                     argTypes[0].next->next != nullptr &&
+                     argTypes[1].info == pointer &&
+                     argTypes[1].next != nullptr)
+            {
+                // Ensure equality; If not, throw error
+                Type *left, *right;
+
+                left = argTypes[0].next->next;
+                right = argTypes[1].next;
+
+                bool isValid = true;
+                while (left != nullptr && right != nullptr)
+                {
+                    // DO ITERATION HERE
+                    while (left->info == var_name)
+                    {
+                        left = left->next;
+                    }
+                    while (right->info == var_name)
+                    {
+                        right = right->next;
+                    }
+
+                    if (left->info != right->info || left->name != right->name)
+                    {
+                        isValid = false;
+                        break;
+                    }
+
+                    left = left->next;
+                    right = right->next;
+                }
+
+                sm_assert(isValid, "Cannot ptr '" + toStr(&argTypes[1]) + "' to '" + toStr(&argTypes[0]) + "'.");
+
+                // Turn to C
+                c += "(*" + argStrs[0] + ") = " + argStrs[1];
+
+                // Return nullType (Copy yields void)
+                return nullType;
+            }
+
+            // Search for candidates
+            sm_assert(table.count(name) != 0, "Function call '" + name + "' has no registered symbols.");
+            sm_assert(table[name].size() != 0, "Function call '" + name + "' has no registered symbols.");
+
+            auto candidates = table[name];
+
+            // Weed out any candidates which do not have the correct argument types
+            for (int j = 0; j < candidates.size(); j++)
+            {
+                Type curType = candidates[j].type;
+                while (curType != nullType && curType.info == pointer)
+                {
+                    popTypeFront(curType);
+                }
+
+                auto candArgs = getArgs(curType);
+                for (int k = 0; k < candArgs.size(); k++)
+                {
+                    if (candArgs[k].second == nullType)
+                    {
+                        candArgs.erase(candArgs.begin() + k);
+                        k--;
+                    }
+                }
+
+                if (candArgs.size() != argTypes.size() || candidates[j].erased)
+                {
+                    candidates.erase(candidates.begin() + j);
+                    j--;
+                    continue;
+                }
+
+                for (int k = 0; k < candArgs.size(); k++)
+                {
+                    if (!typesAreSame(&candArgs[k].second, &argTypes[k]))
+                    {
+                        candidates.erase(candidates.begin() + j);
+                        j--;
+                        break;
+                    }
+                }
+            }
+
+            // If no candidates, throw error
+            if (candidates.size() == 0)
+            {
+                // Get all theoretical candidates again
+                candidates = table[name];
+
+                cout << "\nCandidates:\n";
+                for (auto c : candidates)
+                {
+                    cout << name << " has type " << toStr(&c.type) << '\n'
+                         << "Candidate arguments (";
+                    auto candArgs = getArgs(c.type);
+                    cout << candArgs.size() << "):\n";
+
+                    for (auto arg : candArgs)
+                    {
+                        cout << "\t" << arg.first << "\t" << toStr(&arg.second) << '\n';
+                    }
+
+                    // Provide reason for elimination
+                    if (candArgs.size() != argTypes.size())
+                    {
+                        cout << "\t(Too " << ((candArgs.size() < argTypes.size()) ? "few" : "many")
+                             << " arguments)\n";
+                    }
+                    else if (c.erased)
+                    {
+                        cout << "\t(Erased / private symbol)\n";
+                    }
+                    else
+                    {
+                        cout << "\t(Incompatible argument type(s))\n";
+                    }
+                }
+
+                cout << "\nProvided arguments (" << argTypes.size() << "):\n(";
+                for (auto a : argTypes)
+                {
+                    cout << toStr(&a) << ", ";
+                }
+                cout << ")\n\n";
+
+                throw sequencing_error("Function call '" + name + "' has no viable candidates.");
+            }
+
+            // If multiple candidates, ensure all return types are the same
+            else if (candidates.size() > 1)
+            {
+                type = getReturnType(candidates[0].type);
+
+                for (int j = 1; j < candidates.size(); j++)
+                {
+                    if (getReturnType(candidates[j].type) != type)
+                    {
+                        throw sequencing_error("Function call '" + name + "' has two or more viable candidates.");
+                    }
+                }
+
+                // Now safe; Has been verified that all candidates have identical types
+            }
+
+            // Single candidate
             type = getReturnType(candidates[0].type);
 
-            for (int j = 1; j < candidates.size(); j++)
+            c += name + "(";
+            for (int j = 0; j < argStrs.size(); j++)
             {
-                if (getReturnType(candidates[j].type) != type)
+                if (j != 0)
                 {
-                    throw sequencing_error("Function call '" + name + "' has two or more viable candidates.");
+                    c += ", ";
                 }
-            }
 
-            // Now safe; Has been verified that all candidates have identical types
+                c += argStrs[j];
+            }
+            c += ")";
+
+            start--;
         }
 
-        // Single candidate
-        type = getReturnType(candidates[0].type);
-
-        c += name + "(";
-        for (int j = 0; j < argStrs.size(); j++)
+        else if (!didTemplate)
         {
-            if (j != 0)
+            // Non-function-call
+
+            // Literal check
+            Type litType = checkLiteral(What[start]);
+            if (litType == nullType)
             {
-                c += ", ";
+                // Is not a literal
+                sm_assert(table.count(What[start]) != 0, "No definitions exist for symbol '" + What[start] + "'.");
+                auto candidates = table[What[start]];
+                sm_assert(candidates.size() != 0, "No definitions exist for symbol '" + What[start] + "'.");
+
+                type = candidates.back().type;
+            }
+            else
+            {
+                // Is a literal
+                type = litType;
             }
 
-            c += argStrs[j];
+            c += What[start];
         }
-        c += ")";
 
-        start--;
-    }
-
-    // Function template instantiation (not struct at this stage)
-    else if (What.size() > start + 1 && What[start + 1] == "<")
-    {
-        vector<string> generics;
-        start += 2;
-
-        while (start < What.size() && What[start] != ">")
+        // if member access, resolve that
+        while (start < What.size() && What[start + 1] == ".")
         {
-            if (What[start] != "<" && What[start] != ">" && What[start] != ",")
+            // Auto-dereference pointers (. to -> automatically)
+            if (type.info == pointer)
             {
-                generics.push_back(What[start]);
+                while (type.info == pointer)
+                {
+                    Type temp = *type.next;
+                    type = temp;
+
+                    c = "*" + c;
+                }
+
+                c = "(" + c + ")";
             }
 
-            start++;
+            string structName;
+            try
+            {
+                sm_assert(type.info == atomic, "Error during type trimming for member access; Could not find struct name.");
+                structName = type.name;
+
+                sm_assert(structData.count(structName) != 0, "Struct type '" + structName + "' does not exist.");
+                sm_assert(!structData[structName].erased, "Struct '" + structName + "' exists, but is erased (private).");
+                sm_assert(structData[structName].members.count(What[start + 2]) != 0, "Struct '" + structName + "' has no member '" + What[start + 2] + "'.");
+            }
+            catch (sequencing_error &e)
+            {
+                cout << tags::yellow_bold << "In context: '";
+
+                int pos = start - 8;
+                if (pos < 0)
+                {
+                    pos = 0;
+                }
+
+                for (; pos < What.size() && pos < start + 8; pos++)
+                {
+                    cout << What[pos] << ' ';
+                }
+
+                cout << "'\n"
+                     << tags::reset;
+
+                throw e;
+            }
+
+            type = structData[structName].members[What[start + 2]];
+
+            c += "." + What[start + 2];
+
+            start += 2;
         }
+
         start++;
 
-        sm_assert(start >= What.size() || What[start] == ";", "Template instantiation call must end with semicolon, not '" + What[start] + "'");
-
-        instantiateGeneric(name, generics);
+        // Return function return type
+        return type;
     }
 
-    else
-    {
-        // Non-function-call
-
-        // Literal check
-        Type litType = checkLiteral(What[start]);
-        if (litType == nullType)
-        {
-            // Is not a literal
-            sm_assert(table.count(What[start]) != 0, "No definitions exist for symbol '" + What[start] + "'.");
-            auto candidates = table[What[start]];
-            sm_assert(candidates.size() != 0, "No definitions exist for symbol '" + What[start] + "'.");
-
-            type = candidates.back().type;
-        }
-        else
-        {
-            // Is a literal
-            type = litType;
-        }
-
-        c += What[start];
-    }
-
-    // if member access, resolve that
-    while (start < What.size() && What[start + 1] == ".")
-    {
-        // Auto-dereference pointers (. to -> automatically)
-        if (type.info == pointer)
-        {
-            while (type.info == pointer)
-            {
-                Type temp = *type.next;
-                type = temp;
-
-                c = "*" + c;
-            }
-
-            c = "(" + c + ")";
-        }
-
-        sm_assert(type.info == atomic, "Error during type trimming for member access; Could not find struct name.");
-        string structName = type.name;
-
-        sm_assert(structData.count(structName) != 0, "Struct type '" + structName + "' does not exist.");
-        sm_assert(!structData[structName].erased, "Struct '" + structName + "' exists, but is erased (private).");
-        sm_assert(structData[structName].members.count(What[start + 2]) != 0, "Struct '" + structName + "' has no member '" + What[start + 2] + "'.");
-
-        type = structData[structName].members[What[start + 2]];
-
-        c += "." + What[start + 2];
-
-        start += 2;
-    }
-
-    start++;
-
-    // Return function return type
-    return type;
+    // unreachable
 }
 
 // Ignores all var_names
@@ -1845,34 +1913,6 @@ Erases any non-function symbols which were not present
 in the original table. However, skips all functions.
 If not contradicted by the above rules, bases off of
 the current table (not backup).
-
-for name in table
-{
-    for symb in table[name]
-    {
-        if symb is fn
-        {
-            add for sure
-        }
-        else if symb not in backup
-        {
-            if symb is atom
-            {
-                fall from scope without destructor
-            }
-            else
-            {
-                fall from scope with destructor
-            }
-        }
-        else
-        {
-            // symb is in backup, meaning global; Doesn't fall from scope
-            add for sure
-        }
-    }
-}
-
 */
 string restoreSymbolTable(multiSymbolTable &backup)
 {

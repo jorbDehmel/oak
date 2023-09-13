@@ -73,12 +73,20 @@ string mangleStruct(const string &name, const vector<string> &generics)
         outputParts.push_back("GEN");
 
         // Generics here
+        int i = 0;
         for (const auto &s : generics)
         {
             if (s != "<" && s != ">" && s != ",")
             {
                 outputParts.push_back(s);
+
+                if (i + 1 < generics.size())
+                {
+                    outputParts.push_back("JOIN");
+                }
             }
+
+            i++;
         }
 
         outputParts.push_back("ENDGEN");

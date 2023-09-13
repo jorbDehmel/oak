@@ -58,8 +58,6 @@ test: install
 	$(TEST) oak_demos/erase_test.oak -o erase_test.out
 	$(TEST) oak_demos/i_file_test.oak -o i_file_test.out
 	$(TEST) oak_demos/string_test.oak -o string_test.out
-	$(TEST) oak_demos/generic_test.oak -o generic_test.out
-	$(TEST) oak_demos/gen_struct_test.oak -o gen_struct_test.out
 	$(TEST) oak_demos/thread_test.oak -o thread_test.out
 	$(TEST) oak_demos/math_test.oak -o math_test.out
 	$(TEST) oak_demos/access_test.oak -o access_test.out
@@ -71,6 +69,13 @@ test: install
 	rm -rf *.log .oak_build
 
 	# $(TEST) oak_demos/err_test.oak -o err_test.out -e
+
+gentest: install
+	$(TEST) oak_demos/generic_test.oak -o generic_test.out
+	$(TEST) oak_demos/gen_struct_test.oak -o gen_struct_test.out
+	$(TEST) oak_demos/gen_test_2.oak -o gen_test_2.out
+
+	# rm -rf *.log .oak_build
 
 build/%.o:	%.cpp $(HEADS)
 	mkdir -p build

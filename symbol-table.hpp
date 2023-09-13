@@ -17,6 +17,7 @@ GPLv3 held by author
 
 #include "type-builder.hpp"
 #include "lexer.hpp"
+
 using namespace std;
 
 class parse_error : public runtime_error
@@ -82,7 +83,8 @@ Type toType(const vector<string> &What);
 // Can also handle templating
 void addStruct(const vector<string> &From);
 
-// Extern def
+// Extern defs
 string mangleStruct(const string &name, const vector<string> &generics);
+string instantiateGeneric(const string &what, const vector<string> &genericSubs);
 
 #endif

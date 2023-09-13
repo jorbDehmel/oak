@@ -17,6 +17,7 @@ Jordan Dehmel, 2023
 
 #include "mangler.hpp"
 #include "symbol-table.hpp"
+#include "enums.hpp"
 
 using namespace std;
 
@@ -51,6 +52,7 @@ struct genericInfo
 {
     vector<string> symbols;
     vector<string> genericNames;
+    bool hasBeenInstantiated = false;
 };
 
 // A pair of <name, number_of_generics> maps to a vector of symbols within
