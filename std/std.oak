@@ -11,8 +11,6 @@ include!(
     "std/extra_conv.oak"
 );
 
-// "std/extra_conv.oak"
-
 link!("std/misc_std.o");
 
 // Access rules
@@ -45,6 +43,9 @@ new_rule!("void_return", "let $a ( $*b ) {", "let $a ( $b ) -> void {");
 new_rule!("auto_if_paren", "if $*a {", "if ( $a ) {");
 new_rule!("auto_while_paren", "while $*a {", "while ( $a ) {");
 
+new_rule!("auto_match_paren", "match $*a {", "match ( $a ) {");
+new_rule!("auto_case_paren", "case $*a {", "case ( $a ) {");
+
 // Method rules
 new_rule!("argless_mut_method", "$a . . $b ( )", "$b ( @ $a )");
 new_rule!("mut_method", "$a . . $b (", "$b ( @ $a ,");
@@ -64,6 +65,8 @@ bundle_rule!("std",
     "auto_if_paren",
     "auto_while_paren",
     "argless_mut_method",
+    "auto_match_paren",
+    "auto_case_paren",
     "mut_method",
     "argless_method",
     "const_method",

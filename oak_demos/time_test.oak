@@ -1,0 +1,26 @@
+package!("std");
+use_rule!("std");
+
+include!("std/time.oak");
+include!("std/printf.oak");
+
+package!("sdl");
+
+let main() -> i32
+{
+    let start: ns;
+    let end: ns;
+
+    start..now();
+
+    sdl_delay(100);
+
+    end..now();
+
+    let elapsed: i128;
+    elapsed = count(@start, @end);
+
+    printf!("Elapsed ns: %\n", elapsed);
+
+    0
+}

@@ -51,6 +51,8 @@ addressed herein.
 struct genericInfo
 {
     vector<string> symbols;
+    vector<string> instBlock;
+
     vector<string> genericNames;
     bool hasBeenInstantiated = false;
 };
@@ -63,6 +65,7 @@ extern map<pair<string, int>, genericInfo> generics;
 // Returns the mangled version.
 string instantiateGeneric(const string &what, const vector<string> &genericSubs);
 
-void addGeneric(const vector<string> &what, const string &name, const vector<string> &genericsList);
+// Also holds the skeleton of the inst block system, although gathering of these happens elsewhere.
+void addGeneric(const vector<string> &what, const string &name, const vector<string> &genericsList, const vector<string> &instBlock = vector<string>());
 
 #endif

@@ -74,6 +74,7 @@ gentest: install
 	$(TEST) oak_demos/generic_test.oak -o generic_test.out
 	$(TEST) oak_demos/gen_struct_test.oak -o gen_struct_test.out
 	$(TEST) oak_demos/gen_test_2.oak -o gen_test_2.out
+	$(TEST) oak_demos/gen_enum_test.oak -o gen_enum_test.out
 
 	# rm -rf *.log .oak_build
 

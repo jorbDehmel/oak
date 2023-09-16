@@ -1,5 +1,5 @@
 // A test of the end-goal of Oak generics
-// Basics are passed, but goals are still lofty
+// 
 
 package!("std");
 use_rule!("std");
@@ -9,21 +9,12 @@ let pair<l, r>: struct
     first: l,
     second: r,
 }
-
-/*
-inst
+needs
 {
     New<l, r>;
     Copy<l, r>;
-    Del<l, r>;
+    make_pair<l, r>;
 }
-
-// The inst block is theoretical right now.
-// (inst is short for instantiation).
-// It will be sequenced and discarded upon template
-// instantiation. This is Oak's solution to the lack
-// of methods at struct definition.
-*/
 
 let New<l, r>(self: ^pair<l, r>) -> void
 {
@@ -43,12 +34,6 @@ let Copy<l, r>(self: ^pair<l, r>, other: pair<l, r>) -> void
     self.second = other.second;
 }
 
-let Del<l, r>(self: ^pair<l, r>) -> void
-{
-    Del(@self.first);
-    Del(@self.second);
-}
-
 let make_pair<l, r>(first: l, second: r) -> pair<l, r>
 {
     let out: pair<l, r>;
@@ -62,8 +47,8 @@ let make_pair<l, r>(first: l, second: r) -> pair<l, r>
 let main() -> i32
 {
     // We want the following lines to be needless
-    New<i32, i32>;
-    Copy<i32, i32>;
+    // New<i32, i32>;
+    // Copy<i32, i32>;
 
     let inst: pair<i32, i32>;
 

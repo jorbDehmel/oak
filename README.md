@@ -365,7 +365,7 @@ File: `main.oak`
 // Import the `Oak` standard package
 package!("std");
 
-// Use the standard `Oak` ruleset
+// Use the standard `Oak` rule set
 use_rule!("std");
 
 let main(argc: i32, argv: ^str)
@@ -654,7 +654,7 @@ For instance, the input rule `meow $$ $m meow` would match `meow woof bark meow`
 
 Input and output patterns are lexed, so spaces may or may not be required within.
 
-In a way, rules allow you to define whatever syntactic fluff you want. The rule-definition language outlined here is tentatively called `Sapling` (**S**ymbol **A**lteration **P**rogramming **L**anguage **I**mplemented by **N**ine **G**orillas). This may be stylized `$apling`.
+In a way, rules allow you to define whatever syntactic fluff you want. The rule-definition language outlined here is tentatively called `Sapling` (**Symbol Alteration Programming Language Implemented by Nine Gorillas**). This may be stylized `$apling`.
 
 ### Defining and Using Rules
 
@@ -733,7 +733,7 @@ It also introduces the merge operator `$<` for output patterns. This fuses the p
 
 Dialect files introduce rules that are handled before all others and which are always enabled by the translator. This allows for the creation of `Oak` **dialects**, or syntactically different languages which use rules to collapse into regular `Oak` at translation-time.
 
-Dialect files (`.od` files, for **O**ak **d**ialect) consist of a few types of line. There can be comments, marked by `// ` (slash-slash-space). A line can read `clear`, which erases all existing dialect rules. It could also read `final`, which disables any further dialect changes. Finally, a line could read `"INPUT PATTERN HERE" "OUTPUT PATTERN HERE"`, with an input and an output pattern enclosed by quotes and separated by a space.
+Dialect files (`.od` files, for **Oak Dialect**) consist of a few types of line. There can be comments, marked by `// ` (slash-slash-space). A line can read `clear`, which erases all existing dialect rules. It could also read `final`, which disables any further dialect changes. Finally, a line could read `"INPUT PATTERN HERE" "OUTPUT PATTERN HERE"`, with an input and an output pattern enclosed by quotes and separated by a space.
 
 Dialects are loaded via the `acorn -D filename.od` argument.
 
@@ -808,7 +808,7 @@ let main() -> i32
 
 ## The std/math.oak File
 
-The `"std/math.oak"` file provides some math functions, and is analogous to `C++`'s cmath. Below is a table describing the included functions.
+The `"std/math.oak"` file provides some math functions, and is analogous to `C++`'s `cmath`. Below is a table describing the included functions.
 
 Name      | Description                            | Notes
 ----------|----------------------------------------|------------------------
@@ -1068,9 +1068,104 @@ let main() -> i32
 
 ```
 
-## Efforts to Reduce Undefined Behaviour
+## Efforts to Reduce Undefined Behavior
 
-To cut down on undefined behaviour (resulting from unitialized variables), every datatype in `Oak` has one and only one "default" constructor. The default constructors of all struct members are called upon instantiation. This default value is said to be the "canonical" or "unit" value of that datatype.
+To cut down on undefined behavior (resulting from uninitialized variables), every datatype in `Oak` has one and only one "default" constructor. The default constructors of all struct members are called upon instantiation. This default value is said to be the "canonical" or "unit" value of that datatype.
+
+## Needs- Instantiation Blocks and Generic Data Structures
+
+As should be obvious to anyone who has worked with a templated data structure library, it is necessary for structures to generically have not only members, but methods. However, `Oak` as discussed thus far has no way to instantiate a group of generic methods when a generic data structure is instantiated. This is where the instantiation block, or **'needs' block** comes in. This utilizes another of the few keywords in `Oak`- `inst`. Consider the following source code.
+
+```
+1  | let list<t>: struct
+2  | {
+3  |     data: t,
+4  |     next: ^list<t>,
+5  | }
+6  | 
+7  | let New<t>(self: ^list<t>) -> void;
+8  | let Del<t>(self: ^list<t>) -> void;
+9  | 
+10 | let main() -> i32
+11 | {
+12 |     New<i32>;
+13 |     Del<i32>;
+14 | 
+15 |     let node: list<i32>;
+16 | 
+17 |     0
+18 | }
+19 | 
+```
+
+`Oak` as discussed so far necessitates lines 7 and 8. These tell the compiler to instantiate the generic functions `New` and `Del` for use with `t = i32`. However, this is obviously cumbersome to an end user. Thus, we introduce the `needs` block.
+
+```
+1  | let list<t>: struct
+2  | {
+3  |     data: t,
+4  |     next: ^list<t>,
+5  | }
+6  | needs
+7  | {
+8  |     New<t>;
+9  |     Del<t>;
+10 | }
+11 |
+12 | let New<t>(self: ^list<t>) -> void;
+13 | let Del<t>(self: ^list<t>) -> void;
+14 |
+15 | let main() -> i32
+16 | {
+17 |     let node: list<i32>;
+18 |     0
+19 | }
+20 |
+```
+
+The above code tells the compiler to instantiate `New` and `Del` with the `t` generic anytime the `node<t>` template is instantiated. Thus, these are automatically instantiated by the compiler in line 17.
+
+This system is in response to the fact that, in `Oak`, a struct does not inherently "come" with any methods, and thus the exact methods to instantiate with a generic struct are unknown. This allows the programmer to tell the compiler exactly what is needed for use with the struct.
+
+## List of Keywords
+
+The following are keywords- That is to say, these words cannot be the names of variables, structs, enums, or functions. `Oak` aims to have as few keywords as possible.
+
+- let
+- if
+- else
+- while
+- match
+- case
+- default
+- needs
+
+## List of Atomic Types
+
+The following are atomic (built-in, indivisible) types.
+
+- struct
+- enum
+- integers - u8, i8, u16, i16, u32, i32, u64, i64, u128, i128
+- floats - f32, f64, f128
+- str
+- bool
+- void
+
+## List of Keyword-Like Macros
+
+The following are atomic (built-in, indivisible) macros.
+
+- include!
+- link!
+- package!
+- new_rule!
+- use_rule!
+- bundle_rule!
+- erase!
+- alloc!
+- free!
+- free_arr!
 
 ## Misc. Notes
 

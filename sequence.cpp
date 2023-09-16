@@ -675,7 +675,54 @@ sequence __createSequence(list<string> &From)
                 }
                 else
                 {
-                    addGeneric(toAdd, name, generics);
+                    // Check for needs / inst block here
+                    vector<string> instBlock;
+
+                    while (!From.empty() && From.front().size() > 1 && From.front().substr(0, 2) == "//")
+                    {
+                        From.pop_front();
+                    }
+
+                    if (!From.empty() && From.front() == "needs")
+                    {
+                        // pop needs
+                        From.pop_front();
+
+                        while (!From.empty() && From.front().size() > 1 && From.front().substr(0, 2) == "//")
+                        {
+                            From.pop_front();
+                        }
+
+                        // pop {
+                        sm_assert(!From.empty() && From.front() == "{", "'needs' block must be followed by scope.");
+                        From.pop_front();
+
+                        int count = 1;
+                        while (!From.empty())
+                        {
+                            if (From.front() == "{")
+                            {
+                                count++;
+                            }
+                            else if (From.front() == "}")
+                            {
+                                count--;
+                            }
+
+                            if (count == 0)
+                            {
+                                From.pop_front();
+                                break;
+                            }
+                            else
+                            {
+                                instBlock.push_back(From.front());
+                                From.pop_front();
+                            }
+                        }
+                    }
+
+                    addGeneric(toAdd, name, generics, instBlock);
                 }
 
                 // This should be left out of toC, as it should only be used
@@ -2009,13 +2056,32 @@ void addEnum(const vector<string> &FromIn)
 
     string name = From[i];
 
-    if (enumData.count(name) != 0)
+    // Scrape generics here (and mangle)
+    vector<string> generics;
+
+    i++;
+    while (i < From.size() && From[i] != ":" && From[i] != "{")
     {
-        cout << tags::yellow_bold
-             << "Warning! Redefinition of enum '" << name << "'.\n"
-             << tags::reset;
+        generics.push_back(From[i]);
+        i++;
     }
-    else if (structData.count(name) != 0)
+
+    if (generics.size() != 0 && generics.front() == "<")
+    {
+        generics.erase(generics.begin());
+    }
+
+    if (generics.size() != 0 && generics.back() == ">")
+    {
+        generics.pop_back();
+    }
+
+    if (generics.size() != 0)
+    {
+        name = mangleEnum(name, generics);
+    }
+
+    if (enumData.count(name) != 0 || structData.count(name) != 0)
     {
         cout << tags::yellow_bold
              << "Warning! Definition of enum '" << name << "' erases struct of the same name.\n"
@@ -2023,15 +2089,14 @@ void addEnum(const vector<string> &FromIn)
     }
 
     // Ensure for unit enums
-    enumData[name] = __enumLookupData{};
+    enumData[name];
     enumOrder.push_back(name);
 
     // Insert enum as unit struct
-    structData[name] = __structLookupData{};
+    structData[name];
     structOrder.push_back(name);
 
     // Auto-create unit New and Del
-
     Type t;
     t.append(function);
     t.append(var_name, "what");
@@ -2053,8 +2118,6 @@ void addEnum(const vector<string> &FromIn)
 
     table["New"].push_back(__multiTableSymbol{s, t, false});
     table["Del"].push_back(__multiTableSymbol{s, t, false});
-
-    i++;
 
     parse_assert(From[i] == ":");
     i++;
@@ -2086,6 +2149,8 @@ void addEnum(const vector<string> &FromIn)
 
             // Get lexed type (can be multiple symbols due to templating)
             int templCount = 0;
+            vector<string> genericHolder;
+
             while (i < From.size() && !(templCount == 0 && From[i] == ","))
             {
                 if (templCount == 0 && From[i] != "<")
@@ -2094,24 +2159,7 @@ void addEnum(const vector<string> &FromIn)
                 }
                 else
                 {
-                    throw_assert(!lexedType.empty());
-
-                    if (From[i] == "<")
-                    {
-                        lexedType.back().append("__");
-                    }
-                    else if (From[i] == "^" || From[i] == "@")
-                    {
-                        lexedType.back().append("ptr_");
-                    }
-                    else if (From[i] == ">")
-                    {
-                        ;
-                    }
-                    else
-                    {
-                        lexedType.back().append(From[i] + "_");
-                    }
+                    genericHolder.push_back(From[i]);
                 }
 
                 if (From[i] == "<")
@@ -2121,6 +2169,17 @@ void addEnum(const vector<string> &FromIn)
                 else if (From[i] == ">")
                 {
                     templCount--;
+
+                    if (templCount == 0)
+                    {
+                        string toAdd = mangle(genericHolder);
+                        genericHolder.clear();
+
+                        if (toAdd != "")
+                        {
+                            lexedType.back().append("_" + toAdd);
+                        }
+                    }
                 }
 
                 i++;

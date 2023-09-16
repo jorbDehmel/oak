@@ -26,7 +26,7 @@ public:
     parse_error(const string &What) : runtime_error(What) {}
 };
 
-#define parse_assert(what) ((bool)(what)) ? true : (throw parse_error("Assertion '" #what "' failed (file " __FILE__ "line " + to_string(__LINE__) + ")"))
+#define parse_assert(what) ((bool)(what)) ? true : (throw parse_error("Assertion '" #what "' failed (file " __FILE__ " line " + to_string(__LINE__) + ")"))
 
 // External definition
 string mangle(const vector<string> &what);

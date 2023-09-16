@@ -1,0 +1,62 @@
+// A test of generic enumerations for Oak
+// UNPASSED
+
+package!("std");
+use_rule!("std");
+
+include!("std/unit.oak");
+
+let opt<t>: enum
+{
+    some: t,
+    none: unit,
+}
+needs
+{
+    New<t>;
+    wrap<t>;
+}
+
+let New<t>(self: ^opt<t>) -> void
+{
+    wrap_none(self);
+}
+
+let wrap<t>(self: ^opt<t>, to_wrap: t) -> void
+{
+    wrap_some(self, to_wrap);
+}
+
+let wrap<t>(self: ^opt<t>) -> void
+{
+    wrap_none(self);
+}
+
+let print<t>(what: opt<t>) -> void
+{
+    match (what)
+    {
+        case some(data)
+        {
+            print(^data);
+            print("\n");
+        }
+        default
+        {
+            print("None\n");
+        }
+    }
+}
+
+let main() -> i32
+{
+    let inst: opt<i32>;
+
+    // print(inst);
+
+    inst..wrap(123);
+
+    // print(inst);
+
+    0
+}

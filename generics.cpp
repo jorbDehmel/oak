@@ -67,6 +67,27 @@ string instantiateGeneric(const string &what, const vector<string> &genericSubs)
 
         // Call on substituted results
         createSequence(copy);
+
+        // Create copy of inst block
+        if (info.instBlock.size() != 0)
+        {
+            copy.clear();
+            copy = info.instBlock;
+
+            // Iterate and mangle inst block
+            for (int i = 0; i < copy.size(); i++)
+            {
+                if (substitutions.count(copy[i]) != 0)
+                {
+                    copy[i] = substitutions[copy[i]];
+                }
+            }
+
+            // Call on substituted inst block
+            createSequence(copy);
+        }
+
+        // Now the inst block and definition have both been handled.
     }
     // Otherwise, no need for instantiation. Just return mangle.
 
@@ -74,12 +95,13 @@ string instantiateGeneric(const string &what, const vector<string> &genericSubs)
     return mangle;
 }
 
-void addGeneric(const vector<string> &what, const string &name, const vector<string> &genericsList)
+void addGeneric(const vector<string> &what, const string &name, const vector<string> &genericsList, const vector<string> &instBlock)
 {
     genericInfo toAdd;
 
     toAdd.genericNames = genericsList;
     toAdd.symbols = what;
+    toAdd.instBlock = instBlock;
 
     pair<string, int> key = make_pair(name, (int)genericsList.size());
 
@@ -111,7 +133,22 @@ void addGeneric(const vector<string> &what, const string &name, const vector<str
             generics[key].symbols.push_back(toAdd.symbols[i]);
         }
 
-        // Important! Allow reinstantiation
+        if (toAdd.instBlock.size() > 0)
+        {
+            // Same, but for inst block
+            for (int i = 0; i < toAdd.instBlock.size(); i++)
+            {
+                // Substitute if possible
+                if (substitutions.count(toAdd.instBlock[i]) != 0)
+                {
+                    toAdd.instBlock[i] = substitutions[toAdd.instBlock[i]];
+                }
+
+                generics[key].instBlock.push_back(toAdd.instBlock[i]);
+            }
+        }
+
+        // Important! Allows reinstantiation
         generics[key].hasBeenInstantiated = false;
     }
 
