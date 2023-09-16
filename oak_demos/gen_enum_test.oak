@@ -15,6 +15,7 @@ needs
 {
     New<t>;
     wrap<t>;
+    print<i32>;
 }
 
 let New<t>(self: ^opt<t>) -> void
@@ -51,7 +52,6 @@ let print<t>(what: opt<t>) -> void
 let main() -> i32
 {
     let inst: opt<i32>;
-    print<i32>;
 
     print(inst);
 
