@@ -84,7 +84,7 @@ Type toType(const vector<string> &What);
 void addStruct(const vector<string> &From);
 
 // Extern defs
-string mangleStruct(const string &name, const vector<string> &generics);
-string instantiateGeneric(const string &what, const vector<string> &genericSubs);
+string mangleStruct(const string &name, const vector<vector<string>> &generics);
+string instantiateGeneric(const string &what, const vector<vector<string>> &genericSubs);
 
 #endif

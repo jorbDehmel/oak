@@ -3,7 +3,7 @@ Jordan Dehmel, jdehmel@outlook.com
 github.com/jorbDehmel/oak
 
 TODO:
-- Auto-instantiation for generic functions/methods
+- Add more specific generic instantiations
 - Fix strings
 
 Acorn Version   |          |

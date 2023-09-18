@@ -43,6 +43,12 @@ void print(i8 *what)
     return;
 }
 
+void flush()
+{
+    cout << flush;
+    return;
+}
+
 void print_err(str what)
 {
     cerr << what;

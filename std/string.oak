@@ -146,18 +146,22 @@ let Copy(self: ^string, from: string) -> void
 
     // Alloc self
     self.size = from.size;
-    alloc!(self.data, self.size);
 
-    // Copy data (including null termination)
-    let i: u128;
-    i = self.size;
-    while (i != to_u128(0))
+    if (self.size != to_u128(0))
     {
-        Copy(Get(@self.data, i), ^Get(@from, i));
+        alloc!(self.data, self.size);
 
-        i -= to_u128(1);
+        // Copy data (including null termination)
+        let i: u128;
+        i = self.size;
+        while (i != to_u128(0))
+        {
+            Copy(Get(@self.data, i), ^Get(@from, i));
+
+            i -= to_u128(1);
+        }
+        Copy(Get(@self.data, to_u128(0)), ^Get(@from, to_u128(0)));
     }
-    Copy(Get(@self.data, to_u128(0)), ^Get(@from, to_u128(0)));
 }
 
 let print(what: string) -> void

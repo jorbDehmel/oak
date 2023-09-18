@@ -16,7 +16,7 @@ HEADS := lexer.hpp reconstruct.hpp symbol-table.hpp \
 	enums.hpp mangler.hpp generics.hpp
 
 # -O3 is best for actual installs, not for testing
-FLAGS :=
+FLAGS := -O3
 
 TEST := acorn
 
@@ -62,21 +62,22 @@ test: install
 	$(TEST) oak_demos/math_test.oak -o math_test.out
 	$(TEST) oak_demos/access_test.oak -o access_test.out
 	$(TEST) oak_demos/file_test.oak -o file_test.out
+	$(TEST) oak_demos/err_test.oak -o err_test.out
+
+	$(MAKE) sdltest
+	# $(MAKE) gentest
+
+sdltest:
 	$(TEST) oak_demos/sdl_test.oak -o sdl_test.out
 	$(TEST) oak_demos/sdl_test_2.oak -o sdl_test_2.out
 	$(TEST) oak_demos/sdl_test_3.oak -o sdl_test_3.out
 
-	rm -rf *.log .oak_build
-
-	# $(TEST) oak_demos/err_test.oak -o err_test.out -e
-
-gentest: install
+gentest:
 	$(TEST) oak_demos/generic_test.oak -o generic_test.out
 	$(TEST) oak_demos/gen_struct_test.oak -o gen_struct_test.out
 	$(TEST) oak_demos/gen_test_2.oak -o gen_test_2.out
 	$(TEST) oak_demos/gen_enum_test.oak -o gen_enum_test.out
-
-	# rm -rf *.log .oak_build
+	$(TEST) oak_demos/arr_test.oak -o arr_test.out
 
 build/%.o:	%.cpp $(HEADS)
 	mkdir -p build

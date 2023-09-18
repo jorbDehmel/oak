@@ -13,7 +13,10 @@ let do_it(what: i32) -> void
     else
     {
         print(what);
-        do_it(Sub(what, 1));
+        
+        let next: i32 = what;
+        next -= 1;
+        do_it(next);
     }
 }
 

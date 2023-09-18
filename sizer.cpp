@@ -2,6 +2,11 @@
 
 unsigned long long int getSize(const string &FilePath)
 {
+#if (defined(_WIN32) || defined(_WIN64) || defined(__APPLE__))
+    cout << "Cannot call the getSize function outside of Linux.\n";
+    return 0;
+#endif
+
     // Run command
     if (system(("du -s " + FilePath + " > sizer_temp.txt").c_str()) != 0)
     {

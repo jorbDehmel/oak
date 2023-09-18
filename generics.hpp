@@ -54,16 +54,17 @@ struct genericInfo
     vector<string> instBlock;
 
     vector<string> genericNames;
-    bool hasBeenInstantiated = false;
+
+    vector<vector<vector<string>>> instances;
 };
 
 // A pair of <name, number_of_generics> maps to a vector of symbols within
-extern map<pair<string, int>, genericInfo> generics;
+extern map<pair<string, int>, vector<genericInfo>> generics;
 
 // Can throw generic_error's if no viable options exist.
 // Ensure all items in genericSubs have been pre-mangled.
 // Returns the mangled version.
-string instantiateGeneric(const string &what, const vector<string> &genericSubs);
+string instantiateGeneric(const string &what, const vector<vector<string>> &genericSubs);
 
 // Also holds the skeleton of the inst block system, although gathering of these happens elsewhere.
 void addGeneric(const vector<string> &what, const string &name, const vector<string> &genericsList, const vector<string> &instBlock = vector<string>());

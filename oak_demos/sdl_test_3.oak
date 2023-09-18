@@ -12,17 +12,17 @@ let main() -> i32
 {
     let black: sdl_color;
     let white: sdl_color;
-    white..Copy(to_u8(255), to_u8(255), to_u8(255), to_u8(255));
+    white = (to_u8(255), to_u8(255), to_u8(255), to_u8(255));
 
     let w: i32 = 512;
     let h: i32 = 512;
 
     let wind: sdl_window;
-    Copy(@wind, to_u64(w), to_u64(h));
+    wind = (to_u64(w), to_u64(h));
 
     let event: sdl_event;
     let rect: sdl_rect;
-    rect..Copy(to_u64(w / 2), to_u64(h / 2), to_u64(8), to_u64(8));
+    rect..Copy(to_u64(Div(w, 2)), to_u64(h / 2), to_u64(8), to_u64(8));
 
     let start: i32;
     let end: i32;

@@ -58,7 +58,7 @@ let main() -> i32
 
 */
 
-string mangleStruct(const string &name, const vector<string> &generics)
+string mangleStruct(const string &name, const vector<vector<string>> &generics)
 {
     if (generics.size() == 0)
     {
@@ -74,9 +74,10 @@ string mangleStruct(const string &name, const vector<string> &generics)
 
         // Generics here
         int i = 0;
-        for (const auto &s : generics)
+        for (const auto &raw : generics)
         {
-            if (s != "<" && s != ">" && s != ",")
+            string s = mangle(raw);
+            if (s != "GEN" && s != "ENDGEN" && s != "JOIN")
             {
                 outputParts.push_back(s);
 
@@ -106,7 +107,7 @@ string mangleStruct(const string &name, const vector<string> &generics)
     return out;
 }
 
-string mangleEnum(const string &name, const vector<string> &generics)
+string mangleEnum(const string &name, const vector<vector<string>> &generics)
 {
     return mangleStruct(name, generics);
 }

@@ -1,0 +1,35 @@
+/*
+The `result` enum. Concept taken from Rust.
+Jordan Dehmel, 2023
+*/
+
+let result<g, b>: enum
+{
+    ok: g,
+    err: b,
+}
+needs
+{
+    New<g, b>;
+    Copy<g, b>;
+}
+
+let New<g, b>(self: ^result<g, b>) -> void
+{
+}
+
+let Copy<g, b>(self: ^result<g, b>, other: result<g, b>) -> void
+{
+    match (other)
+    {
+        case ok(data)
+        {
+            wrap_ok(self, ^data);
+        }
+
+        case err(data)
+        {
+            wrap_err(self, ^data);
+        }
+    }
+}

@@ -1,12 +1,23 @@
+// Another Oak generic test, this time using an array datatype
+// UNPASSED
+
 package!("std");
 use_rule!("std");
 
+include!("std/opt.oak");
 include!("std/printf.oak");
 
 let arr<t>: struct
 {
     size: u128,
     data: ^t,
+}
+needs
+{
+    New<t>;
+    Del<t>;
+    Copy<t>;
+    Get<t>;
 }
 
 let New<t>(self: ^arr<t>) -> void
@@ -26,7 +37,6 @@ let Copy<t>(self: ^arr<t>, size: u128) -> void
 {
     if self.size != to_u128(0)
     {
-        printf!("Deallocating %\n", size);
         free_arr!(self.data);
     }
 
@@ -34,20 +44,31 @@ let Copy<t>(self: ^arr<t>, size: u128) -> void
     alloc!(self.data, size);
 }
 
-let Get<t>(self: ^arr<t>, index: u128) -> t
+let Get<t>(self: ^arr<t>, index: u128) -> opt<^t>
 {
-    ^Get(data, index)
+    let out: opt<^t>;
+
+    if index < self.size
+    {
+        out..wrap(Get(@self.data, index));
+    }
+    else
+    {
+        out..wrap();
+    }
+
+    out
 }
 
 let main() -> i32
 {
-    arr<i32>;
-    New<i32>;
-    Del<i32>;
-    Copy<i32>;
-
     let a: arr<i32>;
     a = to_u128(5);
+
+    Copy(a..Get(to_u128(1)), 5);
+
+    print(^a..Get(to_u128(1)));
+    print('\n');
 
     0
 }

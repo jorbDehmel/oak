@@ -12,7 +12,6 @@ let fn_which_sets_errors() -> void
 let main() -> i32
 {
     error_str..New();
-    error_code..New();
 
     let old: error_state = get_error_state();
 

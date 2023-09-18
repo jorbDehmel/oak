@@ -17,8 +17,6 @@ int main(const int argc, const char *argv[])
          << "Severe Warning! This version of Oak is designed for Linux!\n"
          << "No other operating systems are supported!\n"
          << tags::reset;
-#else
-#define LINUX
 #endif
 
     auto start = chrono::high_resolution_clock::now(), end = start, compStart = start, compEnd = start;
@@ -482,23 +480,6 @@ int main(const int argc, const char *argv[])
             generate(files, manualPath);
         }
     }
-    catch (parse_error &e)
-    {
-        if (oakElapsed != 0)
-        {
-            cout << "Elapsed Oak ns: " << oakElapsed;
-        }
-
-        cout << tags::red_bold
-             << "\n"
-             << curFile << " " << curLine << '\n'
-             << "A parsing error occurred with message:\n"
-             << e.what()
-             << "\n"
-             << tags::reset;
-
-        return 1;
-    }
     catch (runtime_error &e)
     {
         if (oakElapsed != 0)
@@ -508,18 +489,22 @@ int main(const int argc, const char *argv[])
 
         cout << tags::red_bold
              << "\n"
-             << curFile << ":" << curLine << "\n"
-             << tags::violet_bold
-             << "In code line: `";
+             << curFile << ":" << curLine << "\n";
 
-        for (auto s : curLineSymbols)
+        if (curLineSymbols.size() != 0)
         {
-            cout << s << ' ';
+            cout << tags::violet_bold
+                 << "In code line: `";
+
+            for (auto s : curLineSymbols)
+            {
+                cout << s << ' ';
+            }
+            cout << "`\n";
         }
 
-        cout << "`\n\n"
-             << tags::red_bold
-             << "A runtime error occurred with message:\n"
+        cout << tags::red_bold
+             << "\nAn error occurred with message:\n"
              << e.what()
              << "\n"
              << tags::reset;

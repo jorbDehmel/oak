@@ -579,78 +579,83 @@ void dump(const vector<string> &Lexed, const string &Where, const string &FileNa
         }
     }
 
-    /*
-    file << "\n// Generic functions:\n";
-
-    for (auto p : templTable)
-    {
-        file << p.first << ":\n";
-
-        for (auto item : p.second)
-        {
-            file << "\t(";
-            for (auto gen : item.generics)
-            {
-                file << gen << " ";
-            }
-            file << ") ";
-
-            for (auto s : item.returnType)
-            {
-                file << s << ' ';
-            }
-            file << '\n';
-
-            if (item.guts.size() != 0)
-            {
-                file << "\t\t";
-
-                for (auto s : item.guts)
-                {
-                    file << s << ' ';
-                }
-                file << '\n';
-            }
-        }
-    }
-
-    file << "\n// Generic structs:\n";
-
-    for (auto p : templStructData)
-    {
-        file << p.first << "<";
-        for (auto g : p.second.generics)
-        {
-            file << g << ", ";
-        }
-        file << ">:\n\t";
-
-        for (auto item : p.second.guts)
-        {
-            file << item << ' ';
-        }
-    }
-
-    file << "\n// Generic enums:\n";
-
-    for (auto p : templEnumData)
-    {
-        file << p.first << "<";
-        for (auto g : p.second.generics)
-        {
-            file << g << ", ";
-        }
-        file << ">:\n\t";
-
-        for (auto item : p.second.guts)
-        {
-            file << item << ' ';
-        }
-    }
-    */
-
     file << sep
-         << "// Full anatomy:\n";
+         << "// Generics:\n";
+
+    for (auto p : generics)
+    {
+        file << "Identifier: '" << p.first.first << "' w/ " << p.first.second << " generics\n";
+
+        file << "Instantiation candidates:\n";
+        for (auto cand : p.second)
+        {
+            file << '\t' << p.first.first << "<";
+            for (int i = 0; i < cand.genericNames.size(); i++)
+            {
+                file << cand.genericNames[i];
+
+                if (i + 1 < cand.genericNames.size())
+                {
+                    file << ", ";
+                }
+            }
+            file << ">\n";
+
+            file << "\t\tContents:";
+            for (int i = 0; i < cand.symbols.size(); i++)
+            {
+                if (i % 10 == 0)
+                {
+                    file << "\n\t\t\t";
+                }
+
+                file << cand.symbols[i] << ' ';
+            }
+
+            file << '\n'
+                 << "\t\tNeeds block:";
+            for (int i = 0; i < cand.instBlock.size(); i++)
+            {
+                if (i % 10 == 0)
+                {
+                    file << "\n\t\t\t";
+                }
+
+                file << cand.instBlock[i] << ' ';
+            }
+
+            file << '\n'
+                 << "\t\tInstances:\n";
+            for (auto inst : cand.instances)
+            {
+                file << "\t\t\t" << p.first.first << "<";
+
+                for (int vIndex = 0; vIndex < inst.size(); vIndex++)
+                {
+                    for (int iIndex = 0; iIndex < inst[vIndex].size(); iIndex++)
+                    {
+                        file << inst[vIndex][iIndex];
+
+                        if (iIndex + 1 < inst[vIndex].size())
+                        {
+                            file << ' ';
+                        }
+                    }
+
+                    if (vIndex + 1 < inst.size())
+                    {
+                        file << ", ";
+                    }
+                }
+
+                file << ">\n";
+            }
+        }
+    }
+
+    file
+        << sep
+        << "// Full anatomy:\n";
 
     debugPrint(FileSeq, 0, file);
 

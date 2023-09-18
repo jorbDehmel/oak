@@ -11,6 +11,8 @@ GPLv3 held by author
 // DEFINE FOR DEBUG ONLY
 #undef PRINT_EACH_LINE
 
+outputLanguageType outputLanguage = cpp;
+
 // Activates "dirty" mode, where mem alloc and free are allowed
 bool insideMethod = false;
 
@@ -918,11 +920,7 @@ sequence __createSequence(list<string> &From)
                 } while (count != 0);
 
                 // Insert template
-                // templTable[name].push_back(__template_info{generics, toAdd, returnType});
-
                 addGeneric(toAdd, name, generics);
-
-                // throw sequencing_error(__FILE__ + to_string(__LINE__) + "Error: As of Oak 0.0.12, generics are not implemented.");
             }
         }
 
@@ -1125,7 +1123,6 @@ string toC(const sequence &What)
             Type type = What.items[0].type;
             string typeStr = toStrC(&type);
 
-            // debugPrint(What);
             sm_assert(enumData.count(typeStr) != 0, "'match' may only be used on enums.");
             vector<string> options = enumData[typeStr].order;
 
@@ -1457,7 +1454,8 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
         {
             start++;
 
-            vector<string> generics, curGen;
+            vector<string> curGen;
+            vector<vector<string>> generics;
             int count = 0;
             do
             {
@@ -1479,12 +1477,12 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
                         curGen.push_back(What[start]);
                     }
 
-                    generics.push_back(mangle(curGen));
+                    generics.push_back(curGen);
                     curGen.clear();
                 }
                 else if (What[start] == "," && count == 1)
                 {
-                    generics.push_back(mangle(curGen));
+                    generics.push_back(curGen);
                     curGen.clear();
                 }
                 else
@@ -2055,30 +2053,67 @@ void addEnum(const vector<string> &FromIn)
     i++;
 
     string name = From[i];
+    i++;
+
+    parse_assert(i < From.size());
 
     // Scrape generics here (and mangle)
-    vector<string> generics;
+    vector<string> curGen;
+    vector<vector<string>> generics;
+    int count = 0;
 
-    i++;
-    while (i < From.size() && From[i] != ":" && From[i] != "{")
+    if (From[i] != ":" && From[i] != "{")
     {
-        generics.push_back(From[i]);
-        i++;
-    }
+        do
+        {
+            if (From[i] == "<")
+            {
+                count++;
 
-    if (generics.size() != 0 && generics.front() == "<")
-    {
-        generics.erase(generics.begin());
-    }
+                if (count > 1)
+                {
+                    curGen.push_back(From[i]);
+                }
+            }
+            else if (From[i] == ">")
+            {
+                count--;
 
-    if (generics.size() != 0 && generics.back() == ">")
-    {
-        generics.pop_back();
-    }
+                if (count > 0)
+                {
+                    curGen.push_back(From[i]);
+                }
 
-    if (generics.size() != 0)
-    {
-        name = mangleEnum(name, generics);
+                generics.push_back(curGen);
+                curGen.clear();
+            }
+            else if (From[i] == "," && count == 1)
+            {
+                generics.push_back(curGen);
+                curGen.clear();
+            }
+            else
+            {
+                curGen.push_back(From[i]);
+            }
+
+            i++;
+        } while (i < From.size() && count != 0);
+
+        if (generics.size() != 0 && generics.front().size() == 1 && generics.front().front() == "<")
+        {
+            generics.erase(generics.begin());
+        }
+
+        if (generics.size() != 0 && generics.back().size() == 1 && generics.back().front() == ">")
+        {
+            generics.pop_back();
+        }
+
+        if (generics.size() != 0)
+        {
+            name = mangleEnum(name, generics);
+        }
     }
 
     if (enumData.count(name) != 0 || structData.count(name) != 0)

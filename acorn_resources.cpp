@@ -72,6 +72,24 @@ void doFile(const string &From)
     preprocDefines["__FILE__"] = '"' + From + '"';
     preprocDefines["__COMP_TIME__"] = to_string(time(NULL));
 
+    // System defines
+    /*
+    Options:
+    -WINDOWS
+    -LINUX
+    -MAC
+    -UNKNOWN
+    */
+#if (defined(_WIN32) || defined(_WIN64))
+    preprocDefines["__SYS__"] = "WINDOWS";
+#elif (defined(LINUX) || defined(__linux__))
+    preprocDefines["__SYS__"] = "LINUX";
+#elif (defined(__APPLE__))
+    preprocDefines["__SYS__"] = "MAC";
+#else
+    preprocDefines["__SYS__"] = "UNKNOWN";
+#endif
+
     try
     {
         if (From.size() < 4 || From.substr(From.size() - 4) != ".oak")
@@ -563,6 +581,18 @@ void doFile(const string &From)
     {
         cout << tags::red_bold
              << "Caught package error '" << e.what() << "'\n"
+             << tags::reset;
+
+        string name = "oak_dump_" + purifyStr(From) + ".log";
+        cout << "Dump saved in " << name << "\n";
+        dump(lexed, name, From, curLine, sequence(), lexedCopy);
+
+        throw runtime_error("Failure in file '" + From + "': " + e.what());
+    }
+    catch (generic_error &e)
+    {
+        cout << tags::red_bold
+             << "Caught generic error '" << e.what() << "'\n"
              << tags::reset;
 
         string name = "oak_dump_" + purifyStr(From) + ".log";

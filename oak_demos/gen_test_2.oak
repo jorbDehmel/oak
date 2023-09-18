@@ -1,5 +1,5 @@
 // A test of the end-goal of Oak generics
-// 
+// UNPASSED
 
 package!("std");
 use_rule!("std");
@@ -46,23 +46,14 @@ let make_pair<l, r>(first: l, second: r) -> pair<l, r>
 
 let main() -> i32
 {
-    // We want the following lines to be needless
-    // New<i32, i32>;
-    // Copy<i32, i32>;
-
     let inst: pair<i32, i32>;
 
-    inst = make_pair<i32, i32>(123, 456);
+    inst = make_pair(123, 456);
 
     print(inst.first);
     print('\n');
     print(inst.second);
     print('\n');
-
-    // Of course, you don't actually need make_pair,
-    // so long as you've instantiated the appropriate
-    // Copy operator. This is an actually cool part 
-    // of Oak.
 
     inst = (789, 123);
 

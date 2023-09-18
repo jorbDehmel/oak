@@ -63,7 +63,8 @@ Type toType(const vector<string> &WhatIn)
             }
 
             // Collect generics
-            vector<string> generics, curGen;
+            vector<string> curGen;
+            vector<vector<string>> generics;
             int count = 0;
             do
             {
@@ -85,12 +86,12 @@ Type toType(const vector<string> &WhatIn)
                         curGen.push_back(What[i]);
                     }
 
-                    generics.push_back(mangle(curGen));
+                    generics.push_back(curGen);
                     curGen.clear();
                 }
                 else if (What[i] == "," && count == 1)
                 {
-                    generics.push_back(mangle(curGen));
+                    generics.push_back(curGen);
                     curGen.clear();
                 }
                 else
@@ -163,23 +164,41 @@ void addStruct(const vector<string> &FromIn)
     string name = From[i];
 
     // Scrape generics here (and mangle)
-    vector<string> generics;
+    vector<vector<string>> generics;
+    vector<string> curGen;
 
     i++;
+    int count = 0;
     while (i < From.size() && From[i] != ":" && From[i] != "{")
     {
-        generics.push_back(From[i]);
+        if (From[i] == "<")
+        {
+            count++;
+
+            if (count == 1)
+            {
+                i++;
+                continue;
+            }
+        }
+
+        else if (From[i] == ">")
+        {
+            count--;
+
+            if (count == 0)
+            {
+                generics.push_back(curGen);
+            }
+        }
+
+        else if (From[i] == "<")
+        {
+            count++;
+        }
+
+        curGen.push_back(From[i]);
         i++;
-    }
-
-    if (generics.size() != 0 && generics.front() == "<")
-    {
-        generics.erase(generics.begin());
-    }
-
-    if (generics.size() != 0 && generics.back() == ">")
-    {
-        generics.pop_back();
     }
 
     if (generics.size() != 0)

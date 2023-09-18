@@ -15,7 +15,7 @@ This document outlines the basics of `Oak`, as well as the canonical formatting 
 
 `Oak` has modifiable syntax (see the section on preprocessor rules), making it highly customizable and flexible in a way that no other mainstream languages are. It supports the creation of "dialects", which are `Oak` variants which use preprocessor rules to support independent syntactical structures. In this way, `Oak` provides a strong central core to many branches.
 
-The `Oak` programming language outlined here bears no relation nor resemblance to the Java prototype of the same name; I was not aware of it until significantly into development. I figure that, since Java-`Oak` was never widely deployed, I can continue using the name (especially since no part of this project's development is in any way commercial).
+The `Oak` programming language outlined here bears no relation nor resemblance to the Java prototype of the same name; I was not aware of it until significantly into development.
 
 ## Names
 
@@ -170,6 +170,10 @@ Comment blocks before global definitions (those not within a code scope) will be
 
 Any sequence starting with `#` is ignored completely. This is to allow for shebangs. This symbol should **never** be used for commenting.
 
+Tabbing should follow standard `C++` rules. Tabs and quadruple-spaces are both acceptable, but double-spaces are not. Not using tabbing is not acceptable.
+
+Finally, no line of `Oak` should be longer than 128 standard-width chars wide. Since newlines are erased by the lexer, one can be inserted at any point without disturbing syntax.
+
 ## Main Functions
 
 The main function must take one of the following forms (you can change the argument names). `argc` is the number of command line arguments, at minimum 1. `argv` is a pointer to an array of strings, each of which is a command line argument. The first item of this, `argv[0]`, is the name of the executable that was run.
@@ -309,7 +313,6 @@ There are many so-called "operator aliases" which are listed below. If `self` is
 
 `Oak`  | `C++`     | Description            | Signature for `T`
 -------|-----------|------------------------|------------------------
-Get    | [ ]       | Get given an index     | let Get(self: ^T, i: i128) -> SOME_TYPE;
 Less   | <         | Less than              | let Less(self: T, other: T) -> bool;
 Great  | >         | Greater than           | let Great(self: T, other: T) -> bool;
 Leq    | <=        | Less that or equal     | let Leq(self: T, other: T) -> bool;
@@ -321,7 +324,7 @@ Andd   | &&        | Boolean and            | let Andd(self: T, other: T) -> boo
 Or     | \|        | Bitwise or             | let Or(self: T, other: T) -> T;
 Orr    | \|\|      | Boolean or             | let Orr(self: T, other: T) -> bool;
 Not    | !         | Boolean negation       | let Not(self: T) -> T;
-Copy   | =         | Copy constructor       | let Copy(self: ^T, other: T) -> ^T;
+Copy   | =         | Copy constructor       | let Copy(self: ^T, other: T) -> void;
 Del    | ~         | Deletion               | let Del(self: ^T) -> void;
 Add    | +         | Addition               | let Add(self: T, other: T) -> T;
 Sub    | -         | Subtraction            | let Sub(self: T, other: T) -> T;
@@ -340,6 +343,8 @@ Rbs    | >>        | Right bitshift         | let Rbs(self: T, other: T) -> T;
 New    | TYPE_NAME | Instantiation          | let New(self: ^T) -> ^T;
 
 There is no `Oak` equivalent to `C++`'s prefix increment or decrement operator.
+
+It is notable that there is not set return type for many of these. It is common to see `copy` return `T`, `^T`, or `void`.
 
 The order of operations for the above operators is as follows (with the top of the list being evaluated first and the bottom last)
 
@@ -494,9 +499,7 @@ let main() -> i32
 }
 ```
 
-As of version 0.0.4, you must manually instantiate all associated methods for a generic struct in addition to their definitions.
-
-Generic enumerations are defined exactly like structs (see later for more information on enumerations).
+Generic enumerations are defined exactly like structs (see later for more information on enumerations). See later in this document for more about instantiating generic structs and the `needs` block.
 
 ## Acorn
 
@@ -1152,6 +1155,8 @@ The following are atomic (built-in, indivisible) types.
 - bool
 - void
 
+The `unit` struct is provided by `std/unit.oak`.
+
 ## List of Keyword-Like Macros
 
 The following are atomic (built-in, indivisible) macros.
@@ -1175,6 +1180,28 @@ Some miscellaneous notes which are not long enough to warrant their own section 
 - `Oak` does not have stack-stored arrays; Only heap-stored ones. In fact, all heap-stored data is technically array-based.
 - As of version `0.0.10`, the `New` and `Del` operator aliases are single-argument only. Just use `Copy` for anything else.
 - You can call a multi-argument `=` operator (`Copy`) like this: `a = (b, c, d);` (as of `Oak` `0.0.10`)
+
+## Explicit, Implicit / Casual, and Autogen Function Definitions
+
+It is often useful to separate the declaration of a function from its implementation (see the earlier section on division of labor). However, it is necessary for any function to have exactly one implementation to avoid undefined behavior. When creating structs, a definition for `New` and `Del` are always required. However, it is not always practical to write these functions explicitly each time, especially if they are to be unit (empty) functions. For these reasons, we introduce the concepts of **explicit, implicit, and autogen function definitions.**
+
+```
+// A casual definition
+let do_thing() -> void;
+
+// An explicit definition
+let do_thing() -> void
+{
+    print("hello\n");
+}
+
+```
+
+All casual definitions are erased when an explicit definition is called. This allows external definitions and interfacial files. For instance, you could link an object file to `Oak` which provides the definition for a casual definition. You cannot, however, do this with an explicit definition. This will cause multiple definitions of the symbol.
+
+When a struct is defined, a unit explicit definition for `New` and `Del` are added to the symbol table. These **do** provide an explicit definition, and thus cannot be overridden. There is, however, a way to avoid this. Casual definitions erase not only implicit definitions, but also auto-generated unit definitions. Thus, if you provide a casual definition for `New` or `Del`, you can define them in external object files and link them together.
+
+Autogen functions are marked with the `//autogen` special symbol.
 
 ## License
 

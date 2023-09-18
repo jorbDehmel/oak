@@ -8,7 +8,9 @@ include!(
     "std/std_conv.oak",
     "std/std_ops.oak",
     "std/unit.oak",
-    "std/extra_conv.oak"
+    "std/extra_conv.oak",
+    "std/opt.oak",
+    "std/result.oak"
 );
 
 link!("std/misc_std.o");
@@ -24,6 +26,7 @@ new_rule!("access_7", "( $*p [ $*a ]", "( $p . . Get ( $a )");
 new_rule!("access_8", ") $*p [ $*a ]", ") $p . . Get ( $a )");
 new_rule!("access_9", "{ $*p [ $*a ]", "{ $p . . Get ( $a )");
 new_rule!("access_10", "} $*p [ $*a ]", "} $p . . Get ( $a )");
+
 bundle_rule!("access",
     "access_1",
     "access_2",
@@ -34,7 +37,8 @@ bundle_rule!("access",
     "access_7",
     "access_8",
     "access_9",
-    "access_10");
+    "access_10"
+);
 
 // Void return rule
 new_rule!("void_return", "let $a ( $*b ) {", "let $a ( $b ) -> void {");

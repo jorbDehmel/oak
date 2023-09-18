@@ -1,0 +1,36 @@
+// A test of Oak's result enum
+// Passed 9/17/23
+
+package!("std");
+use_rule!("std");
+
+let fn_which_returns_result() -> result<i32, i32>
+{
+    let out: result<i32, i32>;
+
+    out..wrap_ok(123);
+
+    out
+}
+
+let main() -> i32
+{
+    let returned: result<i32, i32>;
+    returned = fn_which_returns_result();
+
+    match returned
+    {
+        case ok()
+        {
+            print("hey hey hey\n");
+        }
+
+        case err(data)
+        {
+            print(^data);
+            print("\n");
+        }
+    }
+
+    0
+}

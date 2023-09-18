@@ -19,6 +19,9 @@ let print(what: ^i8) -> void;
 // Print a char to cout
 let print(what: i8) -> void;
 
+// Flush the cout buffer to screen
+let flush() -> void;
+
 // Error messages
 let print_err(what: str) -> void;
 
