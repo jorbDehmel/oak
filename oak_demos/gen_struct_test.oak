@@ -34,8 +34,9 @@ let Del<t>(self: ^node<t>) -> void
 let main() -> i32
 {
     node<i32>;
-    AddEq<i32>;
-    Del<i32>;
+
+    AddEq<i32>(self: ^node<i32>, data: i32);
+    Del<i32>(self: ^node<i32>);
 
     // Create a node
     let head: node<i32>;

@@ -582,76 +582,7 @@ void dump(const vector<string> &Lexed, const string &Where, const string &FileNa
     file << sep
          << "// Generics:\n";
 
-    for (auto p : generics)
-    {
-        file << "Identifier: '" << p.first.first << "' w/ " << p.first.second << " generics\n";
-
-        file << "Instantiation candidates:\n";
-        for (auto cand : p.second)
-        {
-            file << '\t' << p.first.first << "<";
-            for (int i = 0; i < cand.genericNames.size(); i++)
-            {
-                file << cand.genericNames[i];
-
-                if (i + 1 < cand.genericNames.size())
-                {
-                    file << ", ";
-                }
-            }
-            file << ">\n";
-
-            file << "\t\tContents:";
-            for (int i = 0; i < cand.symbols.size(); i++)
-            {
-                if (i % 10 == 0)
-                {
-                    file << "\n\t\t\t";
-                }
-
-                file << cand.symbols[i] << ' ';
-            }
-
-            file << '\n'
-                 << "\t\tNeeds block:";
-            for (int i = 0; i < cand.instBlock.size(); i++)
-            {
-                if (i % 10 == 0)
-                {
-                    file << "\n\t\t\t";
-                }
-
-                file << cand.instBlock[i] << ' ';
-            }
-
-            file << '\n'
-                 << "\t\tInstances:\n";
-            for (auto inst : cand.instances)
-            {
-                file << "\t\t\t" << p.first.first << "<";
-
-                for (int vIndex = 0; vIndex < inst.size(); vIndex++)
-                {
-                    for (int iIndex = 0; iIndex < inst[vIndex].size(); iIndex++)
-                    {
-                        file << inst[vIndex][iIndex];
-
-                        if (iIndex + 1 < inst[vIndex].size())
-                        {
-                            file << ' ';
-                        }
-                    }
-
-                    if (vIndex + 1 < inst.size())
-                    {
-                        file << ", ";
-                    }
-                }
-
-                file << ">\n";
-            }
-        }
-    }
+    printGenericDumpInfo(file);
 
     file
         << sep

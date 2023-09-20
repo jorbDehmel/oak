@@ -449,35 +449,25 @@ let generic_fn_demo<t>(arg1: t, arg2: bool, arg3: *t) -> t;
 
 This allows a generic type `t` (you can use whatever name you want) to enter the function's scope temporarily. On a compiler level, generic functions do not exist until they are called. Upon compiler detection of a call, it is ensured that an appropriately-typed function exists (otherwise, such a function is instantiated).
 
-`Oak` does not have automatic instantiation of generic functions via argument type analysis. For instance, you must say `println<i32>(5)`, not `println(5)`. However, this is only true for the first time a generic function is called.
+`Oak` does not have automatic instantiation of generic functions via argument type analysis.
 
 ```
-// Always valid:
+let gen_fn<t>(what: t) -> void
 {
-    // Instantiate and call
-    println<i32>(5);
+    print(t);
 }
 
-// Only valid if println<i32> has already been instantiated:
+let main() -> i32
 {
-    // Call without instantiating
-    println(5);
-}
+    // Call the template instantiator
+    // Request the instantiation of the generic block
+    // identified by the signature `gen_fn<i32>(what: i32)`
+    // which is our gen_fn for the i32 type
+    gen_fn<i32>(what: i32);
 
-// Always valid:
-{
-    // Instantiate without calling
-    println<i32>;
-}
+    gen_fn(123);
 
-// Equivalence
-{
-    println<i32>;
-    println(5);
-
-    // Is equivalent to
-
-    println<i32>(5);
+    0
 }
 ```
 
@@ -1111,8 +1101,8 @@ As should be obvious to anyone who has worked with a templated data structure li
 5  | }
 6  | needs
 7  | {
-8  |     New<t>;
-9  |     Del<t>;
+8  |     New<t>(self: ^list<t>);
+9  |     Del<t>(_: ^list<t>);
 10 | }
 11 |
 12 | let New<t>(self: ^list<t>) -> void;
@@ -1126,7 +1116,7 @@ As should be obvious to anyone who has worked with a templated data structure li
 20 |
 ```
 
-The above code tells the compiler to instantiate `New` and `Del` with the `t` generic anytime the `node<t>` template is instantiated. Thus, these are automatically instantiated by the compiler in line 17.
+The above code tells the compiler to instantiate `New` and `Del` with the `t` generic anytime the `node<t>` template is instantiated. Thus, these are automatically instantiated by the compiler in line 17. Also notice that the argument name in line 9 doesn't matter, so long as the rest of the instantiator call matches the candidate.
 
 This system is in response to the fact that, in `Oak`, a struct does not inherently "come" with any methods, and thus the exact methods to instantiate with a generic struct are unknown. This allows the programmer to tell the compiler exactly what is needed for use with the struct.
 

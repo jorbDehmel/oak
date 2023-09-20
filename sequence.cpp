@@ -724,7 +724,7 @@ sequence __createSequence(list<string> &From)
                         }
                     }
 
-                    addGeneric(toAdd, name, generics, instBlock);
+                    addGeneric(toAdd, name, generics, instBlock, {front});
                 }
 
                 // This should be left out of toC, as it should only be used
@@ -871,11 +871,16 @@ sequence __createSequence(list<string> &From)
             }
             else
             {
+                // Templated function definition
+
                 vector<string> toAdd = {"let", name}, returnType;
+                vector<string> typeVec;
+
                 while (From.front() != "->")
                 {
                     if (From.front().size() < 2 || From.front().substr(0, 2) != "//")
                     {
+                        typeVec.push_back(From.front());
                         toAdd.push_back(From.front());
                     }
 
@@ -883,6 +888,7 @@ sequence __createSequence(list<string> &From)
                 }
 
                 toAdd.push_back(From.front());
+
                 From.pop_front();
 
                 while (From.front() != "{" && From.front() != ";")
@@ -890,6 +896,7 @@ sequence __createSequence(list<string> &From)
                     if (From.front().size() < 2 || From.front().substr(0, 2) != "//")
                     {
                         toAdd.push_back(From.front());
+
                         returnType.push_back(From.front());
                     }
 
@@ -919,8 +926,9 @@ sequence __createSequence(list<string> &From)
                     From.pop_front();
                 } while (count != 0);
 
-                // Insert template
-                addGeneric(toAdd, name, generics);
+                // Insert templated function
+                // For now, cannot have needs block here
+                addGeneric(toAdd, name, generics, vector<string>(), typeVec);
             }
         }
 
@@ -1493,9 +1501,21 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
                 start++;
             } while (start < What.size() && count != 0);
 
-            // should leave w/ what[start] == ';' or '(' (past closing >)
+            // should leave w/ what[start] == ';'
+            vector<string> typeVec;
 
-            string result = instantiateGeneric(name, generics);
+            while (start < What.size() && What[start] != ";")
+            {
+                typeVec.push_back(What[start]);
+                start++;
+            }
+
+            if (typeVec.empty())
+            {
+                typeVec.push_back("struct");
+            }
+
+            string result = instantiateGeneric(name, generics, typeVec);
 
             start--;
 

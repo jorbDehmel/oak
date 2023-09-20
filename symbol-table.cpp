@@ -103,7 +103,11 @@ Type toType(const vector<string> &WhatIn)
             } while (i < What.size() && count != 0);
             i--;
 
-            cursor->name = instantiateGeneric(cursor->name, generics);
+            // At this point, will only ever be a struct
+            vector<string> temp;
+            temp.push_back("struct");
+
+            cursor->name = instantiateGeneric(cursor->name, generics, temp);
         }
         else if (cur == ",")
         {

@@ -11,9 +11,10 @@ let pair<l, r>: struct
 }
 needs
 {
-    New<l, r>;
-    Copy<l, r>;
-    make_pair<l, r>;
+    New<l, r>(self: ^pair<l, r>);
+    Copy<l, r>(self: ^pair<l, r>, first: l, second: r);
+    Copy<l, r>(self: ^pair<l, r>, other: pair<l, r>);
+    make_pair<l, r>(first: l, second: r);
 }
 
 let New<l, r>(self: ^pair<l, r>) -> void

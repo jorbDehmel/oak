@@ -10,8 +10,8 @@ let result<g, b>: enum
 }
 needs
 {
-    New<g, b>;
-    Copy<g, b>;
+    New<g, b>(self: ^result<g, b>);
+    Copy<g, b>(self: ^result<g, b>, other: result<g, b>);
 }
 
 let New<g, b>(self: ^result<g, b>) -> void

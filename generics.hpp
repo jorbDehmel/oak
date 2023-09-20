@@ -21,16 +21,6 @@ Jordan Dehmel, 2023
 
 using namespace std;
 
-// External definition of createSequence, defined in sequence.cpp
-// This avoids circular dependencies
-sequence createSequence(const vector<string> &From);
-
-class generic_error : public runtime_error
-{
-public:
-    generic_error(const string &what) : runtime_error(what) {}
-};
-
 /*
 There are two types of generics present in code: Templates
 and template shortcuts.
@@ -48,25 +38,27 @@ should be handled at sequence-time. They will no be
 addressed herein.
 */
 
-struct genericInfo
+class generic_error : public runtime_error
 {
-    vector<string> symbols;
-    vector<string> instBlock;
-
-    vector<string> genericNames;
-
-    vector<vector<vector<string>>> instances;
+public:
+    generic_error(const string &what) : runtime_error(what) {}
 };
-
-// A pair of <name, number_of_generics> maps to a vector of symbols within
-extern map<pair<string, int>, vector<genericInfo>> generics;
 
 // Can throw generic_error's if no viable options exist.
 // Ensure all items in genericSubs have been pre-mangled.
 // Returns the mangled version.
-string instantiateGeneric(const string &what, const vector<vector<string>> &genericSubs);
+string instantiateGeneric(const string &what,
+                          const vector<vector<string>> &genericSubs,
+                          const vector<string> &typeVec);
 
 // Also holds the skeleton of the inst block system, although gathering of these happens elsewhere.
-void addGeneric(const vector<string> &what, const string &name, const vector<string> &genericsList, const vector<string> &instBlock = vector<string>());
+void addGeneric(const vector<string> &what,
+                const string &name,
+                const vector<string> &genericsList,
+                const vector<string> &instBlock,
+                const vector<string> &typeVec);
+
+// Print the info of all existing generics to a file stream
+void printGenericDumpInfo(ostream &to);
 
 #endif

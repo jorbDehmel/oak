@@ -9,6 +9,9 @@ TODO:
 Acorn Version   |          |
 (Newest at top) | Date     | Justification
 ----------------|----------|-----------------------------------------
+0.0.17          | 9/19/23  | Redid template instantiator calls for
+                |          | more specificity and less redundancy.
+                |          |
 0.0.16          | 9/15/23  | Added needs blocks for generic structs.
                 |          |
 0.0.15          | 9/12/23  | Many large bug fixes for generics. Added

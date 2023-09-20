@@ -5,7 +5,7 @@ let opt<t>: enum
 }
 needs
 {
-    New<t>;
+    New<t>(self: ^opt<t>);
 }
 
 let New<t>(self: ^opt<t>) -> void

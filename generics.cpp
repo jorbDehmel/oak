@@ -7,13 +7,243 @@ Jordan Dehmel, 2023
 
 #include "generics.hpp"
 
-map<pair<string, int>, vector<genericInfo>> generics;
+// External definition of createSequence, defined in sequence.cpp
+// This avoids circular dependencies
+extern sequence createSequence(const vector<string> &From);
 
-string instantiateGeneric(const string &what, const vector<vector<string>> &genericSubs)
+// Internal struct for info
+struct genericInfo
 {
+    vector<string> typeVec;
+
+    vector<string> symbols;
+    vector<string> needsBlock;
+
+    vector<string> genericNames;
+
+    vector<vector<vector<string>>> instances;
+};
+
+// A pair of <name, number_of_generics> maps to a vector of symbols within
+map<string, vector<genericInfo>> generics;
+
+// Returns true if template substitution would make the two typeVecs the same
+bool checkTypeVec(const vector<string> &candidateTypeVec,
+                  const vector<string> &genericTypeVec,
+                  const vector<string> &genericNames,
+                  const vector<vector<string>> &substitutions)
+{
+    if (candidateTypeVec.size() == 1 && (candidateTypeVec[0] == "struct" || candidateTypeVec[0] == "enum"))
+    {
+        if (genericTypeVec.size() == 1 && (genericTypeVec[0] == "struct" || genericTypeVec[0] == "enum"))
+        {
+            return true;
+        }
+    }
+
+    // Build substitution table
+    map<string, vector<string>> subMap;
+    for (int i = 0; i < genericNames.size(); i++)
+    {
+        subMap[genericNames[i]] = substitutions[i];
+    }
+
+    // Do substitutions
+    // vector<string> afterSub;
+    int i = 0;
+
+    for (string symb : genericTypeVec)
+    {
+        if (subMap.count(symb) == 0)
+        {
+            // afterSub.push_back(symb);
+
+            if (candidateTypeVec[i] != symb)
+            {
+                // Failure case UNLESS this is a argument name
+                if (!(i + 1 < candidateTypeVec.size() && candidateTypeVec[i + 1] == ":"))
+                {
+                    return false;
+                }
+            }
+
+            i++;
+        }
+        else
+        {
+            for (auto newSymb : subMap[symb])
+            {
+                // afterSub.push_back(newSymb);
+
+                if (candidateTypeVec[i] != newSymb)
+                {
+                    return false;
+                }
+
+                i++;
+            }
+        }
+    }
+
+    return true;
+}
+
+// Returns true if two instances are the same
+bool checkInstances(const vector<vector<string>> &a, const vector<vector<string>> &b)
+{
+    if (a.size() != b.size())
+    {
+        return false;
+    }
+
+    for (int i = 0; i < a.size(); i++)
+    {
+        if (a[i].size() != b[i].size())
+        {
+            return false;
+        }
+
+        for (int j = 0; j < a[i].size(); j++)
+        {
+            if (a[i][j] != b[i][j])
+            {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+// Skips all error checking; DO NOT FEED THIS THINGS THAT MAY ALREADY HAVE INSTANCES
+void __instantiateGeneric(const string &what, genericInfo &info, const vector<vector<string>> &genericSubs)
+{
+    // Make a copy of the template
+    vector<string> copy = info.symbols;
+
+    // Build substitution table
+    map<string, vector<string>> substitutions;
+    for (int i = 0; i < genericSubs.size(); i++)
+    {
+        substitutions[info.genericNames[i]] = genericSubs[i];
+    }
+
+    // Iterate and mangle template
+    for (int i = 0; i < copy.size(); i++)
+    {
+        // Identify region to do substitution in
+        // Mangling is handled during createSequence
+        // below, so we only need to worry about
+        // substitution here.
+
+        if (substitutions.count(copy[i]) != 0)
+        {
+            // Do replacement if one is available
+            string temp = copy[i];
+            copy.erase(copy.begin() + i);
+            for (auto s : substitutions[temp])
+            {
+                copy.insert(copy.begin() + i, s);
+                i++;
+            }
+        }
+    }
+
+    // Call on substituted results
+    createSequence(copy);
+
+    // Needs block
+    if (info.needsBlock.size() != 0)
+    {
+        copy.clear();
+
+        // Create copy of inst block
+        copy = info.needsBlock;
+
+        // Iterate and mangle inst block
+        for (int i = 0; i < copy.size(); i++)
+        {
+            if (substitutions.count(copy[i]) != 0)
+            {
+                string temp = copy[i];
+                copy.erase(copy.begin() + i);
+                for (auto s : substitutions[temp])
+                {
+                    copy.insert(copy.begin() + i, s);
+                    i++;
+                }
+            }
+        }
+
+        try
+        {
+            // Call on substituted inst block
+            createSequence(copy);
+        }
+        catch (exception &e)
+        {
+            cout << tags::red_bold
+                 << "\nDuring execution of needs block " << what << "<";
+
+            int itemIndex = 0;
+            for (auto item : genericSubs)
+            {
+                int subItemIndex = 0;
+                for (auto subItem : item)
+                {
+                    cout << subItem;
+
+                    if (subItemIndex + 1 < item.size())
+                    {
+                        cout << " ";
+                    }
+
+                    subItemIndex++;
+                }
+
+                if (itemIndex + 1 < genericSubs.size())
+                {
+                    cout << ", ";
+                }
+
+                itemIndex++;
+            }
+
+            cout << ">:\n\n"
+                 << tags::reset;
+
+            throw generic_error("During needs block execution: " + string(e.what()));
+        }
+    }
+
+    return;
+}
+
+string instantiateGeneric(const string &what,
+                          const vector<vector<string>> &genericSubs,
+                          const vector<string> &typeVec)
+{
+    cout << DB_INFO << "instantiateGeneric called w/\n"
+         << "\twhat=" << what << '\n'
+         << "\tgenericSubs='";
+    for (auto a : genericSubs)
+    {
+        for (auto b : a)
+        {
+            cout << b << ' ';
+        }
+        cout << ", ";
+    }
+    cout << "'\n"
+         << "\ttypeVec='";
+    for (auto a : typeVec)
+    {
+        cout << a << ' ';
+    }
+    cout << "'\n";
+
     // Ensure it exists
-    pair<string, int> key = make_pair(what, genericSubs.size());
-    if (generics.count(key) == 0)
+    if (generics.count(what) == 0)
     {
         cout << tags::red_bold
              << "During attempt to instantiate template '" << what << "' w/ generics:\n";
@@ -21,236 +251,235 @@ string instantiateGeneric(const string &what, const vector<vector<string>> &gene
         for (auto s : genericSubs)
         {
             cout << '\t';
-
             for (auto t : s)
             {
                 cout << t << ' ';
             }
-
             cout << '\n';
         }
-
         cout << tags::reset << '\n';
 
-        throw generic_error("Error! No template exists with which to instantiate template '" + what + "' w/ " + to_string(genericSubs.size()) + " generics.");
+        throw generic_error("Error! No template exists with which to instantiate template '" + what + "'.");
     }
 
     // Get mangled version (only meaningful for struct instantiations)
     string mangle = mangleStruct(what, genericSubs);
 
-    // Get correct indices
-    vector<int> indices;
-
-    // Iterate over instantiation candidates
-    for (int i = 0; i < generics[key].size(); i++)
+    bool didInstantiate = false;
+    for (auto &candidate : generics[what])
     {
-        // Check whether the current instantiation candidate
-        // has any conflicting instantiations. If so, do not
-        // instantiate it. Otherwise, add its index to the
-        // list of indices to instantiate.
-
-        bool hasInstance = false;
-        for (auto instance : generics[key][i].instances)
+        if (checkTypeVec(typeVec, candidate.typeVec, candidate.genericNames, genericSubs))
         {
-            /*
-            cout << DB_INFO << "Checking instance\n\t";
-            for (auto a : instance)
-            {
-                cout << "\"";
-                for (auto b : a)
-                {
-                    cout << "'" << b << "' ";
-                }
-                cout << "\", ";
-            }
-            cout << "\nAgainst requested\n\t";
-            for (auto a : genericSubs)
-            {
-                cout << "\"";
-                for (auto b : a)
-                {
-                    cout << "'" << b << "' ";
-                }
-                cout << "\", ";
-            }
-            cout << "\n";
-            */
+            bool hasInstance = false;
 
-            // Check whether this instance is equivalent to
-            // the requested one
-            bool isGood = true;
-            for (int arg = 0; arg < instance.size(); arg++)
+            // Search for existing instance here
+            for (auto instance : candidate.instances)
             {
-                // Ensure that the compared sizes are valid
-                if (instance[arg].size() != genericSubs[arg].size())
+                if (checkInstances(instance, genericSubs))
                 {
-                    isGood = false;
-                    break;
-                }
-
-                // Iterate over sub-argument symbols
-                for (int subarg = 0; subarg < instance[arg].size(); subarg++)
-                {
-                    if (instance[arg][subarg] != genericSubs[arg][subarg])
-                    {
-                        isGood = false;
-                        break;
-                    }
-                }
-
-                if (!isGood)
-                {
+                    hasInstance = true;
                     break;
                 }
             }
 
-            // cout << DB_INFO << "Result: " << (isGood ? "true" : "false") << '\n';
-
-            if (isGood)
+            if (!hasInstance)
             {
-                hasInstance = true;
-                break;
+                candidate.instances.push_back(genericSubs);
+                __instantiateGeneric(what, candidate, genericSubs);
             }
-        }
 
-        // If an instance was found, do NOT add it.
-        if (!hasInstance)
-        {
-            indices.push_back(i);
+            didInstantiate = true;
+            break;
         }
     }
 
-    // cout << DB_INFO << "Instantiating " << indices.size() << " candidates\n";
-
-    // If needed, instantiate candidates
-    if (indices.size() != 0)
+    if (!didInstantiate)
     {
-        for (auto i : indices)
-        {
-            // Mark instantiation
-            generics[key][i].instances.push_back(genericSubs);
-
-            // All templates for generics exist in the global space,
-            // so the result of this doesn't matter.
-
-            // Make a copy of the template
-            genericInfo &info = generics[key][i];
-            vector<string> copy = info.symbols;
-
-            // First, we need to know what we are substituting.
-            map<string, vector<string>> substitutions;
-            for (int i = 0; i < genericSubs.size(); i++)
-            {
-                substitutions[info.genericNames[i]] = genericSubs[i];
-            }
-
-            // Iterate and mangle template
-            for (int i = 0; i < copy.size(); i++)
-            {
-                // Identify region to do substitution in
-                // Mangling is handled during createSequence
-                // below, so we only need to worry about
-                // substitution here.
-
-                if (substitutions.count(copy[i]) != 0)
-                {
-                    // Do replacement if one is available
-                    string temp = copy[i];
-                    copy.erase(copy.begin() + i);
-                    for (auto s : substitutions[temp])
-                    {
-                        copy.insert(copy.begin() + i, s);
-                        i++;
-                    }
-                }
-            }
-
-            // Call on substituted results
-            createSequence(copy);
-
-            // Create copy of inst block
-            if (info.instBlock.size() != 0)
-            {
-                copy.clear();
-                copy = info.instBlock;
-
-                // Iterate and mangle inst block
-                for (int i = 0; i < copy.size(); i++)
-                {
-                    if (substitutions.count(copy[i]) != 0)
-                    {
-                        string temp = copy[i];
-                        copy.erase(copy.begin() + i);
-                        for (auto s : substitutions[temp])
-                        {
-                            copy.insert(copy.begin() + i, s);
-                            i++;
-                        }
-                    }
-                }
-
-                try
-                {
-                    // Call on substituted inst block
-                    createSequence(copy);
-                }
-                catch (exception &e)
-                {
-                    cout << tags::red_bold
-                         << "\nDuring execution of needs block " << what << "<";
-
-                    int itemIndex = 0;
-                    for (auto item : genericSubs)
-                    {
-                        int subItemIndex = 0;
-                        for (auto subItem : item)
-                        {
-                            cout << subItem;
-
-                            if (subItemIndex + 1 < item.size())
-                            {
-                                cout << " ";
-                            }
-
-                            subItemIndex++;
-                        }
-
-                        if (itemIndex + 1 < genericSubs.size())
-                        {
-                            cout << ", ";
-                        }
-
-                        itemIndex++;
-                    }
-
-                    cout << ">:\n\n"
-                         << tags::reset;
-
-                    throw generic_error("During needs block execution: " + string(e.what()));
-                }
-            }
-
-            // Now the inst block and definition have both been handled.
-        }
+        throw generic_error("Error! Candidates exist for template '" + what + "', but none are viable.");
     }
-    // Otherwise, no need for instantiation. Just return mangle.
 
     // Return mangled version
     return mangle;
 }
 
-void addGeneric(const vector<string> &what, const string &name, const vector<string> &genericsList, const vector<string> &instBlock)
+void addGeneric(const vector<string> &what,
+                const string &name,
+                const vector<string> &genericsList,
+                const vector<string> &needsBlock,
+                const vector<string> &typeVec)
 {
+    cout << DB_INFO << "addGeneric called w/\n"
+         << "\tname=" << name << '\n'
+         << "\tgenericSubs='";
+    for (auto a : genericsList)
+    {
+        for (auto b : a)
+        {
+            cout << b << ' ';
+        }
+        cout << ", ";
+    }
+    cout << "'\n"
+         << "\ttypeVec='";
+    for (auto a : typeVec)
+    {
+        cout << a << ' ';
+    }
+    cout << "'\n";
+
     genericInfo toAdd;
 
     toAdd.genericNames = genericsList;
     toAdd.symbols = what;
-    toAdd.instBlock = instBlock;
-    // toAdd.instances.clear();
+    toAdd.needsBlock = needsBlock;
+    toAdd.typeVec = typeVec;
 
-    pair<string, int> key = make_pair(name, (int)genericsList.size());
+    // ENSURE IT DOESN'T ALREADY EXIST HERE; If it does, return w/o error
+    bool doesExist = false;
+    for (auto candidate : generics[name])
+    {
+        if (candidate.genericNames.size() == genericsList.size())
+        {
+            bool matchesCandidate = true;
+            for (int j = 0; j < candidate.typeVec.size(); j++)
+            {
+                if (candidate.typeVec[j] != toAdd.typeVec[j])
+                {
+                    matchesCandidate = false;
+                    break;
+                }
+            }
 
-    generics[key].push_back(toAdd);
+            if (matchesCandidate)
+            {
+                doesExist = true;
+                break;
+            }
+        }
+    }
+
+    if (!doesExist)
+    {
+        generics[name].push_back(toAdd);
+    }
+    else
+    {
+        cout << DB_INFO << "skipping.\n";
+    }
 
     return;
 }
+
+void printGenericDumpInfo(ostream &file)
+{
+    for (auto p : generics)
+    {
+        file << "Identifier: '" << p.first << "'\n";
+
+        file << "Instantiation candidates:\n";
+        for (auto cand : p.second)
+        {
+            file << '\t' << p.first << "<";
+            for (int i = 0; i < cand.genericNames.size(); i++)
+            {
+                file << cand.genericNames[i];
+
+                if (i + 1 < cand.genericNames.size())
+                {
+                    file << ", ";
+                }
+            }
+            file << ">\n";
+
+            file << "\t\tType Vector:";
+            for (int i = 0; i < cand.typeVec.size(); i++)
+            {
+                if (i % 10 == 0)
+                {
+                    file << "\n\t\t\t";
+                }
+
+                file << cand.typeVec[i] << ' ';
+            }
+
+            file << '\n'
+                 << "\t\tContents:";
+            for (int i = 0; i < cand.symbols.size(); i++)
+            {
+                if (i % 10 == 0)
+                {
+                    file << "\n\t\t\t";
+                }
+
+                file << cand.symbols[i] << ' ';
+            }
+
+            file << '\n'
+                 << "\t\tNeeds block:";
+            for (int i = 0; i < cand.needsBlock.size(); i++)
+            {
+                if (i % 10 == 0)
+                {
+                    file << "\n\t\t\t";
+                }
+
+                file << cand.needsBlock[i] << ' ';
+            }
+
+            file << '\n'
+                 << "\t\tInstances:\n";
+            for (auto inst : cand.instances)
+            {
+                file << "\t\t\t" << p.first << "<";
+
+                for (int vIndex = 0; vIndex < inst.size(); vIndex++)
+                {
+                    for (int iIndex = 0; iIndex < inst[vIndex].size(); iIndex++)
+                    {
+                        file << inst[vIndex][iIndex];
+
+                        if (iIndex + 1 < inst[vIndex].size())
+                        {
+                            file << ' ';
+                        }
+                    }
+
+                    if (vIndex + 1 < inst.size())
+                    {
+                        file << ", ";
+                    }
+                }
+
+                file << ">\n";
+            }
+        }
+    }
+}
+
+/*
+// Future of generics:
+
+let example<t>: struct
+{
+    data: t,
+    next: ^example<t>,
+}
+needs
+{
+    // Rather than New<t>;, we ensure a type to the instance
+    // When entering the instantiator, only the first generic
+    // is replaced. Those in the type are skipped.
+
+    // Nested generic types as members should automatically be
+    // instantiated.
+
+    New<t>(self: ^example<t>);
+    Copy<t>(self: ^example<t>);
+
+    // Instantiation blocks should be filtered by argument type(s)
+    // and should be strictly unique because of this.
+}
+
+let New<t>(self: ^example<t>) -> void {}
+let Copy<t>(self: ^example<t>) -> void {}
+*/
