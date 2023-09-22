@@ -65,7 +65,7 @@ test: install
 	$(TEST) oak_demos/err_test.oak -o err_test.out
 
 	$(MAKE) sdltest
-	# $(MAKE) gentest
+	$(MAKE) gentest
 
 sdltest:
 	$(TEST) oak_demos/sdl_test.oak -o sdl_test.out

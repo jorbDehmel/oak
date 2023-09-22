@@ -14,10 +14,11 @@ let arr<t>: struct
 }
 needs
 {
-    New<t>;
-    Del<t>;
-    Copy<t>;
-    Get<t>;
+    opt<^t>;
+    New<t>(self: ^arr<t>);
+    Del<t>(self: ^arr<t>);
+    Copy<t>(self: ^arr<t>, size: u128);
+    Get<t>(self: ^arr<t>, index: u128);
 }
 
 let New<t>(self: ^arr<t>) -> void
@@ -50,11 +51,11 @@ let Get<t>(self: ^arr<t>, index: u128) -> opt<^t>
 
     if index < self.size
     {
-        out..wrap(Get(@self.data, index));
+        out..wrap_some(Get(@self.data, index));
     }
     else
     {
-        out..wrap();
+        out..wrap_none();
     }
 
     out
@@ -65,9 +66,33 @@ let main() -> i32
     let a: arr<i32>;
     a = to_u128(5);
 
-    Copy(a..Get(to_u128(1)), 5);
+    let result: opt<^i32>;
+    result = a..Get(to_u128(1));
+    match (result)
+    {
+        case some(data)
+        {
+            Copy(^data, 5);
+        }
 
-    print(^a..Get(to_u128(1)));
+        default
+        {
+        }
+    }
+
+    result = a..Get(to_u128(1));
+    match (result)
+    {
+        case some(data)
+        {
+            print(^^data);
+        }
+
+        default
+        {
+        }
+    }
+
     print('\n');
 
     0

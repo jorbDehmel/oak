@@ -33,6 +33,11 @@ bool checkTypeVec(const vector<string> &candidateTypeVec,
                   const vector<string> &genericNames,
                   const vector<vector<string>> &substitutions)
 {
+    if (genericNames.size() != substitutions.size())
+    {
+        return false;
+    }
+
     if (candidateTypeVec.size() == 1 && (candidateTypeVec[0] == "struct" || candidateTypeVec[0] == "enum"))
     {
         if (genericTypeVec.size() == 1 && (genericTypeVec[0] == "struct" || genericTypeVec[0] == "enum"))
@@ -45,7 +50,11 @@ bool checkTypeVec(const vector<string> &candidateTypeVec,
     map<string, vector<string>> subMap;
     for (int i = 0; i < genericNames.size(); i++)
     {
-        subMap[genericNames[i]] = substitutions[i];
+        subMap[genericNames[i]] = vector<string>();
+        for (auto item : substitutions[i])
+        {
+            subMap[genericNames[i]].push_back(item);
+        }
     }
 
     // Do substitutions
@@ -57,6 +66,11 @@ bool checkTypeVec(const vector<string> &candidateTypeVec,
         if (subMap.count(symb) == 0)
         {
             // afterSub.push_back(symb);
+
+            if (i >= candidateTypeVec.size())
+            {
+                return false;
+            }
 
             if (candidateTypeVec[i] != symb)
             {
@@ -74,6 +88,11 @@ bool checkTypeVec(const vector<string> &candidateTypeVec,
             for (auto newSymb : subMap[symb])
             {
                 // afterSub.push_back(newSymb);
+
+                if (i >= candidateTypeVec.size())
+                {
+                    return false;
+                }
 
                 if (candidateTypeVec[i] != newSymb)
                 {
@@ -118,9 +137,6 @@ bool checkInstances(const vector<vector<string>> &a, const vector<vector<string>
 // Skips all error checking; DO NOT FEED THIS THINGS THAT MAY ALREADY HAVE INSTANCES
 void __instantiateGeneric(const string &what, genericInfo &info, const vector<vector<string>> &genericSubs)
 {
-    // Make a copy of the template
-    vector<string> copy = info.symbols;
-
     // Build substitution table
     map<string, vector<string>> substitutions;
     for (int i = 0; i < genericSubs.size(); i++)
@@ -128,24 +144,24 @@ void __instantiateGeneric(const string &what, genericInfo &info, const vector<ve
         substitutions[info.genericNames[i]] = genericSubs[i];
     }
 
-    // Iterate and mangle template
-    for (int i = 0; i < copy.size(); i++)
+    // Make a copy of the template
+    vector<string> copy;
+    for (auto item : info.symbols)
     {
-        // Identify region to do substitution in
-        // Mangling is handled during createSequence
-        // below, so we only need to worry about
-        // substitution here.
-
-        if (substitutions.count(copy[i]) != 0)
+        if (item.size() > 1 && item.substr(0, 2) == "//")
         {
-            // Do replacement if one is available
-            string temp = copy[i];
-            copy.erase(copy.begin() + i);
-            for (auto s : substitutions[temp])
+            continue;
+        }
+        else if (substitutions.count(item) != 0)
+        {
+            for (auto subItem : substitutions[item])
             {
-                copy.insert(copy.begin() + i, s);
-                i++;
+                copy.push_back(subItem);
             }
+        }
+        else
+        {
+            copy.push_back(item);
         }
     }
 
@@ -158,7 +174,15 @@ void __instantiateGeneric(const string &what, genericInfo &info, const vector<ve
         copy.clear();
 
         // Create copy of inst block
-        copy = info.needsBlock;
+        for (auto item : info.needsBlock)
+        {
+            if (item.size() > 1 && item.substr(0, 2) == "//")
+            {
+                continue;
+            }
+
+            copy.push_back(item);
+        }
 
         // Iterate and mangle inst block
         for (int i = 0; i < copy.size(); i++)
@@ -223,6 +247,7 @@ string instantiateGeneric(const string &what,
                           const vector<vector<string>> &genericSubs,
                           const vector<string> &typeVec)
 {
+    /*
     cout << DB_INFO << "instantiateGeneric called w/\n"
          << "\twhat=" << what << '\n'
          << "\tgenericSubs='";
@@ -241,6 +266,7 @@ string instantiateGeneric(const string &what,
         cout << a << ' ';
     }
     cout << "'\n";
+    */
 
     // Ensure it exists
     if (generics.count(what) == 0)
@@ -308,6 +334,7 @@ void addGeneric(const vector<string> &what,
                 const vector<string> &needsBlock,
                 const vector<string> &typeVec)
 {
+    /*
     cout << DB_INFO << "addGeneric called w/\n"
          << "\tname=" << name << '\n'
          << "\tgenericSubs='";
@@ -326,13 +353,29 @@ void addGeneric(const vector<string> &what,
         cout << a << ' ';
     }
     cout << "'\n";
+    */
 
     genericInfo toAdd;
 
-    toAdd.genericNames = genericsList;
-    toAdd.symbols = what;
-    toAdd.needsBlock = needsBlock;
-    toAdd.typeVec = typeVec;
+    for (auto a : genericsList)
+    {
+        toAdd.genericNames.push_back(a);
+    }
+
+    for (auto a : what)
+    {
+        toAdd.symbols.push_back(a);
+    }
+
+    for (auto a : needsBlock)
+    {
+        toAdd.needsBlock.push_back(a);
+    }
+
+    for (auto a : typeVec)
+    {
+        toAdd.typeVec.push_back(a);
+    }
 
     // ENSURE IT DOESN'T ALREADY EXIST HERE; If it does, return w/o error
     bool doesExist = false;

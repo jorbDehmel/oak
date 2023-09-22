@@ -6,9 +6,26 @@ let opt<t>: enum
 needs
 {
     New<t>(self: ^opt<t>);
+    Copy<t>(self: ^opt<t>, other: opt<t>);
 }
 
 let New<t>(self: ^opt<t>) -> void
 {
     wrap_none(self);
+}
+
+let Copy<t>(self: ^opt<t>, other: opt<t>) -> void
+{
+    match (other)
+    {
+        case some(data)
+        {
+            wrap_some(self, ^data);
+        }
+
+        default
+        {
+            wrap_none(self);
+        }
+    }
 }

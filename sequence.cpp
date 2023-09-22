@@ -2257,8 +2257,6 @@ void addEnum(const vector<string> &FromIn)
     string enumTypeStr = name;
     for (auto optionName : cur.order)
     {
-        string optionTypeStr = toStrC(&cur.options[optionName]);
-
         if (cur.options[optionName].info == atomic && cur.options[optionName].name == "unit")
         {
             // Unit struct; Single argument constructor
@@ -2286,7 +2284,7 @@ void addEnum(const vector<string> &FromIn)
             constructorType.append(atomic, enumTypeStr);
             constructorType.append(join);
             constructorType.append(var_name, "data");
-            constructorType.append(atomic, optionTypeStr);
+            constructorType.append(cur.options[optionName]);
             constructorType.append(maps);
             constructorType.append(atomic, "void");
 

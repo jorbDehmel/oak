@@ -81,7 +81,7 @@ string mangleStruct(const string &name, const vector<vector<string>> &generics)
             {
                 outputParts.push_back(s);
 
-                if (i + 1 < generics.size())
+                if (i + 1 < generics.size() && s != "PTR")
                 {
                     outputParts.push_back("JOIN");
                 }
