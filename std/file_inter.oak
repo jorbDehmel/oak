@@ -6,19 +6,20 @@ jdehmel@outlook.com
 
 link!("std/file_inter.o");
 include!("std/string.oak");
+include!("std/interface.oak");
 
 // An input file
 let i_file: struct
 {
     // Internals; Don't touch
-    __a, __b, __c, __d: i128,
+    internal: hidden_64_bytes,
 }
 
 // An output file
 let o_file: struct
 {
     // Internals; Don't touch
-    __a, __b, __c, __d: i128,
+    internal: hidden_64_bytes,
 }
 
 let ExtInit(self: ^i_file) -> void;

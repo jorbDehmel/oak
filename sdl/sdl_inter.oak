@@ -1,4 +1,5 @@
 link!("sdl/sdl_inter.o");
+include!("std/interface.oak");
 
 let sdl_window: struct
 {
@@ -7,7 +8,7 @@ let sdl_window: struct
     // DON'T MESS WITH THESE!
     // This is how you add
     // oak-invisible C++ items in linking.
-    __a, __b, __c, __d: i128,
+    internal: hidden_64_bytes,
 }
 
 let ExtInit(self: ^sdl_window) -> void;

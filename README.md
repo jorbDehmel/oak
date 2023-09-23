@@ -1224,6 +1224,10 @@ The following are atomic (built-in, indivisible) macros.
 - free!
 - free_arr!
 
+## The Erase Macro
+
+`Oak` does not have private members, but sometimes it is still useful to disallow the use of a type after its declaration. In this case, you can use the `erase!` macro. This takes the name of a struct, and disallows it from being used again. For instance, the `std/interface.oak` file provides erased structs of various sizes for use in struct interfaces. These items can never be accessed, but still take up space within a struct.
+
 ## Misc. Notes
 
 Some miscellaneous notes which are not long enough to warrant their own section in this document:

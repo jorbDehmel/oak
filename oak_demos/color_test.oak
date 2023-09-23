@@ -1,6 +1,6 @@
 package!("std");
 use_rule!("std");
-include!("std/colors.oak");
+include!("std/color.oak");
 
 let main() -> i32
 {

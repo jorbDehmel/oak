@@ -9,6 +9,7 @@ As of 0.0.10, mutex is experimental.
 
 link!("std/thread_inter.o");
 include!("std/opt.oak");
+include!("std/interface.oak");
 
 // Mutex (experimental)
 let mutex<t>: struct
@@ -58,7 +59,7 @@ let return_data<t>(self: ^mutex<t>, into: opt<^t>) -> void
 let thread: struct
 {
     // C++ member padding; Don't mess with
-    __a, __b, __c, __d: i128,
+    internal: hidden_64_bytes,
 }
 
 // Defined in C++

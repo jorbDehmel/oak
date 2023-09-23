@@ -11,7 +11,7 @@ link!("std/time_inter.o");
 let ns: struct
 {
     // Hidden internals via C++ linking
-    __a, __b, __c, __d: u128,
+    internal: hidden_64_bytes,
 }
 
 let New(self: ^ns) -> void;

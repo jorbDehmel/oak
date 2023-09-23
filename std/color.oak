@@ -4,7 +4,7 @@ Jordan Dehmel, 2023
 jdehmel@outlook.com
 */
 
-include!("std/std_io.oak");
+include!("std/io_inter.oak");
 include!("std/string.oak");
 
 // Section-based stuff
