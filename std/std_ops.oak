@@ -7,13 +7,13 @@ Many of these will be defined in C++
 and linked in.
 */
 
-link!("std/misc_math.o");
+link!("std/math_misc_inter.o");
 
 // Ints
-include!("std/int_math.oak");
+include!("std/math_int_inter.oak");
 
 // Floats
-include!("std/float_math.oak");
+include!("std/math_float_inter.oak");
 
 // Bools
 let New(self: ^bool) -> void;

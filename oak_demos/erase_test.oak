@@ -1,7 +1,8 @@
 // A test of the erase! macro
-// UNPASSED, EXPERIMENTAL
+// Passed, but feature is not widely maintained
 
 package!("std");
+use_rule!("std");
 
 let hide: struct
 {
@@ -23,6 +24,9 @@ erase!("hide");
 let main() -> i32
 {
     let a: intern;
+
+    // This line should error
+    // print(a.h.data);
 
     0
 }

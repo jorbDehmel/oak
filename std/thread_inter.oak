@@ -7,14 +7,17 @@ objects.
 As of 0.0.10, mutex is experimental.
 */
 
-link!("std/threads.o");
+link!("std/thread_inter.o");
+include!("std/opt.oak");
 
-/*
 // Mutex (experimental)
 let mutex<t>: struct
 {
     in_use: bool,
     data: t,
+}
+needs
+{
 }
 
 let wait_for_lock<t>(self: ^mutex<t>) -> void
@@ -43,12 +46,13 @@ let get_data<t>(self: ^mutex<t>, into: ^^t) -> bool
     out
 }
 
-let return_data<t>(self: ^mutex<t>, into: ^^t) -> void
+let return_data<t>(self: ^mutex<t>, into: opt<^t>) -> void
 {
     ^into = 0;
     self.in_use = false;
 }
-*/
+
+/////////////////////////////////////////////////////////
 
 // Threads
 let thread: struct

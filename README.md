@@ -78,6 +78,8 @@ Syntax is fluid and user-modifiable in `Oak`. For more information about this as
 
 ## Formatting
 
+This section lists guidelines / rules for writing `Oak` code. Deviation from the following is considered **non-canonical** `Oak` formatting, and is unadvised. Deviation, in fact, could easily be considered an error by the compiler.
+
 Code scopes go like this:
 
 ```
@@ -110,7 +112,7 @@ let fn() -> void {
 
 Ensure you always have some sort of return statement (except `-> void` functions), even when it is unreachable. Principles take precedent over literal compiler interpretation.
 
-`Oak` exclusively uses underscored variable names. Camelcase variable names should never be used, and capitalized variables are illegal at compile time.
+`Oak` exclusively uses underscored variable names. Camelcase variable names should never be used, and capitalized variables are reserved for special cases.
 
 ```
 // Good
@@ -166,13 +168,39 @@ do this*/
 
 Also, all files should always end with a newline.
 
-Comment blocks before global definitions (those not within a code scope) will be included in automatic manual generation via `acorn -m`.
+Comment blocks before global definitions (those not within a code scope) will be included in automatic manual generation via `acorn -m`. These manuals use standard **markdown**, and by extension all comments should as well.
 
 Any sequence starting with `#` is ignored completely. This is to allow for shebangs. This symbol should **never** be used for commenting.
 
 Tabbing should follow standard `C++` rules. Tabs and quadruple-spaces are both acceptable, but double-spaces are not. Not using tabbing is not acceptable.
 
-Finally, no line of `Oak` should be longer than 128 standard-width chars wide. Since newlines are erased by the lexer, one can be inserted at any point without disturbing syntax.
+No line of `Oak` should be longer than 64 standard-width chars wide. Since newlines are erased by the lexer, one can be inserted at any point without disturbing syntax.
+
+Global variables should not be used (and indeed will be removed in a future `Oak` update).
+
+All `Oak` should be as minimalist as possible, and should be split into as many files as it makes sense to do.
+
+Variable, package, and file names may be abbreviated within the sake of reason. An abbreviation is disallowed if it conflicts with another name or if the original name cannot be reasonably extracted from it (for instance, the abbreviation `regex` is fine, but `re` is not, because `re` could realistically refer to anything).
+
+Interfacial files should take the form `NAME_inter.oak` and `NAME_inter.other_language_suffix_here` (see later for more information on formatting `Oak` interface files).
+
+If multiple lines are required within a function call, the following lines should be tabbed exactly one further than the beginning line. Whenever possible, you should include exactly one argument per line in such a case.
+
+```
+// Proper formatting:
+let long_function_name(long_argument_name_one: i32,
+    long_argument_name_two: i32,
+    long_argument_name_three: i32,
+    long_argument_name_four: i32) -> i32
+{
+    0
+}
+
+```
+
+`Oak` code can technically be written using unicode encoding, but ASCII is recommended for any programmer whose spoken language can be expressed within it.
+
+**Note: `Oak` is hypothetically especially translatable to other human languages due to the preprocessor rule system.** It is trivial to implement a dialect file which replaces all `Oak` keywords with any spoken language's equivalent versions, and still fairly easy to translate the `std` package. For example, an `Oak` program written in Hindi would experience a translation process as follows: `oak_hindi_dialect.oak -> oak_canonical_dialect.oak -> translated_version.cpp -> executable.exe`.
 
 ## Main Functions
 
@@ -1061,6 +1089,12 @@ let main() -> i32
 
 ```
 
+## NULL Values and Error Handling: `opt<t>` and `result<g, b>`
+
+`Oak`, like any sane language, has no `NULL`. Any item which may sometimes be `NULL` must be explicitly wrapped in an `opt` enum. This enum has only two options: `some` and `none`. In the `some` state, it holds exactly one instance of the generic `t`.
+
+Similarly, `Oak` does not have a `throw` / `catch` error system. Instead, the control flow must be explicitly controlled at compile-time. Any function which has the possibility to error must return its values wrapped in a `result<g, b>` enum. This has two states, `ok` and `err`. The `ok` state holds one instance of the `g` (for good) generic, while the `err` state holds one instance of `b` (for bad). Error recovery must be explicitly handled via `match` statements.
+
 ## Efforts to Reduce Undefined Behavior
 
 To cut down on undefined behavior (resulting from uninitialized variables), every datatype in `Oak` has one and only one "default" constructor. The default constructors of all struct members are called upon instantiation. This default value is said to be the "canonical" or "unit" value of that datatype.
@@ -1120,9 +1154,37 @@ The above code tells the compiler to instantiate `New` and `Del` with the `t` ge
 
 This system is in response to the fact that, in `Oak`, a struct does not inherently "come" with any methods, and thus the exact methods to instantiate with a generic struct are unknown. This allows the programmer to tell the compiler exactly what is needed for use with the struct.
 
+## Explicit, Implicit / Casual, and Autogen Function Definitions
+
+It is often useful to separate the declaration of a function from its implementation (see the earlier section on division of labor). However, it is necessary for any function to have exactly one implementation to avoid undefined behavior. When creating structs, a definition for `New` and `Del` are always required. However, it is not always practical to write these functions explicitly each time, especially if they are to be unit (empty) functions. For these reasons, we introduce the concepts of **explicit, implicit, and autogen function definitions.**
+
+```
+// A casual definition
+let do_thing() -> void;
+
+// An explicit definition
+let do_thing() -> void
+{
+    print("hello\n");
+}
+
+```
+
+All casual definitions are erased when an explicit definition is called. This allows external definitions and interfacial files. For instance, you could link an object file to `Oak` which provides the definition for a casual definition. You cannot, however, do this with an explicit definition. This will cause multiple definitions of the symbol.
+
+When a struct is defined, a unit explicit definition for `New` and `Del` are added to the symbol table. These **do** provide an explicit definition, and thus cannot be overridden. There is, however, a way to avoid this. Casual definitions erase not only implicit definitions, but also auto-generated unit definitions. Thus, if you provide a casual definition for `New` or `Del`, you can define them in external object files and link them together.
+
+Autogen functions are marked with the `//autogen` special symbol.
+
+## Naming Conventions for Library Files
+
+File names, especially in libraries, and **especially** in the `Oak` `std` library, should be clear and concise. Names should be singular, even if the file describes a class or data structure (IE `std/strings.oak` should become `std/string.oak`). Files linking `Oak` to another language should have a pre-file-extension suffix of `_inter` and be as physically close as possible to their partner file as possible (IE `std/time.oak` and `std/time/sub/time.cpp` should become `std/time_inter.oak` and `std/time_inter.cpp`). These interfacial partner files should be named as close to the `Oak` naming scheme as is possible for their language, and their compiled object files **must** adhere to the `Oak` naming scheme. File names may be shortened to a reasonable degree, so long as they do not conflict with any other package and their full name can be reasonably extracted from the abbreviation (for instance, `input_output.oak` to `io.oak` is a valid abbreviation, while `regex.oak` to `re.oak` is not). The same can be said about struct and enum names. If there is an addendum required to the name, it should go after the main name (for instance, the `std` file `std/conv_extra.oak`).
+
+Files should provide nothing more than they have to. If you have the option to split something (especially interfaces) off into its own file, **you generally should do so.** For example, `std/unit.oak` is one line of code long (`let unit: struct;`) because it does not **need** to have anything more. `Oak` code and, by extension, `.oak` files should be minimalist.
+
 ## List of Keywords
 
-The following are keywords- That is to say, these words cannot be the names of variables, structs, enums, or functions. `Oak` aims to have as few keywords as possible.
+The following are keywords- That is to say, these words cannot be the names of variables, structs, enums, or functions. `Oak` aims to have as few keywords as possible, keeping with its theme of minimalism.
 
 - let
 - if
@@ -1145,7 +1207,7 @@ The following are atomic (built-in, indivisible) types.
 - bool
 - void
 
-The `unit` struct is provided by `std/unit.oak`.
+The `unit` (memberless) struct is provided by `std/unit.oak`.
 
 ## List of Keyword-Like Macros
 
@@ -1165,33 +1227,12 @@ The following are atomic (built-in, indivisible) macros.
 ## Misc. Notes
 
 Some miscellaneous notes which are not long enough to warrant their own section in this document:
-- `Oak` does not have namespaces
-- It is highly likely that `Oak` will one day translate to `x86` assembly or `C` instead of `C++`
+- `Oak` does not have namespaces under the canonical dialect
+- It is highly likely that `Oak` will one day translate to `LLVM IR` instead of `C++`
 - `Oak` does not have stack-stored arrays; Only heap-stored ones. In fact, all heap-stored data is technically array-based.
 - As of version `0.0.10`, the `New` and `Del` operator aliases are single-argument only. Just use `Copy` for anything else.
 - You can call a multi-argument `=` operator (`Copy`) like this: `a = (b, c, d);` (as of `Oak` `0.0.10`)
-
-## Explicit, Implicit / Casual, and Autogen Function Definitions
-
-It is often useful to separate the declaration of a function from its implementation (see the earlier section on division of labor). However, it is necessary for any function to have exactly one implementation to avoid undefined behavior. When creating structs, a definition for `New` and `Del` are always required. However, it is not always practical to write these functions explicitly each time, especially if they are to be unit (empty) functions. For these reasons, we introduce the concepts of **explicit, implicit, and autogen function definitions.**
-
-```
-// A casual definition
-let do_thing() -> void;
-
-// An explicit definition
-let do_thing() -> void
-{
-    print("hello\n");
-}
-
-```
-
-All casual definitions are erased when an explicit definition is called. This allows external definitions and interfacial files. For instance, you could link an object file to `Oak` which provides the definition for a casual definition. You cannot, however, do this with an explicit definition. This will cause multiple definitions of the symbol.
-
-When a struct is defined, a unit explicit definition for `New` and `Del` are added to the symbol table. These **do** provide an explicit definition, and thus cannot be overridden. There is, however, a way to avoid this. Casual definitions erase not only implicit definitions, but also auto-generated unit definitions. Thus, if you provide a casual definition for `New` or `Del`, you can define them in external object files and link them together.
-
-Autogen functions are marked with the `//autogen` special symbol.
+- It is likely that global non-function variables will be eliminated soon.
 
 ## License
 

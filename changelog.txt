@@ -3,7 +3,6 @@ Jordan Dehmel, jdehmel@outlook.com
 github.com/jorbDehmel/oak
 
 TODO:
-- Add more specific generic instantiations
 - Fix strings
 
 Acorn Version   |          |

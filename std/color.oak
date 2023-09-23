@@ -1,0 +1,235 @@
+/*
+Defines some terminal colors using escape codes
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+include!("std/std_io.oak");
+include!("std/string.oak");
+
+// Section-based stuff
+
+let begin_red() -> void
+{
+    print("\033[0;31m");
+}
+
+let begin_green() -> void
+{
+    print("\033[0;32m");
+}
+
+let begin_blue() -> void
+{
+    print("\033[0;34m");
+}
+
+let begin_yellow() -> void
+{
+    print("\033[0;33m");
+}
+
+let begin_magenta() -> void
+{
+    print("\033[0;35m");
+}
+
+let begin_cyan() -> void
+{
+    print("\033[0;36m");
+}
+
+let begin_red_bold() -> void
+{
+    print("\033[1;31m");
+}
+
+let begin_green_bold() -> void
+{
+    print("\033[1;32m");
+}
+
+let begin_blue_bold() -> void
+{
+    print("\033[1;34m");
+}
+
+let begin_yellow_bold() -> void
+{
+    print("\033[1;33m");
+}
+
+let begin_magenta_bold() -> void
+{
+    print("\033[1;35m");
+}
+
+let begin_cyan_bold() -> void
+{
+    print("\033[1;36m");
+}
+
+let end_effects() -> void
+{
+    print("\033[0;0m");
+}
+
+// Regular colored text w/ reset code after
+
+let red(on: string) -> string
+{
+    let out: string;
+    out = "\033[0;31m";
+
+    let temp: string;
+    temp = "\033[0;0m";
+
+    out = out + on;
+    out = out + temp;
+    out
+}
+
+let green(on: string) -> string
+{
+    let out: string;
+    out = "\033[0;32m";
+
+    let temp: string;
+    temp = "\033[0;0m";
+
+    out = out + on;
+    out = out + temp;
+    out
+}
+
+let blue(on: string) -> string
+{
+    let out: string;
+    out = "\033[0;34m";
+
+    let temp: string;
+    temp = "\033[0;0m";
+
+    out = out + on;
+    out = out + temp;
+    out
+}
+
+let yellow(on: string) -> string
+{
+    let out: string;
+    out = "\033[0;33m";
+
+    let temp: string;
+    temp = "\033[0;0m";
+
+    out = out + on;
+    out = out + temp;
+    out
+}
+
+let magenta(on: string) -> string
+{
+    let out: string;
+    out = "\033[0;35m";
+
+    let temp: string;
+    temp = "\033[0;0m";
+
+    out = out + on;
+    out = out + temp;
+    out
+}
+
+let cyan(on: string) -> string
+{
+    let out: string;
+    out = "\033[0;36m";
+
+    let temp: string;
+    temp = "\033[0;0m";
+
+    out = out + on;
+    out = out + temp;
+    out
+}
+
+// Boldface versions
+
+let red_bold(on: string) -> string
+{
+    let out: string;
+    out = "\033[1;31m";
+
+    let temp: string;
+    temp = "\033[0;0m";
+
+    out = out + on;
+    out = out + temp;
+    out
+}
+
+let green_bold(on: string) -> string
+{
+    let out: string;
+    out = "\033[1;32m";
+
+    let temp: string;
+    temp = "\033[0;0m";
+
+    out = out + on;
+    out = out + temp;
+    out
+}
+
+let blue_bold(on: string) -> string
+{
+    let out: string;
+    out = "\033[1;34m";
+
+    let temp: string;
+    temp = "\033[0;0m";
+
+    out = out + on;
+    out = out + temp;
+    out
+}
+
+let yellow_bold(on: string) -> string
+{
+    let out: string;
+    out = "\033[1;33m";
+
+    let temp: string;
+    temp = "\033[0;0m";
+
+    out = out + on;
+    out = out + temp;
+    out
+}
+
+let magenta_bold(on: string) -> string
+{
+    let out: string;
+    out = "\033[1;35m";
+
+    let temp: string;
+    temp = "\033[0;0m";
+
+    out = out + on;
+    out = out + temp;
+    out
+}
+
+let cyan_bold(on: string) -> string
+{
+    let out: string;
+    out = "\033[1;36m";
+    
+    let temp: string;
+    temp = "\033[0;0m";
+
+    out = out + on;
+    out = out + temp;
+    out
+}

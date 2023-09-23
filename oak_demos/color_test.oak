@@ -1,0 +1,32 @@
+package!("std");
+use_rule!("std");
+include!("std/colors.oak");
+
+let main() -> i32
+{
+    let test: string;
+    test = "Hello, world!\n";
+
+    print(test.red());
+    print(test.green());
+    print(test.blue());
+    print(test.yellow());
+    print(test.magenta());
+    print(test.cyan());
+
+    print(test.red_bold());
+    print(test.green_bold());
+    print(test.blue_bold());
+    print(test.yellow_bold());
+    print(test.magenta_bold());
+    print(test.cyan_bold());
+
+    begin_red_bold();
+    print(123);
+    print("\nHi!\n");
+    print(12.345);
+    print("\n");
+    end_effects();
+
+    0
+}

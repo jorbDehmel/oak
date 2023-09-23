@@ -1,0 +1,4 @@
+link!("sys_inter.o");
+
+// Run a system command
+let sys(command: str) -> i32;

@@ -1,4 +1,4 @@
-link!("sdl/sdl_interface.o");
+link!("sdl/sdl_inter.o");
 
 let sdl_window: struct
 {

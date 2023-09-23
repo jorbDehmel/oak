@@ -5,7 +5,7 @@ package!("std");
 use_rule!("std");
 
 include!("std/string.oak");
-include!("std/files.oak");
+include!("std/file_inter.oak");
 
 let main() -> i32
 {

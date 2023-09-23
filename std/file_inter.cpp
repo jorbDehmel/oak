@@ -9,8 +9,6 @@ fstream library.
 #include "std_oak_header.hpp"
 #include <fstream>
 
-#include <iostream>
-
 using namespace std;
 
 // Struct definitions

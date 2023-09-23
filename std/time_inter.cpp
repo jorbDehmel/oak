@@ -1,20 +1,3 @@
-/*
-let ns : struct
-{
-    __a, __b, __c, __d : u128,
-}
-
-let New(self : ^ns)
-    ->void;
-let Del(self : ^ns)->void;
-let Copy(self : ^ns, other : ns)->void;
-
-let count(to_count : ns)->i128;
-
-let Sub(a : ns, b : ns)->ns;
-let Add(a : ns, b : ns)->ns;
-*/
-
 #include <chrono>
 #include "std_oak_header.hpp"
 
@@ -44,4 +27,20 @@ void now(ns *self)
 i128 count(ns *start, ns *end)
 {
     return std::chrono::duration_cast<std::chrono::nanoseconds>(end->raw - start->raw).count();
+}
+
+i64 time()
+{
+    return time(NULL);
+}
+
+str c_time(i64 when)
+{
+    return ctime(&when);
+}
+
+str c_time(i32 when)
+{
+    i64 copy = when;
+    return ctime(&copy);
 }

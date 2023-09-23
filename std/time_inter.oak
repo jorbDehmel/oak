@@ -6,7 +6,7 @@ Jordan Dehmel, 2023
 jdehmel@outlook.com
 */
 
-link!("std/time.o");
+link!("std/time_inter.o");
 
 let ns: struct
 {
@@ -19,3 +19,11 @@ let New(self: ^ns) -> void;
 let Copy(self: ^ns, other: ns) -> void;
 let now(self: ^ns) -> void;
 let count(start: ^ns, end: ^ns) -> i128;
+
+// Get UNIX timestamp
+let time() -> i64;
+
+// Get the ctime version of a time
+let c_time(when: i32) -> str;
+let c_time(when: i64) -> str;
+

@@ -9,61 +9,53 @@ compilation.
 */
 
 #include "std_oak_header.hpp"
-
-#include <iostream>
-using namespace std;
+#include <stdio.h>
 
 void print(str what)
 {
-    cout << what;
+    printf("%s", what);
     return;
 }
 
 void print(i32 what)
 {
-    cout << what;
+    printf("%d", what);
     return;
 }
 
 void print(f64 what)
 {
-    cout << what;
+    printf("%f", what);
     return;
 }
 
 void print(i8 what)
 {
-    cout << (char)what;
+    printf("%c", what);
     return;
 }
 
 void print(i8 *what)
 {
-    cout << what;
+    printf("%s", what);
     return;
 }
 
 void flush()
 {
-    cout << flush;
+    fflush(stdout);
+    fflush(stderr);
     return;
 }
 
 void print_err(str what)
 {
-    cerr << what;
-    return;
-}
-
-void println_err(str what)
-{
-    cerr << what << '\n';
+    fprintf(stderr, "%s", what);
     return;
 }
 
 char get_char()
 {
-    char out;
-    cin >> out;
+    char out = getchar();
     return out;
 }

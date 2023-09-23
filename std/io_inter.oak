@@ -6,9 +6,9 @@ Standard io function definitions for use
 with io.cpp.
 */
 
-include!("std/std_conv.oak", "std/extra_conv.oak");
-
-link!("std/io.o");
+include!("std/conv_inter.oak",
+        "std/conv_extra.oak");
+link!("std/io_inter.o");
 
 // Print to cout
 let print(what: str) -> void;

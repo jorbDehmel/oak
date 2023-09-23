@@ -1,5 +1,11 @@
+/*
+Basic file operations for Oak.
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+link!("std/file_inter.o");
 include!("std/string.oak");
-link!("std/files.o");
 
 // An input file
 let i_file: struct

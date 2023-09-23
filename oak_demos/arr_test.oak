@@ -1,5 +1,5 @@
 // Another Oak generic test, this time using an array datatype
-// UNPASSED
+// Passed 9/22/23
 
 package!("std");
 use_rule!("std");

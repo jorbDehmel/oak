@@ -1,0 +1,80 @@
+/*
+The following types are building blocks for
+interfacial structs. Any variable or member
+declared with these types is never usable
+from within Oak, but will be present to
+inflate the size of the struct.
+
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+// A single hidden byte
+let hidden_byte: struct
+{
+    __a: u8,
+}
+
+// Two hidden bytes
+let hidden_2_bytes: struct
+{
+    __a: u16,
+}
+
+// Four hidden bytes
+let hidden_4_bytes: struct
+{
+    __a: u32,
+}
+
+// Eight hidden bytes
+let hidden_8_bytes: struct
+{
+    __a: u64,
+}
+
+// Sixteen hidden bytes
+let hidden_16_bytes: struct
+{
+    __a: u128,
+}
+
+// Thirty two hidden bytes
+let hidden_32_bytes: struct
+{
+    __a: u128,
+    __b: u128,
+}
+
+// Sixty four hidden bytes
+let hidden_64_bytes: struct
+{
+    __a: u128,
+    __b: u128,
+    __c: u128,
+    __d: u128,
+}
+
+// One hundred and twenty eight hidden bytes
+let hidden_128_bytes: struct
+{
+    __a: u128,
+    __b: u128,
+    __c: u128,
+    __d: u128,
+    __e: u128,
+    __f: u128,
+    __g: u128,
+    __h: u128,
+}
+
+// Erase all the above structs, such that
+// they will be unusable.
+erase!("hidden_byte");
+erase!("hidden_2_bytes");
+erase!("hidden_4_bytes");
+erase!("hidden_8_bytes");
+erase!("hidden_16_bytes");
+erase!("hidden_32_bytes");
+erase!("hidden_64_bytes");
+erase!("hidden_128_bytes");

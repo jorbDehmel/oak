@@ -1,5 +1,11 @@
-include!("std/int_math.oak");
-include!("std/std_conv.oak");
+/*
+Lesser used, but still common, conversions for Oak.
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+include!("std/math_int_inter.oak");
+include!("std/conv_inter.oak");
 
 // Common int inits from i32
 

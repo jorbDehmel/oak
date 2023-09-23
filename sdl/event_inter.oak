@@ -1,4 +1,4 @@
-link!("sdl/events.o");
+link!("sdl/event_inter.o");
 include!("std/unit.oak");
 
 let sdl_key_event_data: struct

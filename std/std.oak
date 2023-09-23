@@ -4,16 +4,14 @@ Linkage file for the Oak standard package.
 */
 
 include!(
-    "std/std_io.oak",
-    "std/std_conv.oak",
+    "std/io_inter.oak",
+    "std/conv_inter.oak",
     "std/std_ops.oak",
     "std/unit.oak",
-    "std/extra_conv.oak",
+    "std/conv_extra.oak",
     "std/opt.oak",
     "std/result.oak"
 );
-
-link!("std/misc_std.o");
 
 // Access rules
 new_rule!("access_1", "; $*p [ $*a ]", "; $p . . Get ( $a )");
@@ -62,7 +60,8 @@ new_rule!("def_init", "let $a : $b = ", "let $a : $b ; $a = ");
 // For loop rule
 new_rule!("for",
     "for ( $*a ; $*b ; $*c ) { $*d }",
-    "{ $a ; while ( $b ) { $d $c ; } }");
+    "{ $a ; while ( $b ) { $d $c ; } }"
+);
 
 bundle_rule!("std",
     "void_return",
@@ -74,23 +73,5 @@ bundle_rule!("std",
     "argless_method",
     "const_method",
     "def_init",
-    "for");
-
-// Misc
-let time() -> i64;
-
-// Seeds RNG with current time
-let seed_rand() -> void;
-
-// Seeds RNG with a given number
-let seed_rand(with: i32) -> void;
-
-// Generates a random number
-let rand(low: i32, high: i32) -> i32;
-
-// Get the ctime version of a time
-let c_time(when: i32) -> str;
-let c_time(when: i64) -> str;
-
-// Run a system command
-let sys(command: str) -> i32;
+    "for"
+);

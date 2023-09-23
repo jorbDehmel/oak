@@ -6,7 +6,7 @@ Standard conversion functions. Also includes some
 common aliases.
 */
 
-link!("std/conv.o");
+link!("std/conv_inter.o");
 
 // String to int
 let s_to_i(what: str) -> i32;

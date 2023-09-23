@@ -42,27 +42,28 @@ reinstall:
 	$(MAKE) -C . uninstall clean install
 
 test: install
-	$(TEST) oak_demos/enum_test.oak -o enum_test.out
+	$(TEST) oak_demos/access_test.oak -o access_test.out
+	$(TEST) oak_demos/color_test.oak -o color_test.out
 	$(TEST) oak_demos/cond_test.oak -o cond_test.out
 	$(TEST) oak_demos/conv_test.oak -o conv_test.out
+	$(TEST) oak_demos/enum_test.oak -o enum_test.out
+	$(TEST) oak_demos/erase_test.oak -o erase_test.out
+	$(TEST) oak_demos/err_test.oak -o err_test.out
+	$(TEST) oak_demos/file_test.oak -o file_test.out
+	$(TEST) oak_demos/fn_ptr_test.oak -o fn_ptr_test.out
+	$(TEST) oak_demos/fn_ptr_test_2.oak -o fn_ptr_test_2.out
 	$(TEST) oak_demos/hello_world.oak -o hello_world.out
+	$(TEST) oak_demos/i_file_test.oak -o i_file_test.out
 	$(TEST) oak_demos/loop_test.oak -o loop_test.out
 	$(TEST) oak_demos/macro_test.oak -o macro_test.out
+	$(TEST) oak_demos/math_test.oak -o math_test.out
 	$(TEST) oak_demos/mem_test.oak -o mem_test.out
 	$(TEST) oak_demos/quine.oak -o quine.out
 	$(TEST) oak_demos/rec_test.oak -o rec_test.out
 	$(TEST) oak_demos/rule_test.oak -o rule_test.out
 	$(TEST) oak_demos/rule_test_2.oak -o rule_test_2.out
-	$(TEST) oak_demos/fn_ptr_test.oak -o fn_ptr_test.out
-	$(TEST) oak_demos/fn_ptr_test_2.oak -o fn_ptr_test_2.out
-	$(TEST) oak_demos/erase_test.oak -o erase_test.out
-	$(TEST) oak_demos/i_file_test.oak -o i_file_test.out
 	$(TEST) oak_demos/string_test.oak -o string_test.out
 	$(TEST) oak_demos/thread_test.oak -o thread_test.out
-	$(TEST) oak_demos/math_test.oak -o math_test.out
-	$(TEST) oak_demos/access_test.oak -o access_test.out
-	$(TEST) oak_demos/file_test.oak -o file_test.out
-	$(TEST) oak_demos/err_test.oak -o err_test.out
 
 	$(MAKE) sdltest
 	$(MAKE) gentest

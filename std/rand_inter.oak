@@ -1,0 +1,17 @@
+/*
+C Random number interface for Oak
+
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+link!("rand_inter.o");
+
+// Seeds RNG with current time
+let seed_rand() -> void;
+
+// Seeds RNG with a given number
+let seed_rand(with: i32) -> void;
+
+// Generates a random number
+let rand(low: i32, high: i32) -> i32;

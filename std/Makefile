@@ -1,5 +1,6 @@
-all:	io.o float_math.o int_math.o misc_math.o conv.o \
-		misc_std.o threads.o files.o time.o
+all:	conv_inter.o file_inter.o io_inter.o \
+		math_float_inter.o math_int_inter.o math_misc_inter.o \
+		rand_inter.o sys_inter.o thread_inter.o time_inter.o
 
 %.o:	%.cpp
 	clang++ -c -o $@ $<

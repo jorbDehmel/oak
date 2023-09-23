@@ -6,7 +6,7 @@ All of the floating-point operators. See
 companion C++ file.
 */
 
-link!("std/float_math.o");
+link!("std/math_float_inter.o");
 
 // Floats
 let Add(self: f32, other: f32) -> f32;

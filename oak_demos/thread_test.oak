@@ -3,7 +3,7 @@
 
 package!("std");
 use_rule!("std");
-include!("std/threads.oak");
+include!("std/thread_inter.oak");
 
 // This method MUST be overloaded in order for threads to function
 let call() -> void

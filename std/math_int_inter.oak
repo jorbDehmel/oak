@@ -8,7 +8,7 @@ operators.
 Abandon all hope, ye who enter here.
 */
 
-link!("std/int_math.o");
+link!("std/math_int_inter.o");
 
 // u8
 let Add(self: u8, other: u8) -> u8;

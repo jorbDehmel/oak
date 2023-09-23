@@ -1,4 +1,4 @@
-all:	sdl_interface.o events.o
+all:	sdl_inter.o event_inter.o
 
 %.o:	%.cpp
 	clang++ -I/usr/include/SDL2 -D_REENTRANT -c -o $@ $<
