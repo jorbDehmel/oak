@@ -15,8 +15,9 @@ HEADS := lexer.hpp reconstruct.hpp symbol-table.hpp \
 	acorn_resources.hpp document.hpp rules.hpp \
 	enums.hpp mangler.hpp generics.hpp
 
-# -O3 is best for actual installs, not for testing
-FLAGS := -O3
+# -O3 is best for actual installs, not for testing.
+# -g should ALWAYS be used
+FLAGS := -O3 -g
 
 TEST := acorn
 
@@ -73,7 +74,7 @@ sdltest:
 	$(TEST) oak_demos/sdl_test_3.oak -o sdl_test_3.out
 
 gentest:
-	$(TEST) oak_demos/generic_test.oak -o generic_test.out -d
+	$(TEST) oak_demos/generic_test.oak -o generic_test.out
 	$(TEST) oak_demos/gen_struct_test.oak -o gen_struct_test.out
 	$(TEST) oak_demos/gen_test_2.oak -o gen_test_2.out
 	$(TEST) oak_demos/gen_enum_test.oak -o gen_enum_test.out

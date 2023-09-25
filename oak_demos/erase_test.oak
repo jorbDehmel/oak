@@ -19,10 +19,16 @@ let New(self: ^intern) -> void
     self.h.data = 123;
 }
 
-erase!("hide");
-
 let main() -> i32
 {
+    let b: hide;
+    b.data = 5;
+
+    erase!("hide");
+
+    // This should error
+    // b.data = 5;
+
     let a: intern;
 
     // This line should error

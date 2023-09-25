@@ -707,10 +707,7 @@ sequence __createSequence(list<string> &From)
                 int count = 0;
                 while (count != 0 || (!From.empty() && From.front() != "}" && From.front() != ";"))
                 {
-                    if (From.front().size() < 2 || From.front().substr(0, 2) != "//")
-                    {
-                        toAdd.push_back(From.front());
-                    }
+                    toAdd.push_back(From.front());
 
                     sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
                     From.pop_front();
@@ -1027,6 +1024,11 @@ sequence __createSequence(list<string> &From)
         list<string> curVec;
         while (true)
         {
+            if (From.empty())
+            {
+                break;
+            }
+
             if (From.front() == "{")
             {
                 count++;

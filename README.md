@@ -1237,7 +1237,7 @@ The following are atomic (built-in, indivisible) macros.
 ## Misc. Notes
 
 Some miscellaneous notes which are not long enough to warrant their own section in this document:
-- `Oak` does not have namespaces under the canonical dialect, although they are trivial to implement with rules
+- `Oak` does not have namespaces under the canonical dialect, although the `namespace` or `std` rules provide a simulacrum of them.
 - It is highly likely that `Oak` will one day translate to `LLVM IR` instead of `C++`
 - `Oak` does not have stack-stored arrays; Only heap-stored ones. In fact, all heap-stored data is technically array-based.
 - As of version `0.0.10`, the `New` and `Del` operator aliases are single-argument only. Just use `Copy` for anything else.
