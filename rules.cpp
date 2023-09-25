@@ -437,6 +437,11 @@ void doRules(vector<string> &From)
                                 }
                             }
 
+                            if (sIndex + 1 < curRule.outputPattern.size())
+                            {
+                                sIndex++;
+                            }
+
                             newContents.back().append(toInsert);
                         }
                         else

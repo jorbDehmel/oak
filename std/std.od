@@ -16,6 +16,9 @@ clear
 "{ $*p [ $*a ]"     "{ $p . . Get ( $a )"
 "} $*p [ $*a ]"     "} $p . . Get ( $a )"
 
+// Namespace rule
+"let $a : $b = "    "let $a : $b ; $a = "
+
 // Void return rule
 "let $a ( $*b ) {"      "let $a ( $b ) -> void {"
 

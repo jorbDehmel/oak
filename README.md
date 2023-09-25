@@ -176,7 +176,7 @@ Tabbing should follow standard `C++` rules. Tabs and quadruple-spaces are both a
 
 No line of `Oak` should be longer than 64 standard-width chars wide. Since newlines are erased by the lexer, one can be inserted at any point without disturbing syntax.
 
-Global variables should not be used (and indeed will be removed in a future `Oak` update).
+Global variables are illegal. Anything achieved by globals can be done better by passing arguments.
 
 All `Oak` should be as minimalist as possible, and should be split into as many files as it makes sense to do.
 
@@ -1231,12 +1231,11 @@ The following are atomic (built-in, indivisible) macros.
 ## Misc. Notes
 
 Some miscellaneous notes which are not long enough to warrant their own section in this document:
-- `Oak` does not have namespaces under the canonical dialect
+- `Oak` does not have namespaces under the canonical dialect, although they are trivial to implement with rules
 - It is highly likely that `Oak` will one day translate to `LLVM IR` instead of `C++`
 - `Oak` does not have stack-stored arrays; Only heap-stored ones. In fact, all heap-stored data is technically array-based.
 - As of version `0.0.10`, the `New` and `Del` operator aliases are single-argument only. Just use `Copy` for anything else.
 - You can call a multi-argument `=` operator (`Copy`) like this: `a = (b, c, d);` (as of `Oak` `0.0.10`)
-- It is likely that global non-function variables will be eliminated soon.
 
 ## License
 

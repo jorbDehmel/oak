@@ -48,7 +48,6 @@ test: install
 	$(TEST) oak_demos/conv_test.oak -o conv_test.out
 	$(TEST) oak_demos/enum_test.oak -o enum_test.out
 	$(TEST) oak_demos/erase_test.oak -o erase_test.out
-	$(TEST) oak_demos/err_test.oak -o err_test.out
 	$(TEST) oak_demos/file_test.oak -o file_test.out
 	$(TEST) oak_demos/fn_ptr_test.oak -o fn_ptr_test.out
 	$(TEST) oak_demos/fn_ptr_test_2.oak -o fn_ptr_test_2.out
@@ -74,7 +73,7 @@ sdltest:
 	$(TEST) oak_demos/sdl_test_3.oak -o sdl_test_3.out
 
 gentest:
-	$(TEST) oak_demos/generic_test.oak -o generic_test.out
+	$(TEST) oak_demos/generic_test.oak -o generic_test.out -d
 	$(TEST) oak_demos/gen_struct_test.oak -o gen_struct_test.out
 	$(TEST) oak_demos/gen_test_2.oak -o gen_test_2.out
 	$(TEST) oak_demos/gen_enum_test.oak -o gen_enum_test.out

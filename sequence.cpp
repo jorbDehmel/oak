@@ -21,6 +21,9 @@ vector<string> curLineSymbols;
 unsigned long long int curLine = 1;
 string curFile = "";
 
+// The current depth of createSequence
+unsigned long long int depth = 0;
+
 // Destroy all unit, temp, or autogen definitions matching a given type.
 // Can throw errors if doThrow is true.
 // Mostly used for New and Del, Oak ~0.0.14
@@ -250,6 +253,78 @@ sequence __createSequence(list<string> &From)
 
         return out;
     }
+
+    // Misc macros
+    else if (From.front() == "c_print!")
+    {
+        string message = curFile + ":" + to_string(curLine) + ":c_print! ";
+
+        int count = 0;
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        From.pop_front();
+
+        do
+        {
+            if (From.front() == "(")
+            {
+                count++;
+            }
+            else if (From.front() == ")")
+            {
+                count--;
+            }
+
+            if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")"))
+            {
+                message += From.front() + " ";
+            }
+
+            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+            From.pop_front();
+
+        } while (!From.empty() && count != 0);
+
+        message += "\n";
+
+        cout << message;
+
+        return out;
+    }
+    else if (From.front() == "c_panic!")
+    {
+        string message = curFile + ":" + to_string(curLine) + ":c_panic! ";
+
+        int count = 0;
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        From.pop_front();
+
+        do
+        {
+            if (From.front() == "(")
+            {
+                count++;
+            }
+            else if (From.front() == ")")
+            {
+                count--;
+            }
+
+            if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")"))
+            {
+                message += From.front() + " ";
+            }
+
+            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+            From.pop_front();
+
+        } while (!From.empty() && count != 0);
+
+        message += "\n";
+
+        throw sequencing_error(message);
+    }
+
+    // else
 
     // Memory Keywords
     else if (From.front() == "alloc!")
@@ -733,8 +808,8 @@ sequence __createSequence(list<string> &From)
             else
             {
                 // Non-struct definition; Local var, not function
-                // NOTE: let a: i32 = 5; is NO LONGER supported!
 
+                sm_assert(depth != 0, "Global variables are not allowed.");
                 sm_assert(generics.empty(), "Variable declaration must not be templated.");
 
                 // Scrape entire definition for this
@@ -850,7 +925,10 @@ sequence __createSequence(list<string> &From)
                     destroyUnits(name, type, true);
 
                     table[name].push_back(__multiTableSymbol{sequence{}, type});
+
+                    depth++;
                     table[name].back().seq = __createSequence(From);
+                    depth--;
                 }
                 else
                 {

@@ -455,6 +455,16 @@ void doFile(const string &From)
                         continue;
                     }
 
+                    // More special cases
+                    else if (lexed[i] == "c_print!")
+                    {
+                        continue;
+                    }
+                    else if (lexed[i] == "c_panic!")
+                    {
+                        continue;
+                    }
+
                     // More special cases: Rule macros
                     else if (lexed[i] == "new_rule!" || lexed[i] == "use_rule!" || lexed[i] == "rem_rule!" || lexed[i] == "bundle_rule!")
                     {

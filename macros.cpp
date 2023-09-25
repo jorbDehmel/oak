@@ -21,7 +21,8 @@ set<string> compiled = {
     "rem_rule!",
     "bundle_rule!",
     "erase!",
-};
+    "c_print!",
+    "c_panic!"};
 map<string, string> macros;
 
 void compileMacro(const string &Name, bool debug)
