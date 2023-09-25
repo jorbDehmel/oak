@@ -1209,6 +1209,10 @@ The following are atomic (built-in, indivisible) types.
 
 The `unit` (memberless) struct is provided by `std/unit.oak`.
 
+## `c_print!` and `c_panic!`
+
+`c_print!` prints a message at compile time, concatenating the passed strings. `c_panic!` does the same thing, but throws the result as a compile error. In either case, the message will be prefaced by its originating file and line number. Since these two macros are compile-time only, any variables passed will not be evaluated; Only their names will be printed. The `c` refers to compilation, not to the `C` programming language.
+
 ## List of Keyword-Like Macros
 
 The following are atomic (built-in, indivisible) macros.
@@ -1223,6 +1227,8 @@ The following are atomic (built-in, indivisible) macros.
 - alloc!
 - free!
 - free_arr!
+- c_print!
+- c_panic!
 
 ## The Erase Macro
 
