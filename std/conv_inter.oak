@@ -54,6 +54,12 @@ let to_f64(what: f128) -> f64;
 let Get(self: ^str, index: u128) -> i8;
 let Get(self: str, index: u128) -> i8;
 
+// Absolute value casts
+let to_u8(what: i8) -> u8;
+let to_u16(what: i16) -> u16;
+let to_u64(what: i64) -> u64;
+let to_u128(what: i128) -> u128;
+
 // Get the i8 (char) version of a string
 // (only uses the first character)
 let to_i8(what: str) -> i8;

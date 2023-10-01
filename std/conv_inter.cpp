@@ -198,3 +198,52 @@ i8 to_i8(str what)
 {
     return what[0];
 }
+
+// Absolute value casts
+u8 to_u8(i8 what)
+{
+    if (what < 0)
+    {
+        return -what;
+    }
+    else
+    {
+        return what;
+    }
+}
+
+u16 to_u16(i16 what)
+{
+    if (what < 0)
+    {
+        return -what;
+    }
+    else
+    {
+        return what;
+    }
+}
+
+u64 to_u64(i64 what)
+{
+    if (what < 0)
+    {
+        return -what;
+    }
+    else
+    {
+        return what;
+    }
+}
+
+u128 to_u128(i128 what)
+{
+    if (what < 0)
+    {
+        return -what;
+    }
+    else
+    {
+        return what;
+    }
+}

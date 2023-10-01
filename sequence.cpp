@@ -1145,6 +1145,7 @@ sequence __createSequence(list<string> &From)
 string toC(const sequence &What)
 {
     string out = "";
+    string temp;
 
     switch (What.info)
     {
@@ -1172,7 +1173,19 @@ string toC(const sequence &What)
             }
             else if (What.items[i].type == nullType)
             {
-                out += toC(What.items[i]) + ";\n";
+                temp = toC(What.items[i]);
+
+                if (temp != "" && temp != ";")
+                {
+                    out += temp;
+
+                    if (!(temp.size() > 1 && temp.substr(0, 2) == "//"))
+                    {
+                        out += ";";
+                    }
+
+                    out += "\n";
+                }
             }
             else
             {
