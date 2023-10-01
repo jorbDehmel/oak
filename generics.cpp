@@ -148,11 +148,7 @@ void __instantiateGeneric(const string &what, genericInfo &info, const vector<ve
     vector<string> copy;
     for (auto item : info.symbols)
     {
-        if (item.size() > 1 && item.substr(0, 2) == "//")
-        {
-            continue;
-        }
-        else if (substitutions.count(item) != 0)
+        if (substitutions.count(item) != 0)
         {
             for (auto subItem : substitutions[item])
             {
@@ -176,11 +172,6 @@ void __instantiateGeneric(const string &what, genericInfo &info, const vector<ve
         // Create copy of inst block
         for (auto item : info.needsBlock)
         {
-            if (item.size() > 1 && item.substr(0, 2) == "//")
-            {
-                continue;
-            }
-
             copy.push_back(item);
         }
 
@@ -247,27 +238,6 @@ string instantiateGeneric(const string &what,
                           const vector<vector<string>> &genericSubs,
                           const vector<string> &typeVec)
 {
-    /*
-    cout << DB_INFO << "instantiateGeneric called w/\n"
-         << "\twhat=" << what << '\n'
-         << "\tgenericSubs='";
-    for (auto a : genericSubs)
-    {
-        for (auto b : a)
-        {
-            cout << b << ' ';
-        }
-        cout << ", ";
-    }
-    cout << "'\n"
-         << "\ttypeVec='";
-    for (auto a : typeVec)
-    {
-        cout << a << ' ';
-    }
-    cout << "'\n";
-    */
-
     // Ensure it exists
     if (generics.count(what) == 0)
     {
@@ -334,27 +304,6 @@ void addGeneric(const vector<string> &what,
                 const vector<string> &needsBlock,
                 const vector<string> &typeVec)
 {
-    /*
-    cout << DB_INFO << "addGeneric called w/\n"
-         << "\tname=" << name << '\n'
-         << "\tgenericSubs='";
-    for (auto a : genericsList)
-    {
-        for (auto b : a)
-        {
-            cout << b << ' ';
-        }
-        cout << ", ";
-    }
-    cout << "'\n"
-         << "\ttypeVec='";
-    for (auto a : typeVec)
-    {
-        cout << a << ' ';
-    }
-    cout << "'\n";
-    */
-
     genericInfo toAdd;
 
     for (auto a : genericsList)
