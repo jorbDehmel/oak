@@ -1578,12 +1578,20 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
                         curGen.push_back(What[start]);
                     }
 
-                    generics.push_back(curGen);
+                    if (curGen.size() > 0)
+                    {
+                        generics.push_back(curGen);
+                    }
+
                     curGen.clear();
                 }
                 else if (What[start] == "," && count == 1)
                 {
-                    generics.push_back(curGen);
+                    if (curGen.size() > 0)
+                    {
+                        generics.push_back(curGen);
+                    }
+
                     curGen.clear();
                 }
                 else

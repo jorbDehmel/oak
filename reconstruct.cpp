@@ -555,31 +555,6 @@ void dump(const vector<string> &Lexed, const string &Where, const string &FileNa
     }
 
     file << sep
-         << "// Full definitions:\n";
-
-    file << "\n// Symbols\n";
-
-    for (auto p : table)
-    {
-        bool hasPrinted = false;
-
-        for (auto item : p.second)
-        {
-            if (item.seq.items.size() != 0)
-            {
-                if (!hasPrinted)
-                {
-                    file << p.first << ":\n";
-                    hasPrinted = true;
-                }
-
-                file << '\t' << toStr(&item.type) << '\n'
-                     << "\t\t" << toC(item.seq) << '\n';
-            }
-        }
-    }
-
-    file << sep
          << "// Generics:\n";
 
     printGenericDumpInfo(file);

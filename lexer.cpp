@@ -183,6 +183,14 @@ vector<string> lex(const string &What)
 
                 i++;
                 cur = c;
+
+                // Nested templates fix
+                if (What[i] == '<' && i + 1 < What.size() && What[i + 1] != ' ')
+                {
+                    out.push_back(cur);
+                    cur = "";
+                }
+
                 cur += What[i];
                 out.push_back(cur);
                 cur = "";
@@ -217,6 +225,14 @@ vector<string> lex(const string &What)
 
                 i++;
                 cur = c;
+
+                // Nested templates fix
+                if (What[i] == '>' && i + 1 < What.size() && What[i + 1] != ' ')
+                {
+                    out.push_back(cur);
+                    cur = "";
+                }
+
                 cur += What[i];
                 out.push_back(cur);
                 cur = "";

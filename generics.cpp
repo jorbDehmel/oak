@@ -85,20 +85,43 @@ bool checkTypeVec(const vector<string> &candidateTypeVec,
         }
         else
         {
-            for (auto newSymb : subMap[symb])
+            int j = 0;
+            while (j < subMap[symb].size() && subMap[symb][j] == "^")
             {
-                // afterSub.push_back(newSymb);
-
-                if (i >= candidateTypeVec.size())
+                if (candidateTypeVec[i] != "^")
                 {
                     return false;
                 }
 
-                if (candidateTypeVec[i] != newSymb)
-                {
-                    return false;
-                }
+                i++;
+                j++;
+            }
 
+            vector<string> remaining;
+            for (int k = j; k < subMap[symb].size(); k++)
+            {
+                remaining.push_back(subMap[symb][k]);
+            }
+
+            if (j != subMap[symb].size() && mangle(remaining) != candidateTypeVec[i])
+            {
+                for (auto newSymb : remaining)
+                {
+                    if (i >= candidateTypeVec.size())
+                    {
+                        return false;
+                    }
+
+                    if (candidateTypeVec[i] != newSymb)
+                    {
+                        return false;
+                    }
+
+                    i++;
+                }
+            }
+            else
+            {
                 i++;
             }
         }
@@ -259,7 +282,7 @@ string instantiateGeneric(const string &what,
     }
 
     // Get mangled version (only meaningful for struct instantiations)
-    string mangle = mangleStruct(what, genericSubs);
+    string mangleStr = mangleStruct(what, genericSubs);
 
     bool didInstantiate = false;
     for (auto &candidate : generics[what])
@@ -291,11 +314,48 @@ string instantiateGeneric(const string &what,
 
     if (!didInstantiate)
     {
+        cout << tags::yellow_bold
+             << "Desired:\n\t" << what << " w/ type ";
+
+        for (auto item : typeVec)
+        {
+            cout << item << ' ';
+        }
+
+        cout << "\nWith generics substitutions:\n";
+
+        for (auto item : genericSubs)
+        {
+            cout << "\t'";
+
+            for (auto b : item)
+            {
+                cout << b << ' ';
+            }
+
+            cout << "' (mangle: " << mangle(item) << ")"
+                 << '\n';
+        }
+
+        cout << "Against:\n";
+
+        for (auto item : generics[what])
+        {
+            cout << '\t' << what << " w/ type ";
+            for (auto b : item.typeVec)
+            {
+                cout << b << ' ';
+            }
+            cout << '\n';
+        }
+
+        cout << tags::reset;
+
         throw generic_error("Error! Candidates exist for template '" + what + "', but none are viable.");
     }
 
     // Return mangled version
-    return mangle;
+    return mangleStr;
 }
 
 void addGeneric(const vector<string> &what,
