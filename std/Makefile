@@ -4,7 +4,7 @@ all:	conv_inter.o file_inter.o io_inter.o \
 		panic_inter.o
 
 %.o:	%.cpp
-	clang++ -c -o $@ $<
+	clang++ -pedantic -Wall -O3 -c -o $@ $<
 
 clean:
 	rm *.o

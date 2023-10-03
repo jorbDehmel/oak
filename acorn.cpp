@@ -134,6 +134,20 @@ int main(const int argc, const char *argv[])
 
                         i++;
                     }
+                    else if (cur == "--exe_debug")
+                    {
+                        if (cflags.count("-g") == 0)
+                        {
+                            cflags.insert("-g");
+                        }
+                    }
+                    else if (cur == "--optimize")
+                    {
+                        if (cflags.count("-O3") == 0)
+                        {
+                            cflags.insert("-O3");
+                        }
+                    }
                     else if (cur == "--size")
                     {
                         getDiskUsage();
@@ -198,6 +212,13 @@ int main(const int argc, const char *argv[])
                             }
 
                             break;
+                        case 'g':
+                            if (cflags.count("-g") == 0)
+                            {
+                                cflags.insert("-g");
+                            }
+
+                            break;
                         case 'h':
                             cout << helpText << '\n'
                                  << "Version: " << VERSION << '\n'
@@ -228,6 +249,13 @@ int main(const int argc, const char *argv[])
 
                             out = argv[i + 1];
                             i++;
+                            break;
+                        case 'O':
+                            if (cflags.count("-O3") == 0)
+                            {
+                                cflags.insert("-O3");
+                            }
+
                             break;
                         case 'p':
                             pretty = !pretty;
@@ -399,9 +427,16 @@ int main(const int argc, const char *argv[])
                          << tags::reset;
                 }
 
+                string rootCommand = "clang++ -pedantic -Wall -c ";
+
+                for (string flag : cflags)
+                {
+                    rootCommand += flag + " ";
+                }
+
                 for (string source : cppSources)
                 {
-                    string command = "clang++ -pedantic -Wall -c " + source + " -o " + source + ".o";
+                    string command = rootCommand + source + " -o " + source + ".o";
 
                     if (debug)
                     {
@@ -423,6 +458,11 @@ int main(const int argc, const char *argv[])
                     }
 
                     string command = "clang++ -pedantic -Wall -o " + out + " ";
+                    for (string flag : cflags)
+                    {
+                        command += flag + " ";
+                    }
+
                     for (string object : objects)
                     {
                         command += object + " ";

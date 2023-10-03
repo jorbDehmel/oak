@@ -531,12 +531,14 @@ Name | Verbose     | Function
  -d  | --debug     | Toggle debug mode
  -D  | --dialect   | Use a dialect file
  -e  | --clean     | Work from scratch
+ -g  | --exe_debug | Uses LLVM -g flag
  -h  | --help      | Show help (this)
  -i  | --install   | Install a package
  -l  | --link      | Produce executables
  -m  | --manual    | Generate auto-documentation
  -n  | --no_save   | Produce nothing
  -o  | --output    | Set the output file
+ -O  | --optimize  | Uses LLVM -O3 flag
  -p  | --pretty    | Prettify `C++` files
  -q  | --quit      | Quit immediately
  -r  | --reinstall | Reinstall a package
@@ -547,6 +549,14 @@ Name | Verbose     | Function
  -u  | --dump      | Produce dump files
  -v  | --version   | Show Acorn version
  -w  | --new       | Make a new package
+
+## Optimization and Runtime Debugging
+
+`Oak` has some limited support for compiler optimization and runtime debugging due to its use of LLVM-IR via Clang. The `acorn -O` and `acorn -g` commands tell Clang to use full compile-time optimization and allow runtime debugging respectively.
+
+**Due to `Oak`'s mangler and rule system, runtime debugging information may not be immediately useful.** For instance, generic struct instances have compilation-time-mangled names: `vec<i32>` will become `vec_GEN_i32_ENDGEN`, which is much less intuitive to a human observer. Additionally, compile-time rules may cause strange effects in the output code which may not be present in the source. Enumerations, due to their complex internal structure, also may be hard to parse to a human eye. However, with practice and use of the `acorn -e` flag (to view the translated `c++` source code) this information should become easier to parse.
+
+Additionally, it is worth noting that both of these options will increase compilation time, and the `-g` option will significantly increase the size of the output executable.
 
 ## Macros
 
@@ -652,6 +662,7 @@ Name             | Type | Description
 \_\_PREV_FILE__  | str  | The path of the previous `Oak` file
 \_\_FILE__       | str  | The path of the current `Oak` file
 \_\_CONTENTS__   | str  | The contents of the current `Oak` file
+\_\_SYS__        | str  | The operating system compiled for
 
 ## Preproc Rules and Sapling
 
@@ -749,6 +760,38 @@ clear
 ```
 
 It also introduces the merge operator `$<` for output patterns. This fuses the preceding and proceeding symbols, without any separation. For instance, `( $t )( $*f )` -> `to $< $t ( $f )` would convert standard cast notation into the `Oak` equivalent.
+
+### Rule Memory
+
+During the matching of a rule via `Sapling`, the engine will keep track of the history of the attempt thus far. This history is called the rule **memory**. You can reset the memory with the `$~` card, or pipe the entire contents into a variable with the `$>X` card (where `X` is the variable).
+
+### Pair Matching
+
+Consider the following rule, taken from an old version of the `std` `Oak` package.
+
+```
+new_rule!(
+    "for",
+    "for ( $*a ; $*b ; $*c ) { $*d }",
+    "{ $a ; while ( $b ) { $d $c ; } }"
+);
+
+```
+
+A modified version of this still underlies the `Oak` `for` loop system. However, what happens if we embed an `if` statement within a for loop in the above example? The rule would stop tracking `$d` as soon as it encountered the ending curly brace of the `if` statement, possibly breaking all following code. We need a card which can handle pairs of opening and closing symbols. `$<$OPEN$CLOSE$>` is just such a card. If we replace `OPEN` with an opening curly brace and `CLOSE` with a closing one, this card will recognize any one or more nested set of curly braces and move beyond them (more specifically, it will maintain an internal counter, incrementing it upon `OPEN`, decrementing it upon `CLOSE` and only ceasing once it reaches zero). This can be use in conjunction with rule memory to store the entire set of nesting braces in a variable.
+
+Below is the modern `Oak` equivalent of this rule.
+
+```
+new_rule!(
+    "for",
+    "for ( $*a ; $*b ; $*c ) $~ $<${$}$> $>g",
+    "$a ; while ( $b ) { $g $c ; }"
+};
+
+```
+
+This version can recognize infinitely nested sets of curly brackets with no issues.
 
 ## Dialects
 

@@ -16,7 +16,7 @@ HEADS := lexer.hpp reconstruct.hpp symbol-table.hpp \
 	enums.hpp mangler.hpp generics.hpp
 
 # -O3 is best for actual installs, not for testing.
-# -g should ALWAYS be used
+# -g should be used when size doesn't matter
 FLAGS := -O3 -g
 
 TEST := acorn
@@ -65,6 +65,7 @@ test: install
 	$(TEST) oak_demos/string_test.oak -o string_test.out
 	$(TEST) oak_demos/thread_test.oak -o thread_test.out
 	$(TEST) oak_demos/panic_test.oak -o panic_test.out
+	$(TEST) oak_demos/rule_test_3.oak -o rule_test_3.out
 
 	$(MAKE) sdltest
 	$(MAKE) gentest

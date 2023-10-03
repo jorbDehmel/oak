@@ -190,284 +190,287 @@ sequence __createSequence(list<string> &From)
         return out;
     }
 
-    // Erasure macro; Erases types or struct members from existence
-    // Technically just moves them to another spot, as
-    else if (From.front() == "erase!")
+    else if (From.front().size() > 1 && From.front().back() == '!')
     {
-        int count = 0;
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-        From.pop_front();
-        list<string> contents;
-
-        do
+        // Erasure macro; Erases types or struct members from existence
+        // Technically just moves them to another spot, as
+        if (From.front() == "erase!")
         {
-            if (From.front() == "(")
+            int count = 0;
+            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+            From.pop_front();
+            list<string> contents;
+
+            do
             {
-                count++;
-            }
-            else if (From.front() == ")")
+                if (From.front() == "(")
+                {
+                    count++;
+                }
+                else if (From.front() == ")")
+                {
+                    count--;
+                }
+
+                if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")"))
+                {
+                    if (From.front() != ",")
+                    {
+                        contents.push_back(From.front());
+                    }
+                }
+
+                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                From.pop_front();
+            } while (!From.empty() && count != 0);
+
+            for (auto s : contents)
             {
-                count--;
+                if (!((s.front() == '"' && s.back() == '"') || (s.front() == '\'' && s.back() == '\'')))
+                {
+                    throw parse_error("All arguments to 'erase!' must be strings.");
+                }
+
+                // Trim quotes
+                string symb = s.substr(1, s.size() - 2);
+
+                if (structData.count(symb) != 0)
+                {
+                    structData[symb].erased = true;
+                }
+                else if (table.count(symb) != 0)
+                {
+                    for (int l = 0; l < table[symb].size(); l++)
+                    {
+                        table[symb][l].erased = true;
+                    }
+                }
+                else
+                {
+                    cout << tags::yellow_bold
+                         << "Warning! No symbols were erase!-ed via the symbol '" << symb << "'\n"
+                         << tags::reset;
+                }
             }
 
-            if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")"))
+            return out;
+        }
+
+        // Misc macros
+        else if (From.front() == "c_print!")
+        {
+            string message = curFile + ":" + to_string(curLine) + ":c_print! ";
+
+            int count = 0;
+            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+            From.pop_front();
+
+            do
             {
-                if (From.front() != ",")
+                if (From.front() == "(")
+                {
+                    count++;
+                }
+                else if (From.front() == ")")
+                {
+                    count--;
+                }
+
+                if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")"))
+                {
+                    message += From.front() + " ";
+                }
+
+                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                From.pop_front();
+
+            } while (!From.empty() && count != 0);
+
+            message += "\n";
+
+            cout << message;
+
+            return out;
+        }
+        else if (From.front() == "c_panic!")
+        {
+            string message = curFile + ":" + to_string(curLine) + ":c_panic! ";
+
+            int count = 0;
+            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+            From.pop_front();
+
+            do
+            {
+                if (From.front() == "(")
+                {
+                    count++;
+                }
+                else if (From.front() == ")")
+                {
+                    count--;
+                }
+
+                if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")"))
+                {
+                    message += From.front() + " ";
+                }
+
+                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                From.pop_front();
+
+            } while (!From.empty() && count != 0);
+
+            message += "\n";
+
+            throw sequencing_error(message);
+        }
+
+        // else
+
+        // Memory Keywords
+        else if (From.front() == "alloc!")
+        {
+            sm_assert(insideMethod, "Memory cannot be allocated outside of an operator-alias method.");
+
+            int count = 0;
+            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+            From.pop_front();
+            list<string> contents;
+
+            do
+            {
+                if (From.front() == "(")
+                {
+                    count++;
+                }
+                else if (From.front() == ")")
+                {
+                    count--;
+                }
+
+                if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")"))
                 {
                     contents.push_back(From.front());
                 }
+
+                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                From.pop_front();
+            } while (!From.empty() && count != 0);
+
+            string num = "1";
+
+            sequence temp = __createSequence(contents);
+            string name = toC(temp);
+
+            while (contents.front() == ",")
+            {
+                contents.pop_front();
             }
 
+            sequence numSeq = __createSequence(contents);
+            num = toC(numSeq);
+
+            Type tempType = temp.type;
+            Type numType = numSeq.type;
+
+            sm_assert(tempType.info == pointer, "'alloc!' returns a pointer.");
+            sm_assert(tempType.next != nullptr, "'alloc!' received a malformed first argument.");
+            temp.type = *tempType.next;
+
+            if (numType == nullType)
+            {
+                num = "1";
+                numType.info = atomic;
+                numType.name = "u128";
+            }
+
+            sm_assert(numType.info == atomic && numType.name == "u128", "'alloc!' takes 'u128', not '" + toStr(&numType) + "'.");
+
+            out = getAllocSequence(temp.type, name, num);
+
+            return out;
+        }
+        else if (From.front() == "free!")
+        {
+            sm_assert(insideMethod, "Memory cannot be deleted outside of an operator-alias method.");
+
+            int count = 0;
             sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
             From.pop_front();
-        } while (!From.empty() && count != 0);
+            list<string> contents;
 
-        for (auto s : contents)
-        {
-            if (!((s.front() == '"' && s.back() == '"') || (s.front() == '\'' && s.back() == '\'')))
+            do
             {
-                throw parse_error("All arguments to 'erase!' must be strings.");
-            }
-
-            // Trim quotes
-            string symb = s.substr(1, s.size() - 2);
-
-            if (structData.count(symb) != 0)
-            {
-                structData[symb].erased = true;
-            }
-            else if (table.count(symb) != 0)
-            {
-                for (int l = 0; l < table[symb].size(); l++)
+                if (From.front() == "(")
                 {
-                    table[symb][l].erased = true;
+                    count++;
                 }
-            }
-            else
-            {
-                cout << tags::yellow_bold
-                     << "Warning! No symbols were erase!-ed via the symbol '" << symb << "'\n"
-                     << tags::reset;
-            }
+                else if (From.front() == ")")
+                {
+                    count--;
+                }
+
+                if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")"))
+                {
+                    contents.push_back(From.front());
+                }
+
+                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                From.pop_front();
+            } while (!From.empty() && count != 0);
+
+            sequence temp = __createSequence(contents);
+            string name = toC(temp);
+
+            Type tempType = temp.type;
+            sm_assert(tempType.info == pointer, "'alloc!' returns a pointer.");
+            temp.type = *tempType.next;
+
+            out = getFreeSequence(name, false);
+
+            return out;
         }
-
-        return out;
-    }
-
-    // Misc macros
-    else if (From.front() == "c_print!")
-    {
-        string message = curFile + ":" + to_string(curLine) + ":c_print! ";
-
-        int count = 0;
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-        From.pop_front();
-
-        do
+        else if (From.front() == "free_arr!")
         {
-            if (From.front() == "(")
-            {
-                count++;
-            }
-            else if (From.front() == ")")
-            {
-                count--;
-            }
+            sm_assert(insideMethod, "Memory cannot be deleted outside of an operator-alias method.");
 
-            if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")"))
-            {
-                message += From.front() + " ";
-            }
-
+            int count = 0;
             sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
             From.pop_front();
+            list<string> contents;
 
-        } while (!From.empty() && count != 0);
-
-        message += "\n";
-
-        cout << message;
-
-        return out;
-    }
-    else if (From.front() == "c_panic!")
-    {
-        string message = curFile + ":" + to_string(curLine) + ":c_panic! ";
-
-        int count = 0;
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-        From.pop_front();
-
-        do
-        {
-            if (From.front() == "(")
+            do
             {
-                count++;
-            }
-            else if (From.front() == ")")
-            {
-                count--;
-            }
+                if (From.front() == "(")
+                {
+                    count++;
+                }
+                else if (From.front() == ")")
+                {
+                    count--;
+                }
 
-            if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")"))
-            {
-                message += From.front() + " ";
-            }
+                if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")"))
+                {
+                    contents.push_back(From.front());
+                }
 
-            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-            From.pop_front();
+                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                From.pop_front();
+            } while (!From.empty() && count != 0);
 
-        } while (!From.empty() && count != 0);
+            sequence temp = __createSequence(contents);
+            string name = toC(temp);
 
-        message += "\n";
+            Type tempType = temp.type;
+            sm_assert(tempType.info == pointer, "'alloc!' returns a pointer.");
+            temp.type = *tempType.next;
 
-        throw sequencing_error(message);
-    }
+            out = getFreeSequence(name, true);
 
-    // else
-
-    // Memory Keywords
-    else if (From.front() == "alloc!")
-    {
-        sm_assert(insideMethod, "Memory cannot be allocated outside of an operator-alias method.");
-
-        int count = 0;
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-        From.pop_front();
-        list<string> contents;
-
-        do
-        {
-            if (From.front() == "(")
-            {
-                count++;
-            }
-            else if (From.front() == ")")
-            {
-                count--;
-            }
-
-            if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")"))
-            {
-                contents.push_back(From.front());
-            }
-
-            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-            From.pop_front();
-        } while (!From.empty() && count != 0);
-
-        string num = "1";
-
-        sequence temp = __createSequence(contents);
-        string name = toC(temp);
-
-        while (contents.front() == ",")
-        {
-            contents.pop_front();
+            return out;
         }
-
-        sequence numSeq = __createSequence(contents);
-        num = toC(numSeq);
-
-        Type tempType = temp.type;
-        Type numType = numSeq.type;
-
-        sm_assert(tempType.info == pointer, "'alloc!' returns a pointer.");
-        sm_assert(tempType.next != nullptr, "'alloc!' received a malformed first argument.");
-        temp.type = *tempType.next;
-
-        if (numType == nullType)
-        {
-            num = "1";
-            numType.info = atomic;
-            numType.name = "u128";
-        }
-
-        sm_assert(numType.info == atomic && numType.name == "u128", "'alloc!' takes 'u128', not '" + toStr(&numType) + "'.");
-
-        out = getAllocSequence(temp.type, name, num);
-
-        return out;
-    }
-    else if (From.front() == "free!")
-    {
-        sm_assert(insideMethod, "Memory cannot be deleted outside of an operator-alias method.");
-
-        int count = 0;
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-        From.pop_front();
-        list<string> contents;
-
-        do
-        {
-            if (From.front() == "(")
-            {
-                count++;
-            }
-            else if (From.front() == ")")
-            {
-                count--;
-            }
-
-            if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")"))
-            {
-                contents.push_back(From.front());
-            }
-
-            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-            From.pop_front();
-        } while (!From.empty() && count != 0);
-
-        sequence temp = __createSequence(contents);
-        string name = toC(temp);
-
-        Type tempType = temp.type;
-        sm_assert(tempType.info == pointer, "'alloc!' returns a pointer.");
-        temp.type = *tempType.next;
-
-        out = getFreeSequence(name, false);
-
-        return out;
-    }
-    else if (From.front() == "free_arr!")
-    {
-        sm_assert(insideMethod, "Memory cannot be deleted outside of an operator-alias method.");
-
-        int count = 0;
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-        From.pop_front();
-        list<string> contents;
-
-        do
-        {
-            if (From.front() == "(")
-            {
-                count++;
-            }
-            else if (From.front() == ")")
-            {
-                count--;
-            }
-
-            if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")"))
-            {
-                contents.push_back(From.front());
-            }
-
-            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-            From.pop_front();
-        } while (!From.empty() && count != 0);
-
-        sequence temp = __createSequence(contents);
-        string name = toC(temp);
-
-        Type tempType = temp.type;
-        sm_assert(tempType.info == pointer, "'alloc!' returns a pointer.");
-        temp.type = *tempType.next;
-
-        out = getFreeSequence(name, true);
-
-        return out;
     }
 
     // Misc key-characters
@@ -1908,7 +1911,7 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
         }
 
         // if member access, resolve that
-        while (start < What.size() && What[start + 1] == ".")
+        while (start + 1 < What.size() && What[start + 1] == ".")
         {
             // Auto-dereference pointers (. to -> automatically)
             if (type.info == pointer)

@@ -63,8 +63,8 @@ new_rule!("def_init", "let $a : $b = ", "let $a : $b ; $a = ");
 
 // For loop rule
 new_rule!("for",
-    "for ( $*a ; $*b ; $*c ) { $*d }",
-    "{ $a ; while ( $b ) { $d $c ; } }"
+    "for ( $*a ; $*b ; $*c ) $~ $<${$}$> $>g",
+    "$a ; while ( $b ) { $g $c ; }"
 );
 
 bundle_rule!("std",

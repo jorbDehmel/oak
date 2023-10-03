@@ -54,12 +54,14 @@ const string helpText = "Acorn - Oak Standard Translator\n" DASHED_LINE
                         " -d    | --debug     | Toggle debug mode\n"
                         " -D    | --dialect   | Uses a dialect file\n"
                         " -e    | --clean     | Toggle erasure (default on)\n"
+                        " -g    | --exe_debug | Use LLVM debug flag\n"
                         " -h    | --help      | Show this\n"
                         " -i    | --install   | Install a package\n"
                         " -l    | --link      | Produce executables\n"
                         " -m    | --manual    | Produce a .md doc\n"
                         " -n    | --no_save   | Produce nothing\n"
                         " -o    | --output    | Set the output file\n"
+                        " -O    | --optimize  | Use LLVM optimization O3\n"
                         " -p    | --pretty    | Prettify C++ files\n"
                         " -q    | --quit      | Quit immediately\n"
                         " -r    | --reinstall | Reinstall a package\n"
@@ -72,7 +74,7 @@ const string helpText = "Acorn - Oak Standard Translator\n" DASHED_LINE
                         " -w    | --new       | Create a new package\n";
 
 extern bool debug, compile, link, pretty, alwaysDump, manual;
-extern set<string> visitedFiles, cppSources, objects;
+extern set<string> visitedFiles, cppSources, objects, cflags;
 extern map<string, string> preprocDefines;
 extern vector<unsigned long long> phaseTimes;
 

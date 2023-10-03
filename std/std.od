@@ -36,6 +36,6 @@ clear
 "let $a : $b = "        "let $a : $b ; $a = "
 
 // For loop rule
-"for ( $*a ; $*b ; $*c ) { $*d }"       "{ $a ; while ( $b ) { $d $c ; } }"
+"for ( $*a ; $*b ; $*c ) $~ $<${$}$> $>g"   "$a ; while ( $b ) { $g $c ; }"
 
 // NOT final, as we want people to build on these

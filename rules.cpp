@@ -207,6 +207,8 @@ void doRules(vector<string> &From)
         // Regular case; Non-rule-macro symbol. Check against active rules.
         else
         {
+            vector<string> memory;
+
             for (int ruleIndex = 0; ruleIndex < dialectRules.size() + activeRules.size(); ruleIndex++)
             {
                 int isMatch = true;
@@ -274,6 +276,8 @@ void doRules(vector<string> &From)
                     // Wildcard; Un-stored match
                     if (match == "$$")
                     {
+                        memory.push_back(From[posInFrom]);
+
                         posInFrom++;
                         continue;
                     }
@@ -286,6 +290,7 @@ void doRules(vector<string> &From)
 
                         while (From[posInFrom] != nextSymb)
                         {
+                            memory.push_back(From[posInFrom]);
                             posInFrom++;
 
                             if (posInFrom >= From.size())
@@ -319,6 +324,7 @@ void doRules(vector<string> &From)
 
                         while (From[posInFrom] != nextSymb)
                         {
+                            memory.push_back(From[posInFrom]);
                             posInFrom++;
 
                             if (posInFrom >= From.size())
@@ -341,6 +347,92 @@ void doRules(vector<string> &From)
                         continue;
                     }
 
+                    // Memory clear
+                    else if (match == "$~")
+                    {
+                        memory.clear();
+                        continue;
+                    }
+
+                    // Pipe memory onto end of variable
+                    else if (match.size() == 3 && match.substr(0, 2) == "$>")
+                    {
+                        string name = match.substr(0, 1) + match.substr(2, 1);
+
+                        string concatenatedMemory = "";
+                        for (const string &item : memory)
+                        {
+                            concatenatedMemory.append(item);
+                            concatenatedMemory.append(" ");
+                        }
+
+                        if (ruleVars[ruleIndex].count(name) == 0)
+                        {
+                            ruleVars[ruleIndex][name] += " " + concatenatedMemory;
+                        }
+                        else
+                        {
+                            ruleVars[ruleIndex][name] = concatenatedMemory;
+                        }
+
+                        continue;
+                    }
+
+                    // $<$open$close$>
+                    // Pair matching
+                    else if (match.size() > 7 && match.substr(0, 3) == "$<$")
+                    {
+                        int endOfOpener = 3;
+                        while (endOfOpener < match.size() && match[endOfOpener] != '$')
+                        {
+                            endOfOpener++;
+                        }
+
+                        int endOfCloser = endOfOpener + 1;
+                        while (endOfCloser < match.size() && match[endOfCloser] != '$')
+                        {
+                            endOfCloser++;
+                        }
+
+                        string opener = match.substr(3, endOfOpener - 3), closer = match.substr(endOfOpener + 1, endOfCloser - endOfOpener - 1);
+                        long long count = 0;
+
+                        int beginningPosition = posInFrom;
+
+                        do
+                        {
+                            if (posInFrom > From.size())
+                            {
+                                // Out of range w/o closure: Failure case
+                                isMatch = false;
+                                break;
+                            }
+                            else if (From[posInFrom].size() < 2 || From[posInFrom].substr(0, 2) != "//")
+                            {
+                                memory.push_back(From[posInFrom]);
+
+                                if (From[posInFrom] == opener)
+                                {
+                                    count++;
+                                }
+                                else if (From[posInFrom] == closer)
+                                {
+                                    count--;
+                                }
+                            }
+
+                            posInFrom++;
+                        } while (posInFrom < From.size() && count != 0);
+
+                        if (!isMatch || posInFrom == beginningPosition || posInFrom == beginningPosition + 1)
+                        {
+                            isMatch = false;
+                            break;
+                        }
+
+                        continue;
+                    }
+
                     // Variable glob; Stored multi-symbol match
                     else if (match.size() == 3 && match.substr(0, 2) == "$*")
                     {
@@ -351,7 +443,16 @@ void doRules(vector<string> &From)
 
                         while (From[posInFrom] != nextSymb)
                         {
-                            ruleVars[ruleIndex][name] += " " + From[posInFrom];
+                            if (ruleVars[ruleIndex].count(name) == 0)
+                            {
+                                ruleVars[ruleIndex][name] += From[posInFrom];
+                            }
+                            else
+                            {
+                                ruleVars[ruleIndex][name] += " " + From[posInFrom];
+                            }
+
+                            memory.push_back(From[posInFrom]);
 
                             posInFrom++;
                             if (posInFrom >= From.size())
@@ -377,7 +478,17 @@ void doRules(vector<string> &From)
                     // Variable; Stored match
                     else if (match.size() == 2 && match[0] == '$')
                     {
-                        ruleVars[ruleIndex][match] = From[posInFrom];
+                        if (ruleVars[ruleIndex].count(match) == 0)
+                        {
+                            ruleVars[ruleIndex][match] = From[posInFrom];
+                        }
+                        else
+                        {
+                            ruleVars[ruleIndex][match] += " " + From[posInFrom];
+                        }
+
+                        memory.push_back(From[posInFrom]);
+
                         posInFrom++;
                     }
 
@@ -385,6 +496,8 @@ void doRules(vector<string> &From)
                     else if (match == From[posInFrom])
                     {
                         posInFrom++;
+                        memory.push_back(From[posInFrom]);
+
                         continue;
                     }
 

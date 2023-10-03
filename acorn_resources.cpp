@@ -20,6 +20,7 @@ bool manual = false;
 set<string> visitedFiles;
 set<string> cppSources;
 set<string> objects;
+set<string> cflags;
 
 map<string, string> preprocDefines;
 vector<unsigned long long> phaseTimes;
