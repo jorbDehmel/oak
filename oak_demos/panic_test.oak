@@ -1,0 +1,11 @@
+package!("std");
+use_rule!("std");
+
+include!("std/panic_inter.oak");
+
+let main() -> i32
+{
+    panic!("Don't do that!");
+
+    0
+}

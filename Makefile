@@ -64,6 +64,7 @@ test: install
 	$(TEST) oak_demos/rule_test_2.oak -o rule_test_2.out
 	$(TEST) oak_demos/string_test.oak -o string_test.out
 	$(TEST) oak_demos/thread_test.oak -o thread_test.out
+	$(TEST) oak_demos/panic_test.oak -o panic_test.out
 
 	$(MAKE) sdltest
 	$(MAKE) gentest

@@ -10,7 +10,8 @@ include!(
     "std/unit.oak",
     "std/conv_extra.oak",
     "std/opt.oak",
-    "std/result.oak"
+    "std/result.oak",
+    "std/panic_inter.oak"
 );
 
 // Access rules

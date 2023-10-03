@@ -1,0 +1,38 @@
+/*
+Panic function for Oak
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+link!("std/panic_inter.o");
+
+let internal_panic() -> void;
+
+let panic!(argc: i32, argv: ^^i8) -> i32
+{
+    include!("std/io_inter.oak");
+
+    print(
+        "print(\"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\\n\");\n"
+    );
+
+    print("print(\"Panic: \");\n");
+    print("print(__FILE__);\n");
+    print("print(\":\");\n");
+    print("print(__LINE__);\n");
+
+    if (argc == 2)
+    {
+        print("print(\"\\n");
+        print(Get(argv, 1));
+        print("\");\n");
+    }
+
+    print(
+        "print(\"\\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\\n\");\n"
+    );
+    
+    print("internal_panic();\n");
+
+    0
+}

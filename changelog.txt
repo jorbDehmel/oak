@@ -8,6 +8,9 @@ TODO:
 Acorn Version   |          |
 (Newest at top) | Date     | Justification
 ----------------|----------|-----------------------------------------
+0.0.18          | 10/3/23  | Added panics for unrecoverable errors.
+                |          | Misc bug fixes.
+                |          |
 0.0.17          | 9/19/23  | Redid template instantiator calls for
                 |          | more specificity and less redundancy.
                 |          |

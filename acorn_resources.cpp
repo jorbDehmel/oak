@@ -479,12 +479,35 @@ void doFile(const string &From)
                     string output = callMacro(name, args, debug);
                     vector<string> lexedOutput = lex(output);
 
+                    // Reset preproc defs, as they tend to break w/ macros
+                    preprocDefines["__PREV_FILE__"] = (oldFile == "" ? "\"NULL\"" : ("\"" + oldFile + "\""));
+                    preprocDefines["__FILE__"] = '"' + From + '"';
+
                     // Remove lines
                     for (int ind = 0; ind < lexedOutput.size(); ind++)
                     {
                         if (lexedOutput[ind].size() > 1 && lexedOutput[ind].substr(0, 2) == "//")
                         {
+                            if (lexedOutput[ind].size() > 11 && lexedOutput[ind].substr(0, 11) == "//__LINE__=")
+                            {
+                                preprocDefines["__LINE__"] = lexedOutput[ind].substr(11);
+                            }
+
                             lexedOutput.erase(lexedOutput.begin() + ind);
+                        }
+
+                        // Preproc defines subs
+                        else if (preprocDefines.count(lexedOutput[ind]) != 0)
+                        {
+                            vector<string> lexedDef = lex(preprocDefines[lexedOutput[ind]]);
+                            lexedOutput.erase(lexedOutput.begin() + ind);
+
+                            for (int j = lexedDef.size() - 1; j >= 0; j--)
+                            {
+                                lexedOutput.insert(lexedOutput.begin() + ind, lexedDef[j]);
+                            }
+
+                            ind--;
                         }
                     }
 

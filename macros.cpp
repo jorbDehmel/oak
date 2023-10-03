@@ -125,10 +125,20 @@ string callMacro(const string &Name, const vector<string> &Args, bool debug)
     // args here
     for (string s : Args)
     {
-        command += '"';
+        if (s.size() == 0)
+        {
+            continue;
+        }
+
+        if (s.front() != '"' || s.back() != '"')
+        {
+            command += '"';
+        }
+
+        int pos = 0;
         for (char c : s)
         {
-            if (c == '"')
+            if (c == '"' && pos != 0 && pos + 1 != s.size())
             {
                 command += string("\\") + c;
             }
@@ -136,8 +146,16 @@ string callMacro(const string &Name, const vector<string> &Args, bool debug)
             {
                 command += c;
             }
+
+            pos++;
         }
-        command += "\" ";
+
+        if (s.front() != '"' || s.back() != '"')
+        {
+            command += '"';
+        }
+
+        command += " ";
     }
 
     command += " > " + outputName;
