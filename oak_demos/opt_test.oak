@@ -1,0 +1,18 @@
+package!("std");
+use_rule!("std");
+
+let main() -> i32
+{
+    let obj: opt<i32>;
+
+    obj..wrap_some(5);
+
+    print(^unwrap(@obj));
+    print('\n');
+
+    obj..wrap_none();
+    print(^unwrap(@obj));
+    print('\n');
+
+    0
+}

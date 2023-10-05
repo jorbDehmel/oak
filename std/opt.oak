@@ -1,3 +1,5 @@
+include!("std/panic_inter.oak");
+
 let opt<t>: enum
 {
     some: t,
@@ -7,6 +9,7 @@ needs
 {
     New<t>(self: ^opt<t>);
     Copy<t>(self: ^opt<t>, other: opt<t>);
+    unwrap<t>(self: ^opt<t>);
 }
 
 let New<t>(self: ^opt<t>) -> void
@@ -22,10 +25,28 @@ let Copy<t>(self: ^opt<t>, other: opt<t>) -> void
         {
             wrap_some(self, ^data);
         }
-
         default
         {
             wrap_none(self);
         }
     }
+}
+
+let unwrap<t>(self: ^opt<t>) -> ^t
+{
+    let out: ^t;
+
+    match (^self)
+    {
+        case some(data)
+        {
+            out = data;
+        }
+        default
+        {
+            panic!();
+        }
+    }
+
+    out
 }
