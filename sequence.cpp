@@ -38,7 +38,7 @@ void destroyUnits(const string &name, const Type &type, const bool &doThrow)
             if (table[name][i].type == type)
             {
                 // If is unit, erase
-                if (table[name][i].seq.items.size() == 0 || (table[name][i].seq.items.size() == 1 &&
+                if (table[name][i].seq.items.size() == 0 || (table[name][i].seq.items.size() >= 1 &&
                                                              table[name][i].seq.items[0].raw.size() > 8 &&
                                                              table[name][i].seq.items[0].raw.substr(0, 9) == "//AUTOGEN"))
                 {
@@ -859,6 +859,18 @@ sequence __createSequence(list<string> &From)
 
                     out.items.push_back(toAppend);
                 }
+                else if (type.info == pointer)
+                {
+                    // Syntactically necessary
+                    out.items.push_back(sequence{nullType, vector<sequence>(), atom, ";"});
+
+                    sequence toAppend;
+                    toAppend.info = atom;
+                    toAppend.type = nullType;
+                    toAppend.raw = name + " = nullptr;";
+
+                    out.items.push_back(toAppend);
+                }
 
                 return out;
             }
@@ -926,9 +938,59 @@ sequence __createSequence(list<string> &From)
 
                     table[name].push_back(__multiTableSymbol{sequence{}, type});
 
+                    if (name == "New")
+                    {
+                        // prepend New for all members
+                        string structName;
+
+                        Type *cur = &argsWithType[0].second;
+
+                        while (cur != nullptr && cur->info == pointer)
+                        {
+                            cur = cur->next;
+                        }
+
+                        structName = cur->name;
+
+                        for (auto var : structData[structName].members)
+                        {
+                            string varName = var.first;
+
+                            // Special pointer case
+                            if (argsWithType[0].second.info == pointer)
+                            {
+                                sequence seq;
+                                seq.info = atom;
+                                seq.raw = "what->" + varName + " = nullptr;";
+                                seq.type = nullType;
+
+                                table["New"].back().seq.items.push_back(seq);
+                            }
+
+                            // Avoid performing on atomics
+                            else if (structData.count(varName) != 0)
+                            {
+                                sequence seq;
+                                seq.info = atom;
+                                seq.type = nullType;
+
+                                seq.raw = "New(&" + argsWithType[0].first + "->" + varName + ");";
+                                table["New"].back().seq.items.push_back(seq);
+
+                                seq.raw = "Del(&" + argsWithType[0].first + "->" + varName + ");";
+                                table["Del"].back().seq.items.push_back(seq);
+                            }
+                        }
+                    }
+
                     depth++;
                     table[name].back().seq = __createSequence(From);
                     depth--;
+
+                    if (name == "Del")
+                    {
+                        // append Del for all members
+                    }
                 }
                 else
                 {

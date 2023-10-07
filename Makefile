@@ -19,7 +19,7 @@ HEADS := lexer.hpp reconstruct.hpp symbol-table.hpp \
 # -g should be used when size doesn't matter
 FLAGS := -O3 -g
 
-TEST := acorn
+TEST := acorn -e
 
 all: bin/acorn.out
 
@@ -69,6 +69,8 @@ test: install
 
 	$(MAKE) sdltest
 	$(MAKE) gentest
+
+	rm -rf .oak_build
 
 sdltest:
 	$(TEST) oak_demos/sdl_test.oak -o sdl_test.out

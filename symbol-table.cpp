@@ -129,7 +129,7 @@ Type toType(const vector<string> &WhatIn)
         {
             i++;
         }
-        else if (What.size() > i && What[i + 1] == ":")
+        else if (What.size() > i + 1 && What[i + 1] == ":")
         {
             out.append(var_name, cur);
         }
@@ -315,6 +315,31 @@ void addStruct(const vector<string> &FromIn)
             {
                 structData[name].members[varName] = toAdd;
                 structData[name].order.push_back(varName);
+
+                // Special pointer case
+                if (toAdd.info == pointer)
+                {
+                    sequence seq;
+                    seq.info = atom;
+                    seq.raw = "what->" + varName + " = nullptr;";
+                    seq.type = nullType;
+
+                    table["New"].back().seq.items.push_back(seq);
+                }
+
+                // Avoid performing on atomics
+                else if (structData.count(varName) != 0)
+                {
+                    sequence seq;
+                    seq.info = atom;
+                    seq.type = nullType;
+
+                    seq.raw = "New(&what->" + varName + ");";
+                    table["New"].back().seq.items.push_back(seq);
+
+                    seq.raw = "Del(&what->" + varName + ");";
+                    table["Del"].back().seq.items.push_back(seq);
+                }
             }
         }
     }
