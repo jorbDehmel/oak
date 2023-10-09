@@ -78,6 +78,7 @@ sdltest:
 	$(TEST) oak_demos/sdl_test_3.oak -o sdl_test_3.out
 
 gentest:
+	$(TEST) oak_demos/nested_gen_test.oak -o nested_gen_test.out
 	$(TEST) oak_demos/generic_test.oak -o generic_test.out
 	$(TEST) oak_demos/gen_struct_test.oak -o gen_struct_test.out
 	$(TEST) oak_demos/gen_test_2.oak -o gen_test_2.out

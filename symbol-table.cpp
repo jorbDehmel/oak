@@ -81,17 +81,27 @@ Type toType(const vector<string> &WhatIn)
                 {
                     count--;
 
-                    if (count > 0)
+                    if (count == 0)
+                    {
+                        if (curGen.size() > 0)
+                        {
+                            generics.push_back(curGen);
+                        }
+
+                        curGen.clear();
+                    }
+                    else
                     {
                         curGen.push_back(What[i]);
                     }
-
-                    generics.push_back(curGen);
-                    curGen.clear();
                 }
                 else if (What[i] == "," && count == 1)
                 {
-                    generics.push_back(curGen);
+                    if (curGen.size() > 0)
+                    {
+                        generics.push_back(curGen);
+                    }
+
                     curGen.clear();
                 }
                 else

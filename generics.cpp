@@ -368,6 +368,11 @@ void addGeneric(const vector<string> &what,
 
     for (auto a : genericsList)
     {
+        if (a == ",")
+        {
+            continue;
+        }
+
         toAdd.genericNames.push_back(a);
     }
 
@@ -413,10 +418,6 @@ void addGeneric(const vector<string> &what,
     if (!doesExist)
     {
         generics[name].push_back(toAdd);
-    }
-    else
-    {
-        cout << DB_INFO << "skipping.\n";
     }
 
     return;

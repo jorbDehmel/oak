@@ -153,17 +153,6 @@ sequence __createSequence(list<string> &From)
 
         curLine = stoull(newLineNum);
 
-        // Erase current line vector and replace it with the next line
-#ifdef PRINT_EACH_LINE
-        cout << DB_INFO << "PRINT_EACH_LINE " << curFile << ':' << curLine
-             << " '";
-        for (auto i : curLineSymbols)
-        {
-            cout << i << ' ';
-        }
-        cout << "'\n";
-#endif
-
         curLineSymbols.clear();
         if (From.size() != 0)
         {
@@ -660,17 +649,29 @@ sequence __createSequence(list<string> &From)
         vector<string> generics;
         if (From.front() == "<")
         {
-            while (!From.empty() && From.front() != ">")
+            int count = 0;
+
+            do
             {
-                if (From.front() != "<" && From.front() != ">" && From.front() != ",")
+                if (From.front() == "<")
+                {
+                    count++;
+                }
+                else if (From.front() == ">")
+                {
+                    count--;
+                }
+
+                if (From.front() != "<" || count != 1)
                 {
                     generics.push_back(From.front());
                 }
 
                 From.pop_front();
-            }
+            } while (!From.empty() && !(count == 1 && From.front() == ">"));
 
-            if (!From.empty() && From.front() == ">")
+            // Trim trailing angle bracket
+            if (!From.empty())
             {
                 From.pop_front();
             }
@@ -696,10 +697,6 @@ sequence __createSequence(list<string> &From)
                     for (int i = 0; i < generics.size(); i++)
                     {
                         toAdd.push_back(generics[i]);
-                        if (i + 1 < generics.size())
-                        {
-                            toAdd.push_back(",");
-                        }
                     }
                     toAdd.push_back(">");
                 }
@@ -957,18 +954,18 @@ sequence __createSequence(list<string> &From)
                             string varName = var.first;
 
                             // Special pointer case
-                            if (argsWithType[0].second.info == pointer)
+                            if (var.second.info == pointer)
                             {
                                 sequence seq;
                                 seq.info = atom;
-                                seq.raw = "what->" + varName + " = nullptr;";
+                                seq.raw = argsWithType[0].first + "->" + varName + " = nullptr;";
                                 seq.type = nullType;
 
                                 table["New"].back().seq.items.push_back(seq);
                             }
 
                             // Avoid performing on atomics
-                            else if (structData.count(varName) != 0)
+                            else if (structData.count(var.second.name) != 0)
                             {
                                 sequence seq;
                                 seq.info = atom;
@@ -976,9 +973,6 @@ sequence __createSequence(list<string> &From)
 
                                 seq.raw = "New(&" + argsWithType[0].first + "->" + varName + ");";
                                 table["New"].back().seq.items.push_back(seq);
-
-                                seq.raw = "Del(&" + argsWithType[0].first + "->" + varName + ");";
-                                table["Del"].back().seq.items.push_back(seq);
                             }
                         }
                     }
@@ -990,6 +984,46 @@ sequence __createSequence(list<string> &From)
                     if (name == "Del")
                     {
                         // append Del for all members
+                        string structName;
+
+                        Type *cur = &argsWithType[0].second;
+
+                        while (cur != nullptr && cur->info == pointer)
+                        {
+                            cur = cur->next;
+                        }
+
+                        structName = cur->name;
+
+                        for (auto var : structData[structName].members)
+                        {
+                            string varName = var.first;
+
+                            // Special pointer case
+                            if (var.second.info == pointer)
+                            {
+                                sequence seq;
+                                seq.info = atom;
+                                seq.raw = argsWithType[0].first + "->" + varName + " = nullptr;";
+                                seq.type = nullType;
+
+                                table["Del"].back().seq.items.push_back(seq);
+                            }
+
+                            // Avoid performing on atomics
+                            else if (structData.count(var.second.name) != 0)
+                            {
+                                sequence seq;
+                                seq.info = atom;
+                                seq.type = nullType;
+
+                                seq.raw = "Del(&" + argsWithType[0].first + "->" + varName + ");";
+                                table["Del"].back().seq.items.push_back(seq);
+
+                                seq.raw = "Del(&" + argsWithType[0].first + "->" + varName + ");";
+                                table["Del"].back().seq.items.push_back(seq);
+                            }
+                        }
                     }
                 }
                 else
@@ -1638,17 +1672,19 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
                 {
                     count--;
 
-                    if (count > 0)
+                    if (count == 0)
+                    {
+                        if (curGen.size() > 0)
+                        {
+                            generics.push_back(curGen);
+                        }
+
+                        curGen.clear();
+                    }
+                    else
                     {
                         curGen.push_back(What[start]);
                     }
-
-                    if (curGen.size() > 0)
-                    {
-                        generics.push_back(curGen);
-                    }
-
-                    curGen.clear();
                 }
                 else if (What[start] == "," && count == 1)
                 {
@@ -1666,6 +1702,7 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
 
                 start++;
             } while (start < What.size() && count != 0);
+            // start--;
 
             // should leave w/ what[start] == ';'
             vector<string> typeVec;

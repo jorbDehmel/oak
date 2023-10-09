@@ -1250,7 +1250,7 @@ The following are atomic (built-in, indivisible) types.
 - bool
 - void
 
-The `unit` (memberless) struct is provided by `std/unit.oak`.
+The `unit` (memberless 1 byte) struct is provided by `std/unit.oak`.
 
 ## `c_print!` and `c_panic!`
 

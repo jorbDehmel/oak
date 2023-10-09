@@ -8,6 +8,9 @@ TODO:
 Acorn Version   |          |
 (Newest at top) | Date     | Justification
 ----------------|----------|-----------------------------------------
+0.0.20          | 10/9/23  | Fixed nested generics, automatic calls
+                |          | to New and Del.
+                |          |
 0.0.19          | 10/7/23  | Added automatic calls to New and Del to
                 |          | all struct members.
                 |          |

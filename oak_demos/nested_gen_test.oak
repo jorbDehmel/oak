@@ -1,0 +1,40 @@
+/*
+A test of nested generics in oak.
+UNPASSED
+*/
+
+package!("std");
+use_rule!("std");
+
+let node<t>: struct
+{
+    data: t,
+}
+needs
+{
+    New<t>(_: ^node<t>);
+}
+
+let New<t>(self: ^node<t>) -> void
+{
+}
+
+let main() -> i32
+{
+    /*
+    Because of generic enums like opt<>,
+    it is especially important that Oak
+    be able to handle infinitely nested
+    generics.
+    */
+
+    let first: node<i32>;
+    
+    let second: node<node<i32>>;
+    
+    let third: node<node<node<i32>>>;
+    
+    let fourth: node<node<node<node<i32>>>>;
+
+    0
+}
