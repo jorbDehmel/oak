@@ -16,12 +16,12 @@ let b(what: i32) -> i32
 let main() -> i32
 {
     let f: ^(i32) -> i32;
-    f = @a;
+    Copy(@f, @a);
 
     print(f(1));
     print("\n");
 
-    f = @b;
+    Copy(@f, @b);
 
     print(f(1));
     print("\n");

@@ -153,7 +153,7 @@ void reconstruct(const string &Name,
 
             for (__multiTableSymbol s : entry.second)
             {
-                if (s.type.info == function)
+                if (s.type[0].info == function)
                 {
                     string toAdd = toStrCFunction(&s.type, name);
 
@@ -237,37 +237,42 @@ pair<string, string> save(const stringstream &header, const stringstream &body, 
 }
 
 // This is separate due to complexity
-string toStrCFunction(Type *What, const string &Name)
+string toStrCFunction(Type *What, const string &Name, const unsigned int &pos)
 {
-    // function -> ARGS -> maps -> RETURN_TYPE
+    parse_assert(What != nullptr && What->size() > 0 && (*What)[0].info == function);
 
-    parse_assert(What != nullptr && What->info == function);
-    Type *current = What->next;
+    if (pos >= What->size())
+    {
+        return "";
+    }
 
     // Second section, between function and maps, will be arguments.
     string arguments = "";
-    for (; current != nullptr; current = current->next)
+    int i = pos + 1;
+    for (; i < What->size(); i++)
     {
         // (a: *const map<string, int>, b: u32)
         // (const map<string, int> *a, u32 b)
 
         // Var names can only occur in non-fn-ptr types
-        if (current->info == var_name)
+        if (What->operator[](i).info == var_name)
         {
-            string name = current->name;
-            current = current->next;
+            string name = What->operator[](i).name;
+
+            i++;
+
+            if (i >= What->size())
+            {
+                break;
+            }
 
             Type temp;
-
-            Type *prev = &temp;
-            while (current != nullptr && !(current->info == join || current->info == maps))
+            while (i < What->size() && !(What->operator[](i).info == join || What->operator[](i).info == maps))
             {
-                temp.append(current->info, current->name);
-
-                prev = current;
-                current = current->next;
+                temp.append(What->operator[](i).info, What->operator[](i).name);
+                i++;
             }
-            current = prev;
+            i--;
 
             if (arguments != "")
             {
@@ -277,32 +282,32 @@ string toStrCFunction(Type *What, const string &Name)
             arguments += toStrC(&temp, name);
         }
 
-        else if (current->info == maps)
+        else if (What->operator[](i).info == maps)
         {
             break;
         }
     }
 
-    if (current == nullptr || current->info != maps)
+    if (i >= What->size() || What->operator[](i).info != maps)
     {
-        cout << "Function '" << arguments << "' has no return type.\n";
-        parse_assert(current != nullptr);
+        cout << "Function '" << toStr(What) << "' has no return type.\n";
+        parse_assert(i < What->size());
     }
 
-    current = current->next;
+    i++;
 
     // Jump past any remaining maps (idk why this is necessary)
-    Type *toUse = current;
-    for (auto temp = current; temp != nullptr; temp = temp->next)
+    for (int j = What->size() - 1; j > i; j--)
     {
-        if (temp->info == maps)
+        if ((*What)[j].info == maps)
         {
-            toUse = temp;
+            i = j;
+            break;
         }
     }
 
     // Next, after maps, we will have the return type.
-    string returnType = toStrC(toUse);
+    string returnType = toStrC(What, "", i);
 
     if (returnType == "")
     {
@@ -316,40 +321,48 @@ string toStrCFunction(Type *What, const string &Name)
     return out;
 }
 
-string toStrCFunctionRef(Type *What, const string &Name)
+string toStrCFunctionRef(Type *What, const string &Name, const unsigned int &pos)
 {
     // pointer -> function -> ARGS -> maps -> RETURN_TYPE
     // RETURN_TYPE (*Name)(ARGS);
 
     parse_assert(Name != "");
     parse_assert(What != nullptr);
-    parse_assert(What->info == pointer);
-    parse_assert(What->next != nullptr);
-    parse_assert(What->next->info == function);
+    parse_assert((*What)[0].info == pointer);
+    parse_assert(What->size() > 1);
+    parse_assert((*What)[1].info == function);
+
+    if (pos >= What->size())
+    {
+        return "";
+    }
 
     string returnType = "";
     string arguments = "";
-    Type *cur = What->next;
     Type argType;
     int count = 0;
+
+    int i = pos + 1;
 
     // Then some number of args, possibly containing maps
     do
     {
-        if (cur->info == function)
+        typeNode &cur = (*What)[i];
+
+        if (cur.info == function)
         {
             count++;
         }
-        else if (cur->info == maps)
+        else if (cur.info == maps)
         {
             count--;
         }
-        else if (cur->info == var_name)
+        else if (cur.info == var_name)
         {
-            cur = cur->next;
+            i++;
             continue;
         }
-        else if (cur->info == join)
+        else if (cur.info == join)
         {
             // Append to arguments string
             if (arguments != "")
@@ -365,11 +378,11 @@ string toStrCFunctionRef(Type *What, const string &Name)
         else
         {
             // Type append to argType
-            argType.append(cur->info, cur->name);
+            argType.append(cur.info, cur.name);
         }
 
-        cur = cur->next;
-    } while (cur != nullptr && count != 0);
+        i++;
+    } while (i < What->size() && count != 0);
 
     // Final append
     if (argType != nullType)
@@ -386,13 +399,13 @@ string toStrCFunctionRef(Type *What, const string &Name)
     // (this is skipped past in the loop)
 
     // Then the return type is the remainder
-    if (cur == nullptr)
+    if (i >= What->size())
     {
         returnType = "void";
     }
     else
     {
-        returnType = toStrC(cur);
+        returnType = toStrC(What, "", i);
     }
 
     // Reconstruct out of partial strings
@@ -401,50 +414,51 @@ string toStrCFunctionRef(Type *What, const string &Name)
     return out;
 }
 
-string toStrC(Type *What, const string &Name)
+string toStrC(Type *What, const string &Name, const unsigned int &pos)
 {
     string out = "";
 
     // Safety check
-    if (What == nullptr)
+    if (What == nullptr || What->size() == 0)
     {
         return out;
     }
 
-    // cout << __FILE__ << ":" << __LINE__ << " calling '" << toStr(What) << "'\n";
+    if (pos >= What->size())
+    {
+        return "";
+    }
 
-    if (What->info == pointer &&
-        What->next != nullptr &&
-        What->next->info == function)
+    if ((*What)[pos].info == pointer && What->size() > 1 && (*What)[pos + 1].info == function)
     {
         return toStrCFunctionRef(What, Name);
     }
 
-    switch (What->info)
+    switch ((*What)[pos].info)
     {
     case atomic:
-        out += What->name;
-        out += toStrC(What->next);
+        out += (*What)[pos].name;
+        out += toStrC(What, "", pos + 1);
         break;
     case join:
         out += ",";
-        out += toStrC(What->next);
+        out += toStrC(What, "", pos + 1);
         break;
     case pointer:
-        out += toStrC(What->next);
+        out += toStrC(What, "", pos + 1);
         out += "*";
         break;
     case var_name:
         // Argument in function: Will be FOLLOWED by its type in Oak
         // hello: *map<string, int>;
         // map<string, int> *hello;
-        out += toStrC(What->next);
-        out += What->name;
+        out += toStrC(What, "", pos + 1);
+        out += (*What)[pos].name;
         break;
 
     case function:
     case maps:
-        out += toStrC(What->next);
+        out += toStrC(What, "", pos + 1);
         break;
 
     default:
@@ -653,7 +667,7 @@ string enumToC(const string &name)
     {
         string optionTypeStr = toStrC(&cur.options[optionName]);
 
-        if (cur.options[optionName].info == atomic && cur.options[optionName].name == "unit")
+        if (cur.options[optionName][0].info == atomic && cur.options[optionName][0].name == "unit")
         {
             // Unit struct; Single argument constructor
 

@@ -34,24 +34,22 @@ let main() -> i32
 {
     let test: wrapper;
 
-    let i: i32;
-    i = 0;
+    let i: i32 = 0;
     while (i < 10)
     {
-        (^test[i] = i);
-
+        (test[i] = i);
         i += 1;
     }
 
     i = 0;
     while (i < 10)
     {
-        print(^test[i]);
+        print(test[i]);
         print("\n");
 
         i += 1;
     }
 
-    test..Del();
+    test.Del();
     0
 }

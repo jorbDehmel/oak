@@ -49,13 +49,13 @@ pair<string, string> save(const stringstream &header, const stringstream &body, 
 pair<string, string> reconstructAndSave(const string &Name);
 
 // Return the C++ format-version of a type, to be followed by symbol name
-string toStrC(Type *What, const string &Name = "");
+string toStrC(Type *What, const string &Name = "", const unsigned int &pos = 0);
 
 // Return the C++ format-version of a function, INCLUDING symbol name
-string toStrCFunction(Type *What, const string &Name);
+string toStrCFunction(Type *What, const string &Name, const unsigned int &pos = 0);
 
 // Other type of C++ function; IE bool (*what)(const bool &What);
-string toStrCFunctionRef(Type *What, const string &Name);
+string toStrCFunctionRef(Type *What, const string &Name, const unsigned int &pos = 0);
 
 // Dump data to file
 void dump(const vector<string> &Lexed, const string &Where, const string &FileName,

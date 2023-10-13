@@ -43,10 +43,13 @@ void doSub(vector<string> &From, const int &i, const string &SubName, const bool
     // Reconstruct
     toAdd.push_back(SubName);
     toAdd.push_back("(");
+
+    /*
     if (!IsConst)
     {
         toAdd.push_back("@");
     }
+    */
 
     for (auto s : prevGroup)
     {

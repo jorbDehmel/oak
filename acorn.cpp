@@ -11,14 +11,6 @@ using namespace std;
 
 int main(const int argc, const char *argv[])
 {
-    // OS warning if someone manages to compile this for windows or macOS
-#if (defined(_WIN32) || defined(_WIN64) || defined(__APPLE__))
-    cout << tags::red_bold
-         << "Severe Warning! This version of Oak is designed for Linux!\n"
-         << "No other operating systems are supported!\n"
-         << tags::reset;
-#endif
-
     auto start = chrono::high_resolution_clock::now(), end = start, compStart = start, compEnd = start;
     unsigned long long int oakElapsed = 0;
 
@@ -636,10 +628,10 @@ int main(const int argc, const char *argv[])
         vector<string> passNames = {
             "__CONTENTS__",
             "lexing\t",
+            "macro defs",
             "preproc defs",
             "compile macros",
             "rules / dialect",
-            "macro defs",
             "macro calls",
             "op subs\t",
             "sequencing",

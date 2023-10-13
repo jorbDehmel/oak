@@ -52,9 +52,6 @@ let printf!(argc: i32, argv: ^^i8) -> i32
     package!("std");
     use_rule!("std");
 
-    // It should be recursion-safe to use this rule here
-    use_rule!("std");
-
     let cur_char: i32 = 0;
     let cur_arg: i32 = 2;
 
@@ -75,16 +72,7 @@ let printf!(argc: i32, argv: ^^i8) -> i32
             {
                 // Formatted print
                 print("print(");
-
-                let i: i32 = 0;
-                while (^Get(@Get(argv, cur_arg), i) != to_i8(0))
-                {
-                    let other_cur: i8 = ^Get(@Get(argv, cur_arg), i);
-                    print(other_cur);
-
-                    i += 1;
-                }
-
+                print(@Get(argv, cur_arg));
                 print(");\n");
 
                 cur_arg += 1;

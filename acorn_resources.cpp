@@ -181,7 +181,119 @@ void doFile(const string &From)
             phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
             curPhase++;
 
-            // C: Preproc definitions
+            // C: Scan for macro definitions and handle them
+            // This erases them from lexed
+            start = chrono::high_resolution_clock::now();
+
+            for (int i = 1; i + 1 < lexed.size(); i++)
+            {
+                if (lexed[i] != "!" && lexed[i].back() == '!' && lexed[i - 1] == "let")
+                {
+                    if (lexed[i + 1] != "=")
+                    {
+                        string name, contents;
+                        name = lexed[i];
+
+                        // Safety checks
+                        if (preprocDefines.count(name) != 0)
+                        {
+                            throw sequencing_error("Macro  '" + name + "' cannot overwrite definition of same name.");
+                        }
+                        else if (macros.count(name) != 0)
+                        {
+                            throw sequencing_error("Macro '" + name + "' cannot be overridden.");
+                        }
+
+                        contents = "let main(argc: i32, argv: ^^i8) -> i32 ";
+
+                        i--;
+                        lexed.erase(lexed.begin() + i); // Let
+                        lexed.erase(lexed.begin() + i); // Name
+
+                        while (lexed.size() >= i && lexed[i] != "{" && lexed[i] != ";")
+                        {
+                            lexed.erase(lexed.begin() + i);
+                        }
+
+                        if (lexed[i] == ";")
+                        {
+                            contents += "{ 0 }";
+                        }
+                        else
+                        {
+                            int count = 1;
+                            lexed.erase(lexed.begin() + i);
+                            contents += "\n{";
+
+                            while (count != 0)
+                            {
+                                if (lexed[i] == "{")
+                                {
+                                    count++;
+                                }
+                                else if (lexed[i] == "}")
+                                {
+                                    count--;
+                                }
+
+                                if (lexed[i].size() < 2 || lexed[i].substr(0, 2) != "//")
+                                {
+                                    contents += " " + lexed[i];
+                                }
+                                else
+                                {
+                                    contents += "\n";
+                                }
+
+                                lexed.erase(lexed.begin() + i);
+                            }
+                        }
+
+                        macros[name] = contents;
+                    }
+                    else
+                    {
+                        // Preproc definition; Not a full macro
+
+                        // Safety checks
+                        if (preprocDefines.count(lexed[i]) != 0)
+                        {
+                            throw sequencing_error("Preprocessor definition '" + lexed[i] + "' cannot be overridden.");
+                        }
+                        else if (macros.count(lexed[i]) != 0)
+                        {
+                            throw sequencing_error("Preprocessor definition '" + lexed[i] + "' cannot overwrite macro of same name.");
+                        }
+
+                        string name = lexed[i];
+
+                        // Erase as needed
+                        i--;
+                        lexed.erase(lexed.begin() + i); // Let
+                        lexed.erase(lexed.begin() + i); // Name!
+                        lexed.erase(lexed.begin() + i); // =
+
+                        // Scrape until next semicolon
+                        string contents = "";
+                        while (lexed[i] != ";")
+                        {
+                            contents.append(lexed[i]);
+                            lexed.erase(lexed.begin() + i);
+                        }
+
+                        lexed.erase(lexed.begin() + i); // ;
+
+                        // Insert
+                        preprocDefines[name] = contents;
+                    }
+                }
+            }
+
+            end = chrono::high_resolution_clock::now();
+            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+            curPhase++;
+
+            // D: Preproc definitions
             start = chrono::high_resolution_clock::now();
 
             preprocDefines["__LINE__"] = "1";
@@ -211,7 +323,7 @@ void doFile(const string &From)
             phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
             curPhase++;
 
-            // D: Scan for compiler macros; Do these first
+            // E: Scan for compiler macros; Do these first
             // This erases them from lexed
             start = chrono::high_resolution_clock::now();
             unsigned long long int recurseTime = 0;
@@ -363,74 +475,10 @@ void doFile(const string &From)
             phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count() - recurseTime;
             curPhase++;
 
-            // E: Rules
+            // F: Rules
             start = chrono::high_resolution_clock::now();
 
             doRules(lexed);
-
-            end = chrono::high_resolution_clock::now();
-            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-            curPhase++;
-
-            // F: Scan for macro definitions and handle them
-            // This erases them from lexed
-            start = chrono::high_resolution_clock::now();
-
-            for (int i = 1; i < lexed.size(); i++)
-            {
-                if (lexed[i] != "!" && lexed[i].back() == '!' && lexed[i - 1] == "let")
-                {
-                    string name, contents;
-                    name = lexed[i];
-
-                    contents = "let main(argc: i32, argv: ^^i8) -> i32 ";
-
-                    i--;
-                    lexed.erase(lexed.begin() + i); // Let
-                    lexed.erase(lexed.begin() + i); // Name
-
-                    while (lexed.size() >= i && lexed[i] != "{" && lexed[i] != ";")
-                    {
-                        lexed.erase(lexed.begin() + i);
-                    }
-
-                    if (lexed[i] == ";")
-                    {
-                        contents += "{ 0 }";
-                    }
-                    else
-                    {
-                        int count = 1;
-                        lexed.erase(lexed.begin() + i);
-                        contents += "\n{";
-
-                        while (count != 0)
-                        {
-                            if (lexed[i] == "{")
-                            {
-                                count++;
-                            }
-                            else if (lexed[i] == "}")
-                            {
-                                count--;
-                            }
-
-                            if (lexed[i].size() < 2 || lexed[i].substr(0, 2) != "//")
-                            {
-                                contents += " " + lexed[i];
-                            }
-                            else
-                            {
-                                contents += "\n";
-                            }
-
-                            lexed.erase(lexed.begin() + i);
-                        }
-                    }
-
-                    macros[name] = contents;
-                }
-            }
 
             end = chrono::high_resolution_clock::now();
             phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();

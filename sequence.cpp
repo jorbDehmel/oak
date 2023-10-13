@@ -8,11 +8,6 @@ GPLv3 held by author
 
 #include "sequence.hpp"
 
-// DEFINE FOR DEBUG ONLY
-#undef PRINT_EACH_LINE
-
-outputLanguageType outputLanguage = cpp;
-
 // Activates "dirty" mode, where mem alloc and free are allowed
 bool insideMethod = false;
 
@@ -363,18 +358,18 @@ sequence __createSequence(list<string> &From)
             Type tempType = temp.type;
             Type numType = numSeq.type;
 
-            sm_assert(tempType.info == pointer, "'alloc!' returns a pointer.");
-            sm_assert(tempType.next != nullptr, "'alloc!' received a malformed first argument.");
-            temp.type = *tempType.next;
+            sm_assert(tempType.size() > 0 && tempType[0].info == pointer, "'alloc!' returns a pointer.");
+            sm_assert(tempType.size() > 0, "'alloc!' received a malformed first argument.");
+
+            temp.type.pop_front();
 
             if (numType == nullType)
             {
                 num = "1";
-                numType.info = atomic;
-                numType.name = "u128";
+                numType = typeNode{atomic, "u128"};
             }
 
-            sm_assert(numType.info == atomic && numType.name == "u128", "'alloc!' takes 'u128', not '" + toStr(&numType) + "'.");
+            sm_assert(numType[0].info == atomic && numType[0].name == "u128", "'alloc!' takes 'u128', not '" + toStr(&numType) + "'.");
 
             out = getAllocSequence(temp.type, name, num);
 
@@ -413,8 +408,8 @@ sequence __createSequence(list<string> &From)
             string name = toC(temp);
 
             Type tempType = temp.type;
-            sm_assert(tempType.info == pointer, "'alloc!' returns a pointer.");
-            temp.type = *tempType.next;
+            sm_assert(tempType[0].info == pointer, "'alloc!' returns a pointer.");
+            temp.type.pop_front();
 
             out = getFreeSequence(name, false);
 
@@ -453,8 +448,8 @@ sequence __createSequence(list<string> &From)
             string name = toC(temp);
 
             Type tempType = temp.type;
-            sm_assert(tempType.info == pointer, "'alloc!' returns a pointer.");
-            temp.type = *tempType.next;
+            sm_assert(tempType[0].info == pointer, "'alloc!' returns a pointer.");
+            temp.type.pop_front();
 
             out = getFreeSequence(name, true);
 
@@ -490,11 +485,11 @@ sequence __createSequence(list<string> &From)
         // This is for the enum
         out.items.push_back(__createSequence(From));
 
-        sm_assert(out.items[0].type.info == atomic && enumData.count(out.items[0].type.name) != 0, out.raw + " statement argument must be enum. Instead, '" + toStr(&out.items[0].type) + "'");
+        sm_assert(out.items[0].type[0].info == atomic && enumData.count(out.items[0].type[0].name) != 0, out.raw + " statement argument must be enum. Instead, '" + toStr(&out.items[0].type) + "'");
         sm_assert(!From.empty(), "Missing statement after " + out.raw + "");
 
         string old = prevMatchTypeStr;
-        prevMatchTypeStr = out.items[0].type.name;
+        prevMatchTypeStr = out.items[0].type[0].name;
 
         // This is for the code chunk
         out.items.push_back(__createSequence(From));
@@ -842,7 +837,7 @@ sequence __createSequence(list<string> &From)
                 table[name].push_back(__multiTableSymbol{sequence{type, vector<sequence>(), atom, ""}, type});
 
                 // Call constructor (pointers and enums do not get constructors)
-                if (type.info != pointer && enumData.count(type.name) == 0)
+                if (type[0].info != pointer && enumData.count(type[0].name) == 0)
                 {
                     // Syntactically necessary
                     out.items.push_back(sequence{nullType, vector<sequence>(), atom, ";"});
@@ -856,7 +851,7 @@ sequence __createSequence(list<string> &From)
 
                     out.items.push_back(toAppend);
                 }
-                else if (type.info == pointer)
+                else if (type[0].info == pointer)
                 {
                     // Syntactically necessary
                     out.items.push_back(sequence{nullType, vector<sequence>(), atom, ";"});
@@ -907,9 +902,9 @@ sequence __createSequence(list<string> &From)
                 }
 
                 bool isSingleArg = true;
-                for (Type *ptr = &type; ptr != nullptr; ptr = ptr->next)
+                for (int ptr = 0; ptr < type.size(); ptr++)
                 {
-                    if (ptr->info == join)
+                    if (type[ptr].info == join)
                     {
                         isSingleArg = false;
                         break;
@@ -940,21 +935,22 @@ sequence __createSequence(list<string> &From)
                         // prepend New for all members
                         string structName;
 
-                        Type *cur = &argsWithType[0].second;
+                        // Type *cur = &argsWithType[0].second;
+                        int cur = 0;
 
-                        while (cur != nullptr && cur->info == pointer)
+                        while (cur < argsWithType[0].second.size() && argsWithType[0].second[cur].info == pointer)
                         {
-                            cur = cur->next;
+                            cur++;
                         }
 
-                        structName = cur->name;
+                        structName = argsWithType[0].second[cur].name;
 
                         for (auto var : structData[structName].members)
                         {
                             string varName = var.first;
 
                             // Special pointer case
-                            if (var.second.info == pointer)
+                            if (var.second[0].info == pointer)
                             {
                                 sequence seq;
                                 seq.info = atom;
@@ -965,7 +961,7 @@ sequence __createSequence(list<string> &From)
                             }
 
                             // Avoid performing on atomics
-                            else if (structData.count(var.second.name) != 0)
+                            else if (structData.count(var.second[0].name) != 0)
                             {
                                 sequence seq;
                                 seq.info = atom;
@@ -986,21 +982,22 @@ sequence __createSequence(list<string> &From)
                         // append Del for all members
                         string structName;
 
-                        Type *cur = &argsWithType[0].second;
+                        // Type *cur = &argsWithType[0].second;
+                        int cur = 0;
 
-                        while (cur != nullptr && cur->info == pointer)
+                        while (cur < argsWithType[0].second.size() && argsWithType[0].second[cur].info == pointer)
                         {
-                            cur = cur->next;
+                            cur++;
                         }
 
-                        structName = cur->name;
+                        structName = argsWithType[0].second[cur].name;
 
                         for (auto var : structData[structName].members)
                         {
                             string varName = var.first;
 
                             // Special pointer case
-                            if (var.second.info == pointer)
+                            if (var.second[0].info == pointer)
                             {
                                 sequence seq;
                                 seq.info = atom;
@@ -1011,7 +1008,7 @@ sequence __createSequence(list<string> &From)
                             }
 
                             // Avoid performing on atomics
-                            else if (structData.count(var.second.name) != 0)
+                            else if (structData.count(var.second[0].name) != 0)
                             {
                                 sequence seq;
                                 seq.info = atom;
@@ -1437,20 +1434,20 @@ Type getReturnType(const Type &T)
     Type temp(T);
 
     int count = 0;
-    for (Type *cur = &temp; cur != nullptr; cur = cur->next)
+    for (int cur = 0; cur < temp.size(); cur++)
     {
-        if (cur->info == function)
+        if (temp[cur].info == function)
         {
             count++;
         }
 
-        if (cur->info == maps)
+        if (temp[cur].info == maps)
         {
             count--;
 
             if (count == 0)
             {
-                Type out(*cur->next);
+                Type out(temp, cur + 1);
                 return out;
             }
         }
@@ -1466,25 +1463,26 @@ vector<pair<string, Type>> getArgs(Type &type)
     vector<pair<string, Type>> out;
     string curName = "";
     Type curType = nullType;
-    Type *cur = &type;
     int count = 0;
 
+    int cur = 0;
+
     // Dereference
-    while (cur != nullptr && cur->info == pointer)
+    while (cur < type.size() && type[cur].info == pointer)
     {
-        cur = cur->next;
+        cur++;
     }
 
     // Should now point to first 'function'
 
     // Do iteration
-    while (cur != nullptr)
+    while (cur < type.size())
     {
-        if (cur->info == function)
+        if (type[cur].info == function)
         {
             count++;
         }
-        else if (cur->info == maps)
+        else if (type[cur].info == maps)
         {
             count--;
 
@@ -1497,53 +1495,55 @@ vector<pair<string, Type>> getArgs(Type &type)
 
             // Skip to the end of the return type
             int subCount = 1;
-            curType.append(cur->info);
-            cur = cur->next;
-            while (cur != nullptr)
+            curType.append(type[cur].info);
+
+            cur++;
+
+            while (cur < type.size())
             {
-                if (cur->info == function)
+                if (type[cur].info == function)
                 {
                     subCount++;
                 }
-                else if (cur->info == maps)
+                else if (type[cur].info == maps)
                 {
                     subCount--;
                 }
 
                 if (subCount == 0)
                 {
-                    if (cur->info == maps || cur->info == join)
+                    if (type[cur].info == maps || type[cur].info == join)
                     {
                         break;
                     }
                 }
 
-                curType.append(cur->info, cur->name);
+                curType.append(type[cur].info, type[cur].name);
 
-                cur = cur->next;
+                cur++;
             }
 
             continue;
         }
 
-        if (count == 1 && cur->info == var_name)
+        if (count == 1 && type[cur].info == var_name)
         {
-            curName = cur->name;
+            curName = type[cur].name;
         }
-        else if (count == 1 && cur->info == join)
+        else if (count == 1 && type[cur].info == join)
         {
             out.push_back(make_pair(curName, curType));
             curName = "";
             curType = nullType;
         }
-        else if (count != 1 || cur->info != function)
+        else if (count != 1 || type[cur].info != function)
         {
             // Append to curType
-            curType.append(cur->info, cur->name);
+            curType.append(type[cur].info, type[cur].name);
         }
 
         // Increment at end
-        cur = cur->next;
+        cur++;
     }
 
     // Return
@@ -1584,9 +1584,8 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
         string followingC = "";
         Type type = resolveFunction(What, start, followingC);
 
-        sm_assert(type.info == pointer, "Cannot dereference non-pointer.");
-        Type temp = *type.next;
-        type = temp;
+        sm_assert(type[0].info == pointer, "Cannot dereference non-pointer.");
+        type.pop_front();
 
         c += "*" + followingC;
 
@@ -1807,54 +1806,57 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
 
             // Special case; Pointer array access
             if (name == "Get" && argTypes.size() == 2 &&
-                argTypes[0].info == pointer &&
-                argTypes[0].next != nullptr &&
-                argTypes[0].next->info == pointer)
+                argTypes[0][0].info == pointer &&
+                argTypes[0].size() > 1 &&
+                argTypes[0][1].info == pointer)
             {
                 c += argStrs[0] + "[" + argStrs[1] + "]";
 
-                return *argTypes[0].next;
+                return Type(argTypes[0], 1);
             }
 
             // Special case; Pointer copy
             else if (name == "Copy" && argTypes.size() == 2 &&
-                     argTypes[0].info == pointer &&
-                     argTypes[0].next != nullptr &&
-                     argTypes[0].next->info == pointer &&
-                     argTypes[0].next->next != nullptr &&
-                     argTypes[1].info == pointer &&
-                     argTypes[1].next != nullptr)
+                     argTypes[0].size() > 2 &&
+                     argTypes[0][0].info == pointer &&
+                     argTypes[0][1].info == pointer &&
+                     argTypes[1][0].info == pointer &&
+                     argTypes[1].size() > 1)
             {
                 // Ensure equality; If not, throw error
-                Type *left, *right;
 
-                left = argTypes[0].next->next;
-                right = argTypes[1].next;
+                int left, right;
+                left = 2;
+                right = 1;
+
+                // left = argTypes[0][0].next->next;
+                // right = argTypes[1][0].next;
 
                 bool isValid = true;
-                while (left != nullptr && right != nullptr)
+                while (left < argTypes[0].size() && right < argTypes[1].size())
                 {
-                    // DO ITERATION HERE
-                    while (left->info == var_name)
+                    while (argTypes[0][left].info == var_name)
                     {
-                        left = left->next;
-                    }
-                    while (right->info == var_name)
-                    {
-                        right = right->next;
+                        left++;
                     }
 
-                    if (left->info != right->info || left->name != right->name)
+                    while (argTypes[1][right].info == var_name)
+                    {
+                        right++;
+                    }
+
+                    if (argTypes[0][left].info != argTypes[1][right].info ||
+                        argTypes[0][left].name != argTypes[1][right].name)
                     {
                         isValid = false;
                         break;
                     }
 
-                    left = left->next;
-                    right = right->next;
+                    left++;
+                    right++;
                 }
 
-                sm_assert(isValid, "Cannot ptr '" + toStr(&argTypes[1]) + "' to '" + toStr(&argTypes[0]) + "'.");
+                sm_assert(isValid, "Cannot ptr copy '" + toStr(&argTypes[1]) + "' to '" + toStr(&argTypes[0]) + "'.");
 
                 // Turn to C
                 c += "(*" + argStrs[0] + ") = " + argStrs[1];
@@ -1873,9 +1875,9 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
             for (int j = 0; j < candidates.size(); j++)
             {
                 Type curType = candidates[j].type;
-                while (curType != nullType && curType.info == pointer)
+                while (curType != nullType && curType[0].info == pointer)
                 {
-                    popTypeFront(curType);
+                    curType.pop_front();
                 }
 
                 auto candArgs = getArgs(curType);
@@ -1960,11 +1962,14 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
                 {
                     if (getReturnType(candidates[j].type) != type)
                     {
-                        throw sequencing_error("Function call '" + name + "' has two or more viable candidates.");
+                        throw sequencing_error("In function call '" + name + "': Cannot overload by return type alone.");
                     }
                 }
 
-                // Now safe; Has been verified that all candidates have identical types
+                // TODO
+                // Sort the candidates by access level (number of referencing needed, fewest first) here
+
+                // Now safe; Has been verified that all candidates have identical return types
             }
 
             // Single candidate
@@ -1978,7 +1983,50 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
                     c += ", ";
                 }
 
-                c += argStrs[j];
+                // do referencing stuff here for each argument
+
+                int numDeref = 0;
+                // determine actual number here
+
+                auto candArgs = getArgs(candidates[0].type);
+
+                // Type *candCursor = &candArgs[j].second;
+                // Type *argCursor = &argTypes[j];
+
+                int candCursor = 0, argCursor = 0;
+
+                while (argCursor < argTypes[j].size() && argTypes[j][argCursor].info == pointer)
+                {
+                    argCursor++;
+                    numDeref++;
+                }
+
+                while (candCursor < candArgs[j].second.size() && candArgs[j].second[candCursor].info == pointer)
+                {
+                    candCursor++;
+                    numDeref--;
+                }
+
+                if (numDeref > 0)
+                {
+                    for (int k = 0; k < numDeref; k++)
+                    {
+                        c.append("*");
+                    }
+                }
+                else if (numDeref == -1)
+                {
+                    for (int k = 0; k < -numDeref; k++)
+                    {
+                        c.append("&");
+                    }
+                }
+                else if (numDeref != 0)
+                {
+                    throw sequencing_error("Illegal multiple automatic referencing in function call '" + name + "' (only auto-deref or single auto-ref is allowed).");
+                }
+
+                c += "(" + argStrs[j] + ")";
             }
             c += ")";
 
@@ -2013,12 +2061,11 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
         while (start + 1 < What.size() && What[start + 1] == ".")
         {
             // Auto-dereference pointers (. to -> automatically)
-            if (type.info == pointer)
+            if (type[0].info == pointer)
             {
-                while (type.info == pointer)
+                while (type[0].info == pointer)
                 {
-                    Type temp = *type.next;
-                    type = temp;
+                    type.pop_front();
 
                     c = "*" + c;
                 }
@@ -2029,8 +2076,8 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
             string structName;
             try
             {
-                sm_assert(type.info == atomic, "Error during type trimming for member access; Could not find struct name.");
-                structName = type.name;
+                sm_assert(type[0].info == atomic, "Error during type trimming for member access; Could not find struct name.");
+                structName = type[0].name;
 
                 sm_assert(structData.count(structName) != 0, "Struct type '" + structName + "' does not exist.");
                 sm_assert(!structData[structName].erased, "Struct '" + structName + "' exists, but is erased (private).");
@@ -2073,183 +2120,6 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
     // unreachable
 }
 
-// Ignores all var_names
-bool typesAreSame(Type *A, Type *B)
-{
-    Type *left, *right;
-    left = A, right = B;
-
-    while (left != nullptr && right != nullptr)
-    {
-        while (left != nullptr && left->info == var_name)
-        {
-            left = left->next;
-        }
-
-        while (right != nullptr && right->info == var_name)
-        {
-            right = right->next;
-        }
-
-        if (left == nullptr || right == nullptr)
-        {
-            break;
-        }
-
-        if (left->info != right->info)
-        {
-            // Failure
-            return false;
-        }
-        else
-        {
-            if (left->info == atomic && left->name != right->name)
-            {
-                // Failure
-                return false;
-            }
-        }
-
-        // Success; Move on
-        left = left->next;
-        right = right->next;
-    }
-
-    return true;
-}
-
-Type checkLiteral(const string &From)
-{
-    // Check as bool
-    if (From == "true" || From == "false")
-    {
-        return Type(atomic, "bool");
-    }
-
-    // Check as string
-    else if ((From.front() == '"' && From.back() == '"') || (From.front() == '\'' && From.back() == '\''))
-    {
-        return Type(atomic, "str");
-    }
-
-    // Check as numbers
-    bool canBeDouble = true;
-    for (char c : From)
-    {
-        if (!('0' <= c && c <= '9') && c != '-' && c != '.')
-        {
-            canBeDouble = false;
-            break;
-        }
-    }
-
-    if (canBeDouble)
-    {
-        if (From.find(".") == string::npos)
-        {
-            // Int
-
-            // Check size
-            long long val = stoll(From);
-
-            if (abs(val) <= __INT_MAX__)
-            {
-                return Type(atomic, "i32");
-            }
-            else if (abs(val) <= __LONG_MAX__)
-            {
-                return Type(atomic, "i64");
-            }
-            else
-            {
-                return Type(atomic, "i128");
-            }
-        }
-        else
-        {
-            // Float
-            return Type(atomic, "f64");
-        }
-    }
-
-    // Default: Not a literal
-    return nullType;
-}
-
-/*
-Erases any non-function symbols which were not present
-in the original table. However, skips all functions.
-If not contradicted by the above rules, bases off of
-the current table (not backup).
-*/
-string restoreSymbolTable(multiSymbolTable &backup)
-{
-    string output = "";
-
-    multiSymbolTable newTable;
-    for (auto p : table)
-    {
-        for (auto s : p.second)
-        {
-            // Functions are always added- the logic for
-            // this is handled elsewhere.
-            if (s.type.info == function)
-            {
-                // Add to new table for sure
-                newTable[p.first];
-                newTable[p.first].push_back(s);
-            }
-
-            // Variables are more complicated
-            else
-            {
-                // Check for presence in backup
-                bool present = false;
-                for (auto cand : backup[p.first])
-                {
-                    if (cand.type == s.type)
-                    {
-                        present = true;
-                        break;
-                    }
-                }
-
-                // If was present in backup, add for sure
-                if (present)
-                {
-                    // Add to table for sure
-                    newTable[p.first];
-                    newTable[p.first].push_back(s);
-                }
-
-                // Otherwise, do not add (do destructor literal check)
-                else
-                {
-                    // Variable falling out of scope
-                    // Do not call Del if is atomic literal
-                    if (!(s.type.info == atomic && (s.type.name == "u8" || s.type.name == "i8" ||
-                                                    s.type.name == "u16" || s.type.name == "i16" ||
-                                                    s.type.name == "u32" || s.type.name == "i32" ||
-                                                    s.type.name == "u64" || s.type.name == "i64" ||
-                                                    s.type.name == "u128" || s.type.name == "i128" ||
-                                                    s.type.name == "f32" || s.type.name == "f64" ||
-                                                    s.type.name == "f128" || s.type.name == "bool" ||
-                                                    s.type.name == "str")) &&
-                        s.type.info != function && s.type.info != pointer &&
-                        p.first != "")
-                    {
-                        output += "Del(&" + p.first + ");\n";
-                    }
-                }
-            }
-        }
-    }
-
-    table = newTable;
-
-    return output;
-}
-
 /////////////////////////////////////////
 
 // Can throw errors (IE malformed definitions)
@@ -2283,60 +2153,43 @@ void addEnum(const vector<string> &FromIn)
     // Scrape generics here (and mangle)
     vector<string> curGen;
     vector<vector<string>> generics;
+
     int count = 0;
-
-    if (From[i] != ":" && From[i] != "{")
+    while (i < From.size() && From[i] != ":" && From[i] != "{")
     {
-        do
+        if (From[i] == "<")
         {
-            if (From[i] == "<")
+            count++;
+
+            if (count == 1)
             {
-                count++;
-
-                if (count > 1)
-                {
-                    curGen.push_back(From[i]);
-                }
+                i++;
+                continue;
             }
-            else if (From[i] == ">")
-            {
-                count--;
+        }
 
-                if (count > 0)
-                {
-                    curGen.push_back(From[i]);
-                }
+        else if (From[i] == ">")
+        {
+            count--;
 
-                generics.push_back(curGen);
-                curGen.clear();
-            }
-            else if (From[i] == "," && count == 1)
+            if (count == 0)
             {
                 generics.push_back(curGen);
-                curGen.clear();
             }
-            else
-            {
-                curGen.push_back(From[i]);
-            }
-
-            i++;
-        } while (i < From.size() && count != 0);
-
-        if (generics.size() != 0 && generics.front().size() == 1 && generics.front().front() == "<")
-        {
-            generics.erase(generics.begin());
         }
 
-        if (generics.size() != 0 && generics.back().size() == 1 && generics.back().front() == ">")
+        else if (From[i] == "<")
         {
-            generics.pop_back();
+            count++;
         }
 
-        if (generics.size() != 0)
-        {
-            name = mangleEnum(name, generics);
-        }
+        curGen.push_back(From[i]);
+        i++;
+    }
+
+    if (generics.size() != 0)
+    {
+        name = mangleStruct(name, generics);
     }
 
     if (enumData.count(name) != 0 || structData.count(name) != 0)
@@ -2460,7 +2313,7 @@ void addEnum(const vector<string> &FromIn)
     string enumTypeStr = name;
     for (auto optionName : cur.order)
     {
-        if (cur.options[optionName].info == atomic && cur.options[optionName].name == "unit")
+        if (cur.options[optionName][0].info == atomic && cur.options[optionName][0].name == "unit")
         {
             // Unit struct; Single argument constructor
 

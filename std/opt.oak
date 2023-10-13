@@ -32,9 +32,9 @@ let Copy<t>(self: ^opt<t>, other: opt<t>) -> void
     }
 }
 
-let unwrap<t>(self: ^opt<t>) -> ^t
+let unwrap<t>(self: ^opt<t>) -> t
 {
-    let out: ^t;
+    let out: t;
 
     match (^self)
     {

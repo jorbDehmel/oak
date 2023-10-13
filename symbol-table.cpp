@@ -56,11 +56,6 @@ Type toType(const vector<string> &WhatIn)
             throw_assert(out != nullType);
 
             // Append to back
-            Type *cursor = &out;
-            while (cursor->next != nullptr)
-            {
-                cursor = cursor->next;
-            }
 
             // Collect generics
             vector<string> curGen;
@@ -117,7 +112,7 @@ Type toType(const vector<string> &WhatIn)
             vector<string> temp;
             temp.push_back("struct");
 
-            cursor->name = instantiateGeneric(cursor->name, generics, temp);
+            out[out.size() - 1].name = instantiateGeneric(out[out.size() - 1].name, generics, temp);
         }
         else if (cur == ",")
         {
@@ -148,6 +143,17 @@ Type toType(const vector<string> &WhatIn)
             out.append(atomic, cur);
         }
     }
+
+    /*
+    cout << DB_INFO << "Input:\n\t";
+    for (const auto &a : What)
+    {
+        cout << a << ' ';
+    }
+    cout << "\n"
+         << "Output:\n\t";
+    cout << toStr(&out) << '\n';
+    */
 
     return out;
 }
@@ -327,7 +333,7 @@ void addStruct(const vector<string> &FromIn)
                 structData[name].order.push_back(varName);
 
                 // Special pointer case
-                if (toAdd.info == pointer)
+                if (toAdd[0].info == pointer)
                 {
                     sequence seq;
                     seq.info = atom;
@@ -359,4 +365,78 @@ void addStruct(const vector<string> &FromIn)
     }
 
     return;
+}
+
+/*
+Erases any non-function symbols which were not present
+in the original table. However, skips all functions.
+If not contradicted by the above rules, bases off of
+the current table (not backup).
+*/
+string restoreSymbolTable(multiSymbolTable &backup)
+{
+    string output = "";
+
+    multiSymbolTable newTable;
+    for (auto p : table)
+    {
+        for (auto s : p.second)
+        {
+            // Functions are always added- the logic for
+            // this is handled elsewhere.
+            if (s.type[0].info == function)
+            {
+                // Add to new table for sure
+                newTable[p.first];
+                newTable[p.first].push_back(s);
+            }
+
+            // Variables are more complicated
+            else
+            {
+                // Check for presence in backup
+                bool present = false;
+                for (auto cand : backup[p.first])
+                {
+                    if (cand.type == s.type)
+                    {
+                        present = true;
+                        break;
+                    }
+                }
+
+                // If was present in backup, add for sure
+                if (present)
+                {
+                    // Add to table for sure
+                    newTable[p.first];
+                    newTable[p.first].push_back(s);
+                }
+
+                // Otherwise, do not add (do destructor literal check)
+                else
+                {
+                    // Variable falling out of scope
+                    // Do not call Del if is atomic literal
+                    if (!(s.type[0].info == atomic && (s.type[0].name == "u8" || s.type[0].name == "i8" ||
+                                                       s.type[0].name == "u16" || s.type[0].name == "i16" ||
+                                                       s.type[0].name == "u32" || s.type[0].name == "i32" ||
+                                                       s.type[0].name == "u64" || s.type[0].name == "i64" ||
+                                                       s.type[0].name == "u128" || s.type[0].name == "i128" ||
+                                                       s.type[0].name == "f32" || s.type[0].name == "f64" ||
+                                                       s.type[0].name == "f128" || s.type[0].name == "bool" ||
+                                                       s.type[0].name == "str")) &&
+                        s.type[0].info != function && s.type[0].info != pointer &&
+                        p.first != "")
+                    {
+                        output += "Del(&" + p.first + ");\n";
+                    }
+                }
+            }
+        }
+    }
+
+    table = newTable;
+
+    return output;
 }

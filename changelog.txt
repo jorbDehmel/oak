@@ -8,6 +8,11 @@ TODO:
 Acorn Version   |          |
 (Newest at top) | Date     | Justification
 ----------------|----------|-----------------------------------------
+0.1.0           | 10/12/23 | Large bug fixes, revamped types for
+                |          | better stability. Also reorganized
+                |          | phases for macro bug fixes. Also, added
+                |          | automatic dereference and referencing.
+                |          |
 0.0.20          | 10/9/23  | Fixed nested generics, automatic calls
                 |          | to New and Del.
                 |          |

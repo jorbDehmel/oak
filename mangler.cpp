@@ -1,63 +1,5 @@
 #include "mangler.hpp"
 
-/*
-// Generic instantiation can become a new pass before sequencing
-
-let node<t>: struct
-{
-    data: t,
-    node: ^node<t>,
-}
-
-let get_data<t>(self: ^node<t>) -> t
-{
-    self.data
-}
-
-let main() -> i32
-{
-    // Implicitly calls instantiator
-    let head: node<i32>;
-
-    get_data<i32>(head);
-}
-
-// Becomes:
-
-// node<t> moved exclusively to template table
-// get_data<t> moved exclusively to template table
-
-let main() -> i32
-{
-    let head: node<i32>;
-    get_data<i32>(head);
-}
-
-// Calls instantiator!
-
-// Retrieved node<t>, made node<i32>
-let node_GEN_i32_ENDGEN: struct
-{
-    data: i32,
-    node: ^node_GEN_i32_ENDGEN,
-}
-
-// Retrieved get_data<t>, made get_data<i32>
-let get_data_GEN_i32_ENDGEN(self: ^node_GEN_i32_ENDGEN) -> i32
-{
-    self.data
-}
-
-let main() -> i32
-{
-    let head: node_GEN_i32_ENDGEN;
-    get_data_GEN_i32_ENDGEN(head);
-}
-
-// Now resolvable in sequencing!
-
-*/
-
 string mangleStruct(const string &name, const vector<vector<string>> &generics)
 {
     if (generics.size() == 0)
@@ -79,7 +21,7 @@ string mangleStruct(const string &name, const vector<vector<string>> &generics)
             string s = mangle(raw);
             outputParts.push_back(s);
 
-            if (i + 1 < generics.size() && s != "PTR" && s != "GEN" && s != "ENDGEN" && s != "JOIN")
+            if (i + 1 < generics.size() && s != "PTR" && s != "GEN" && s != "ENDGEN" && s != "JOIN" && s != "")
             {
                 outputParts.push_back("JOIN");
             }
@@ -113,9 +55,9 @@ string mangleType(Type &type)
 {
     vector<string> outputParts;
 
-    for (Type *cur = &type; cur != nullptr; cur = cur->next)
+    for (int i = 0; i < type.size(); i++)
     {
-        switch (cur->info)
+        switch (type[i].info)
         {
         case pointer:
             outputParts.push_back("PTR");
@@ -133,7 +75,7 @@ string mangleType(Type &type)
             outputParts.push_back("TYPE");
             break;
         default:
-            outputParts.push_back(cur->name);
+            outputParts.push_back(type[i].name);
         }
     }
 
@@ -207,7 +149,7 @@ string mangle(const vector<string> &what)
         {
             outputParts.push_back("ENDGEN");
         }
-        else
+        else if (s != "")
         {
             outputParts.push_back(s);
         }

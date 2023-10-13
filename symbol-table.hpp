@@ -89,4 +89,12 @@ string instantiateGeneric(const string &what,
                           const vector<vector<string>> &genericSubs,
                           const vector<string> &typeVec);
 
+/*
+Erases any non-function symbols which were not present
+in the original table. However, skips all functions.
+If not contradicted by the above rules, bases off of
+the current table (not backup).
+*/
+string restoreSymbolTable(multiSymbolTable &backup);
+
 #endif

@@ -53,16 +53,6 @@ non-sequential parser.
 
 using namespace std;
 
-// Output language options
-enum outputLanguageType
-{
-    cpp,
-    // llvm, // Eventually, but not yet
-};
-
-// The specific output language selected
-extern outputLanguageType outputLanguage;
-
 // Globals
 extern const set<string> specials;
 extern unsigned long long int curLine;
