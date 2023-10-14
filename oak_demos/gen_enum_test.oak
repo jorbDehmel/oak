@@ -30,7 +30,7 @@ let main() -> i32
 
     print(inst);
 
-    inst..wrap_some(123);
+    inst.wrap_some(123);
 
     print(inst);
 

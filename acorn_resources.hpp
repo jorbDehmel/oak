@@ -30,11 +30,11 @@ GPLv3 held by author
 #include "tags.hpp"
 #include "sizer.hpp"
 
-#define NUM_PHASES 9
+#define NUM_PHASES 10
 
 using namespace std;
 
-#define VERSION "0.1.0"
+#define VERSION "0.1.1"
 #define LICENSE "GPLv3"
 #define INFO "jdehmel@outlook.com"
 
@@ -71,9 +71,10 @@ const string helpText = "Acorn - Oak Standard Translator\n" DASHED_LINE
                         " -t    | --translate | Produce C++ files\n"
                         " -u    | --dump      | Save dump files\n"
                         " -v    | --version   | Show version\n"
-                        " -w    | --new       | Create a new package\n";
+                        " -w    | --new       | Create a new package\n"
+                        " -x    | --syntax    | Ignore syntax errors\n";
 
-extern bool debug, compile, link, pretty, alwaysDump, manual;
+extern bool debug, compile, doLink, pretty, alwaysDump, manual, ignoreSyntaxErrors;
 extern set<string> visitedFiles, cppSources, objects, cflags;
 extern map<string, string> preprocDefines;
 extern vector<unsigned long long> phaseTimes;
@@ -85,5 +86,6 @@ void doFile(const string &From);
 void prettify(const string &Filename);
 
 void makePackage(const string &Name);
+void ensureSyntax(const string &text);
 
 #endif

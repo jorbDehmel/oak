@@ -5,7 +5,6 @@ package!("std");
 use_rule!("std");
 include!("std/thread_inter.oak");
 
-// This method MUST be overloaded in order for threads to function
 let call() -> void
 {
     let counter: i32;
@@ -40,17 +39,17 @@ let main() -> i32
     let d: thread;
     let e: thread;
 
-    a..start(@call);
-    b..start(@mega_call);
-    c..start(@call);
-    d..start(@call);
-    e..start(@call);
+    a.start(@call);
+    b.start(@mega_call);
+    c.start(@call);
+    d.start(@call);
+    e.start(@call);
     
-    a..join();
-    b..join();
-    c..join();
-    d..join();
-    e..join();
+    a.join();
+    b.join();
+    c.join();
+    d.join();
+    e.join();
 
     0
 }

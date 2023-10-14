@@ -51,11 +51,11 @@ let Get<t>(self: ^arr<t>, index: u128) -> opt<^t>
 
     if index < self.size
     {
-        out..wrap_some(Get(@self.data, index));
+        out.wrap_some(Get(@self.data, index));
     }
     else
     {
-        out..wrap_none();
+        out.wrap_none();
     }
 
     out
@@ -67,7 +67,7 @@ let main() -> i32
     a = to_u128(5);
 
     let result: opt<^i32>;
-    result = a..Get(to_u128(1));
+    result = a.Get(to_u128(1));
     match (result)
     {
         case some(data)
@@ -80,7 +80,7 @@ let main() -> i32
         }
     }
 
-    result = a..Get(to_u128(1));
+    result = a.Get(to_u128(1));
     match (result)
     {
         case some(data)

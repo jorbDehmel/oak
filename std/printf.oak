@@ -37,7 +37,8 @@ let main() -> i32
 
 `Output`:
 ```
-Variable i is 123, j is 1.234, and some text is 'some text here'.
+Variable i is 123, j is 1.234, and some text is \
+'some text here'.
 ```
 
 You can escape this behaviour for a literal
@@ -105,7 +106,8 @@ let printf!(argc: i32, argv: ^^i8) -> i32
                 }
             }
 
-            // If next is %, do not print the escape character. Otherwise, do.
+            // If next is %, do not print the escape character.
+            // Otherwise, do.
         }
         else if (cur != to_i8("\""))
         {

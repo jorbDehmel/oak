@@ -2,73 +2,86 @@ Acorn Oak compiler changelog
 Jordan Dehmel, jdehmel@outlook.com
 github.com/jorbDehmel/oak
 
-TODO:
-- Fix strings
-
-Acorn Version   |          |
-(Newest at top) | Date     | Justification
-----------------|----------|-----------------------------------------
+Acorn Version   | Date     | Justification
+----------------|----------|------------------------------------
+0.1.1           | 10/13/23 | Added syntax errors and the -x flag
+                |          | to disable them. Update std.od
+                |          | file. Removed the '..' rule for
+                |          | mutable methods, since the
+                |          | distinction is no longer necessary.
+                |          |
 0.1.0           | 10/12/23 | Large bug fixes, revamped types for
                 |          | better stability. Also reorganized
-                |          | phases for macro bug fixes. Also, added
-                |          | automatic dereference and referencing.
+                |          | phases for macro bug fixes. Also,
+                |          | added automatic dereference and
+                |          | referencing.
                 |          |
-0.0.20          | 10/9/23  | Fixed nested generics, automatic calls
-                |          | to New and Del.
+0.0.20          | 10/9/23  | Fixed nested generics, automatic
+                |          | calls to New and Del.
                 |          |
-0.0.19          | 10/7/23  | Added automatic calls to New and Del to
-                |          | all struct members.
+0.0.19          | 10/7/23  | Added automatic calls to New and
+                |          | Del to all struct members.
                 |          |
-0.0.18          | 10/3/23  | Added panics for unrecoverable errors.
-                |          | Misc bug fixes.
+0.0.18          | 10/3/23  | Added panics for unrecoverable
+                |          | errors. Misc bug fixes.
                 |          |
-0.0.17          | 9/19/23  | Redid template instantiator calls for
-                |          | more specificity and less redundancy.
+0.0.17          | 9/19/23  | Redid template instantiator calls
+                |          | for more specificity and less
+                |          | redundancy.
                 |          |
-0.0.16          | 9/15/23  | Added needs blocks for generic structs.
+0.0.16          | 9/15/23  | Added needs blocks for generic
+                |          | structs.
                 |          |
-0.0.15          | 9/12/23  | Many large bug fixes for generics. Added
-                |          | inline template instantiation.
+0.0.15          | 9/12/23  | Many large bug fixes for generics.
+                |          | Added inline template
+                |          | instantiation.
                 |          |
 0.0.14          | 9/11/23  | Fixed bug with overloaded functions
-                |          | falling out of scope upon redefinition.
+                |          | falling out of scope upon
+                |          | redefinition.
                 |          |
-0.0.13          | 9/7/23   | Modernized generics (reintroduced). Also
-                |          | added mangling, setting scene for lower
-                |          | level translations later on.
+0.0.13          | 9/7/23   | Modernized generics (reintroduced).
+                |          | Also added mangling, setting scene
+                |          | for lower level translations later
+                |          | on.
                 |          |
-0.0.12          | 9/4/23   | Killed generics again, pending a future
-                |          | overhaul. Also revamped destructor and
-                |          | automatic constructor calls.
+0.0.12          | 9/4/23   | Killed generics again, pending a
+                |          | future overhaul. Also revamped
+                |          | destructor and automatic
+                |          | constructor calls.
                 |          |
-0.0.11          | 9/1/23   | Added std/error.oak for runtime errors.
-                |          | (Note: Real exceptions are not allowed).
+0.0.11          | 9/1/23   | Added std/error.oak for runtime
+                |          | errors. (Note: Real exceptions are
+                |          | not allowed).
                 |          |
-0.0.10          | 8/31/23  | Added caveat that New and Del must be
-                |          | single-argument. Also added the multi
-                |          | argument copy constructor syntax
-                |          | a = (b, c, d);
+0.0.10          | 8/31/23  | Added caveat that New and Del must
+                |          | be single-argument. Also added the
+                |          | multi argument copy constructor
+                |          | syntax a = (b, c, d);
                 |          |
-0.0.9           | 8/18/23  | Added enums and match, case, and default
-                |          | statements.
+0.0.9           | 8/18/23  | Added enums and match, case, and
+                |          | default statements.
                 |          |
-0.0.8           | 8/15/23  | Fixed bug with struct member order in
-                |          | interfacial files.
+0.0.8           | 8/15/23  | Fixed bug with struct member order
+                |          | in interfacial files.
                 |          |
 0.0.7           | 8/8/23   | Added function pointers.
                 |          |
 0.0.6           | 8/8/23   | Added std/string.oak, fixed alloc!
                 |          |
-0.0.5           | 8/6/23   | Fixed bug with templated functions and
-                |          | recursion.
+0.0.5           | 8/6/23   | Fixed bug with templated functions
+                |          | and recursion.
                 |          |
 0.0.4           | 8/5/23   | Added multithreading file in std.
                 |          |
 0.0.3           | 8/4/23   | Fixed basic generic structs and
                 |          | recursive functions.
                 |          |
-0.0.2           | 8/3/23   | Fixed heap memory, macros, math, and
-                |          | finished rules. Basics are laid.
+0.0.2           | 8/3/23   | Fixed heap memory, macros, math,
+                |          | and finished rules. Basics are
+                |          | laid.
                 |          |
-0.0.1           | 7/28/23  | Initialization of changelog - NOT start
-                |          | of project.
+0.0.1           | 7/28/23  | Initialization of changelog - NOT
+                |          | start of project.
+----------------|----------|------------------------------------
+Acorn Version   | Date     | Justification

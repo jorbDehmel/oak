@@ -11,11 +11,11 @@ let main() -> i32
     let start: ns;
     let end: ns;
 
-    start..now();
+    start.now();
 
     sdl_delay(100);
 
-    end..now();
+    end.now();
 
     let elapsed: i128;
     elapsed = count(@start, @end);

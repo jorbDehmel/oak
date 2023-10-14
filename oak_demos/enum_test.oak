@@ -32,7 +32,7 @@ let main() -> i32
     let to_wrap: a_data;
     to_wrap.data = to_i128(5);
 
-    obj..wrap_a(to_wrap);
+    obj.wrap_a(to_wrap);
 
     match (obj)
     {

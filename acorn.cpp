@@ -60,22 +60,22 @@ int main(const int argc, const char *argv[])
 
                         if (noSave)
                         {
-                            compile = link = false;
+                            compile = doLink = false;
                         }
                     }
                     else if (cur == "--translate")
                     {
-                        noSave = compile = link = false;
+                        noSave = compile = doLink = false;
                     }
                     else if (cur == "--compile")
                     {
                         compile = true;
-                        noSave = link = false;
+                        noSave = doLink = false;
                     }
                     else if (cur == "--link")
                     {
                         noSave = false;
-                        compile = link = true;
+                        compile = doLink = true;
                     }
                     else if (cur == "--clean")
                     {
@@ -148,6 +148,10 @@ int main(const int argc, const char *argv[])
                     {
                         alwaysDump = !alwaysDump;
                     }
+                    else if (cur == "--syntax")
+                    {
+                        ignoreSyntaxErrors = !ignoreSyntaxErrors;
+                    }
                     else if (cur == "--new")
                     {
                         if (i + 1 >= argc)
@@ -179,7 +183,7 @@ int main(const int argc, const char *argv[])
                         {
                         case 'c':
                             compile = true;
-                            noSave = link = false;
+                            noSave = doLink = false;
                             break;
                         case 'd':
                             debug = !debug;
@@ -220,7 +224,7 @@ int main(const int argc, const char *argv[])
                             break;
                         case 'l':
                             noSave = false;
-                            compile = link = true;
+                            compile = doLink = true;
                             break;
                         case 'm':
                             manual = !manual;
@@ -230,7 +234,7 @@ int main(const int argc, const char *argv[])
 
                             if (noSave)
                             {
-                                compile = link = false;
+                                compile = doLink = false;
                             }
                             break;
                         case 'o':
@@ -296,7 +300,7 @@ int main(const int argc, const char *argv[])
                             i++;
                             break;
                         case 't':
-                            noSave = compile = link = false;
+                            noSave = compile = doLink = false;
                             break;
                         case 'u':
                             alwaysDump = !alwaysDump;
@@ -315,6 +319,9 @@ int main(const int argc, const char *argv[])
                             makePackage(argv[i + 1]);
 
                             i++;
+                            break;
+                        case 'x':
+                            ignoreSyntaxErrors = !ignoreSyntaxErrors;
                             break;
 
                         default:
@@ -439,7 +446,7 @@ int main(const int argc, const char *argv[])
                     objects.insert(source + ".o");
                 }
 
-                if (link)
+                if (doLink)
                 {
                     if (debug)
                     {
@@ -626,6 +633,7 @@ int main(const int argc, const char *argv[])
              << tags::reset;
 
         vector<string> passNames = {
+            "syntax check",
             "__CONTENTS__",
             "lexing\t",
             "macro defs",

@@ -1,0 +1,33 @@
+/*
+A demonstration using the standard Oak dialect
+Passed Oct 13, 23
+Not part of the standard Oak test suite.
+*/
+
+package!("std");
+
+let obj: struct
+{
+    a: i32,
+}
+
+let Copy(self: ^obj, what: i32)
+{
+    self.a = what;
+}
+
+let method(self: ^obj)
+{
+    print(self.a);
+    print("\n");
+}
+
+let main() -> i32
+{
+    print("Hello, there!\n");
+
+    let inst: obj = 5;
+    inst.method();
+
+    0
+}

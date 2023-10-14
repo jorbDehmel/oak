@@ -26,10 +26,10 @@ let Del(self: ^test) -> void
 let main() -> i32
 {
     let a: test;
-    a..Del();
+    a.Del();
 
     let b: test;
-    b..Del();
+    b.Del();
 
     0
 }

@@ -22,7 +22,13 @@ let main() -> i32
 
     let event: sdl_event;
     let rect: sdl_rect;
-    rect..Copy(to_u64(Div(w, 2)), to_u64(h / 2), to_u64(8), to_u64(8));
+
+    rect.Copy(to_u64(
+        Div(w, 2)),
+        to_u64(h / 2),
+        to_u64(8),
+        to_u64(8)
+    );
 
     let start: i32;
     let end: i32;
@@ -35,21 +41,21 @@ let main() -> i32
         start = sdl_get_ticks();
 
         // Clear screen
-        wind..fill(black);
+        wind.fill(black);
 
-        wind..draw_rect(rect, white);
+        wind.draw_rect(rect, white);
 
         // Present
-        wind..show();
+        wind.show();
 
         // Poll events
         let flag: bool = true;
         while flag
         {
-            event..wrap_sdl_none();
+            event.wrap_sdl_none();
             event = sdl_poll_event();
 
-            match (event)
+            match event
             {
                 case sdl_none()
                 {
@@ -72,7 +78,10 @@ let main() -> i32
 
                 case sdl_mouse_button_down_event(data)
                 {
-                    printf!("A mouse button was clicked w/ code %\n", to_i32(data.code));
+                    printf!(
+                        "A mouse button was clicked w/ code %\n",
+                        to_i32(data.code)
+                    );
                 }
 
                 default

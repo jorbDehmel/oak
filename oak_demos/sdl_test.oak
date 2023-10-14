@@ -15,14 +15,14 @@ let main() -> i32
     let wind: sdl_window;
 
     Copy(@wind, to_u64(512), to_u64(512));
-    wind..sdl_enable_window_fullscreen();
+    wind.sdl_enable_window_fullscreen();
 
     let black: sdl_color;
     let white: sdl_color;
-    white..Copy(to_u8(255), to_u8(255), to_u8(255), to_u8(255));
+    white.Copy(to_u8(255), to_u8(255), to_u8(255), to_u8(255));
 
     let rect: sdl_rect;
-    rect..Copy(to_u64(10), to_u64(10), to_u64(10), to_u64(10));
+    rect.Copy(to_u64(10), to_u64(10), to_u64(10), to_u64(10));
 
     let y: i32 = 0;
     let frame: i32 = 0;
@@ -37,10 +37,10 @@ let main() -> i32
             rect.x = to_u64(x);
             rect.y = to_u64(y);
 
-            wind..fill(black);
-            wind..draw_rect(rect, white);
+            wind.fill(black);
+            wind.draw_rect(rect, white);
 
-            wind..show();
+            wind.show();
             frame += 1;
 
             x += 10;
@@ -53,7 +53,7 @@ let main() -> i32
 
         while (flag)
         {
-            event..wrap_sdl_none();
+            event.wrap_sdl_none();
             event = sdl_poll_event();
 
             match (event)
@@ -83,8 +83,8 @@ let main() -> i32
 
     let elapsed_s: i64 = end_time - start_time;
 
-    wind..sdl_disable_window_fullscreen();
-    wind..Del();
+    wind.sdl_disable_window_fullscreen();
+    wind.Del();
     sdl_quit();
 
     let fps: f64 = i_to_f(frame) / i_to_f(to_i32(elapsed_s));

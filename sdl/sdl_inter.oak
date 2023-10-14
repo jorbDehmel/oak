@@ -80,7 +80,8 @@ let New(self: ^sdl_rect) -> void
     self.h = to_u64(0);
 }
 
-let Copy(self: ^sdl_rect, x: u64, y: u64, w: u64, h: u64) -> void
+let Copy(self: ^sdl_rect, x: u64, y: u64, w: u64, h: u64)
+    -> void
 {
     self.x = x;
     self.y = y;
@@ -100,6 +101,9 @@ let sdl_get_ticks() -> i32;
 let show(window: ^sdl_window) -> void;
 let fill(window: ^sdl_window, color: sdl_color) -> void;
 
-let draw_dot(window: ^sdl_window, point: sdl_coord, color: sdl_color) -> void;
-let draw_line(window: ^sdl_window, point_a: sdl_coord, point_b: sdl_coord, color: sdl_color) -> void;
-let draw_rect(window: ^sdl_window, rect: sdl_rect, color: sdl_color) -> void;
+let draw_dot(window: ^sdl_window, point: sdl_coord,
+    color: sdl_color) -> void;
+let draw_line(window: ^sdl_window, point_a: sdl_coord,
+    point_b: sdl_coord, color: sdl_color) -> void;
+let draw_rect(window: ^sdl_window, rect: sdl_rect,
+    color: sdl_color) -> void;

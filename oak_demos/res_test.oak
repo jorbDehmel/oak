@@ -8,7 +8,7 @@ let fn_which_returns_result() -> result<i32, i32>
 {
     let out: result<i32, i32>;
 
-    out..wrap_ok(123);
+    out.wrap_ok(123);
 
     out
 }

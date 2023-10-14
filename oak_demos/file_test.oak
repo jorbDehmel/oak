@@ -9,16 +9,16 @@ use_rule!("std");
 let main() -> i32
 {
     let out: o_file;
-    out..open("hi.txt");
+    out.open("hi.txt");
 
     let to_write: string;
     to_write = "Hello, world!\n";
     
-    out..write(to_write);
+    out.write(to_write);
     
-    out..close();
-    to_write..Del();
-    out..Del();
+    out.close();
+    to_write.Del();
+    out.Del();
     
     0
 }

@@ -12,10 +12,11 @@ using namespace std;
 // Settings
 bool debug = false;
 bool compile = true;
-bool link = true;
+bool doLink = true;
 bool pretty = false;
 bool alwaysDump = false;
 bool manual = false;
+bool ignoreSyntaxErrors = false;
 
 set<string> visitedFiles;
 set<string> cppSources;
@@ -132,7 +133,7 @@ void doFile(const string &From)
                 debugTreePrefix.append("|");
             }
 
-            // A: Load file
+            // A - 2: Load file
             ifstream file(From);
             if (!file.is_open())
             {
@@ -145,6 +146,19 @@ void doFile(const string &From)
                 text += line + '\n';
             }
 
+            // A: Syntax check
+            start = chrono::high_resolution_clock::now();
+
+            if (!ignoreSyntaxErrors)
+            {
+                ensureSyntax(text);
+            }
+
+            end = chrono::high_resolution_clock::now();
+            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+            curPhase++;
+
+            // B: __CONTENTS__ macro
             start = chrono::high_resolution_clock::now();
 
             // This one goes out to quine writers (myself included)
@@ -171,7 +185,7 @@ void doFile(const string &From)
             phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
             curPhase++;
 
-            // B: Lex
+            // C: Lex
             start = chrono::high_resolution_clock::now();
 
             lexed = lex(text);
@@ -181,7 +195,7 @@ void doFile(const string &From)
             phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
             curPhase++;
 
-            // C: Scan for macro definitions and handle them
+            // D: Scan for macro definitions and handle them
             // This erases them from lexed
             start = chrono::high_resolution_clock::now();
 
@@ -293,7 +307,7 @@ void doFile(const string &From)
             phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
             curPhase++;
 
-            // D: Preproc definitions
+            // E: Preproc definitions
             start = chrono::high_resolution_clock::now();
 
             preprocDefines["__LINE__"] = "1";
@@ -323,7 +337,7 @@ void doFile(const string &From)
             phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
             curPhase++;
 
-            // E: Scan for compiler macros; Do these first
+            // F: Scan for compiler macros; Do these first
             // This erases them from lexed
             start = chrono::high_resolution_clock::now();
             unsigned long long int recurseTime = 0;
@@ -475,7 +489,7 @@ void doFile(const string &From)
             phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count() - recurseTime;
             curPhase++;
 
-            // F: Rules
+            // G: Rules
             start = chrono::high_resolution_clock::now();
 
             doRules(lexed);
@@ -484,7 +498,7 @@ void doFile(const string &From)
             phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
             curPhase++;
 
-            // G: Scan for macro calls and handle them
+            // H: Scan for macro calls and handle them
             start = chrono::high_resolution_clock::now();
 
             for (int i = 0; i < lexed.size(); i++)
@@ -574,7 +588,7 @@ void doFile(const string &From)
             phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
             curPhase++;
 
-            // H: Operator substitution (within parenthesis and between commas)
+            // I: Operator substitution (within parenthesis and between commas)
             start = chrono::high_resolution_clock::now();
 
             parenSub(lexed);
@@ -583,7 +597,7 @@ void doFile(const string &From)
             phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
             curPhase++;
 
-            // I: Sequencing
+            // J: Sequencing
             start = chrono::high_resolution_clock::now();
 
             sequence fileSeq = createSequence(lexed);
@@ -835,6 +849,84 @@ void makePackage(const string &RawName)
 
     // git init
     throw_assert(system(("git init " + name + " > /dev/null").c_str()) == 0);
+
+    return;
+}
+
+void printSyntaxError(const string &what, const vector<char> &curLineVec)
+{
+    cout << tags::yellow_bold
+         << '\n'
+         << "In line '";
+
+    for (const auto &c : curLineVec)
+    {
+        cout << c;
+    }
+
+    cout << "'\n"
+         << tags::reset;
+
+    cout << '\n'
+         << tags::red_bold
+         << "Syntax error at " << curFile << ':' << curLine << '\n'
+         << what << '\n'
+         << "(Use -x to disable syntax errors)"
+         << tags::reset
+         << "\n\n";
+
+    return;
+}
+
+void ensureSyntax(const string &text)
+{
+    vector<char> curLineVec;
+    curLineVec.reserve(64);
+    curLine = 1;
+
+    for (const auto &c : text)
+    {
+        if (c == '\n')
+        {
+            // Full line checks here
+            if (curLineVec.size() >= 2 &&
+                ((curLineVec[0] == '/' && curLineVec[1] == '*') ||
+                 (curLineVec[0] == '*' && curLineVec[1] == '/')))
+            {
+                for (int i = 2; i < curLineVec.size(); i++)
+                {
+                    if (curLineVec[i] != ' ' && curLineVec[i] != '\t')
+                    {
+                        printSyntaxError("Multi-line comment deliminators (/* and */) must occupy their own line", curLineVec);
+                        throw runtime_error("Syntax Error");
+                    }
+                }
+            }
+            else if (curLineVec.size() >= 3 && curLineVec[0] == '/' && curLineVec[1] == '/')
+            {
+                if (curLineVec[2] != ' ')
+                {
+                    printSyntaxError("Comments must begin with '// ' (slash-slash-SPACE)", curLineVec);
+                    throw runtime_error("Syntax Error");
+                }
+            }
+
+            curLineVec.clear();
+            curLine++;
+        }
+        else
+        {
+            if (curLineVec.size() >= 64)
+            {
+                printSyntaxError("No line shall may exceed 64 characters (excluding leading whitespace)", curLineVec);
+                throw runtime_error("Syntax Error");
+            }
+            else if (curLineVec.size() > 0 || (c != ' ' && c != '\t'))
+            {
+                curLineVec.push_back(c);
+            }
+        }
+    }
 
     return;
 }

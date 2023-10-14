@@ -24,7 +24,7 @@ let main() -> i32
     let a: i32;
     a = 5;
 
-    print(a..times_two());
+    print(a.times_two());
     print("\n");
 
     print(a.times_two());
