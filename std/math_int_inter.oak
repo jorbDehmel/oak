@@ -31,7 +31,11 @@ let Incr(self: ^u8) -> u8;
 let Decr(self: ^u8) -> u8;
 
 let New(self: ^u8) -> void;
-let Del(self: ^u8) -> void {}
+
+let Del(self: ^u8) -> void
+{
+}
+
 let Copy(self: ^u8, other: u8) -> u8;
 let AddEq(self: ^u8, other: u8) -> u8;
 let SubEq(self: ^u8, other: u8) -> u8;
@@ -62,7 +66,11 @@ let Incr(self: ^u16) -> u16;
 let Decr(self: ^u16) -> u16;
 
 let New(self: ^u16) -> void;
-let Del(self: ^u16) -> void {}
+
+let Del(self: ^u16) -> void
+{
+}
+
 let Copy(self: ^u16, other: u16) -> u16;
 let AddEq(self: ^u16, other: u16) -> u16;
 let SubEq(self: ^u16, other: u16) -> u16;
@@ -93,7 +101,11 @@ let Incr(self: ^u32) -> u32;
 let Decr(self: ^u32) -> u32;
 
 let New(self: ^u32) -> void;
-let Del(self: ^u32) -> void {}
+
+let Del(self: ^u32) -> void
+{
+}
+
 let Copy(self: ^u32, other: u32) -> u32;
 let AddEq(self: ^u32, other: u32) -> u32;
 let SubEq(self: ^u32, other: u32) -> u32;
@@ -124,7 +136,11 @@ let Incr(self: ^u64) -> u64;
 let Decr(self: ^u64) -> u64;
 
 let New(self: ^u64) -> void;
-let Del(self: ^u64) -> void {}
+
+let Del(self: ^u64) -> void
+{
+}
+
 let Copy(self: ^u64, other: u64) -> u64;
 let AddEq(self: ^u64, other: u64) -> u64;
 let SubEq(self: ^u64, other: u64) -> u64;
@@ -155,7 +171,11 @@ let Incr(self: ^u128) -> u128;
 let Decr(self: ^u128) -> u128;
 
 let New(self: ^u128) -> void;
-let Del(self: ^u128) -> void {}
+
+let Del(self: ^u128) -> void
+{
+}
+
 let Copy(self: ^u128, other: u128) -> u128;
 let AddEq(self: ^u128, other: u128) -> u128;
 let SubEq(self: ^u128, other: u128) -> u128;
@@ -186,7 +206,11 @@ let Incr(self: ^i8) -> i8;
 let Decr(self: ^i8) -> i8;
 
 let New(self: ^i8) -> void;
-let Del(self: ^i8) -> void {}
+
+let Del(self: ^i8) -> void
+{
+}
+
 let Copy(self: ^i8, other: i8) -> i8;
 let AddEq(self: ^i8, other: i8) -> i8;
 let SubEq(self: ^i8, other: i8) -> i8;
@@ -217,7 +241,11 @@ let Incr(self: ^i16) -> i16;
 let Decr(self: ^i16) -> i16;
 
 let New(self: ^i16) -> void;
-let Del(self: ^i16) -> void {}
+
+let Del(self: ^i16) -> void
+{
+}
+
 let Copy(self: ^i16, other: i16) -> i16;
 let AddEq(self: ^i16, other: i16) -> i16;
 let SubEq(self: ^i16, other: i16) -> i16;
@@ -248,7 +276,11 @@ let Incr(self: ^i32) -> i32;
 let Decr(self: ^i32) -> i32;
 
 let New(self: ^i32) -> void;
-let Del(self: ^i32) -> void {}
+
+let Del(self: ^i32) -> void
+{
+}
+
 let Copy(self: ^i32, other: i32) -> i32;
 let AddEq(self: ^i32, other: i32) -> i32;
 let SubEq(self: ^i32, other: i32) -> i32;
@@ -279,7 +311,11 @@ let Incr(self: ^i64) -> i64;
 let Decr(self: ^i64) -> i64;
 
 let New(self: ^i64) -> void;
-let Del(self: ^i64) -> void {}
+
+let Del(self: ^i64) -> void
+{
+}
+
 let Copy(self: ^i64, other: i64) -> i64;
 let AddEq(self: ^i64, other: i64) -> i64;
 let SubEq(self: ^i64, other: i64) -> i64;
@@ -310,7 +346,11 @@ let Incr(self: ^i128) -> i128;
 let Decr(self: ^i128) -> i128;
 
 let New(self: ^i128) -> void;
-let Del(self: ^i128) -> void {}
+
+let Del(self: ^i128) -> void
+{
+}
+
 let Copy(self: ^i128, other: i128) -> i128;
 let AddEq(self: ^i128, other: i128) -> i128;
 let SubEq(self: ^i128, other: i128) -> i128;

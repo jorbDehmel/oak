@@ -1428,9 +1428,16 @@ string toC(const sequence &What)
     return out;
 }
 
+map<unsigned long long, Type> getReturnTypeCache;
+
 // Get the return type from a Type (of a function signature)
 Type getReturnType(const Type &T)
 {
+    if (getReturnTypeCache.count(T.ID) != 0)
+    {
+        return getReturnTypeCache[T.ID];
+    }
+
     Type temp(T);
 
     int count = 0;
@@ -1448,16 +1455,28 @@ Type getReturnType(const Type &T)
             if (count == 0)
             {
                 Type out(temp, cur + 1);
+
+                getReturnTypeCache[T.ID] = out;
+
                 return out;
             }
         }
     }
 
+    getReturnTypeCache[T.ID] = T;
+
     return T;
 }
 
+map<unsigned long long, vector<pair<string, Type>>> cache;
 vector<pair<string, Type>> getArgs(Type &type)
 {
+    // Check cache for existing value
+    if (cache.count(type.ID) != 0)
+    {
+        return cache[type.ID];
+    }
+
     // Get everything between final function and maps
     // For the case of function pointers, all variable names will be the unit string
     vector<pair<string, Type>> out;
@@ -1545,6 +1564,9 @@ vector<pair<string, Type>> getArgs(Type &type)
         // Increment at end
         cur++;
     }
+
+    // Copy into cache
+    cache[type.ID] = out;
 
     // Return
     return out;

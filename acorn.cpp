@@ -144,6 +144,10 @@ int main(const int argc, const char *argv[])
                     {
                         getDiskUsage();
                     }
+                    else if (cur == "--time")
+                    {
+                        timeAnalysis = !timeAnalysis;
+                    }
                     else if (cur == "--dump")
                     {
                         alwaysDump = !alwaysDump;
@@ -301,6 +305,9 @@ int main(const int argc, const char *argv[])
                             break;
                         case 't':
                             noSave = compile = doLink = false;
+                            break;
+                        case 'T':
+                            timeAnalysis = !timeAnalysis;
                             break;
                         case 'u':
                             alwaysDump = !alwaysDump;
@@ -581,7 +588,7 @@ int main(const int argc, const char *argv[])
         }
     }
 
-    if (debug)
+    if (debug || timeAnalysis)
     {
         end = chrono::high_resolution_clock::now();
         unsigned long long totalElapsed = chrono::duration_cast<chrono::nanoseconds>(end - start).count();
@@ -590,25 +597,30 @@ int main(const int argc, const char *argv[])
         float percentAcornTime = oakElapsed / (float)totalElapsed;
         percentAcornTime *= 100;
 
-        cout << tags::green_bold
-             << "\nProcess finished with no errors.\n\n"
-             << tags::violet_bold
-             << "Acorn-attributable time:\n"
-             << "Nanoseconds:  " << oakElapsed << '\n'
-             << "Microseconds: " << oakElapsed / 1'000.0 << '\n'
-             << "Milliseconds: " << oakElapsed / 1'000'000.0 << '\n'
-             << "Seconds:      " << oakElapsed / 1'000'000'000.0 << "\n\n"
-             << "Clang++-attributable time:\n"
-             << "Nanoseconds:  " << compElapsed << '\n'
-             << "Microseconds: " << compElapsed / 1'000.0 << '\n'
-             << "Milliseconds: " << compElapsed / 1'000'000.0 << '\n'
-             << "Seconds:      " << compElapsed / 1'000'000'000.0 << "\n\n"
-             << "Total time:\n"
-             << "Nanoseconds:  " << totalElapsed << '\n'
-             << "Microseconds: " << totalElapsed / 1'000.0 << '\n'
-             << "Milliseconds: " << totalElapsed / 1'000'000.0 << '\n'
-             << "Seconds:      " << totalElapsed / 1'000'000'000.0 << "\n\n"
-             << "Acorn Milliseconds per file: " << (oakElapsed / 1'000'000.0) / visitedFiles.size() << "\n\n";
+        if (debug)
+        {
+            cout << tags::green_bold
+                 << "\nProcess finished with no errors.\n\n"
+                 << tags::violet_bold
+                 << "Acorn-attributable time:\n"
+                 << "Nanoseconds:  " << oakElapsed << '\n'
+                 << "Microseconds: " << oakElapsed / 1'000.0 << '\n'
+                 << "Milliseconds: " << oakElapsed / 1'000'000.0 << '\n'
+                 << "Seconds:      " << oakElapsed / 1'000'000'000.0 << "\n\n"
+                 << "Clang++-attributable time:\n"
+                 << "Nanoseconds:  " << compElapsed << '\n'
+                 << "Microseconds: " << compElapsed / 1'000.0 << '\n'
+                 << "Milliseconds: " << compElapsed / 1'000'000.0 << '\n'
+                 << "Seconds:      " << compElapsed / 1'000'000'000.0 << "\n\n"
+                 << "Total time:\n"
+                 << "Nanoseconds:  " << totalElapsed << '\n'
+                 << "Microseconds: " << totalElapsed / 1'000.0 << '\n'
+                 << "Milliseconds: " << totalElapsed / 1'000'000.0 << '\n'
+                 << "Seconds:      " << totalElapsed / 1'000'000'000.0 << "\n\n"
+                 << "Acorn Milliseconds per file: " << (oakElapsed / 1'000'000.0) / visitedFiles.size() << "\n\n";
+        }
+
+        cout << "Note: This data is only accurate to one recursion.\n";
 
         if (percentAcornTime < 25)
         {

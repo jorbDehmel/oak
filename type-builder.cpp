@@ -4,6 +4,8 @@ set<string> deps;
 map<string, __structLookupData> structData;
 vector<string> structOrder;
 
+unsigned long long currentID = 1;
+
 typeNode &typeNode::operator=(const typeNode &other)
 {
     info = other.info;
@@ -17,6 +19,7 @@ Type::Type(const TypeInfo &Info, const string &Name)
 {
     internal.clear();
     internal.push_back({Info, Name});
+    ID = currentID++;
     return;
 }
 
@@ -32,6 +35,7 @@ Type::Type(const Type &What)
     {
         internal.push_back(i);
     }
+    ID = currentID++;
 
     return;
 }
@@ -43,6 +47,7 @@ Type::Type(const Type &What, const int &startingAt)
     {
         internal.push_back(What.internal[i]);
     }
+    ID = currentID++;
 
     return;
 }
@@ -51,12 +56,14 @@ Type::Type()
 {
     internal.clear();
     internal.push_back(typeNode{nullType.internal[0].info, nullType.internal[0].name});
+    ID = currentID++;
     return;
 }
 
 void Type::prepend(const TypeInfo &Info, const string &Name)
 {
     internal.insert(internal.begin(), {Info, Name});
+    ID = currentID++;
     return;
 }
 
@@ -71,6 +78,7 @@ void Type::append(const TypeInfo &Info, const string &Name)
     {
         internal.push_back({Info, Name});
     }
+    ID = currentID++;
 
     return;
 }
@@ -88,6 +96,7 @@ void Type::append(const Type &Other)
             internal.push_back(i);
         }
     }
+    ID = currentID++;
 
     return;
 }
@@ -126,6 +135,7 @@ Type &Type::operator=(const Type &Other)
     {
         internal.push_back(i);
     }
+    ID = currentID++;
     return *this;
 }
 
@@ -133,6 +143,7 @@ Type &Type::operator=(const typeNode &Other)
 {
     internal.clear();
     internal.push_back(Other);
+    ID = currentID++;
     return *this;
 }
 
@@ -189,12 +200,14 @@ string toStr(const Type *const What, const unsigned int &pos)
 void Type::pop_front()
 {
     internal.erase(internal.begin());
+    ID = currentID++;
     return;
 }
 
 void Type::pop_back()
 {
     internal.pop_back();
+    ID = currentID++;
     return;
 }
 
@@ -305,5 +318,6 @@ Type checkLiteral(const string &From)
 
 typeNode &Type::operator[](const int &Index)
 {
+    ID = currentID++;
     return internal[Index];
 }

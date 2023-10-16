@@ -34,7 +34,7 @@ GPLv3 held by author
 
 using namespace std;
 
-#define VERSION "0.1.1"
+#define VERSION "0.1.2"
 #define LICENSE "GPLv3"
 #define INFO "jdehmel@outlook.com"
 
@@ -42,8 +42,8 @@ using namespace std;
 
 /*
 Remaining options:
--abfgjkxyz
--ABCEFGHIJKLMNOPQTUVWXYZ
+-abfgjkyz
+-ABCEFGHIJKLMNOPQUVWXYZ
 */
 
 #define DASHED_LINE "------------------------------------------\n"
@@ -69,12 +69,13 @@ const string helpText = "Acorn - Oak Standard Translator\n" DASHED_LINE
                         " -s    | --size      | Show Oak disk usage\n"
                         " -S    | --install   | Install a package\n"
                         " -t    | --translate | Produce C++ files\n"
+                        " -T    | --time      | Output time usage\n"
                         " -u    | --dump      | Save dump files\n"
                         " -v    | --version   | Show version\n"
                         " -w    | --new       | Create a new package\n"
                         " -x    | --syntax    | Ignore syntax errors\n";
 
-extern bool debug, compile, doLink, pretty, alwaysDump, manual, ignoreSyntaxErrors;
+extern bool debug, compile, doLink, pretty, alwaysDump, manual, ignoreSyntaxErrors, timeAnalysis;
 extern set<string> visitedFiles, cppSources, objects, cflags;
 extern map<string, string> preprocDefines;
 extern vector<unsigned long long> phaseTimes;
@@ -86,6 +87,6 @@ void doFile(const string &From);
 void prettify(const string &Filename);
 
 void makePackage(const string &Name);
-void ensureSyntax(const string &text);
+void ensureSyntax(const string &text, const bool &fatal = true);
 
 #endif

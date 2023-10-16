@@ -414,24 +414,28 @@ string toStrCFunctionRef(Type *What, const string &Name, const unsigned int &pos
     return out;
 }
 
+map<unsigned long long, string> toStrCTypeCache;
 string toStrC(Type *What, const string &Name, const unsigned int &pos)
 {
+    if (toStrCTypeCache.count(What->ID) != 0)
+    {
+        return toStrCTypeCache[What->ID];
+    }
+
     string out = "";
 
     // Safety check
-    if (What == nullptr || What->size() == 0)
+    if (What == nullptr || What->size() == 0 || pos >= What->size())
     {
-        return out;
-    }
-
-    if (pos >= What->size())
-    {
+        toStrCTypeCache[What->ID] = "";
         return "";
     }
 
     if ((*What)[pos].info == pointer && What->size() > 1 && (*What)[pos + 1].info == function)
     {
-        return toStrCFunctionRef(What, Name);
+        out = toStrCFunctionRef(What, Name);
+        toStrCTypeCache[What->ID] = out;
+        return out;
     }
 
     switch ((*What)[pos].info)
@@ -469,6 +473,8 @@ string toStrC(Type *What, const string &Name, const unsigned int &pos)
     {
         out += " " + Name;
     }
+
+    toStrCTypeCache[What->ID] = out;
 
     return out;
 }
@@ -629,8 +635,14 @@ void dump(const vector<string> &Lexed, const string &Where, const string &FileNa
     return;
 }
 
+map<string, string> toStrCEnumCache;
 string enumToC(const string &name)
 {
+    if (toStrCEnumCache.count(name) != 0)
+    {
+        return toStrCEnumCache[name];
+    }
+
     // Basic error checking; Should NOT constitute the entirety
     // of safety checks!!! This just ensures a lack of internal
     // errors.
@@ -688,6 +700,8 @@ string enumToC(const string &name)
             out += "}\n";
         }
     }
+
+    toStrCEnumCache[name] = out;
 
     return out;
 }

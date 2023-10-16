@@ -53,6 +53,8 @@ public:
 
     typeNode &operator[](const int &Index);
 
+    unsigned long long ID;
+
 protected:
     vector<typeNode> internal;
 

@@ -4,6 +4,8 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.1.2           | 10/15/23 | Added some caching optimization.
+                |          |
 0.1.1           | 10/13/23 | Added syntax errors and the -x flag
                 |          | to disable them. Update std.od
                 |          | file. Removed the '..' rule for

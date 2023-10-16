@@ -22,7 +22,11 @@ let Leq(self: f32, other: f32) -> bool;
 let Greq(self: f32, other: f32) -> bool;
 
 let New(self: ^f32) -> void;
-let Del(self: ^f32) -> void {}
+
+let Del(self: ^f32) -> void
+{
+}
+
 let Copy(self: ^f32, other: f32) -> f32;
 let AddEq(self: ^f32, other: f32) -> f32;
 let SubEq(self: ^f32, other: f32) -> f32;
@@ -46,7 +50,11 @@ let Leq(self: f64, other: f64) -> bool;
 let Greq(self: f64, other: f64) -> bool;
 
 let New(self: ^f64) -> void;
-let Del(self: ^f64) -> void {}
+
+let Del(self: ^f64) -> void
+{
+}
+
 let Copy(self: ^f64, other: f64) -> f64;
 let AddEq(self: ^f64, other: f64) -> f64;
 let SubEq(self: ^f64, other: f64) -> f64;
@@ -70,7 +78,11 @@ let Leq(self: f128, other: f128) -> bool;
 let Greq(self: f128, other: f128) -> bool;
 
 let New(self: ^f128) -> void;
-let Del(self: ^f128) -> void {}
+
+let Del(self: ^f128) -> void
+{
+}
+
 let Copy(self: ^f128, other: f128) -> f128;
 let AddEq(self: ^f128, other: f128) -> f128;
 let SubEq(self: ^f128, other: f128) -> f128;

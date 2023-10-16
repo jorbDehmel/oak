@@ -17,6 +17,7 @@ bool pretty = false;
 bool alwaysDump = false;
 bool manual = false;
 bool ignoreSyntaxErrors = false;
+bool timeAnalysis = false;
 
 set<string> visitedFiles;
 set<string> cppSources;
@@ -151,7 +152,7 @@ void doFile(const string &From)
 
             if (!ignoreSyntaxErrors)
             {
-                ensureSyntax(text);
+                ensureSyntax(text, true);
             }
 
             end = chrono::high_resolution_clock::now();
@@ -871,24 +872,30 @@ void printSyntaxError(const string &what, const vector<char> &curLineVec)
          << tags::red_bold
          << "Syntax error at " << curFile << ':' << curLine << '\n'
          << what << '\n'
-         << "(Use -x to disable syntax errors)"
+         << "(Use -x to make syntax errors nonfatal)"
          << tags::reset
          << "\n\n";
 
     return;
 }
 
-void ensureSyntax(const string &text)
+void ensureSyntax(const string &text, const bool &fatal)
 {
     vector<char> curLineVec;
     curLineVec.reserve(64);
     curLine = 1;
+    int commentDepth = 0;
+    int errorCount = 0;
 
+    // space for none, or ' or "
+    char stringMarker = ' ';
+
+    int ind = 0;
     for (const auto &c : text)
     {
         if (c == '\n')
         {
-            // Full line checks here
+            // Multi-line comments
             if (curLineVec.size() >= 2 &&
                 ((curLineVec[0] == '/' && curLineVec[1] == '*') ||
                  (curLineVec[0] == '*' && curLineVec[1] == '/')))
@@ -898,19 +905,56 @@ void ensureSyntax(const string &text)
                     if (curLineVec[i] != ' ' && curLineVec[i] != '\t')
                     {
                         printSyntaxError("Multi-line comment deliminators (/* and */) must occupy their own line", curLineVec);
-                        throw runtime_error("Syntax Error");
+                        errorCount++;
                     }
                 }
-            }
-            else if (curLineVec.size() >= 3 && curLineVec[0] == '/' && curLineVec[1] == '/')
-            {
-                if (curLineVec[2] != ' ')
+
+                if (curLineVec[0] == '/')
                 {
-                    printSyntaxError("Comments must begin with '// ' (slash-slash-SPACE)", curLineVec);
-                    throw runtime_error("Syntax Error");
+                    commentDepth++;
+                }
+                else
+                {
+                    commentDepth--;
                 }
             }
 
+            // Single-line comments
+            else if (curLineVec.size() >= 3 && curLineVec[0] == '/' && curLineVec[1] == '/')
+            {
+                if (curLineVec[2] != ' ' && curLineVec[2] != '/')
+                {
+                    printSyntaxError("Comments must begin with '// ' (slash-slash-SPACE) or ///", curLineVec);
+                    errorCount++;
+                }
+            }
+
+            // All code-line-based checks must occur herein
+            else if (commentDepth == 0)
+            {
+                // Peel off any trailing whitespace
+                // (leading whitespace should already be cleaned)
+                while (!curLineVec.empty() && (curLineVec.back() == ' ' || curLineVec.back() == '\t'))
+                {
+                    curLineVec.pop_back();
+                }
+
+                for (const auto &c : curLineVec)
+                {
+                    if (c == '{' && curLineVec.size() != 1)
+                    {
+                        printSyntaxError("Open curly brackets must occupy their own line", curLineVec);
+                        errorCount++;
+                    }
+                    else if (c == '}' && curLineVec.size() != 1)
+                    {
+                        printSyntaxError("Closing curly brackets must occupy their own line", curLineVec);
+                        errorCount++;
+                    }
+                }
+            }
+
+            // Reset current line
             curLineVec.clear();
             curLine++;
         }
@@ -919,13 +963,53 @@ void ensureSyntax(const string &text)
             if (curLineVec.size() >= 64)
             {
                 printSyntaxError("No line shall may exceed 64 characters (excluding leading whitespace)", curLineVec);
-                throw runtime_error("Syntax Error");
+                errorCount++;
             }
-            else if (curLineVec.size() > 0 || (c != ' ' && c != '\t'))
+
+            if (curLineVec.size() > 0 || (c != ' ' && c != '\t'))
             {
-                curLineVec.push_back(c);
+                if (c == '"')
+                {
+                    if (ind == 0 || text[ind - 1] != '\\')
+                    {
+                        if (stringMarker == ' ')
+                        {
+                            stringMarker = '"';
+                        }
+                        else if (stringMarker == '"')
+                        {
+                            stringMarker = ' ';
+                        }
+                    }
+                }
+                else if (c == '\'')
+                {
+                    if (ind == 0 || text[ind - 1] != '\\')
+                    {
+                        if (stringMarker == ' ')
+                        {
+                            stringMarker = '\'';
+                        }
+                        else if (stringMarker == '\'')
+                        {
+                            stringMarker = ' ';
+                        }
+                    }
+                }
+
+                if (stringMarker == ' ')
+                {
+                    curLineVec.push_back(c);
+                }
             }
         }
+
+        ind++;
+    }
+
+    if (fatal && errorCount > 0)
+    {
+        throw runtime_error(to_string(errorCount) + " syntax errors.");
     }
 
     return;

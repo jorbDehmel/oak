@@ -129,8 +129,17 @@ void generate(const vector<string> &Files, const string &Output)
         // Reconstruct into output document
         for (pair<string, string> cur : data)
         {
-            out << fnStart << cur.first << "\n\n"
-                << cur.second << "\n\n";
+            out << fnStart
+                << cur.first << "\n\n";
+
+            if (cur.second == "")
+            {
+                cout << "(No documentation was provided)\n\n";
+            }
+            else
+            {
+                out << cur.second << "\n\n";
+            }
         }
     }
 
