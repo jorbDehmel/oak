@@ -93,7 +93,7 @@ let main() -> i32
         }
     }
 
-    print('\n');
+    print("\n");
 
     0
 }

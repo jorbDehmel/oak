@@ -902,18 +902,27 @@ major issues, so long as you don't enable any `Rust` extensions.
 
 ## Preproc Definitions
 
-There are several so-called preproc definitions which can be
-called upon. These will be replaced with their values before
+There are several so-called preprocessor definitions which can
+be called upon. These will be replaced with their values before
 compilation. Each of these begin and end with two underscores.
 
 Name             | Type | Description
 -----------------|------|----------------------
-\_\_LINE__       | i128 | The current line
-\_\_COMP_TIME__  | i128 | The UNIX time of compilation
-\_\_PREV_FILE__  | str  | The path of the previous `Oak` file
-\_\_FILE__       | str  | The path of the current `Oak` file
-\_\_CONTENTS__   | str  | The contents of the current `Oak` file
-\_\_SYS__        | str  | The operating system compiled for
+line!            | i128 | The current line
+comp_time!       | i128 | The UNIX time of compilation
+prev_file!       | str  | The path of the previous `Oak` file
+file!            | str  | The path of the current `Oak` file
+contents!        | str  | The contents of the current `Oak` file
+sys!             | str  | The operating system compiled for
+
+Additional preprocessor definitions can be defined as follows.
+
+```
+let name! = definition;
+```
+
+Following the above definition, all occurrences of `name!` will
+be replaced by `definition`.
 
 ## Preproc Rules and Sapling
 
@@ -1183,7 +1192,7 @@ stage 3, they represent symbol-wise iteration, but before then
 they represent character-wise iteration.
 
 1 - Syntax checking
-2 - Text cleaning for `__CONTENTS__` pre-proc definition
+2 - Text cleaning for `contents!` pre-proc definition
 3 - Lexicographical symbol parsing (lexing)
 4 - Macro definition scanning
 5 - Preprocessor definition insertion
@@ -1619,6 +1628,30 @@ has two states, `ok` and `err`. The `ok` state holds one
 instance of the `g` (for good) generic, while the `err` state
 holds one instance of `b` (for bad). Error recovery must be
 explicitly handled via `match` statements.
+
+## Assertions
+
+The `assert!` macro is an extension of the `panic!` macro, and
+is available in `std/panic_inter.oak`. `assert!` takes a single
+argument. If this argument evaluates to `false`, it will call
+`panic!`. Otherwise, it will do nothing. The literal output of
+this macro is `if (CONDITION) {} else { panic!("CONDITION"); }`.
+This makes it a recursive macro, or a macro which calls other
+macros.
+
+## Boolean Expansion Rules
+
+`Oak` has very limited functionality for boolean values by
+default. For instance, `Oak` has no negation (`!`) operator,
+because the operation-substitution portion of the compiler
+only handles binary operations (ones which have a left and
+right side). The negation operator is unary, and thus is not
+handled there. The `bool` rule (available via `std/bool.oak`)
+provides this functionality, as well all allowing the
+`python`-style `not`, `or`, and `and` keywords.
+
+Note: While using the `bool` rule, both `!` and `and` are legal
+ways to call the negation operator.
 
 ## Efforts to Reduce Undefined Behavior
 

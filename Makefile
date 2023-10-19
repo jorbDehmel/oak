@@ -44,9 +44,12 @@ reinstall:
 
 test: install
 	$(TEST) oak_demos/access_test.oak -o access_test.out
+	$(TEST) oak_demos/assert_test.oak -o assert_test.out
+	$(TEST) oak_demos/bool_test.oak -o bool_test.out
 	$(TEST) oak_demos/color_test.oak -o color_test.out
 	$(TEST) oak_demos/cond_test.oak -o cond_test.out
 	$(TEST) oak_demos/conv_test.oak -o conv_test.out
+	$(TEST) oak_demos/def_test.oak -o def_test.out
 	$(TEST) oak_demos/enum_test.oak -o enum_test.out
 	$(TEST) oak_demos/erase_test.oak -o erase_test.out
 	$(TEST) oak_demos/file_test.oak -o file_test.out
@@ -78,12 +81,12 @@ sdltest:
 	$(TEST) oak_demos/sdl_test_3.oak -o sdl_test_3.out
 
 gentest:
-	$(TEST) oak_demos/nested_gen_test.oak -o nested_gen_test.out
+	$(TEST) oak_demos/arr_test.oak -o arr_test.out
 	$(TEST) oak_demos/generic_test.oak -o generic_test.out
+	$(TEST) oak_demos/gen_enum_test.oak -o gen_enum_test.out
 	$(TEST) oak_demos/gen_struct_test.oak -o gen_struct_test.out
 	$(TEST) oak_demos/gen_test_2.oak -o gen_test_2.out
-	$(TEST) oak_demos/gen_enum_test.oak -o gen_enum_test.out
-	$(TEST) oak_demos/arr_test.oak -o arr_test.out
+	$(TEST) oak_demos/nested_gen_test.oak -o nested_gen_test.out
 
 build/%.o:	%.cpp $(HEADS)
 	mkdir -p build

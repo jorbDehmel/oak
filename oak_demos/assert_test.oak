@@ -1,0 +1,10 @@
+package!("std");
+include!("std/panic_inter.oak");
+
+let main() -> i32
+{
+    // assert!(false);
+    assert!(true);
+
+    0
+}

@@ -9,5 +9,5 @@ let main() -> i32
 {
     // Quines (programs which print their source code)
     // are very easy lol
-    print(__CONTENTS__);
+    print(contents!);
 }

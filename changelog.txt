@@ -4,6 +4,12 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.1.3           | 10/18/23 | Changed the format of preproc
+                |          | defines for internal consistency.
+                |          | Also, added bool-extension rules
+                |          | and some extra syntax checks, as
+                |          | well as limiting cache sizes.                
+                |          |
 0.1.2           | 10/15/23 | Added some caching optimization.
                 |          |
 0.1.1           | 10/13/23 | Added syntax errors and the -x flag

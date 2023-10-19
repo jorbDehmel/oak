@@ -52,16 +52,16 @@ let main() -> i32
     inst = make_pair(123, 456);
 
     print(inst.first);
-    print('\n');
+    print("\n");
     print(inst.second);
-    print('\n');
+    print("\n");
 
     inst = (789, 123);
 
     print(inst.first);
-    print('\n');
+    print("\n");
     print(inst.second);
-    print('\n');
+    print("\n");
 
     0
 }

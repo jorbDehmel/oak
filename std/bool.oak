@@ -1,0 +1,24 @@
+/*
+Provides rules for extra bool functionality
+
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+new_rule!("and", "and", "&&");
+new_rule!("or", "or", "||");
+
+new_rule!("not_1", "! $*a )", "Not ( $a ) )");
+new_rule!("not_2", "! $*a ;", "Not ( $a ) ;");
+new_rule!("not_3", "not $*a )", "Not ( $a ) )");
+new_rule!("not_4", "not $*a ;", "Not ( $a ) ;");
+
+bundle_rule!(
+    "bool",
+    "and",
+    "or",
+    "not_1",
+    "not_2",
+    "not_3",
+    "not_4"
+);

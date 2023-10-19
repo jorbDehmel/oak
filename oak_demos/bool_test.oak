@@ -1,0 +1,25 @@
+package!("std");
+use_rule!("std");
+
+include!("std/bool.oak");
+use_rule!("bool");
+
+let main() -> i32
+{
+    if (not false)
+    {
+        print("Not works\n");
+    }
+
+    if (true and true)
+    {
+        print("And works\n");
+    }
+
+    if (true or false)
+    {
+        print("Or works\n");
+    }
+
+    0
+}

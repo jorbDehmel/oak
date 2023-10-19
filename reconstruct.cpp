@@ -427,12 +427,22 @@ string toStrC(Type *What, const string &Name, const unsigned int &pos)
     // Safety check
     if (What == nullptr || What->size() == 0 || pos >= What->size())
     {
+        if (toStrCTypeCache.size() > 1000)
+        {
+            toStrCTypeCache.clear();
+        }
+
         toStrCTypeCache[What->ID] = "";
         return "";
     }
 
     if ((*What)[pos].info == pointer && What->size() > 1 && (*What)[pos + 1].info == function)
     {
+        if (toStrCTypeCache.size() > 1000)
+        {
+            toStrCTypeCache.clear();
+        }
+
         out = toStrCFunctionRef(What, Name);
         toStrCTypeCache[What->ID] = out;
         return out;
@@ -474,6 +484,10 @@ string toStrC(Type *What, const string &Name, const unsigned int &pos)
         out += " " + Name;
     }
 
+    if (toStrCTypeCache.size() > 1000)
+    {
+        toStrCTypeCache.clear();
+    }
     toStrCTypeCache[What->ID] = out;
 
     return out;
@@ -701,6 +715,10 @@ string enumToC(const string &name)
         }
     }
 
+    if (toStrCEnumCache.size() > 1000)
+    {
+        toStrCEnumCache.clear();
+    }
     toStrCEnumCache[name] = out;
 
     return out;

@@ -17,9 +17,9 @@ let panic!(argc: i32, argv: ^^i8) -> i32
     );
 
     print("print(\"Panic: \");\n");
-    print("print(__FILE__);\n");
+    print("print(file!);\n");
     print("print(\":\");\n");
-    print("print(__LINE__);\n");
+    print("print(line!);\n");
 
     if (argc == 2)
     {
@@ -35,4 +35,25 @@ let panic!(argc: i32, argv: ^^i8) -> i32
     print("internal_panic();\n");
 
     0
+}
+
+let assert!(argc: i32, argv: ^^i8) -> i32
+{
+    include!("std/io_inter.oak");
+
+    let out: i32;
+    out = 1;
+
+    if (argc == 2)
+    {
+        print("if (");
+        print(Get(argv, 1));
+        print(") {} else { panic!(\"");
+        print(Get(argv, 1));
+        print("\"); }\n");
+
+        out = 0;
+    }
+
+    out
 }

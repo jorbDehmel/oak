@@ -1,0 +1,18 @@
+/*
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+
+A test of the basic preprocessor define system in Oak
+Passed Oct 18 '23
+*/
+
+package!("std");
+
+let value! = 0;
+
+let main() -> i32
+{
+    print(value!);
+    
+    0
+}

@@ -71,9 +71,9 @@ void doFile(const string &From)
 
     vector<string> lexed, lexedCopy;
 
-    preprocDefines["__PREV_FILE__"] = (oldFile == "" ? "\"NULL\"" : ("\"" + oldFile + "\""));
-    preprocDefines["__FILE__"] = '"' + From + '"';
-    preprocDefines["__COMP_TIME__"] = to_string(time(NULL));
+    preprocDefines["prev_file!"] = (oldFile == "" ? "\"NULL\"" : ("\"" + oldFile + "\""));
+    preprocDefines["file!"] = '"' + From + '"';
+    preprocDefines["comp_time!"] = to_string(time(NULL));
 
     // System defines
     /*
@@ -84,13 +84,13 @@ void doFile(const string &From)
     -UNKNOWN
     */
 #if (defined(_WIN32) || defined(_WIN64))
-    preprocDefines["__SYS__"] = "WINDOWS";
+    preprocDefines["sys!"] = "WINDOWS";
 #elif (defined(LINUX) || defined(__linux__))
-    preprocDefines["__SYS__"] = "LINUX";
+    preprocDefines["sys!"] = "LINUX";
 #elif (defined(__APPLE__))
-    preprocDefines["__SYS__"] = "MAC";
+    preprocDefines["sys!"] = "MAC";
 #else
-    preprocDefines["__SYS__"] = "UNKNOWN";
+    preprocDefines["sys!"] = "UNKNOWN";
 #endif
 
     try
@@ -159,7 +159,7 @@ void doFile(const string &From)
             phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
             curPhase++;
 
-            // B: __CONTENTS__ macro
+            // B: contents! macro
             start = chrono::high_resolution_clock::now();
 
             // This one goes out to quine writers (myself included)
@@ -180,7 +180,7 @@ void doFile(const string &From)
                     cleanedText += c;
                 }
             }
-            preprocDefines["__CONTENTS__"] = "\"" + cleanedText + "\"";
+            preprocDefines["contents!"] = "\"" + cleanedText + "\"";
 
             end = chrono::high_resolution_clock::now();
             phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
@@ -311,14 +311,14 @@ void doFile(const string &From)
             // E: Preproc definitions
             start = chrono::high_resolution_clock::now();
 
-            preprocDefines["__LINE__"] = "1";
+            preprocDefines["line!"] = "1";
             for (int i = 0; i < lexed.size(); i++)
             {
                 if (lexed[i].size() >= 2 && lexed[i].substr(0, 2) == "//")
                 {
                     // Line update special symbol
                     string newLineNum = lexed[i].substr(11);
-                    preprocDefines["__LINE__"] = newLineNum;
+                    preprocDefines["line!"] = newLineNum;
                 }
                 else if (preprocDefines.count(lexed[i]) != 0)
                 {
@@ -544,8 +544,8 @@ void doFile(const string &From)
                     vector<string> lexedOutput = lex(output);
 
                     // Reset preproc defs, as they tend to break w/ macros
-                    preprocDefines["__PREV_FILE__"] = (oldFile == "" ? "\"NULL\"" : ("\"" + oldFile + "\""));
-                    preprocDefines["__FILE__"] = '"' + From + '"';
+                    preprocDefines["prev_file!"] = (oldFile == "" ? "\"NULL\"" : ("\"" + oldFile + "\""));
+                    preprocDefines["file!"] = '"' + From + '"';
 
                     // Remove lines
                     for (int ind = 0; ind < lexedOutput.size(); ind++)
@@ -554,7 +554,7 @@ void doFile(const string &From)
                         {
                             if (lexedOutput[ind].size() > 11 && lexedOutput[ind].substr(0, 11) == "//__LINE__=")
                             {
-                                preprocDefines["__LINE__"] = lexedOutput[ind].substr(11);
+                                preprocDefines["line!"] = lexedOutput[ind].substr(11);
                             }
 
                             lexedOutput.erase(lexedOutput.begin() + ind);
@@ -884,127 +884,200 @@ void ensureSyntax(const string &text, const bool &fatal)
     vector<char> curLineVec;
     curLineVec.reserve(64);
     curLine = 1;
+
+    int parenthesisDepth = 0;
+    int bracketDepth = 0;
     int commentDepth = 0;
     int errorCount = 0;
-
-    // space for none, or ' or "
     char stringMarker = ' ';
 
-    int ind = 0;
-    for (const auto &c : text)
+    char globalStringChoice = ' ';
+
+    // Iterate over lines
+    for (int i = 0; i < text.size(); i++)
     {
-        if (c == '\n')
+        if (text[i] == '\n')
         {
-            // Multi-line comments
-            if (curLineVec.size() >= 2 &&
-                ((curLineVec[0] == '/' && curLineVec[1] == '*') ||
-                 (curLineVec[0] == '*' && curLineVec[1] == '/')))
-            {
-                for (int i = 2; i < curLineVec.size(); i++)
-                {
-                    if (curLineVec[i] != ' ' && curLineVec[i] != '\t')
-                    {
-                        printSyntaxError("Multi-line comment deliminators (/* and */) must occupy their own line", curLineVec);
-                        errorCount++;
-                    }
-                }
-
-                if (curLineVec[0] == '/')
-                {
-                    commentDepth++;
-                }
-                else
-                {
-                    commentDepth--;
-                }
-            }
-
-            // Single-line comments
-            else if (curLineVec.size() >= 3 && curLineVec[0] == '/' && curLineVec[1] == '/')
+            // Single-line comment
+            if (curLineVec.size() > 2 && curLineVec[0] == '/' && curLineVec[0] == '/')
             {
                 if (curLineVec[2] != ' ' && curLineVec[2] != '/')
                 {
-                    printSyntaxError("Comments must begin with '// ' (slash-slash-SPACE) or ///", curLineVec);
+                    printSyntaxError("Comments must begin with either '// ' or '///'", curLineVec);
                     errorCount++;
                 }
             }
 
-            // All code-line-based checks must occur herein
+            // Multi-line comment opening
+            else if (curLineVec.size() > 1 && curLineVec[0] == '/' && curLineVec[1] == '*')
+            {
+                if (curLineVec.size() > 2)
+                {
+                    printSyntaxError("Symbol '/*' must occupy its own line", curLineVec);
+                    errorCount++;
+                }
+
+                commentDepth++;
+            }
+
+            // Multi-line comment closing
+            else if (curLineVec.size() > 1 && curLineVec[0] == '*' && curLineVec[1] == '/')
+            {
+                if (curLineVec.size() > 2)
+                {
+                    printSyntaxError("Symbol '*/' must occupy its own line", curLineVec);
+                    errorCount++;
+                }
+
+                commentDepth--;
+            }
+
+            // Non-comment code line
             else if (commentDepth == 0)
             {
-                // Peel off any trailing whitespace
-                // (leading whitespace should already be cleaned)
-                while (!curLineVec.empty() && (curLineVec.back() == ' ' || curLineVec.back() == '\t'))
+                // Iterate over line here more more detailed checks
+                stringMarker = ' ';
+                for (int j = 0; j < curLineVec.size(); j++)
                 {
-                    curLineVec.pop_back();
-                }
+                    const char c = curLineVec[j];
+                    // cout << DB_INFO << c << '\t' << j << '\t' << curLineVec[j] << '\n';
 
-                for (const auto &c : curLineVec)
-                {
-                    if (c == '{' && curLineVec.size() != 1)
+                    if (c == '\\')
                     {
-                        printSyntaxError("Open curly brackets must occupy their own line", curLineVec);
-                        errorCount++;
+                        j++;
+                        continue;
                     }
-                    else if (c == '}' && curLineVec.size() != 1)
-                    {
-                        printSyntaxError("Closing curly brackets must occupy their own line", curLineVec);
-                        errorCount++;
-                    }
-                }
-            }
 
-            // Reset current line
-            curLineVec.clear();
-            curLine++;
-        }
-        else
-        {
-            if (curLineVec.size() >= 64)
-            {
-                printSyntaxError("No line shall may exceed 64 characters (excluding leading whitespace)", curLineVec);
-                errorCount++;
-            }
-
-            if (curLineVec.size() > 0 || (c != ' ' && c != '\t'))
-            {
-                if (c == '"')
-                {
-                    if (ind == 0 || text[ind - 1] != '\\')
+                    if (c == '"')
                     {
-                        if (stringMarker == ' ')
+                        if (stringMarker == '"')
+                        {
+                            stringMarker = ' ';
+                        }
+                        else if (stringMarker == ' ')
                         {
                             stringMarker = '"';
                         }
-                        else if (stringMarker == '"')
+
+                        if (globalStringChoice == ' ')
+                        {
+                            globalStringChoice = '"';
+                        }
+                        else if (globalStringChoice == '\'')
+                        {
+                            printSyntaxError("Precedent has been set for single-quotes, but double-quotes were used.", curLineVec);
+                            errorCount++;
+                        }
+                    }
+                    else if (c == '\'')
+                    {
+                        if (stringMarker == '\'')
                         {
                             stringMarker = ' ';
                         }
-                    }
-                }
-                else if (c == '\'')
-                {
-                    if (ind == 0 || text[ind - 1] != '\\')
-                    {
-                        if (stringMarker == ' ')
+                        else if (stringMarker == ' ')
                         {
                             stringMarker = '\'';
                         }
-                        else if (stringMarker == '\'')
+
+                        if (globalStringChoice == ' ')
                         {
-                            stringMarker = ' ';
+                            globalStringChoice = '\'';
+                        }
+                        else if (globalStringChoice == '"' && stringMarker == ' ')
+                        {
+                            printSyntaxError("Precedent has been set for double-quotes, but single-quotes were used.", curLineVec);
+                            errorCount++;
+                        }
+                    }
+                    else if (c == ' ')
+                    {
+                        // Do actual checks here
+                        if (c == '{')
+                        {
+                            bracketDepth++;
+
+                            if (curLineVec.size() != 0)
+                            {
+                                printSyntaxError("Symbol '{' must occupy its own line", curLineVec);
+                                errorCount++;
+                            }
+                        }
+                        else if (c == '}')
+                        {
+                            bracketDepth--;
+
+                            if (bracketDepth < 0)
+                            {
+                                printSyntaxError("Unmatched close curly bracket", curLineVec);
+                                errorCount++;
+                            }
+
+                            if (curLineVec.size() != 0)
+                            {
+                                printSyntaxError("Symbol '}' must occupy its own line", curLineVec);
+                                errorCount++;
+                            }
+                        }
+                        else if (c == '(')
+                        {
+                            parenthesisDepth++;
+                        }
+                        else if (c == ')')
+                        {
+                            parenthesisDepth--;
+
+                            if (parenthesisDepth < 0)
+                            {
+                                printSyntaxError("Unmatched end parenthesis", curLineVec);
+                                errorCount++;
+                            }
                         }
                     }
                 }
 
-                if (stringMarker == ' ')
+                if (stringMarker != ' ')
                 {
-                    curLineVec.push_back(c);
+                    printSyntaxError("Unclosed string", curLineVec);
+                    errorCount++;
                 }
             }
-        }
 
-        ind++;
+            // Reset line
+            curLineVec.clear();
+        }
+        else
+        {
+            // Append to curLineVec
+            if (!(curLineVec.size() == 0 && (text[i] == ' ' || text[i] == '\t')))
+            {
+                curLineVec.push_back(text[i]);
+            }
+
+            if (curLineVec.size() == 65)
+            {
+                printSyntaxError("Lines should not exceed 64 characters", curLineVec);
+                errorCount++;
+            }
+        }
+    }
+
+    if (text.size() == 0 || text.back() != '\n')
+    {
+        printSyntaxError("File must end with newline", curLineVec);
+        errorCount++;
+    }
+
+    if (bracketDepth > 0)
+    {
+        printSyntaxError("Unmatched open curly bracket", curLineVec);
+        errorCount++;
+    }
+
+    if (parenthesisDepth > 0)
+    {
+        printSyntaxError("Unmatched open parenthesis", curLineVec);
+        errorCount++;
     }
 
     if (fatal && errorCount > 0)

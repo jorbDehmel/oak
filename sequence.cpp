@@ -1463,6 +1463,11 @@ Type getReturnType(const Type &T)
         }
     }
 
+    if (getReturnTypeCache.size() > 1000)
+    {
+        getReturnTypeCache.clear();
+    }
+
     getReturnTypeCache[T.ID] = T;
 
     return T;
@@ -1566,6 +1571,11 @@ vector<pair<string, Type>> getArgs(Type &type)
     }
 
     // Copy into cache
+    if (cache.size() > 1000)
+    {
+        cache.clear();
+    }
+
     cache[type.ID] = out;
 
     // Return
