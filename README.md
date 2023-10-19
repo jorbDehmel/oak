@@ -11,30 +11,23 @@ Jordan Dehmel, jdehmel@outlook.com, github.com/jorbDehmel/oak
 programming language. It uses `Rust`-like typing, without
 `Rust`'s lifetimes system. It is analogous to `C++` with
 stronger macro support, modern typing, compile-time syntax
-modification and integrated package management. It's like if `C`
-let you shape the language to your liking. It is named `Oak`
-because nature imagery is desperately needed in the mind of a
-programmer.
+modification and integrated package management.
 
 This document outlines the basics of `Oak`, as well as the
 canonical formatting of `Oak` code. Deviation from this
 formatting style is unadvisable, and considered bad form.
 
 `Oak` is, as of now, a translated language; `Oak` code is
-translated via the `acorn` command (see later) into `C++`.
+translated via the `acorn` utility (see later) into `C++`.
 `acorn` can also compile `Oak` into object code, or link it to
 create executables.
 
-`Oak` has modifiable syntax (see the section on preprocessor
-rules), making it highly customizable and flexible in a way that
-no other mainstream languages are. It supports the creation of
-"dialects", which are `Oak` variants which use preprocessor
-rules to support independent syntactical structures. In this
-way, `Oak` provides a strong central core to many branches.
-
-The `Oak` programming language outlined here bears no relation
-nor resemblance to the Java prototype of the same name; I was
-not aware of it until significantly into development.
+`Oak` has compile-time-modifiable syntax (see the section on
+preprocessor rules), making it highly customizable and flexible
+in a way that no other mainstream languages are. It supports the
+creation of "dialects", which are `Oak` variants which use
+preprocessor rules to support independent syntactical
+structures.
 
 ## Names
 
@@ -68,7 +61,7 @@ concept covered within. These files are both demos and unit
 tests for `Oak` and `acorn`. Consequently, you can compile all
 demos via `make test`.
 
-## Syntax
+## Syntax Overview
 
 In `Oak`, a variable is declared as follows.
 
@@ -135,6 +128,113 @@ let f(_: f64) -> f64;
 
 Both of these statements can be read "let f be a function
 mapping a single real number to another".
+
+As a final example for this section, examine the "Hello world"
+program below.
+
+```
+// Include the standard (std) Oak package, which contains print.
+package!("std");
+
+// The main function: The program will start by calling this.
+let main() -> i32
+{
+    // Print "Hello, World!" to the terminal, followed by a
+    // newline.
+    print("Hello, World!\n");
+
+    // Return a zero exit code, meaning no error.
+    0
+}
+
+```
+
+## Pointers
+
+Pointers are variables which hold a memory address. This address
+could refer to a single object in memory, or the start of a
+contiguous block of like-typed objects. To get the address of a
+variable in `Oak`, use the `@` symbol. To get the value that a 
+pointer references, use the `^` symbol. Pointer types are the
+`^` symbol, followed by the type they point to. You can have
+pointers.
+
+The `alloc!` macro for allocating new memory on the heap returns
+a pointer to the memory it allocated, should it be successful.
+Similarly, the `free!` and `free_arr!` macros free the memory
+of the pointer they are passed.
+
+Mutability (ability to change data) is determined by
+referencing. If an object is passed into a function as a
+parameter, it will only be modifiable if the function signature
+designates it a pointer. When calling a function, a single
+reference can be automatically added by the compiler, but no
+more than  that. For example,
+
+```
+let fn_0(what: i32) -> void
+{
+    ;
+}
+
+let fn_1(what: ^i32) -> void
+{
+    ;
+}
+
+let fn_2(what: ^^i32) -> void
+{
+    ;
+}
+
+let main() -> i32
+{
+    let arg: i32;
+
+    // Legal call
+    fn_0(arg);
+
+    // Also legal
+    fn_1(arg);
+
+    // NOT legal- will cause compiler error
+    fn_2(arg);
+
+    0
+}
+
+```
+
+The address-of operator `@` should be avoided unless strictly
+necessary.
+
+A pointer to an object can be used just like the object itself
+with respect to its members. For instance, all the following are
+legal calls.
+
+```
+let item: struct
+{
+    a: i32,
+}
+
+let main() -> i32
+{
+    let obj_1: item;
+    let obj_2: ^item;
+    let obj_3: ^^item;
+    let obj_4: ^^^item;
+
+    // All the following are legal
+    obj_1.a;
+    obj_2.a;
+    obj_3.a;
+    obj_4.a;
+
+    0
+}
+
+```
 
 ## Formatting
 
@@ -1893,6 +1993,12 @@ their own section in this document:
     are single-argument only. Just use `Copy` for anything else.
 - You can call a multi-argument `=` operator (`Copy`) like this:
     `a = (b, c, d);` (as of `Oak` `0.0.10`)
+
+## Disclaimer
+
+The `Oak` programming language outlined here bears no relation
+nor resemblance to the Java prototype of the same name; I was
+not aware of it until significantly into development.
 
 ## License
 
