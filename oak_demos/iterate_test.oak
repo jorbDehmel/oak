@@ -1,0 +1,104 @@
+/*
+An experimental test of iteration rules in Oak.
+
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+
+UNPASSED
+*/
+
+package!("std");
+use_rule!("std");
+
+new_rule!(
+    "for_each",
+    "for $*a : $*c in $*b $~ $<${$}$> $>g",
+    "let $a : $c ; $a = $b ; while ( $a . good ( ) ) { $g ; $a . next ( ) ; }"
+);
+use_rule!("for_each");
+
+include!("stl/vec.oak");
+
+let vector_iterator<t>: struct
+{
+    master: ^vec<t>,
+    pos: u128,
+}
+needs
+{
+    New<t>(_: ^vector_iterator<t>);
+    Copy<t>(_: ^vector_iterator<t>, _: ^vec<t>);
+    
+    next<t>(_: ^vector_iterator<t>);
+    good<t>(_: ^vector_iterator<t>);
+    cur<t>(_: ^vector_iterator<t>);
+}
+
+let New<t>(self: ^vector_iterator<t>) -> void
+{
+    self.pos = 0;
+}
+
+let Copy<t>(self: ^vector_iterator<t>, master: ^vec<t>) -> void
+{
+    self.pos = 0;
+    self.master = master;
+}
+
+let next<t>(self: ^vector_iterator<t>) -> void
+{
+    self.pos++;
+}
+
+let good<t>(self: ^vector_iterator<t>) -> bool
+{
+    let out: bool
+
+    if (self.pos < self.master.size)
+    {
+        out = true;
+    }
+    else
+    {
+        out = false;
+    }
+
+    out
+}
+
+let cur<t>(self: ^vector_iterator<t>) -> opt<t>
+{
+    let out: opt<t>;
+    
+    out = self.master.Get(self.pos);
+
+    out
+}
+
+let iterator<t>(self: ^vec<t>) -> vector_iterator<t>
+{
+    let out: vector_iterator<t>;
+    out = self;
+
+    out
+}
+
+let main() -> i32
+{
+    let v: vec<i32>;
+
+    let i: i32 = 0;
+    while (i < 100)
+    {
+        v.append(i);
+        i += 1;
+    }
+
+    for item: vector_iterator<i32> in v
+    {
+        print(item.cur());
+        print("\n");
+    }
+
+    0
+}

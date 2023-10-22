@@ -1297,8 +1297,8 @@ they represent character-wise iteration.
 4 - Macro definition scanning
 5 - Preprocessor definition insertion
 6 - Compiler macros (file inclusions, linker commands, etc)
-7 - Rule parsing and substitution (handles rule macros)
-8 - Regular macro call handling
+7 - Regular macro call handling
+8 - Rule parsing and substitution (handles rule macros)
 9 - Parenthesis and operator substitution
 10 - Sequencing
 11 - (Optional) `C++` file prettification

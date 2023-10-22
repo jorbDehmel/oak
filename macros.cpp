@@ -22,7 +22,9 @@ set<string> compiled = {
     "bundle_rule!",
     "erase!",
     "c_print!",
-    "c_panic!"};
+    "c_panic!",
+    "type!",
+    "size!"};
 map<string, string> macros;
 
 void compileMacro(const string &Name, bool debug)

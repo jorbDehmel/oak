@@ -490,16 +490,7 @@ void doFile(const string &From)
             phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count() - recurseTime;
             curPhase++;
 
-            // G: Rules
-            start = chrono::high_resolution_clock::now();
-
-            doRules(lexed);
-
-            end = chrono::high_resolution_clock::now();
-            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-            curPhase++;
-
-            // H: Scan for macro calls and handle them
+            // G: Scan for macro calls and handle them
             start = chrono::high_resolution_clock::now();
 
             for (int i = 0; i < lexed.size(); i++)
@@ -531,6 +522,12 @@ void doFile(const string &From)
 
                     // More special cases: Rule macros
                     else if (lexed[i] == "new_rule!" || lexed[i] == "use_rule!" || lexed[i] == "rem_rule!" || lexed[i] == "bundle_rule!")
+                    {
+                        continue;
+                    }
+
+                    // Extra bonus special cases: Typing and sizing
+                    else if (lexed[i] == "type!" || lexed[i] == "size!")
                     {
                         continue;
                     }
@@ -584,6 +581,15 @@ void doFile(const string &From)
                     // Since we do not change i, this new code will be scanned next.
                 }
             }
+
+            end = chrono::high_resolution_clock::now();
+            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+            curPhase++;
+
+            // H: Rules
+            start = chrono::high_resolution_clock::now();
+
+            doRules(lexed);
 
             end = chrono::high_resolution_clock::now();
             phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
@@ -1054,7 +1060,9 @@ void ensureSyntax(const string &text, const bool &fatal)
                 curLineVec.push_back(text[i]);
             }
 
-            if (curLineVec.size() == 65)
+            if (curLineVec.size() == 65 &&
+                !(curLineVec.front() == '\'' ||
+                  curLineVec.front() == '"'))
             {
                 printSyntaxError("Lines should not exceed 64 characters", curLineVec);
                 errorCount++;

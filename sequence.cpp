@@ -813,6 +813,53 @@ sequence __createSequence(list<string> &From)
 
                 while (!From.empty() && From.front() != ";")
                 {
+                    if (From.front() == "type!")
+                    {
+                        // Case for type!() macro
+
+                        // Scrape entire type!(what) call to a vector
+                        vector<string> toAnalyze;
+                        int count = 0;
+
+                        From.pop_front();
+                        do
+                        {
+                            if (From.front() == "(")
+                            {
+                                count++;
+                            }
+                            else if (From.front() == ")")
+                            {
+                                count--;
+                            }
+
+                            if (!((From.front() == "(" && count == 1) || (From.front() == ")" && count == 0)))
+                            {
+                                toAnalyze.push_back(From.front());
+                            }
+
+                            From.pop_front();
+                        } while (count != 0);
+
+                        // Garbage to feed to resolveFunction
+                        string junk = "";
+                        int pos = 0;
+
+                        // Analyze type of vector
+                        Type type = resolveFunction(toAnalyze, pos, junk);
+
+                        // Convert type to lexed string vec
+                        vector<string> lexedType = lex(toStr(&type));
+
+                        // Push lexed vec to front of From
+                        for (auto iter = lexedType.rbegin(); iter != lexedType.rend(); iter++)
+                        {
+                            From.push_front(*iter);
+                        }
+
+                        continue;
+                    }
+
                     toAdd.push_back(From.front());
                     sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
                     From.pop_front();

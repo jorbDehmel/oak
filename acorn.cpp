@@ -646,13 +646,13 @@ int main(const int argc, const char *argv[])
 
         vector<string> passNames = {
             "syntax check",
-            "__CONTENTS__",
+            "contents!",
             "lexing\t",
             "macro defs",
             "preproc defs",
-            "compile macros",
-            "rules / dialect",
+            "compiler macros",
             "macro calls",
+            "rules / dialect",
             "op subs\t",
             "sequencing",
         };

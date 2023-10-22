@@ -1,0 +1,28 @@
+/*
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+
+A test of the type! macro, which expands
+into the type of the object passed to it.
+
+Passed Oct 21, 23
+*/
+
+package!("std");
+use_rule!("std");
+
+let main() -> i32
+{
+    let item_a: i32;
+    let item_b: type!(item_a);
+
+    item_a = 123;
+    item_b = item_a;
+
+    print(item_a);
+    print("\n");
+    print(item_b);
+    print("\n");
+
+    0
+}
