@@ -16,6 +16,8 @@ vector<string> curLineSymbols;
 unsigned long long int curLine = 1;
 string curFile = "";
 
+bool skipCodeScopes = false;
+
 // The current depth of createSequence
 unsigned long long int depth = 0;
 
@@ -550,7 +552,7 @@ sequence __createSequence(list<string> &From)
             out.items.push_back(sequence{nullType, vector<sequence>{}, atom, From.front()});
             From.pop_front();
 
-            table[captureName].push_back(__multiTableSymbol{sequence{}, pointer, false});
+            table[captureName].push_back(__multiTableSymbol{sequence{}, pointer, false, curFile});
             table[captureName].back().type.append(enumData[prevMatchTypeStr].options[optionName]);
         }
         else
@@ -881,7 +883,7 @@ sequence __createSequence(list<string> &From)
                 out.items.push_back(sequence{nullType, vector<sequence>(), atom, toStrC(&type, name)});
 
                 // Insert into table
-                table[name].push_back(__multiTableSymbol{sequence{type, vector<sequence>(), atom, ""}, type});
+                table[name].push_back(__multiTableSymbol{sequence{type, vector<sequence>(), atom, ""}, type, false, curFile});
 
                 // Call constructor (pointers and enums do not get constructors)
                 if (type[0].info != pointer && enumData.count(type[0].name) == 0)
@@ -935,7 +937,7 @@ sequence __createSequence(list<string> &From)
                 auto argsWithType = getArgs(type);
                 for (pair<string, Type> p : argsWithType)
                 {
-                    table[p.first].push_back(__multiTableSymbol{sequence(), p.second});
+                    table[p.first].push_back(__multiTableSymbol{sequence(), p.second, false, curFile});
                 }
 
                 bool isMethod = false;
@@ -975,7 +977,7 @@ sequence __createSequence(list<string> &From)
                 {
                     destroyUnits(name, type, true);
 
-                    table[name].push_back(__multiTableSymbol{sequence{}, type});
+                    table[name].push_back(__multiTableSymbol{sequence{}, type, false, curFile});
 
                     if (name == "New")
                     {
@@ -1080,7 +1082,7 @@ sequence __createSequence(list<string> &From)
                     destroyUnits(name, type, false);
 
                     // Ensure exactly one unit declaration
-                    table[name].push_back(__multiTableSymbol{sequence{}, type});
+                    table[name].push_back(__multiTableSymbol{sequence{}, type, false, curFile});
                 }
 
                 insideMethod = oldSafeness;
@@ -1157,86 +1159,137 @@ sequence __createSequence(list<string> &From)
         sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
         From.pop_front();
 
-        // Save symbol table for later restoration
-        auto oldTable = table;
-
-        out.info = code_scope;
-
-        // Code scope.
-        int count = 1;
-        list<string> curVec;
-        while (true)
+        if (!skipCodeScopes)
         {
-            if (From.empty())
-            {
-                break;
-            }
 
-            if (From.front() == "{")
-            {
-                count++;
-            }
-            else if (From.front() == "}")
-            {
-                count--;
+            // Save symbol table for later restoration
+            auto oldTable = table;
 
-                if (count == 0)
+            out.info = code_scope;
+
+            // Code scope.
+            int count = 1;
+            list<string> curVec;
+            while (true)
+            {
+                if (From.empty())
                 {
-                    out.items.push_back(__createSequence(curVec));
-                    curVec.clear();
-                    sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-                    From.pop_front();
                     break;
                 }
-            }
 
-            if (count == 1 && (From.front() == ";" || From.front() == "}"))
-            {
-                if (!curVec.empty())
+                if (From.front() == "{")
                 {
-                    out.items.push_back(__createSequence(curVec));
-                    out.items.back().type = nullType;
-                    curVec.clear();
+                    count++;
+                }
+                else if (From.front() == "}")
+                {
+                    count--;
+
+                    if (count == 0)
+                    {
+                        out.items.push_back(__createSequence(curVec));
+                        curVec.clear();
+                        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                        From.pop_front();
+                        break;
+                    }
                 }
 
-                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-                From.pop_front();
-            }
-            else
-            {
-                if (!From.empty())
+                if (count == 1 && (From.front() == ";" || From.front() == "}"))
                 {
-                    curVec.push_back(From.front());
+                    if (!curVec.empty())
+                    {
+                        out.items.push_back(__createSequence(curVec));
+                        out.items.back().type = nullType;
+                        curVec.clear();
+                    }
+
                     sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
                     From.pop_front();
                 }
                 else
                 {
-                    break;
+                    if (!From.empty())
+                    {
+                        curVec.push_back(From.front());
+                        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                        From.pop_front();
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
+
+            // Restore symbol table
+
+            // This copies only newly instantiated functions; No other symbols.
+            string output = restoreSymbolTable(oldTable);
+
+            // Call destructors
+            out.items.push_back(sequence{nullType, vector<sequence>(), atom, output});
+
+            // Check if/else validity
+            for (int i = 1; i < out.items.size(); i++)
+            {
+                if (out.items[i].info == keyword && out.items[i].raw == "else")
+                {
+                    if (out.items[i - 1].items.size() != 0 && out.items[i - 1].items[0].info == keyword && out.items[i - 1].items[0].raw == "if")
+                    {
+                        continue;
+                    }
+
+                    sm_assert(out.items[i - 1].info == keyword && out.items[i - 1].raw == "if",
+                              "Else statement must be prefixed by if statement.");
                 }
             }
         }
-
-        // Restore symbol table
-
-        // This copies only newly instantiated functions; No other symbols.
-        string output = restoreSymbolTable(oldTable);
-
-        // Call destructors
-        out.items.push_back(sequence{nullType, vector<sequence>(), atom, output});
-
-        // Check if/else validity
-        for (int i = 1; i < out.items.size(); i++)
+        else
         {
-            if (out.items[i].info == keyword && out.items[i].raw == "else")
+            // Skip if needed
+
+            int count = 1;
+            while (true)
             {
-                if (out.items[i - 1].items.size() != 0 && out.items[i - 1].items[0].info == keyword && out.items[i - 1].items[0].raw == "if")
+                if (From.empty())
                 {
-                    continue;
+                    break;
                 }
 
-                sm_assert(out.items[i - 1].info == keyword && out.items[i - 1].raw == "if",
-                          "Else statement must be prefixed by if statement.");
+                if (From.front() == "{")
+                {
+                    count++;
+                }
+                else if (From.front() == "}")
+                {
+                    count--;
+
+                    if (count == 0)
+                    {
+                        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                        From.pop_front();
+                        break;
+                    }
+                }
+
+                if (count == 1 && (From.front() == ";" || From.front() == "}"))
+                {
+                    sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                    From.pop_front();
+                }
+                else
+                {
+                    if (!From.empty())
+                    {
+                        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                        From.pop_front();
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
             }
         }
 
@@ -2306,8 +2359,8 @@ void addEnum(const vector<string> &FromIn)
     table["New"];
     table["Del"];
 
-    table["New"].push_back(__multiTableSymbol{s, t, false});
-    table["Del"].push_back(__multiTableSymbol{s, t, false});
+    table["New"].push_back(__multiTableSymbol{s, t, false, curFile});
+    table["Del"].push_back(__multiTableSymbol{s, t, false, curFile});
 
     parse_assert(From[i] == ":");
     i++;
@@ -2405,7 +2458,7 @@ void addEnum(const vector<string> &FromIn)
             constructorType.append(maps);
             constructorType.append(atomic, "void");
 
-            table["wrap_" + optionName].push_back(__multiTableSymbol{sequence{}, constructorType, false});
+            table["wrap_" + optionName].push_back(__multiTableSymbol{sequence{}, constructorType, false, curFile});
         }
         else
         {
@@ -2423,7 +2476,7 @@ void addEnum(const vector<string> &FromIn)
             constructorType.append(maps);
             constructorType.append(atomic, "void");
 
-            table["wrap_" + optionName].push_back(__multiTableSymbol{sequence{}, constructorType, false});
+            table["wrap_" + optionName].push_back(__multiTableSymbol{sequence{}, constructorType, false, curFile});
         }
     }
 

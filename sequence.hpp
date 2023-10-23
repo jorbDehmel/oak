@@ -57,6 +57,7 @@ using namespace std;
 extern const set<string> specials;
 extern unsigned long long int curLine;
 extern string curFile;
+extern bool skipCodeScopes;
 
 // For error trace
 extern vector<string> curLineSymbols;

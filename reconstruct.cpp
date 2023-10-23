@@ -73,27 +73,10 @@ void reconstruct(const string &Name,
 
     // Begin header enclosure
     header << "#ifndef " << name << "\n"
-           << "#define " << name << "\n";
+           << "#define " << name << "\n\n";
 
     // Step A1: Load Oak standard translational header
-    {
-        ifstream translationHeader(OAK_HEADER_PATH);
-        if (!translationHeader.is_open())
-        {
-            cout << "\nError loading standard Oak translational header;\n"
-                 << "This is most likely an issue with your Oak install.\n\n";
-
-            throw runtime_error("Failed to open file `" OAK_HEADER_PATH "`");
-        }
-
-        string line;
-        while (getline(translationHeader, line))
-        {
-            header << line << '\n';
-        }
-
-        translationHeader.close();
-    }
+    header << "#include \"" << OAK_HEADER_PATH << "\"\n\n";
 
     // Step A2: Dependencies
     {
@@ -153,6 +136,8 @@ void reconstruct(const string &Name,
 
             for (__multiTableSymbol s : entry.second)
             {
+                header << "// Source file: " << s.sourceFilePath << '\n';
+
                 if (s.type[0].info == function)
                 {
                     string toAdd = toStrCFunction(&s.type, name);

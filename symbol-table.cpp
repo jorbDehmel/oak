@@ -257,8 +257,8 @@ void addStruct(const vector<string> &FromIn)
     table["New"];
     table["Del"];
 
-    table["New"].push_back(__multiTableSymbol{s, t, false});
-    table["Del"].push_back(__multiTableSymbol{s, t, false});
+    table["New"].push_back(__multiTableSymbol{s, t});
+    table["Del"].push_back(__multiTableSymbol{s, t});
 
     parse_assert(i < From.size() && From[i] == ":");
     i++;

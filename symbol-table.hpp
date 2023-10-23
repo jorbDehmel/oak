@@ -55,6 +55,7 @@ struct __multiTableSymbol
     Type type;
 
     bool erased = false;
+    string sourceFilePath = "";
 };
 
 // For later instantiation
