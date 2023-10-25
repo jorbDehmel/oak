@@ -52,7 +52,10 @@ struct rule
     vector<string> outputPattern;
 };
 
+extern bool doRuleLogFile;
 extern map<string, rule> rules;
+
+extern string curFile;
 
 extern vector<string> activeRules;
 extern vector<string> dialectRules;

@@ -44,13 +44,6 @@ void doSub(vector<string> &From, const int &i, const string &SubName, const bool
     toAdd.push_back(SubName);
     toAdd.push_back("(");
 
-    /*
-    if (!IsConst)
-    {
-        toAdd.push_back("@");
-    }
-    */
-
     for (auto s : prevGroup)
     {
         toAdd.push_back(s);
@@ -310,16 +303,6 @@ void operatorSub(vector<string> &From)
             doSub(From, i, "ModEq", false);
             break;
         }
-        else if (cur == "++")
-        {
-            throw_assert(false);
-            break;
-        }
-        else if (cur == "--")
-        {
-            throw_assert(false);
-            break;
-        }
         else if (cur == "&=")
         {
             doSub(From, i, "AndEq", false);
@@ -337,11 +320,7 @@ void operatorSub(vector<string> &From)
     {
         string cur = From[i];
 
-        if (cur == "!")
-        {
-            throw_assert(false);
-        }
-        else if (cur == "&&")
+        if (cur == "&&")
         {
             doSub(From, i, "Andd", true);
             break;

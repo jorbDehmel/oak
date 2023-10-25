@@ -28,7 +28,7 @@ agnostic with respect to input (as much as possible).
 #include "enums.hpp"
 #include "mangler.hpp"
 
-#define OAK_HEADER_PATH "/usr/include/std_oak_header.hpp"
+#define OAK_HEADER_PATH "/usr/include/oak/std_oak_header.hpp"
 
 using namespace std;
 

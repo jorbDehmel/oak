@@ -135,70 +135,113 @@ void doFile(const string &From)
             }
 
             // A - 2: Load file
-            ifstream file(From);
+            ifstream file(From, ios::in | ios::ate);
             if (!file.is_open())
             {
                 throw runtime_error("Could not open source file '" + From + "'");
             }
 
+            long long size = file.tellg();
+
+            file.clear();
+            file.seekg(0, ios::beg);
+
+            size -= file.tellg();
+
             string text, line;
+
+            text.reserve(size);
+            line.reserve(64);
+
             while (getline(file, line))
             {
-                text += line + '\n';
+                text.append(line);
+                text.push_back('\n');
             }
 
             // A: Syntax check
-            start = chrono::high_resolution_clock::now();
+
+            if (debug)
+            {
+                cout << debugTreePrefix << "Syntax check\n";
+                start = chrono::high_resolution_clock::now();
+            }
 
             if (!ignoreSyntaxErrors)
             {
                 ensureSyntax(text, true);
             }
 
-            end = chrono::high_resolution_clock::now();
-            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-            curPhase++;
+            if (debug)
+            {
+                end = chrono::high_resolution_clock::now();
+                phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+                curPhase++;
+            }
 
             // B: contents! macro
-            start = chrono::high_resolution_clock::now();
+            if (debug)
+            {
+                cout << debugTreePrefix << "'contents!' macro\n";
+                start = chrono::high_resolution_clock::now();
+            }
 
             // This one goes out to quine writers (myself included)
-            string cleanedText;
+            // Very dedicated people could use this for reflection
+
+            preprocDefines["contents!"] = " ";
+            preprocDefines["contents!"].reserve(size + 64);
+            preprocDefines["contents!"][0] = '\"';
+
             for (char c : text)
             {
                 if (c == '"' || c == '\'' || c == '\\')
                 {
-                    cleanedText += "\\";
+                    preprocDefines["contents!"].push_back('\\');
                 }
 
                 if (c == '\n')
                 {
-                    cleanedText += "\\n";
+                    preprocDefines["contents!"].append("\\n");
                 }
                 else
                 {
-                    cleanedText += c;
+                    preprocDefines["contents!"].push_back(c);
                 }
             }
-            preprocDefines["contents!"] = "\"" + cleanedText + "\"";
+            preprocDefines["contents!"].push_back('\"');
 
-            end = chrono::high_resolution_clock::now();
-            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-            curPhase++;
+            if (debug)
+            {
+                end = chrono::high_resolution_clock::now();
+                phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+                curPhase++;
+            }
 
             // C: Lex
-            start = chrono::high_resolution_clock::now();
+            if (debug)
+            {
+                cout << debugTreePrefix << "Lexing\n";
+                start = chrono::high_resolution_clock::now();
+            }
 
             lexed = lex(text);
             lexedCopy = lexed;
 
-            end = chrono::high_resolution_clock::now();
-            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-            curPhase++;
+            if (debug)
+            {
+                end = chrono::high_resolution_clock::now();
+                phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+                curPhase++;
+            }
 
             // D: Scan for macro definitions and handle them
             // This erases them from lexed
-            start = chrono::high_resolution_clock::now();
+            if (debug)
+            {
+                cout << debugTreePrefix << "Macro definitions\n";
+                start = chrono::high_resolution_clock::now();
+            }
 
             for (int i = 1; i + 1 < lexed.size(); i++)
             {
@@ -265,6 +308,7 @@ void doFile(const string &From)
                         }
 
                         macros[name] = contents;
+                        macroSourceFiles[name] = curFile;
                     }
                     else
                     {
@@ -304,12 +348,19 @@ void doFile(const string &From)
                 }
             }
 
-            end = chrono::high_resolution_clock::now();
-            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-            curPhase++;
+            if (debug)
+            {
+                end = chrono::high_resolution_clock::now();
+                phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+                curPhase++;
+            }
 
             // E: Preproc definitions
-            start = chrono::high_resolution_clock::now();
+            if (debug)
+            {
+                cout << debugTreePrefix << "Preproc definitions\n";
+                start = chrono::high_resolution_clock::now();
+            }
 
             preprocDefines["line!"] = "1";
             for (int i = 0; i < lexed.size(); i++)
@@ -334,14 +385,20 @@ void doFile(const string &From)
                 }
             }
 
-            end = chrono::high_resolution_clock::now();
-            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-            curPhase++;
+            if (debug)
+            {
+                end = chrono::high_resolution_clock::now();
+                phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+                curPhase++;
+            }
 
             // F: Scan for compiler macros; Do these first
             // This erases them from lexed
-            start = chrono::high_resolution_clock::now();
-            unsigned long long int recurseTime = 0;
+            if (debug)
+            {
+                cout << debugTreePrefix << "Compiler macros\n";
+                start = chrono::high_resolution_clock::now();
+            }
 
             for (int i = 0; i < lexed.size(); i++)
             {
@@ -367,10 +424,7 @@ void doFile(const string &From)
 
                         for (string a : args)
                         {
-                            auto recStart = chrono::high_resolution_clock::now();
                             doFile(OAK_DIR_PATH + a);
-                            auto recEnd = chrono::high_resolution_clock::now();
-                            recurseTime += chrono::duration_cast<chrono::nanoseconds>(recEnd - recStart).count();
                         }
                         i--;
                     }
@@ -427,10 +481,7 @@ void doFile(const string &From)
 
                         for (string a : args)
                         {
-                            auto recStart = chrono::high_resolution_clock::now();
                             files = getPackageFiles(a);
-                            auto recEnd = chrono::high_resolution_clock::now();
-                            recurseTime += chrono::duration_cast<chrono::nanoseconds>(recEnd - recStart).count();
 
                             for (string f : files)
                             {
@@ -439,10 +490,7 @@ void doFile(const string &From)
                                     cout << debugTreePrefix << "Loading package file '" << f << "'...\n";
                                 }
 
-                                auto recStart = chrono::high_resolution_clock::now();
                                 doFile(f);
-                                auto recEnd = chrono::high_resolution_clock::now();
-                                recurseTime += chrono::duration_cast<chrono::nanoseconds>(recEnd - recStart).count();
                             }
                         }
                         i--;
@@ -486,12 +534,19 @@ void doFile(const string &From)
                 }
             }
 
-            end = chrono::high_resolution_clock::now();
-            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count() - recurseTime;
-            curPhase++;
+            if (debug)
+            {
+                end = chrono::high_resolution_clock::now();
+                phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+                curPhase++;
+            }
 
             // G: Scan for macro calls and handle them
-            start = chrono::high_resolution_clock::now();
+            if (debug)
+            {
+                cout << debugTreePrefix << "Macro calls\n";
+                start = chrono::high_resolution_clock::now();
+            }
 
             for (int i = 0; i < lexed.size(); i++)
             {
@@ -582,36 +637,60 @@ void doFile(const string &From)
                 }
             }
 
-            end = chrono::high_resolution_clock::now();
-            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-            curPhase++;
+            if (debug)
+            {
+                end = chrono::high_resolution_clock::now();
+                phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+                curPhase++;
+            }
 
             // H: Rules
-            start = chrono::high_resolution_clock::now();
+            if (debug)
+            {
+                cout << debugTreePrefix << "Rules\n";
+                start = chrono::high_resolution_clock::now();
+            }
 
             doRules(lexed);
 
-            end = chrono::high_resolution_clock::now();
-            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-            curPhase++;
+            if (debug)
+            {
+                end = chrono::high_resolution_clock::now();
+                phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+                curPhase++;
+            }
 
             // I: Operator substitution (within parenthesis and between commas)
-            start = chrono::high_resolution_clock::now();
+            if (debug)
+            {
+                cout << debugTreePrefix << "Operator substitution\n";
+                start = chrono::high_resolution_clock::now();
+            }
 
             parenSub(lexed);
 
-            end = chrono::high_resolution_clock::now();
-            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-            curPhase++;
+            if (debug)
+            {
+                end = chrono::high_resolution_clock::now();
+                phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+                curPhase++;
+            }
 
             // J: Sequencing
-            start = chrono::high_resolution_clock::now();
+            if (debug)
+            {
+                cout << debugTreePrefix << "Sequencing (AST & translation)\n";
+                start = chrono::high_resolution_clock::now();
+            }
 
             sequence fileSeq = createSequence(lexed);
 
-            end = chrono::high_resolution_clock::now();
-            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-            curPhase++;
+            if (debug)
+            {
+                end = chrono::high_resolution_clock::now();
+                phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+                curPhase++;
+            }
 
             if (fileSeq.type != nullType)
             {

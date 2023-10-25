@@ -5,6 +5,8 @@ map<string, rule> rules;
 vector<string> activeRules, dialectRules;
 map<string, vector<string>> bundles;
 
+bool doRuleLogFile = false;
+
 // I is the point in Lexed at which a macro name was found
 // CONSUMPTIVE!
 vector<string> getMacroArgs(vector<string> &lexed, const int &i)
@@ -68,6 +70,18 @@ vector<string> getMacroArgs(vector<string> &lexed, const int &i)
 
 void doRules(vector<string> &From)
 {
+    ofstream ruleLogFile;
+    if (doRuleLogFile)
+    {
+        ruleLogFile.open(".oak_build/rule_log.log", ios::out | ios::app);
+        if (!ruleLogFile.is_open())
+        {
+            throw rule_error("Failed to open rule log file '.oak_build/rule_log.log'");
+        }
+
+        ruleLogFile << "\n\n/////////// In file " << curFile << " ///////////\n\n";
+    }
+
     vector<map<string, string>> ruleVars;
 
     // Initialize variable maps
@@ -563,9 +577,35 @@ void doRules(vector<string> &From)
                         }
                     }
 
+                    // Log if needed
+                    if (doRuleLogFile)
+                    {
+                        ruleLogFile << "In rule index " << ruleIndex << '\n'
+                                    << "Input pattern '";
+
+                        for (const auto &what : curRule.inputPattern)
+                        {
+                            ruleLogFile << what << ' ';
+                        }
+
+                        ruleLogFile << "'\nOutput pattern '";
+
+                        for (const auto &what : curRule.outputPattern)
+                        {
+                            ruleLogFile << what << ' ';
+                        }
+
+                        ruleLogFile << "'\n\nMatch '";
+                    }
+
                     // Erase old contents
                     for (int k = i; k < posInFrom; k++)
                     {
+                        if (doRuleLogFile)
+                        {
+                            ruleLogFile << From[i] << ' ';
+                        }
+
                         if (From[i].size() > 1 && From[i].substr(2) == "//")
                         {
                             i++;
@@ -575,6 +615,18 @@ void doRules(vector<string> &From)
                         {
                             From.erase(From.begin() + i);
                         }
+                    }
+
+                    if (doRuleLogFile)
+                    {
+                        ruleLogFile << "'\nIs now '";
+
+                        for (const auto &what : newContents)
+                        {
+                            ruleLogFile << what << ' ';
+                        }
+
+                        ruleLogFile << "'\n\n";
                     }
 
                     // Insert new contents

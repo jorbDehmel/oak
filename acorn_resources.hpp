@@ -34,16 +34,18 @@ GPLv3 held by author
 
 using namespace std;
 
-#define VERSION "0.1.4"
+#define VERSION "0.1.5"
 #define LICENSE "GPLv3"
 #define INFO "jdehmel@outlook.com"
 
 #define OAK_DIR_PATH "/usr/include/oak/"
 
+#define MAX_CACHE_KB 5000
+
 /*
 Remaining options:
 -abfgjkyz
--ABCEFGHIJKLMNOPQUVWXYZ
+-ABCEFGHIJKLNOPQVWXYZ
 */
 
 #define DASHED_LINE "------------------------------------------\n"
@@ -59,6 +61,7 @@ const string helpText = "Acorn - Oak Standard Translator\n" DASHED_LINE
                         " -i    | --install   | Install a package\n"
                         " -l    | --link      | Produce executables\n"
                         " -m    | --manual    | Produce a .md doc\n"
+                        " -M    |             | Used for macros\n"
                         " -n    | --no_save   | Produce nothing\n"
                         " -o    | --output    | Set the output file\n"
                         " -O    | --optimize  | Use LLVM optimization O3\n"
@@ -71,6 +74,7 @@ const string helpText = "Acorn - Oak Standard Translator\n" DASHED_LINE
                         " -t    | --translate | Produce C++ files\n"
                         " -T    | --time      | Output time usage\n"
                         " -u    | --dump      | Save dump files\n"
+                        " -U    |             | Save rule log files\n"
                         " -v    | --version   | Show version\n"
                         " -w    | --new       | Create a new package\n"
                         " -x    | --syntax    | Ignore syntax errors\n";

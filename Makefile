@@ -1,4 +1,13 @@
-# Jordan Dehmel, 2023, jdehmel@outlook.com, github.com/jorbDehmel/oak
+# Jordan Dehmel, 2023
+# jdehmel@outlook.com
+# github.com/jorbDehmel/oak
+
+##########################################
+# Comparisons of build compilers         #
+# time make clean uninstall install test #
+# clang++: 125.25s 						 #
+# g++: 143.43							 #
+##########################################
 
 CC := clang++ -pedantic -Wall
 OBJS := build/lexer.o build/symbol-table.o \
@@ -19,14 +28,14 @@ HEADS := lexer.hpp reconstruct.hpp symbol-table.hpp \
 # -g should be used when size doesn't matter
 FLAGS := -O3 -g
 
-TEST := acorn -e
+TEST := acorn
 
 all: bin/acorn.out
 
 install: bin/acorn.out std_oak_header.hpp
 	sudo mkdir -p /usr/include/oak
 
-	sudo cp std_oak_header.hpp /usr/include
+	sudo cp std_oak_header.hpp /usr/include/oak
 	sudo cp packages_list.txt /usr/include/oak
 	sudo cp -r std /usr/include/oak
 
@@ -35,6 +44,8 @@ install: bin/acorn.out std_oak_header.hpp
 	sudo rm -f /usr/include/oak/std/Makefile
 
 	sudo cp bin/acorn.out /usr/bin/acorn
+
+	acorn -S sdl
 
 uninstall:
 	sudo rm -rf /usr/bin/acorn /usr/include/oak /usr/include/std_oak_header.hpp
@@ -72,8 +83,6 @@ test: install
 
 	$(MAKE) sdltest
 	$(MAKE) gentest
-
-	rm -rf .oak_build
 
 sdltest:
 	$(TEST) oak_demos/sdl_test.oak -o sdl_test.out

@@ -8,7 +8,7 @@ unsigned long long int getSize(const string &FilePath)
 #endif
 
     // Run command
-    if (system(("du -s " + FilePath + " > sizer_temp.txt").c_str()) != 0)
+    if (system(("du -s " + FilePath + " > sizer_temp.txt 2> /dev/null").c_str()) != 0)
     {
         throw_assert(system("rm -f sizer_temp.txt") == 0);
 

@@ -1,0 +1,39 @@
+// Operation rules designed to replace the
+// op-sub stage of compilation in Oak.
+// 
+// Jordan Dehmel, 2023
+// jdehmel@outlook.com
+
+// "$*a = $*b ;"     "Copy ( $a , $b ) ;"
+// "$*a += $*b ;"    "AddEq ( $a , $b ) ;"
+// "$*a -= $*b ;"    "SubEq ( $a , $b ) ;"
+// "$*a *= $*b ;"    "MultEq ( $a , $b ) ;"
+// "$*a /= $*b ;"    "DivEq ( $a , $b ) ;"
+// "$*a %= $*b ;"    "ModEq ( $a , $b ) ;"
+// "$*a &= $*b ;"    "AndEq ( $a , $b ) ;"
+// "$*a |= $*b ;"    "OrEq ( $a , $b ) ;"
+
+"( $*a && $*b )"    "Andd ( $a , $b )"
+"( $*a || $*b )"    "Orr ( $a , $b )"
+
+// ADVANCED EXPERIMENTAL RULE
+//    "( $*a < $^ $/[$>$] $>b )",
+//    "Less ( $a , $b )"
+
+"$*a > $*b"     "Great ( $a , $b )"
+"( $*a <= $*b )"    "Leq ( $a , $b )"
+"( $*a >= $*b )"    "Greq ( $a , $b )"
+"( $*a == $*b )"    "Eq ( $a , $b )"
+"( $*a != $*b )"    "Neq ( $a , $b )"
+
+"( $*a * $*b )"     "Mult ( $a , $b )"
+"( $*a / $*b )"     "Div ( $a , $b )"
+"( $*a % $*b )"     "Mod ( $a , $b )"
+
+"( $*a + $*b )"     "Add ( $a , $b )"
+"( $*a - $*b )"     "Sub ( $a , $b )"
+
+"( $*a << $*b )"    "Lbs ( $a , $b )"
+"( $*a >> $*b )"    "Rbs ( $a , $b )"
+"( $*a & $*b )"     "And ( $a , $b )"
+"( $*a | $*b )"     "Or ( $a , $b )"

@@ -17,7 +17,8 @@ int main(const int argc, const char *argv[])
     vector<string> files;
     string out = "a.out";
     bool noSave = false;
-    bool eraseTemp = true;
+    bool eraseTemp = false;
+    bool isMacroCall = false;
 
     try
     {
@@ -233,6 +234,9 @@ int main(const int argc, const char *argv[])
                         case 'm':
                             manual = !manual;
                             break;
+                        case 'M':
+                            isMacroCall = !isMacroCall;
+                            break;
                         case 'n':
                             noSave = !noSave;
 
@@ -312,6 +316,9 @@ int main(const int argc, const char *argv[])
                         case 'u':
                             alwaysDump = !alwaysDump;
                             break;
+                        case 'U':
+                            doRuleLogFile = !doRuleLogFile;
+                            break;
                         case 'v':
                             cout << "Version: " << VERSION << '\n'
                                  << "License: " << LICENSE << '\n'
@@ -342,6 +349,17 @@ int main(const int argc, const char *argv[])
             {
                 files.push_back(cur);
             }
+        }
+
+        // Clean cache if not macro
+        if (!isMacroCall && getSize(COMPILED_PATH) > MAX_CACHE_KB)
+        {
+            cout << tags::yellow_bold
+                 << DB_INFO << "Purging cache\n"
+                 << tags::reset;
+
+            // Purge source .cpp, .hpp, and temp files
+            system("rm -rf " COMPILED_PATH "/*.cpp " COMPILED_PATH "/*.hpp " COMPILED_PATH "/*.txt");
         }
 
         if (files.empty())

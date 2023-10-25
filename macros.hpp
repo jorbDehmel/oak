@@ -29,9 +29,19 @@ using namespace std;
 
 extern set<string> compiled;
 extern map<string, string> macros;
+extern map<string, string> macroSourceFiles;
 
 // USES SYSTEM CALLS
 string callMacro(const string &Name, const vector<string> &Args, bool debug);
 void compileMacro(const string &Name, bool debug);
+
+// Misnomer: This returns the create time in seconds after epoch
+// Is costly the first time, but uses caching
+long long getAgeOfFile(const string &filepath);
+
+// Returns true if the source file is newer than the destination one
+// OR if either file is nonexistant
+// Is costly the first time, but uses caching
+bool isSourceNewer(const string &source, const string &dest);
 
 #endif

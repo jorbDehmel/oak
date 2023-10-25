@@ -136,8 +136,6 @@ void reconstruct(const string &Name,
 
             for (__multiTableSymbol s : entry.second)
             {
-                header << "// Source file: " << s.sourceFilePath << '\n';
-
                 if (s.type[0].info == function)
                 {
                     string toAdd = toStrCFunction(&s.type, name);

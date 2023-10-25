@@ -26,6 +26,57 @@ set<string> compiled = {
     "type!",
     "size!"};
 map<string, string> macros;
+map<string, string> macroSourceFiles;
+
+long long getAgeOfFile(const string &filepath)
+{
+    static map<string, long long> ageCache;
+
+    if (ageCache.count(filepath) != 0)
+    {
+        return ageCache[filepath];
+    }
+
+    smartSystem("mkdir -p .oak_build");
+    if (system(("stat -Lc %Y " + filepath + " > .oak_build/.age_temp.txt 2> /dev/null").c_str()) != 0)
+    {
+        return -1;
+    }
+
+    ifstream file(".oak_build/.age_temp.txt");
+    if (!file.is_open())
+    {
+        return -1;
+    }
+
+    long long out = -1;
+    file >> out;
+
+    file.close();
+
+    if (ageCache.size() > 200)
+    {
+        ageCache.clear();
+    }
+    ageCache[filepath] = out;
+
+    return out;
+}
+
+// Returns true if the source file is newer than the destination one
+// OR if either file is nonexistant
+bool isSourceNewer(const string &source, const string &dest)
+{
+    long long sourceAge = getAgeOfFile(source);
+    long long destAge = getAgeOfFile(dest);
+
+    if (sourceAge == -1 || destAge == -1)
+    {
+        return true;
+    }
+
+    return (sourceAge > destAge);
+}
 
 void compileMacro(const string &Name, bool debug)
 {
@@ -43,13 +94,19 @@ void compileMacro(const string &Name, bool debug)
         return;
     }
 
-    throw_assert(system("mkdir -p " COMPILED_PATH) == 0);
-
     string rootName = purifyStr(Name.substr(0, Name.size() - 1));
 
     // Write file to be compiled
     string srcPath = COMPILED_PATH + rootName + ".oak";
     string binPath = COMPILED_PATH + rootName + ".out";
+
+    // Check ages, makefile-style
+    if (!isSourceNewer(macroSourceFiles[Name], srcPath))
+    {
+        return;
+    }
+
+    throw_assert(system("mkdir -p " COMPILED_PATH) == 0);
 
     ofstream macroFile(srcPath);
     if (!macroFile.is_open())
@@ -62,7 +119,7 @@ void compileMacro(const string &Name, bool debug)
     macroFile.close();
 
     // Call compiler
-    string command = COMPILER_COMMAND + (debug ? string(" -d") : string("")) + " -eo " + binPath + " " + srcPath;
+    string command = COMPILER_COMMAND + (debug ? string(" -d") : string("")) + " -Mo " + binPath + " " + srcPath;
 
     if (debug)
     {

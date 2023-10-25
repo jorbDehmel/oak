@@ -6,9 +6,9 @@ Interfacial file for Oak communication with C++'s
 fstream library.
 */
 
-#include "std_oak_header.hpp"
-#include <fstream>
+#include "oak/std_oak_header.hpp"
 
+#include <fstream>
 using namespace std;
 
 // Struct definitions

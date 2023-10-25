@@ -5,7 +5,7 @@ jdehmel@outlook.com
 For .o linking w/ Acorn STD package
 */
 
-#include "std_oak_header.hpp"
+#include "oak/std_oak_header.hpp"
 
 void New(bool *self)
 {

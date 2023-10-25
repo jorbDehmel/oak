@@ -4,6 +4,10 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.1.5           | 10/25/23 | Macro compilation caching, added
+                |          | -M for macros, -U for rule logs.
+                |          | Also, some experimental stuff.
+                |          |
 0.1.4           | 10/21/23 | Added type! macro for getting type.
                 |          |
 0.1.3           | 10/18/23 | Changed the format of preproc
