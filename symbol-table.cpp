@@ -337,7 +337,7 @@ void addStruct(const vector<string> &FromIn)
                 {
                     sequence seq;
                     seq.info = atom;
-                    seq.raw = "what->" + varName + " = nullptr;";
+                    seq.raw = "what->" + varName + " = 0";
                     seq.type = nullType;
 
                     table["New"].back().seq.items.push_back(seq);

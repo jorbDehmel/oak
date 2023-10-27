@@ -1463,11 +1463,25 @@ string toC(const sequence &What)
 
                     if (captureName != "NULL")
                     {
-                        string captureType = mangleType(enumData[typeStr].options[optionName]);
+                        int numPtrs = 0;
+
+                        Type clone = enumData[typeStr].options[optionName];
+                        while (clone.size() > 0 && clone[0].info == pointer)
+                        {
+                            numPtrs++;
+                            clone.pop_front();
+                        }
+
+                        string captureType = mangleType(clone);
 
                         if (atomics.count(captureType) == 0)
                         {
                             out += "struct ";
+                        }
+
+                        for (int l = 0; l < numPtrs; l++)
+                        {
+                            captureType += "*";
                         }
 
                         out += captureType + " *" + captureName + " = &" + itemStr + ".__data." + optionName + "_data;\n";

@@ -18,7 +18,7 @@ canonical formatting of `Oak` code. Deviation from this
 formatting style is unadvisable, and considered bad form.
 
 `Oak` is, as of now, a translated language; `Oak` code is
-translated via the `acorn` utility (see later) into `C++`.
+translated via the `acorn` utility (see later) into `C`.
 `acorn` can also compile `Oak` into object code, or link it to
 create executables.
 
@@ -495,7 +495,7 @@ inheritance.
 
 ## Division Of Labor
 
-`Oak` does not have explicit header files like C / `C++`, but
+`Oak` does not have explicit header files like `C` / `C++`, but
 there is no reason why you could not use a `.oak` file like a
 `.hpp / .h`. For example, a `.oak` can establish function
 signatures without explicitly defining them, allowing another
@@ -556,20 +556,49 @@ let main() -> i32
 }
 ```
 
-## Interchangeability With C++
+## Interchangeability With C
 
-The Acorn compiler will have some automated `C++`-to-`Oak`
+The Acorn compiler will have some automated `C`-to-`Oak`
 translation capabilities. For instance, using a `include!` macro
 statement on a `C`-based file will translate the function
 signatures within into `Oak` notation and add them to the symbol
 table. This allows the merging of the two languages to take
 place later, with object files. Since `Oak` is translated into
-`C++`, this is exceedingly simple. You can also define only the
-function signatures in `Oak` and define them in `C++`, as is
+`C`, this is exceedingly simple. You can also define only the
+function signatures in `Oak` and define them in `C`, as is
 done in the `Oak` `std` (standard) package. This is called
 **interfacing**. These pairs of dual-language files are
 **interfacial files**, and any package primarily porting one
 language's features to `Oak` is an **interfacial package**.
+
+**Note: You will have to follow the `Oak` mangling process.**
+
+## Conforming to the Oak Mangler
+
+The `Oak` function signatures
+
+```
+let foo_bar(self: ^data_structure, what: data, hello: ^^data) -> data_structure;
+let hello_world() -> void;
+let fn_ptr_thing(fn: ^() -> void) -> void;
+```
+
+Will, upon translation to `C`, become
+
+```
+// Note how the new "mangled" function name contains the entire type
+// Argument types are separated by JOIN, and the argument secion ends
+// with MAPS, followed by the return type.
+data_structure foo_bar_FN_PTR_data_structure_JOIN_data_JOIN_PTR_PTR_data_MAPS_data_structure(data_struct *self, data what, data **hello);
+
+void hello_world_FN_MAPS_void(void);
+
+// This is how function pointers get mangled
+void fn_ptr_thing_FN_PTR_FN_MAPS_void_MAPS_void(void (*fn)(void));
+```
+
+Thus, in an interfacial file, you should follow the
+above pattern.
 
 ## Operator Overloading / Aliases
 
@@ -807,7 +836,7 @@ document for more about instantiating generic structs and the
 ## Acorn
 
 Acorn is the `Oak` translator, compiler, and linker. `Oak` is
-first translated into `C++`, which is then compiled and linked.
+first translated into `C`, which is then compiled and linked.
 
 Acorn command line arguments:
 
@@ -822,10 +851,11 @@ Name | Verbose     | Function
  -i  | --install   | Install a package
  -l  | --link      | Produce executables
  -m  | --manual    | Generate auto-documentation
+ -M  |             | Used for macros
  -n  | --no_save   | Produce nothing
  -o  | --output    | Set the output file
  -O  | --optimize  | Uses LLVM -O3 flag
- -p  | --pretty    | Prettify `C++` files
+ -p  | --pretty    | Prettify `C` files
  -q  | --quit      | Quit immediately
  -r  | --reinstall | Reinstall a package
  -R  | --remove    | Uninstalls a package
@@ -833,6 +863,7 @@ Name | Verbose     | Function
  -S  | --install   | Install a package
  -t  | --translate | Produce `C++` files
  -u  | --dump      | Produce dump files
+ -U  |             | Save rule logs
  -v  | --version   | Show Acorn version
  -w  | --new       | Make a new package
 
@@ -1286,7 +1317,7 @@ advanced language than `Sapling`.
 ## Translator Passes
 
 The `Oak` translator goes through the following passes when
-processing a file from `Oak` to `C++`. Each of these represents
+processing a file from `Oak` to `C`. Each of these represents
 (at minimum) one full pass over the entire file. In stages after
 stage 3, they represent symbol-wise iteration, but before then
 they represent character-wise iteration.
@@ -1301,9 +1332,9 @@ they represent character-wise iteration.
 8 - Rule parsing and substitution (handles rule macros)
 9 - Parenthesis and operator substitution
 10 - Sequencing
-11 - (Optional) `C++` file prettification
-12 - (External) Object file creation via `clang++`
-13 - (External) Executable linking via `clang++`
+11 - (Optional) `C` file prettification
+12 - (External) Object file creation via `clang`
+13 - (External) Executable linking via `clang`
 
 ## Special Symbols
 
@@ -1380,7 +1411,7 @@ function pointers.
 **Simple DirectMedia Layer 2**, or **SDL2** is a framework for
 accessing low-level system IO. The `Oak` git repo includes a
 basic `Oak` package called `sdl` which interfaces with the
-`C++ SDL2` library. This allows some graphics to be created by
+`C SDL2` library. This allows some graphics to be created by
 `Oak`.
 
 ## Translation Units
@@ -1424,10 +1455,10 @@ from using multithreading if any of its "parent" files use it.
 This section is confusing and is only necessary to read if you
 are developing an interfacial library.
 
-It is sometimes required for the `C++` version of a struct to
+It is sometimes required for the `C` version of a struct to
 have more members than its `Oak` counterpart. For instance, the
 interface for the `sdl` package defines the `sdl_window` struct.
-On the `C++` side of the interface, this struct contains a
+On the `C` side of the interface, this struct contains a
 `SDL_Window *` member and a `SDL_Renderer *` member. These two
 items are not included in `Oak` because they would require too
 many useless symbols to be loaded into memory. If they were
@@ -1439,7 +1470,7 @@ one is not smaller than the other and padding is never touched.
 This explains why the `sdl_window` struct has the confusing line
 `__a, __b, __c, __d: i128,`. This adds four `i128` members,
 effectively requiring 64 bytes of space at the end of the
-struct. This space holds the extra members on the `C++` side.
+struct. This space holds the extra members on the `C` side.
 
 If a program were to modify the padding of a padded struct, the
 other side of the interface would have its data destroyed and
@@ -1490,8 +1521,8 @@ dynamically-resizing arrays of `i8` atomics (in `C++` terms, a
 The `std/files.oak` file defines the `i_file` and `o_file`
 structs, which handle input and output to and from files
 respectively. `i_file`s read from files, and `o_file`s write to
-files. `std/files.oak` is an interface to the `C++` `fstream`
-library.
+files. `std/files.oak` is an interface to the `C` `FILE *`
+system.
 
 `i_file`s and `o_file`s do **not** open a file when they are
 created! You must call the `open` method before they can be used
@@ -1661,7 +1692,7 @@ compiler-generated "wrap" methods. The compiler generates
 
 for each option `OPTION_NAME` in an enum `ENUM_NAME`. This wraps
 the data variable into the enum. This all happens via a compiler
-`C++` interface.
+`C` interface.
 
 Note that, if the type of an enum option is the unit struct, the 
 compiler will instead generate a single-argument "wrap" method,
@@ -1984,8 +2015,8 @@ their own section in this document:
 - `Oak` does not have namespaces under the canonical dialect, 
     although the `namespace` or `std` rules provide a simulacrum
     of them.
-- It is highly likely that `Oak` will one day translate to
-    `LLVM IR` instead of `C++`
+- `Oak` was previously (0.1.*) translated to `C++`. As of 0.2.0,
+    it is instead translated to `C`.
 - `Oak` does not have stack-stored arrays; Only heap-stored
     ones. In fact, all heap-stored data is technically
     array-based.

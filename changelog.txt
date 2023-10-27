@@ -4,6 +4,9 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.2.0           | 10/27/23 | Made the target language C instead
+                |          | of C++. Marginal efficiency boosts.
+                |          |
 0.1.5           | 10/25/23 | Macro compilation caching, added
                 |          | -M for macros, -U for rule logs.
                 |          | Also, some experimental stuff.

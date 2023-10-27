@@ -83,7 +83,7 @@ void reconstruct(const string &Name,
            << "#define " << name << "\n\n";
 
     // Step A1: Load Oak standard translational header
-    header << "#include \"" << OAK_HEADER_PATH << "\"\n\n";
+    header << "#include \"" << OAK_HEADER_PATH << "\"\n";
 
     // Step A2: Dependencies
     {
@@ -92,7 +92,6 @@ void reconstruct(const string &Name,
         {
             header << "#include \"" << d << "\"\n";
         }
-        header << '\n';
     }
 
     // Step A3: Struct definitions
@@ -110,10 +109,10 @@ void reconstruct(const string &Name,
 
             for (auto m : structData[name].order)
             {
-                header << '\t' << toStrC(&structData[name].members[m]) << ' ' << m << ";\n";
+                header << toStrC(&structData[name].members[m]) << ' ' << m << ";\n";
             }
 
-            header << "};\n\n";
+            header << "};\n";
         }
     }
 
@@ -164,8 +163,6 @@ void reconstruct(const string &Name,
                     header << "extern " << toAdd << " " << name << ";\n";
                     body << toAdd << " " << name << ";\n";
                 }
-
-                header << '\n';
             }
         }
     }

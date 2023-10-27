@@ -58,9 +58,9 @@ void wrap_sdl_mouse_button_down_event_FN_PTR_sdl_event_JOIN_sdl_mouse_button_eve
 void wrap_sdl_mouse_button_up_event_FN_PTR_sdl_event_JOIN_sdl_mouse_button_event_data_MAPS_void(struct sdl_event *self, struct sdl_mouse_button_event_data data);
 void wrap_sdl_none_FN_PTR_sdl_event_MAPS_void(struct sdl_event *self);
 
-struct sdl_eventsdl_poll_event_FN_MAPS_sdl_event()
+struct sdl_event sdl_poll_event_FN_MAPS_sdl_event(void)
 {
-    struct sdl_eventout;
+    struct sdl_event out;
 
     SDL_Event event;
     if (!SDL_PollEvent(&event))
@@ -70,19 +70,19 @@ struct sdl_eventsdl_poll_event_FN_MAPS_sdl_event()
     }
     else if (event.type == SDL_KEYDOWN)
     {
-        sdl_key_event_data to_wrap;
+        struct sdl_key_event_data to_wrap;
         to_wrap.keycode = event.key.keysym.sym;
         wrap_sdl_key_down_event_FN_PTR_sdl_event_JOIN_sdl_key_event_data_MAPS_void(&out, to_wrap);
     }
     else if (event.type == SDL_KEYUP)
     {
-        sdl_key_event_data to_wrap;
+        struct sdl_key_event_data to_wrap;
         to_wrap.keycode = event.key.keysym.sym;
         wrap_sdl_key_up_event_FN_PTR_sdl_event_JOIN_sdl_key_event_data_MAPS_void(&out, to_wrap);
     }
     else if (event.type == SDL_MOUSEMOTION)
     {
-        sdl_mouse_move_event_data to_wrap;
+        struct sdl_mouse_move_event_data to_wrap;
 
         to_wrap.x = event.motion.x;
         to_wrap.y = event.motion.y;
@@ -91,7 +91,7 @@ struct sdl_eventsdl_poll_event_FN_MAPS_sdl_event()
     }
     else if (event.type == SDL_MOUSEBUTTONDOWN)
     {
-        sdl_mouse_button_event_data to_wrap;
+        struct sdl_mouse_button_event_data to_wrap;
 
         to_wrap.x = event.button.x;
         to_wrap.y = event.button.y;
@@ -101,7 +101,7 @@ struct sdl_eventsdl_poll_event_FN_MAPS_sdl_event()
     }
     else if (event.type == SDL_MOUSEBUTTONUP)
     {
-        sdl_mouse_button_event_data to_wrap;
+        struct sdl_mouse_button_event_data to_wrap;
 
         to_wrap.x = event.button.x;
         to_wrap.y = event.button.y;
@@ -119,7 +119,10 @@ str sdl_keycode_to_str_FN_i128_MAPS_str(i128 keycode)
     if (a <= keycode && keycode <= z || zero <= keycode && keycode <= nine)
     {
         // Static for warning suppression
-        static const char out[2] = {(char)(keycode), '\0'};
+        static char out[2] = {'\0', '\0'};
+
+        out[0] = (char)(keycode);
+
         return out;
     }
 
