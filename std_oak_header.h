@@ -8,9 +8,10 @@ This header protected by the GPLv3.
 #define OAK_HEAD
 
 #include <stdbool.h>
+#include <stdint.h>
+#include <memory.h>
 #include <assert.h>
-#include <cstdint>
-#include <stdfloat>
+#include <stdlib.h>
 
 // Signed integer types
 typedef char i8;

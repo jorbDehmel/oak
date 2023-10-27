@@ -9,11 +9,16 @@ sequence getAllocSequence(Type &type, const string &name, const string &num)
     out.info = code_line;
     out.type = nullType;
 
-    vector<string> toAdd = {name, "=", "new", toStrC(&type), "[", num, "]"};
-    for (auto s : toAdd)
-    {
-        out.items.push_back(sequence{nullType, vector<sequence>(), atom, s});
-    }
+    // C++
+    // name = new type[len];
+    // C
+    // name = (type *)malloc(len * sizeof(type));
+
+    out.items.push_back(
+        sequence{nullType,
+                 vector<sequence>(),
+                 atom,
+                 name + " = (" + toStrC(&type) + " *)malloc(sizeof(" + name + ") * " + num + ")"});
 
     return out;
 }
@@ -25,18 +30,11 @@ sequence getFreeSequence(const string &name, const bool &isArr)
     out.type = nullType;
     out.items.clear();
 
-    vector<string> toAdd = {"delete"};
-    if (isArr)
-    {
-        toAdd.push_back("[");
-        toAdd.push_back("]");
-    }
-    toAdd.push_back(name);
-
-    for (auto s : toAdd)
-    {
-        out.items.push_back(sequence{nullType, vector<sequence>(), atom, s});
-    }
+    out.items.push_back(
+        sequence{nullType,
+                 vector<sequence>(),
+                 atom,
+                 "free(" + name + ")"});
 
     return out;
 }

@@ -32,10 +32,10 @@ TEST := acorn
 
 all: bin/acorn.out
 
-install: bin/acorn.out std_oak_header.hpp
+install: bin/acorn.out std_oak_header.h
 	sudo mkdir -p /usr/include/oak
 
-	sudo cp std_oak_header.hpp /usr/include/oak
+	sudo cp std_oak_header.h /usr/include/oak
 	sudo cp packages_list.txt /usr/include/oak
 	sudo cp -r std /usr/include/oak
 

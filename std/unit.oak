@@ -1,4 +1,9 @@
 // This file provides the unit struct, and nothing else
 // Jordan Dehmel, 2023
 
-let unit: struct;
+// The minimal struct size is 1 byte, and C
+// produces a warning for actual empty structs.
+let unit: struct
+{
+    __dummy: u8,
+}

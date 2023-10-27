@@ -1,9 +1,5 @@
-#include "oak/std_oak_header.hpp"
-#include "keys.hpp"
-
-// FOR DEBUGGING ONLY
-// #include <stdio.h>
-
+#include "oak/std_oak_header.h"
+#include "keys.h"
 #include <SDL2/SDL.h>
 
 // Struct definitions
@@ -27,6 +23,7 @@ struct sdl_mouse_move_event_data
 
 struct unit
 {
+    char __a;
 };
 
 // Enumeration definitions
@@ -44,44 +41,44 @@ struct sdl_event
     } __info;
     union
     {
-        sdl_key_event_data sdl_key_down_event_data;
-        sdl_key_event_data sdl_key_up_event_data;
-        sdl_mouse_move_event_data sdl_mouse_move_event_data;
-        sdl_mouse_button_event_data sdl_mouse_button_down_event_data;
-        sdl_mouse_button_event_data sdl_mouse_button_up_event_data;
-        unit sdl_none_data;
+        struct sdl_key_event_data sdl_key_down_event_data;
+        struct sdl_key_event_data sdl_key_up_event_data;
+        struct sdl_mouse_move_event_data sdl_mouse_move_event_data;
+        struct sdl_mouse_button_event_data sdl_mouse_button_down_event_data;
+        struct sdl_mouse_button_event_data sdl_mouse_button_up_event_data;
+        struct unit sdl_none_data;
 
     } __data;
 };
 
-void wrap_sdl_key_down_event(sdl_event *self, sdl_key_event_data data);
-void wrap_sdl_key_up_event(sdl_event *self, sdl_key_event_data data);
-void wrap_sdl_mouse_move_event(sdl_event *self, sdl_mouse_move_event_data data);
-void wrap_sdl_mouse_button_down_event(sdl_event *self, sdl_mouse_button_event_data data);
-void wrap_sdl_mouse_button_up_event(sdl_event *self, sdl_mouse_button_event_data data);
-void wrap_sdl_none(sdl_event *self);
+void wrap_sdl_key_down_event_FN_PTR_sdl_event_JOIN_sdl_key_event_data_MAPS_void(struct sdl_event *self, struct sdl_key_event_data data);
+void wrap_sdl_key_up_event_FN_PTR_sdl_event_JOIN_sdl_key_event_data_MAPS_void(struct sdl_event *self, struct sdl_key_event_data data);
+void wrap_sdl_mouse_move_event_FN_PTR_sdl_event_JOIN_sdl_mouse_move_event_data_MAPS_void(struct sdl_event *self, struct sdl_mouse_move_event_data data);
+void wrap_sdl_mouse_button_down_event_FN_PTR_sdl_event_JOIN_sdl_mouse_button_event_data_MAPS_void(struct sdl_event *self, struct sdl_mouse_button_event_data data);
+void wrap_sdl_mouse_button_up_event_FN_PTR_sdl_event_JOIN_sdl_mouse_button_event_data_MAPS_void(struct sdl_event *self, struct sdl_mouse_button_event_data data);
+void wrap_sdl_none_FN_PTR_sdl_event_MAPS_void(struct sdl_event *self);
 
-sdl_event sdl_poll_event()
+struct sdl_eventsdl_poll_event_FN_MAPS_sdl_event()
 {
-    sdl_event out;
+    struct sdl_eventout;
 
     SDL_Event event;
     if (!SDL_PollEvent(&event))
     {
         // Nothing in queue; Return sdl_none
-        wrap_sdl_none(&out);
+        wrap_sdl_none_FN_PTR_sdl_event_MAPS_void(&out);
     }
     else if (event.type == SDL_KEYDOWN)
     {
         sdl_key_event_data to_wrap;
         to_wrap.keycode = event.key.keysym.sym;
-        wrap_sdl_key_down_event(&out, to_wrap);
+        wrap_sdl_key_down_event_FN_PTR_sdl_event_JOIN_sdl_key_event_data_MAPS_void(&out, to_wrap);
     }
     else if (event.type == SDL_KEYUP)
     {
         sdl_key_event_data to_wrap;
         to_wrap.keycode = event.key.keysym.sym;
-        wrap_sdl_key_up_event(&out, to_wrap);
+        wrap_sdl_key_up_event_FN_PTR_sdl_event_JOIN_sdl_key_event_data_MAPS_void(&out, to_wrap);
     }
     else if (event.type == SDL_MOUSEMOTION)
     {
@@ -90,7 +87,7 @@ sdl_event sdl_poll_event()
         to_wrap.x = event.motion.x;
         to_wrap.y = event.motion.y;
 
-        wrap_sdl_mouse_move_event(&out, to_wrap);
+        wrap_sdl_mouse_move_event_FN_PTR_sdl_event_JOIN_sdl_mouse_move_event_data_MAPS_void(&out, to_wrap);
     }
     else if (event.type == SDL_MOUSEBUTTONDOWN)
     {
@@ -100,7 +97,7 @@ sdl_event sdl_poll_event()
         to_wrap.y = event.button.y;
         to_wrap.code = event.button.button;
 
-        wrap_sdl_mouse_button_down_event(&out, to_wrap);
+        wrap_sdl_mouse_button_down_event_FN_PTR_sdl_event_JOIN_sdl_mouse_button_event_data_MAPS_void(&out, to_wrap);
     }
     else if (event.type == SDL_MOUSEBUTTONUP)
     {
@@ -110,16 +107,16 @@ sdl_event sdl_poll_event()
         to_wrap.y = event.button.y;
         to_wrap.code = event.button.button;
 
-        wrap_sdl_mouse_button_down_event(&out, to_wrap);
+        wrap_sdl_mouse_button_down_event_FN_PTR_sdl_event_JOIN_sdl_mouse_button_event_data_MAPS_void(&out, to_wrap);
     }
 
     return out;
 }
 
-str sdl_keycode_to_str(i128 keycode)
+str sdl_keycode_to_str_FN_i128_MAPS_str(i128 keycode)
 {
     // Letters
-    if (keys::a <= keycode && keycode <= keys::z || keys::zero <= keycode && keycode <= keys::nine)
+    if (a <= keycode && keycode <= z || zero <= keycode && keycode <= nine)
     {
         // Static for warning suppression
         static const char out[2] = {(char)(keycode), '\0'};
@@ -127,53 +124,53 @@ str sdl_keycode_to_str(i128 keycode)
     }
 
     // f1 - f12
-    else if (keys::f1 <= keycode && keycode <= keys::f12)
+    else if (f1 <= keycode && keycode <= f12)
     {
-        if (keycode == keys::f1)
+        if (keycode == f1)
         {
             return "f1";
         }
-        else if (keycode == keys::f2)
+        else if (keycode == f2)
         {
             return "f2";
         }
-        else if (keycode == keys::f3)
+        else if (keycode == f3)
         {
             return "f3";
         }
-        else if (keycode == keys::f4)
+        else if (keycode == f4)
         {
             return "f4";
         }
-        else if (keycode == keys::f5)
+        else if (keycode == f5)
         {
             return "f5";
         }
-        else if (keycode == keys::f6)
+        else if (keycode == f6)
         {
             return "f6";
         }
-        else if (keycode == keys::f7)
+        else if (keycode == f7)
         {
             return "f7";
         }
-        else if (keycode == keys::f8)
+        else if (keycode == f8)
         {
             return "f8";
         }
-        else if (keycode == keys::f9)
+        else if (keycode == f9)
         {
             return "f9";
         }
-        else if (keycode == keys::f10)
+        else if (keycode == f10)
         {
             return "f10";
         }
-        else if (keycode == keys::f11)
+        else if (keycode == f11)
         {
             return "f11";
         }
-        else if (keycode == keys::f12)
+        else if (keycode == f12)
         {
             return "f12";
         }
@@ -184,82 +181,82 @@ str sdl_keycode_to_str(i128 keycode)
     {
         switch (keycode)
         {
-        case keys::space:
+        case space:
             return "space";
 
-        case keys::esc:
+        case esc:
             return "escape";
 
-        case keys::enter:
+        case enter:
             return "enter";
 
-        case keys::rightArrow:
+        case rightArrow:
             return "right_arrow";
 
-        case keys::leftArrow:
+        case leftArrow:
             return "left_arrow";
 
-        case keys::downArrow:
+        case downArrow:
             return "down_arrow";
 
-        case keys::upArrow:
+        case upArrow:
             return "up_arrow";
 
-        case keys::tab:
+        case tab:
             return "tab";
 
-        case keys::capslock:
+        case capslock:
             return "capslock";
 
-        case keys::leftShift:
+        case leftShift:
             return "left_shift";
 
-        case keys::leftControl:
+        case leftControl:
             return "left_control";
 
-        case keys::leftAlt:
+        case leftAlt:
             return "left_alt";
 
-        case keys::rightShift:
+        case rightShift:
             return "right_shift";
 
-        case keys::backspace:
+        case backspace:
             return "backspace";
 
-        case keys::del:
+        case del:
             return "delete";
 
-        case keys::backtick:
+        case backtick:
             return "`";
 
-        case keys::dash:
+        case dash:
             return "-";
 
-        case keys::equals:
+        case equals:
             return "=";
 
-        case keys::leftSquareBracket:
+        case leftSquareBracket:
             return "[";
 
-        case keys::rightSquareBracket:
+        case rightSquareBracket:
             return "]";
 
-        case keys::backslash:
+        case backslash:
             return "\\";
 
-        case keys::semicolon:
+        case semicolon:
             return ";";
 
-        case keys::quote:
+        case quote:
             return "'";
 
-        case keys::comma:
+        case comma:
             return ",";
 
-        case keys::period:
+        case period:
             return ".";
 
-        case keys::slash:
+        case slash:
             return "/";
 
         default:

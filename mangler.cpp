@@ -72,7 +72,7 @@ string mangleType(Type &type)
             outputParts.push_back("MAPS");
             break;
         case var_name:
-            outputParts.push_back("TYPE");
+            // outputParts.push_back("TYPE");
             break;
         default:
             outputParts.push_back(type[i].name);

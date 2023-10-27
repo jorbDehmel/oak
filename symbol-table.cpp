@@ -429,7 +429,8 @@ string restoreSymbolTable(multiSymbolTable &backup)
                         s.type[0].info != function && s.type[0].info != pointer &&
                         p.first != "")
                     {
-                        output += "Del(&" + p.first + ");\n";
+                        // Del_FN_PTR_typename_MAPS_void
+                        output += "Del_FN_PTR_" + s.type[0].name + "_MAPS_void(&" + p.first + ");\n";
                     }
                 }
             }

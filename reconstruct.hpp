@@ -19,6 +19,7 @@ agnostic with respect to input (as much as possible).
 #include <string>
 #include <sstream>
 #include <fstream>
+#include <set>
 
 #include "lexer.hpp"
 #include "type-builder.hpp"
@@ -28,7 +29,7 @@ agnostic with respect to input (as much as possible).
 #include "enums.hpp"
 #include "mangler.hpp"
 
-#define OAK_HEADER_PATH "/usr/include/oak/std_oak_header.hpp"
+#define OAK_HEADER_PATH "/usr/include/oak/std_oak_header.h"
 
 using namespace std;
 
@@ -39,6 +40,9 @@ string purifyStr(const string &What);
 void reconstruct(const string &Name,
                  stringstream &header,
                  stringstream &body);
+
+// Contains all the atomic types (ints, floats, bools, etc)
+extern set<string> atomics;
 
 // Save reconstructed files and return compilation command
 // Return pair<sstream, sstream>{header, body};

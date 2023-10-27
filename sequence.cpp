@@ -885,8 +885,8 @@ sequence __createSequence(list<string> &From)
                 // Insert into table
                 table[name].push_back(__multiTableSymbol{sequence{type, vector<sequence>(), atom, ""}, type, false, curFile});
 
-                // Call constructor (pointers and enums do not get constructors)
-                if (type[0].info != pointer && enumData.count(type[0].name) == 0)
+                // Call constructor (pointers, atomics and enums do not get constructors)
+                if (type[0].info != pointer && enumData.count(type[0].name) == 0 && atomics.count(type[0].name) == 0)
                 {
                     // Syntactically necessary
                     out.items.push_back(sequence{nullType, vector<sequence>(), atom, ";"});
@@ -908,7 +908,7 @@ sequence __createSequence(list<string> &From)
                     sequence toAppend;
                     toAppend.info = atom;
                     toAppend.type = nullType;
-                    toAppend.raw = name + " = nullptr;";
+                    toAppend.raw = name + " = 0";
 
                     out.items.push_back(toAppend);
                 }
@@ -1003,7 +1003,7 @@ sequence __createSequence(list<string> &From)
                             {
                                 sequence seq;
                                 seq.info = atom;
-                                seq.raw = argsWithType[0].first + "->" + varName + " = nullptr;";
+                                seq.raw = argsWithType[0].first + "->" + varName + " = 0";
                                 seq.type = nullType;
 
                                 table["New"].back().seq.items.push_back(seq);
@@ -1016,7 +1016,7 @@ sequence __createSequence(list<string> &From)
                                 seq.info = atom;
                                 seq.type = nullType;
 
-                                seq.raw = "New(&" + argsWithType[0].first + "->" + varName + ");";
+                                seq.raw = "New(&" + argsWithType[0].first + "->" + varName + ")";
                                 table["New"].back().seq.items.push_back(seq);
                             }
                         }
@@ -1050,7 +1050,7 @@ sequence __createSequence(list<string> &From)
                             {
                                 sequence seq;
                                 seq.info = atom;
-                                seq.raw = argsWithType[0].first + "->" + varName + " = nullptr;";
+                                seq.raw = argsWithType[0].first + "->" + varName + " = 0";
                                 seq.type = nullType;
 
                                 table["Del"].back().seq.items.push_back(seq);
@@ -1063,10 +1063,7 @@ sequence __createSequence(list<string> &From)
                                 seq.info = atom;
                                 seq.type = nullType;
 
-                                seq.raw = "Del(&" + argsWithType[0].first + "->" + varName + ");";
-                                table["Del"].back().seq.items.push_back(seq);
-
-                                seq.raw = "Del(&" + argsWithType[0].first + "->" + varName + ");";
+                                seq.raw = "Del_FN_PTR_" + var.second[0].name + "_MAPS_void(&" + argsWithType[0].first + "->" + varName + ")";
                                 table["Del"].back().seq.items.push_back(seq);
                             }
                         }
@@ -1420,7 +1417,12 @@ string toC(const sequence &What)
             Type type = What.items[0].type;
             string typeStr = toStrC(&type);
 
-            sm_assert(enumData.count(typeStr) != 0, "'match' may only be used on enums.");
+            if (typeStr.substr(0, 7) == "struct ")
+            {
+                typeStr = typeStr.substr(7);
+            }
+
+            sm_assert(enumData.count(typeStr) != 0, "'match' may only be used on enums, not '" + typeStr + "'");
             vector<string> options = enumData[typeStr].order;
 
             map<string, bool> usedOptions;
@@ -1457,11 +1459,18 @@ string toC(const sequence &What)
                         out += "else ";
                     }
 
-                    out += "if (" + itemStr + ".__info == " + typeStr + "::" + optionName + ")\n{";
+                    out += "if (" + itemStr + ".__info == " + typeStr + "_OPT_" + optionName + ")\n{";
 
                     if (captureName != "NULL")
                     {
-                        out += "auto *" + captureName + " = &" + itemStr + ".__data." + optionName + "_data;\n";
+                        string captureType = mangleType(enumData[typeStr].options[optionName]);
+
+                        if (atomics.count(captureType) == 0)
+                        {
+                            out += "struct ";
+                        }
+
+                        out += captureType + " *" + captureName + " = &" + itemStr + ".__data." + optionName + "_data;\n";
                     }
 
                     // Add capture group to Oak table if needed
@@ -1701,8 +1710,16 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
     {
         start++;
 
+        string name = What[start];
+
         string followingC = "";
         Type type = resolveFunction(What, start, followingC);
+
+        if (type[0].info == function)
+        {
+            followingC = mangleSymb(name, mangleType(type));
+        }
+
         type.prepend(pointer);
 
         c += "&" + followingC;
@@ -2107,7 +2124,16 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
             // Single candidate
             type = getReturnType(candidates[0].type);
 
-            c += name + "(";
+            // do stuff here
+            if (candidates[0].type[0].info == pointer)
+            {
+                c += name + "(";
+            }
+            else
+            {
+                c += mangleSymb(name, mangleType(candidates[0].type)) + "(";
+            }
+
             for (int j = 0; j < argStrs.size(); j++)
             {
                 if (j != 0)

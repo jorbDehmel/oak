@@ -1,4 +1,4 @@
-#include "oak/std_oak_header.hpp"
+#include "oak/std_oak_header.h"
 #include <SDL2/SDL.h>
 
 struct sdl_window
@@ -24,45 +24,64 @@ struct sdl_rect
     u64 x, y, w, h;
 };
 
-void sdl_init()
+extern "C"
+{
+    void sdl_init_FN_MAPS_void();
+    void sdl_quit_FN_MAPS_void();
+    void sdl_delay_FN_i32_MAPS_void(i32 ms);
+    i32 sdl_get_ticks_FN_MAPS_i32();
+    f64 sdl_sin_FN_f64_MAPS_f64(f64 x);
+    f64 sdl_cos_FN_f64_MAPS_f64(f64 x);
+    f64 sdl_tan_FN_f64_MAPS_f64(f64 x);
+    void ExtInit_FN_PTR_sdl_window_MAPS_void(sdl_window *self);
+    void sdl_enable_window_fullscreen_FN_PTR_sdl_window_MAPS_void(sdl_window *self);
+    void sdl_disable_window_fullscreen_FN_PTR_sdl_window_MAPS_void(sdl_window *self);
+    void show_FN_PTR_sdl_window_MAPS_void(sdl_window *window);
+    void fill(sdl_window *window, sdl_color color);
+    void draw_dot(sdl_window *window, sdl_coord point, sdl_color color);
+    void draw_line(sdl_window *window, sdl_coord point_a, sdl_coord point_b, sdl_color color);
+    void draw_rect(sdl_window *window, sdl_rect rect, sdl_color color);
+}
+
+void sdl_init_FN_MAPS_void()
 {
     SDL_Init(SDL_INIT_EVERYTHING);
     return;
 }
 
-void sdl_quit()
+void sdl_quit_FN_MAPS_void()
 {
     SDL_Quit();
     return;
 }
 
-void sdl_delay(i32 ms)
+void sdl_delay_FN_i32_MAPS_void(i32 ms)
 {
     SDL_Delay(ms);
     return;
 }
 
-i32 sdl_get_ticks()
+i32 sdl_get_ticks_FN_MAPS_i32()
 {
     return SDL_GetTicks();
 }
 
-f64 sdl_sin(f64 x)
+f64 sdl_sin_FN_f64_MAPS_f64(f64 x)
 {
     return SDL_sin(x);
 }
 
-f64 sdl_cos(f64 x)
+f64 sdl_cos_FN_f64_MAPS_f64(f64 x)
 {
     return SDL_cos(x);
 }
 
-f64 sdl_tan(f64 x)
+f64 sdl_tan_FN_f64_MAPS_f64(f64 x)
 {
     return SDL_tan(x);
 }
 
-void ExtInit(sdl_window *self)
+void ExtInit_FN_PTR_sdl_window_MAPS_void(sdl_window *self)
 {
     self->width = self->height = 128;
     SDL_CreateWindowAndRenderer(128, 128, 0, &self->wind, &self->rend);
@@ -70,7 +89,7 @@ void ExtInit(sdl_window *self)
     return;
 }
 
-void Copy(sdl_window *self, u64 w, u64 h)
+void Copy_FN_PTR_sdl_window_JOIN_u64_JOIN_u64_MAPS_void(sdl_window *self, u64 w, u64 h)
 {
     self->width = w;
     self->height = h;
@@ -80,26 +99,26 @@ void Copy(sdl_window *self, u64 w, u64 h)
     return;
 }
 
-void ExtDel(sdl_window *window)
+void ExtDel_FN_PTR_sdl_window_MAPS_void(sdl_window *window)
 {
     SDL_DestroyWindow(window->wind);
     SDL_DestroyRenderer(window->rend);
     return;
 }
 
-void sdl_enable_window_fullscreen(sdl_window *self)
+void sdl_enable_window_fullscreen_FN_PTR_sdl_window_MAPS_void(sdl_window *self)
 {
     SDL_SetWindowFullscreen(self->wind, SDL_WINDOW_FULLSCREEN_DESKTOP);
     return;
 }
 
-void sdl_disable_window_fullscreen(sdl_window *self)
+void sdl_disable_window_fullscreen_FN_PTR_sdl_window_MAPS_void(sdl_window *self)
 {
     SDL_SetWindowFullscreen(self->wind, 0);
     return;
 }
 
-void show(sdl_window *window)
+void show_FN_PTR_sdl_window_MAPS_void(sdl_window *window)
 {
     SDL_RenderPresent(window->rend);
     return;

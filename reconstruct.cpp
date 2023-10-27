@@ -8,8 +8,15 @@ GPLv3 held by author
 
 #include "reconstruct.hpp"
 
+set<string> atomics = {
+    "u8", "i8", "u16", "i16",
+    "u32", "i32", "u64", "i64",
+    "u128", "i128", "f32", "f64",
+    "f128", "bool", "str", "void"};
+
 // Removes illegal characters
-string purifyStr(const string &What)
+string
+purifyStr(const string &What)
 {
     const string illegalChars = "<>(){}[]\\'\"`~!@#$%^&*-=+|?,;:";
     string out = What;
@@ -60,7 +67,7 @@ void reconstruct(const string &Name,
         rootName = Name;
     }
 
-    string name = purifyStr(rootName) + "_HPP";
+    string name = purifyStr(rootName) + "_H";
 
     for (int i = 0; i < name.size(); i++)
     {
@@ -69,7 +76,7 @@ void reconstruct(const string &Name,
 
     // Begin body
     string cleanedName = purifyStr(rootName);
-    body << "#include \"" << cleanedName << ".hpp\"\n";
+    body << "#include \"" << cleanedName << ".h\"\n";
 
     // Begin header enclosure
     header << "#ifndef " << name << "\n"
@@ -187,8 +194,8 @@ pair<string, string> save(const stringstream &header, const stringstream &body, 
 
     smartSystem("mkdir -p .oak_build");
 
-    headerName = ".oak_build/" + rootName + ".hpp";
-    bodyName = ".oak_build/" + rootName + ".cpp";
+    headerName = ".oak_build/" + rootName + ".h";
+    bodyName = ".oak_build/" + rootName + ".c";
 
     // Save header
     {
@@ -297,9 +304,23 @@ string toStrCFunction(Type *What, const string &Name, const unsigned int &pos)
         returnType = "void";
     }
 
+    if (arguments.empty())
+    {
+        arguments = "void";
+    }
+
     // Assemble and return: SEMICOLON IS HANDLED ELSEWHERE
     string out;
-    out = returnType + " " + Name + "(" + arguments + ")";
+
+    if (Name != "main")
+    {
+        // Mangle to disambiguate identical functions
+        out = returnType + " " + mangleSymb(Name, mangleType(*What)) + "(" + arguments + ")";
+    }
+    else
+    {
+        out = returnType + " main(" + arguments + ")";
+    }
 
     return out;
 }
@@ -391,6 +412,11 @@ string toStrCFunctionRef(Type *What, const string &Name, const unsigned int &pos
         returnType = toStrC(What, "", i);
     }
 
+    if (arguments.empty())
+    {
+        arguments = "void";
+    }
+
     // Reconstruct out of partial strings
     string out = returnType + " (*" + Name + ")(" + arguments + ")";
 
@@ -434,6 +460,11 @@ string toStrC(Type *What, const string &Name, const unsigned int &pos)
     switch ((*What)[pos].info)
     {
     case atomic:
+        if (atomics.count((*What)[pos].name) == 0)
+        {
+            out += "struct ";
+        }
+
         out += (*What)[pos].name;
         out += toStrC(What, "", pos + 1);
         break;
@@ -653,9 +684,9 @@ string enumToC(const string &name)
     string out = "struct " + name + " {\nenum {\n";
 
     // names
-    for (auto name : cur.order)
+    for (auto item_name : cur.order)
     {
-        out += name + ",\n";
+        out += name + "_OPT_" + item_name + ",\n";
     }
 
     out += "\n} __info;\nunion {\n";
@@ -681,18 +712,18 @@ string enumToC(const string &name)
             // Unit struct; Single argument constructor
 
             // Generate C version
-            out += "void wrap_" + optionName + "(" + enumTypeStr + " *self)\n{\n";
-            out += "self->__info = " + enumTypeStr + "::" + optionName + ";\n}\n";
+            out += "void wrap_" + optionName + "_FN_PTR_" + enumTypeStr + "_MAPS_void(struct " + enumTypeStr + " *self)\n{\n";
+            out += "self->__info = " + enumTypeStr + "_OPT_" + optionName + ";\n}\n";
         }
         else
         {
             // Double argument constructor
 
             // Generate C version
-            out += "void wrap_" + optionName + "(" + enumTypeStr + " *self, ";
+            out += "void wrap_" + optionName + "_FN_PTR_" + enumTypeStr + "_JOIN_" + mangleType(cur.options[optionName]) + "_MAPS_void(struct " + enumTypeStr + " *self, ";
             out += optionTypeStr + " data)\n";
             out += "{\n";
-            out += "self->__info = " + enumTypeStr + "::" + optionName + ";\n";
+            out += "self->__info = " + enumTypeStr + "_OPT_" + optionName + ";\n";
             out += "self->__data." + optionName + "_data = data;\n";
             out += "}\n";
         }

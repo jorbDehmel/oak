@@ -359,7 +359,7 @@ int main(const int argc, const char *argv[])
                  << tags::reset;
 
             // Purge source .cpp, .hpp, and temp files
-            system("rm -rf " COMPILED_PATH "/*.cpp " COMPILED_PATH "/*.hpp " COMPILED_PATH "/*.txt");
+            system("rm -rf " COMPILED_PATH "/*.c " COMPILED_PATH "/*.h " COMPILED_PATH "/*.txt");
         }
 
         if (files.empty())
@@ -451,7 +451,7 @@ int main(const int argc, const char *argv[])
                          << tags::reset;
                 }
 
-                string rootCommand = "clang++ -pedantic -Wall -c ";
+                string rootCommand = "clang -c ";
 
                 for (string flag : cflags)
                 {
@@ -481,7 +481,7 @@ int main(const int argc, const char *argv[])
                              << tags::reset;
                     }
 
-                    string command = "clang++ -pedantic -Wall -o " + out + " ";
+                    string command = "clang -o " + out + " ";
                     for (string flag : cflags)
                     {
                         command += flag + " ";
@@ -625,7 +625,7 @@ int main(const int argc, const char *argv[])
                  << "Microseconds: " << oakElapsed / 1'000.0 << '\n'
                  << "Milliseconds: " << oakElapsed / 1'000'000.0 << '\n'
                  << "Seconds:      " << oakElapsed / 1'000'000'000.0 << "\n\n"
-                 << "Clang++-attributable time:\n"
+                 << "Clang-attributable time:\n"
                  << "Nanoseconds:  " << compElapsed << '\n'
                  << "Microseconds: " << compElapsed / 1'000.0 << '\n'
                  << "Milliseconds: " << compElapsed / 1'000'000.0 << '\n'

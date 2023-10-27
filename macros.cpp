@@ -38,12 +38,12 @@ long long getAgeOfFile(const string &filepath)
     }
 
     smartSystem("mkdir -p .oak_build");
-    if (system(("stat -Lc %Y " + filepath + " > .oak_build/.age_temp.txt 2> /dev/null").c_str()) != 0)
+    if (system(("stat -Lc %Y " + filepath + " > .oak_build/age_temp.txt 2> /dev/null").c_str()) != 0)
     {
         return -1;
     }
 
-    ifstream file(".oak_build/.age_temp.txt");
+    ifstream file(".oak_build/age_temp.txt");
     if (!file.is_open())
     {
         return -1;
