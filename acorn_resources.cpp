@@ -13,7 +13,6 @@ using namespace std;
 bool debug = false;
 bool compile = true;
 bool doLink = true;
-// bool pretty = false;
 bool alwaysDump = false;
 bool manual = false;
 bool ignoreSyntaxErrors = false;
@@ -322,12 +321,14 @@ void doFile(const string &From)
             }
 
             bool compilerMacrosLeft;
+            int compilerMacroPos = curPhase;
             do
             {
                 // E: Scan for compiler macros; Do these first
                 // This erases them from lexed
                 if (debug)
                 {
+                    curPhase = compilerMacroPos;
                     cout << debugTreePrefix << "Compiler macros\n";
                     start = chrono::high_resolution_clock::now();
                 }
@@ -470,7 +471,7 @@ void doFile(const string &From)
                 {
                     end = chrono::high_resolution_clock::now();
                     phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-                    curPhase++;
+                    curPhase = compilerMacroPos + 1;
                 }
 
                 // E: Rules
@@ -486,7 +487,6 @@ void doFile(const string &From)
                 {
                     end = chrono::high_resolution_clock::now();
                     phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-                    curPhase--;
                 }
 
                 // Update compilerMacrosLeft
@@ -500,7 +500,7 @@ void doFile(const string &From)
                     }
                 }
             } while (compilerMacrosLeft);
-            curPhase++;
+            curPhase = compilerMacroPos + 2;
 
             // G: Scan for macro calls and handle them
             if (debug)

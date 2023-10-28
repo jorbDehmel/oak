@@ -20,7 +20,7 @@ let Del(self: ^test) -> void
 {
     print("Free called\n");
 
-    free_arr!(self.data);
+    free!(self.data);
 }
 
 let main() -> i32

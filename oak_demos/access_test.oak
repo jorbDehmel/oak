@@ -17,7 +17,7 @@ let New(self: ^wrapper) -> void
 
 let Del(self: ^wrapper) -> void
 {
-    free_arr!(self.data);
+    free!(self.data);
 }
 
 let Get(self: ^wrapper, index: u128) -> ^i32

@@ -1,0 +1,36 @@
+/*
+A test of socket programming in Oak
+Jordan Dehmel, 2023
+UNPASSED
+*/
+
+package!("std");
+use_rule!("std");
+
+include!("std/sock_inter.oak");
+include!("std/panic_inter.oak");
+include!("std/printf.oak");
+
+let main() -> i32
+{
+    let server: server_sock;
+    let result = server = ("127.0.0.1", to_u16(1234));
+
+    assert!(result == 0, "copy error");
+
+    result = server.listen();
+
+    assert!(result == 0, "listen error");
+
+    let message: string = "Hi!     ";
+
+    result = server.send(message);
+
+    assert!(result >= 0, "send error");
+
+    printf!("Sent: '%'\n", message);
+
+    server.close();
+
+    0
+}

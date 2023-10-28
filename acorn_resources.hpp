@@ -86,7 +86,6 @@ extern vector<unsigned long long> phaseTimes;
 void getDiskUsage();
 
 void doFile(const string &From);
-// void prettify(const string &Filename);
 
 void makePackage(const string &Name);
 void ensureSyntax(const string &text, const bool &fatal = true);

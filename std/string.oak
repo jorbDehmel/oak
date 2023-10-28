@@ -5,6 +5,7 @@ Basic non-resizing heap string.
 */
 
 package!("std");
+link!("std/string.o");
 
 // For debugging
 // include!("std/printf.oak");
@@ -25,7 +26,7 @@ let Copy(self: ^string, size: u128) -> void
     // Clear self if needed
     if (self.size != to_u128(0))
     {
-        free_arr!(self.data);
+        free!(self.data);
         self.size = to_u128(0);
     }
 
@@ -38,7 +39,7 @@ let Copy(self: ^string, from: str) -> void
     // Clear self if needed
     if (self.size != to_u128(0))
     {
-        free_arr!(self.data);
+        free!(self.data);
         self.size = to_u128(0);
     }
 
@@ -68,7 +69,7 @@ let Del(self: ^string) -> void
 {
     if (self.size != to_u128(0))
     {
-        free_arr!(self.data);
+        free!(self.data);
         self.size = to_u128(0);
     }
 }
@@ -140,7 +141,7 @@ let Copy(self: ^string, from: string) -> void
     // Clear self if needed
     if (self.size != to_u128(0))
     {
-        free_arr!(self.data);
+        free!(self.data);
         self.size = to_u128(0);
     }
 
@@ -161,18 +162,6 @@ let Copy(self: ^string, from: string) -> void
             i -= to_u128(1);
         }
         Copy(Get(@self.data, to_u128(0)), ^Get(@from, to_u128(0)));
-    }
-}
-
-let print(what: string) -> void
-{
-    let i: u128;
-    i = to_u128(0);
-    while (i < what.size)
-    {
-        print(^Get(@what.data, i));
-        
-        i += to_u128(1);
     }
 }
 
@@ -208,4 +197,14 @@ let Add(a: string, b: string) -> string
     }
 
     out
+}
+
+// Extern C function
+// This returns a raw pointer into the data.
+// Do not modify.
+let c_str(self: ^string) -> str;
+
+let print(what: string) -> void
+{
+    print(c_str(@what));
 }

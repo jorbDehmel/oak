@@ -1,0 +1,27 @@
+/*
+A test of socket programming in Oak
+Jordan Dehmel, 2023
+UNPASSED
+*/
+
+package!("std");
+use_rule!("std");
+
+include!("std/printf.oak");
+include!("std/sock_inter.oak");
+
+let main() -> i32
+{
+    let client: client_sock;
+    let result = client = ("127.0.0.1", to_u16(1234));
+
+    assert!(result == 0, "copy error");
+
+    let received: string = client.recv(to_u128(8));
+
+    printf!("Received: '%'\n", received);
+
+    client.close();
+
+    0
+}

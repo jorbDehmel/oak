@@ -30,7 +30,7 @@ let Del<t>(self: ^arr<t>) -> void
 {
     if self.size != to_u128(0)
     {
-        free_arr!(self.data);
+        free!(self.data);
     }
 }
 
@@ -38,7 +38,7 @@ let Copy<t>(self: ^arr<t>, size: u128) -> void
 {
     if self.size != to_u128(0)
     {
-        free_arr!(self.data);
+        free!(self.data);
     }
 
     self.size = size;

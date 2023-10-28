@@ -4,6 +4,9 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.2.2           | 10/28/23 | Bug fixes, added std/sock_inter.oak
+                |          | for POSIX sockets.
+                |          |
 0.2.1           | 10/27/23 | Quality of life std rule adds. Also
                 |          | reformatted rule eval timing to
                 |          | allow rules to call compile macros.

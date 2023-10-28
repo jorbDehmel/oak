@@ -417,46 +417,6 @@ sequence __createSequence(list<string> &From)
 
             return out;
         }
-        else if (From.front() == "free_arr!")
-        {
-            sm_assert(insideMethod, "Memory cannot be deleted outside of an operator-alias method.");
-
-            int count = 0;
-            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-            From.pop_front();
-            list<string> contents;
-
-            do
-            {
-                if (From.front() == "(")
-                {
-                    count++;
-                }
-                else if (From.front() == ")")
-                {
-                    count--;
-                }
-
-                if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")"))
-                {
-                    contents.push_back(From.front());
-                }
-
-                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-                From.pop_front();
-            } while (!From.empty() && count != 0);
-
-            sequence temp = __createSequence(contents);
-            string name = toC(temp);
-
-            Type tempType = temp.type;
-            sm_assert(tempType[0].info == pointer, "'alloc!' returns a pointer.");
-            temp.type.pop_front();
-
-            out = getFreeSequence(name, true);
-
-            return out;
-        }
     }
 
     // Misc key-characters

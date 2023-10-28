@@ -75,7 +75,7 @@ You should read the `:` operator as "be of type". Thus, the
 above statement reads "let a be of type bool". Functions are
 declared as follows.
 
-`let NAME(ARG_1: ARG_1_TYPE, ..) -> RETURN_TYPE;`
+`let NAME(ARG_1: ARG_1_TYPE, ...) -> RETURN_TYPE;`
 
 For instance, a function that in `C++` would be declared
 `bool isBiggerThanFive(int a);` would in `Oak` be declared
@@ -161,8 +161,8 @@ pointers.
 
 The `alloc!` macro for allocating new memory on the heap returns
 a pointer to the memory it allocated, should it be successful.
-Similarly, the `free!` and `free_arr!` macros free the memory
-of the pointer they are passed.
+Similarly, the `free!` macro frees the memory of the pointer it
+is passed.
 
 Mutability (ability to change data) is determined by
 referencing. If an object is passed into a function as a
@@ -524,7 +524,7 @@ believe that programmers should hold the responsibility for
 their own memory safety, rather than a compiler, and that belief
 is reflected in `Oak`.
 
-Example of `alloc!`, `free!`, and `free_arr!`:
+Example of `alloc!` and `free!`:
 
 ```
 let New<t>(self: ^node<t>) -> void
@@ -539,7 +539,7 @@ let New<t>(self: ^node<t>) -> void
     alloc!(self.data, 5);
 
     // Free a dynamically allocated array
-    free_arr!(self.data);
+    free!(self.data);
 }
 
 let Del<t>(self: ^node<t>) -> void
@@ -587,7 +587,7 @@ Will, upon translation to `C`, become
 
 ```
 // Note how the new "mangled" function name contains the entire type
-// Argument types are separated by JOIN, and the argument secion ends
+// Argument types are separated by JOIN, and the argument section ends
 // with MAPS, followed by the return type.
 data_structure foo_bar_FN_PTR_data_structure_JOIN_data_JOIN_PTR_PTR_data_MAPS_data_structure(data_struct *self, data what, data **hello);
 
@@ -1437,6 +1437,9 @@ Name      | Description                            | Notes
 `round`   | Rounds a number                        |
 `sqrt`    | Returns the square root of a number    | Uses Newtonian iteration
 `f_mod`   | Returns `a` modulo `b` (floats)        |
+`min`     | Returns the smaller of `a` and `b`     |
+`max`     | Returns the larger of `a` and `b`      |
+`even`    | Returns true if a number is even       |
 
 ## Multithreading and the std/threads.oak File
 
@@ -2037,7 +2040,6 @@ The following are atomic (built-in, indivisible) macros.
 - erase!
 - alloc!
 - free!
-- free_arr!
 - c_print!
 - c_panic!
 

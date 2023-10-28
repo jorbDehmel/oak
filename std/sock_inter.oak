@@ -1,0 +1,46 @@
+/*
+An interface from Oak to POSIX sockets
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+package!("std");
+use_rule!("std");
+
+include!("std/interface.oak");
+include!("std/string.oak");
+
+link!("std/sock_inter.o");
+
+let server_sock: struct
+{
+    __internals_a: hidden_64_bytes,
+}
+
+let client_sock: struct
+{
+    __internals_a: hidden_64_bytes,
+}
+
+////////////////////////////////////////////////////////////////
+
+// External C definitions
+let server_sock.New() -> void;
+let server_sock.Del() -> void;
+let server_sock.Copy(addr: str, port: u16) -> i32;
+let server_sock.listen() -> i32;
+let server_sock.recv(size: u128) -> string;
+let server_sock.send(what: string) -> i32;
+let server_sock.close() -> void;
+
+////////////////////////////////////////////////////////////////
+
+// External C definitions
+let client_sock.New() -> void;
+let client_sock.Del() -> void;
+let client_sock.Copy(addr: str, port: u16) -> i32;
+let client_sock.recv(size: u128) -> string;
+let client_sock.send(what: string) -> i32;
+let client_sock.close() -> void;
+
+////////////////////////////////////////////////////////////////

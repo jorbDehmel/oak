@@ -46,7 +46,7 @@ uninstall:
 reinstall:
 	$(MAKE) -C . uninstall clean install
 
-test: install
+test:
 	$(TEST) oak_demos/access_test.oak -o access_test.out
 	$(TEST) oak_demos/assert_test.oak -o assert_test.out
 	$(TEST) oak_demos/bool_test.oak -o bool_test.out

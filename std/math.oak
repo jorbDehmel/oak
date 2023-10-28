@@ -7,6 +7,25 @@ Jordan Dehmel, 2023
 package!("std");
 use_rule!("std");
 
+// include!("std/conv_extra.oak");
+
+// Returns true if a is even
+let even(a: i128) -> bool
+{
+    let out: bool;
+
+    if (a % to_i128(2) == to_i128(0))
+    {
+        out = true;
+    }
+    else
+    {
+        out = false;
+    }
+
+    out
+}
+
 // Return the absolute value of x
 let abs(x: i32) -> i32
 {
@@ -29,6 +48,38 @@ let abs(x: f64) -> f64
     if (f_to_i(out) < 0)
     {
         out *= -1.0;
+    }
+
+    out
+}
+
+let min<t>(a: t, b: t) -> t
+{
+    let out: t;
+
+    if (a < b)
+    {
+        out = a;
+    }
+    else
+    {
+        out = b;
+    }
+
+    out
+}
+
+let max<t>(a: t, b: t) -> t
+{
+    let out: t;
+
+    if (a > b)
+    {
+        out = a;
+    }
+    else
+    {
+        out = b;
     }
 
     out
