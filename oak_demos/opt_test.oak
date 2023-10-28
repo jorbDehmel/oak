@@ -7,12 +7,12 @@ let main() -> i32
 
     obj.wrap_some(5);
 
-    print(^unwrap(@obj));
-    print('\n');
+    print(unwrap(@obj));
+    print("\n");
 
     obj.wrap_none();
-    print(^unwrap(@obj));
-    print('\n');
+    print(unwrap(@obj));
+    print("\n");
 
     0
 }

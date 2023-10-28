@@ -73,10 +73,10 @@ void doRules(vector<string> &From)
     ofstream ruleLogFile;
     if (doRuleLogFile)
     {
-        ruleLogFile.open(".oak_build/rule_log.log", ios::out | ios::app);
+        ruleLogFile.open(".oak_build/__rule_log.log", ios::out | ios::app);
         if (!ruleLogFile.is_open())
         {
-            throw rule_error("Failed to open rule log file '.oak_build/rule_log.log'");
+            throw rule_error("Failed to open rule log file '.oak_build/__rule_log.log'");
         }
 
         ruleLogFile << "\n\n/////////// In file " << curFile << " ///////////\n\n";
@@ -392,6 +392,115 @@ void doRules(vector<string> &From)
                         continue;
                     }
 
+                    // Go back to previous match item unless literal
+                    else if (match.size() > 2 && match.substr(0, 2) == "$-")
+                    {
+                        if (From[posInFrom] == match.substr(2))
+                        {
+                            k--;
+                        }
+                    }
+
+                    // Negative lookbehind
+                    // Not prefixed by some literal
+                    else if (match.size() > 4 && match.substr(0, 4) == "$/<$")
+                    {
+                        // PosInFrom does not advance upon success
+                        if (posInFrom > 0 && From[posInFrom - 1] == match.substr(4))
+                        {
+                            isMatch = false;
+                            break;
+                        }
+
+                        continue;
+                    }
+
+                    // Negative lookahead
+                    // Not followed by some literal
+                    else if (match.size() > 4 && match.substr(0, 4) == "$/>$")
+                    {
+                        // PosInFrom does not advance upon success
+                        if (posInFrom + 1 < From.size() && From[posInFrom + 1] == match.substr(4))
+                        {
+                            isMatch = false;
+                            break;
+                        }
+
+                        continue;
+                    }
+
+                    // Suite
+                    // $[$suite$of$cards$]
+                    else if (match.size() > 3 && match.substr(0, 3) == "$[$")
+                    {
+                        // Matches any of the items within
+
+                        int start, end;
+                        end = 3;
+
+                        while (end < match.size())
+                        {
+                            // Advance end to the next dollar sign
+                            start = end;
+                            do
+                            {
+                                end++;
+                            } while (end < match.size() && match[end] != '$');
+
+                            if (end >= match.size())
+                            {
+                                isMatch = false;
+                                break;
+                            }
+
+                            // Do actual compare here
+                            // If matches, isMatch. Otherwise, keep going.
+                            if (match.substr(start, end - start) == From[posInFrom])
+                            {
+                                posInFrom++;
+                                break;
+                            }
+                        }
+
+                        memory.push_back(From[posInFrom]);
+                    }
+
+                    // Negated suite
+                    // $/[$negated$suite$of$cards$]
+                    else if (match.size() > 4 && match.substr(0, 4) == "$/[$")
+                    {
+                        // Matches anything but the items within
+
+                        int start, end;
+                        end = 4;
+
+                        while (end < match.size())
+                        {
+                            // Advance end to the next dollar sign
+                            start = end;
+                            do
+                            {
+                                end++;
+                            } while (end < match.size() && match[end] != '$');
+
+                            if (end >= match.size())
+                            {
+                                posInFrom++;
+                                break;
+                            }
+
+                            // Do actual compare here
+                            // If matches, is not match. Otherwise, keep going.
+                            if (match.substr(start, end - start) == From[posInFrom])
+                            {
+                                isMatch = false;
+                                break;
+                            }
+                        }
+
+                        memory.push_back(From[posInFrom]);
+                    }
+
                     // $<$open$close$>
                     // Pair matching
                     else if (match.size() > 7 && match.substr(0, 3) == "$<$")
@@ -490,7 +599,7 @@ void doRules(vector<string> &From)
                     }
 
                     // Variable; Stored match
-                    else if (match.size() == 2 && match[0] == '$')
+                    else if (match[0] == '$')
                     {
                         if (ruleVars[ruleIndex].count(match) == 0)
                         {
@@ -580,6 +689,15 @@ void doRules(vector<string> &From)
                     // Log if needed
                     if (doRuleLogFile)
                     {
+                        if (ruleIndex < dialectRules.size())
+                        {
+                            ruleLogFile << "Dialect rule\n";
+                        }
+                        else
+                        {
+                            ruleLogFile << "Regular rule\n";
+                        }
+
                         ruleLogFile << "In rule index " << ruleIndex << '\n'
                                     << "Input pattern '";
 
@@ -595,7 +713,7 @@ void doRules(vector<string> &From)
                             ruleLogFile << what << ' ';
                         }
 
-                        ruleLogFile << "'\n\nMatch '";
+                        ruleLogFile << "'\nMatch '";
                     }
 
                     // Erase old contents

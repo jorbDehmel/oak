@@ -15,37 +15,20 @@ include!(
 );
 
 // Access rules
-new_rule!("access_1", "; $*p [ $*a ]", "; $p . Get ( $a )");
-new_rule!("access_2", "^ $*p [ $*a ]", "^ $p . Get ( $a )");
-new_rule!("access_3", "@ $*p [ $*a ]", "@ $p . Get ( $a )");
-new_rule!("access_4", ", $*p [ $*a ]", ", $p . Get ( $a )");
-new_rule!("access_5", "[ $*p [ $*a ]", "[ $p . Get ( $a )");
-new_rule!("access_6", "] $*p [ $*a ]", "] $p . Get ( $a )");
-new_rule!("access_7", "( $*p [ $*a ]", "( $p . Get ( $a )");
-new_rule!("access_8", ") $*p [ $*a ]", ") $p . Get ( $a )");
-new_rule!("access_9", "{ $*p [ $*a ]", "{ $p . Get ( $a )");
-new_rule!("access_10", "} $*p [ $*a ]", "} $p . Get ( $a )");
+new_rule!(
+    "access",
+    "$[$;$^$@$,$[$]$($)${$}$] $*p [ $*a ]",
+    "; $p . Get ( $a )"
+);
 
 // Namespace rule
 new_rule!("namespace", "$a :: $b", "$a $< _ $< $b");
 
-bundle_rule!(
-    "access",
-    "access_1",
-    "access_2",
-    "access_3",
-    "access_4",
-    "access_5",
-    "access_6",
-    "access_7",
-    "access_8",
-    "access_9",
-    "access_10"
-);
-
 // Void return rule
 new_rule!(
-    "void_return", "let $a ( $*b ) {", "let $a ( $b ) -> void {"
+    "void_return",
+    "let $a ( $*b ) {",
+    "let $a ( $b ) -> void {"
 );
 
 // Auto-parenthesize rules
@@ -55,27 +38,79 @@ new_rule!("auto_while_paren", "while $*a {", "while ( $a ) {");
 new_rule!("auto_match_paren", "match $*a {", "match ( $a ) {");
 
 // Method rules
-new_rule!("argless_method", "$a . $b ( )", "$b ( $a )");
-new_rule!("method", "$a . $b (", "$b ( $a ,");
+new_rule!(
+    "easy_method_1",
+    "let $a . $b ( )",
+    "let $b ( self : ^ $a )"
+);
+new_rule!(
+    "easy_method_2",
+    "let $a . $b (",
+    "let $b ( self : ^ $a ,"
+);
+
+new_rule!("argless_method", "$/<$let $a . $b ( )", "$b ( $a )");
+new_rule!("method", "$/<$let $a . $b (", "$b ( $a ,");
 
 // Definition-Instantiation rule
 new_rule!("def_init", "let $a : $b = ", "let $a : $b ; $a = ");
 
+new_rule!(
+    "auto_init",
+    "let $a = $*b ;",
+    "let $a : type! ( $b ) ; $a = $b ;"
+);
+
 // For loop rule
-new_rule!("for",
+new_rule!(
+    "for",
     "for ( $*a ; $*b ; $*c ) $~ $<${$}$> $>g",
     "$a ; while ( $b ) { $g $c ; }"
 );
 
+new_rule!(
+    "import",
+    "import $*a ;",
+    "package! ( $a ) ;"
+);
+
+new_rule!(
+    "include",
+    "include $*a ;",
+    "include! ( $a ) ;"
+);
+
+new_rule!(
+    "link",
+    "link $*a ;",
+    "link! ( $a ) ;"
+);
+
+new_rule!(
+    "use",
+    "use $*a ;",
+    "use_rule! ( $a ) ;"
+);
+
+////////////////////////////////////////////////////////////////
+
+// Bundle everything together
 bundle_rule!(
     "std",
     "void_return",
     "auto_if_paren",
     "auto_while_paren",
     "auto_match_paren",
+    "easy_method_1",
+    "easy_method_2",
     "argless_method",
     "method",
+    "auto_init",
     "def_init",
     "for",
-    "namespace"
+    "namespace",
+    "import",
+    "include",
+    "link",
+    "use"
 );

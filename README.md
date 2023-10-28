@@ -1288,6 +1288,53 @@ brackets with no issues.
 Note: The `Sapling` interpreter is somewhere between a
 deterministic finite autonoma and a push-down autonoma.
 
+### Suites
+
+A **suite** is a set of multiple literals, any of which can be
+matched in a given position. A suite is denoted as follows.
+
+```
+$[$each$of$these$would$match$]
+```
+
+Similarly, a **negated suite** matches any single symbol
+*except* those within.
+
+```
+$/[$none$of$these$would$match$]
+```
+
+For both of these, literals are delineated by the dollar sign.
+
+### Negative Lookbehind and Lookahead
+
+A **negative lookbehind**, denoted by
+
+```
+$/<$literal
+```
+
+causes a pattern fail if the previous character was the
+specified literal. It does not advance the current position, so
+
+```
+$/<hi $/<hey hello
+```
+
+Would match any occurrence of hello not prefaced by hi **or**
+hey.
+
+Similarly, there is the **negative lookahead**, denoted by
+
+```
+$/>$literal
+```
+
+This works identically to the negative lookbehind, except with
+the following symbol instead of the preceding one.
+
+Note: There is no positive lookahead or lookbehind in Sapling.
+
 ## Dialects
 
 Dialect files introduce rules that are handled before all others
@@ -1323,18 +1370,16 @@ stage 3, they represent symbol-wise iteration, but before then
 they represent character-wise iteration.
 
 1 - Syntax checking
-2 - Text cleaning for `contents!` pre-proc definition
-3 - Lexicographical symbol parsing (lexing)
-4 - Macro definition scanning
-5 - Preprocessor definition insertion
-6 - Compiler macros (file inclusions, linker commands, etc)
-7 - Regular macro call handling
-8 - Rule parsing and substitution (handles rule macros)
-9 - Parenthesis and operator substitution
-10 - Sequencing
-11 - (Optional) `C` file prettification
-12 - (External) Object file creation via `clang`
-13 - (External) Executable linking via `clang`
+2 - Lexicographical symbol parsing (lexing)
+3 - Compiler macros (file inclusions, linker commands, etc)
+4 - Rule parsing and substitution (handles rule macros)
+5 - Macro definition scanning
+6 - Regular macro call handling
+7 - Preprocessor definition insertion
+8 - Parenthesis and operator substitution
+9 - Sequencing
+10 - (External) Object file creation via `clang`
+11 - (External) Executable linking via `clang`
 
 ## Special Symbols
 
@@ -1382,8 +1427,8 @@ Name      | Description                            | Notes
 ----------|----------------------------------------|------------------------
 `abs`     | Returns the absolute value of a number |
 `pow`     | Returns `a` to the power of `b`        | Runs in `O(b)`
-`math_pi` | Returns `pi` (3.14159..)              |
-`math_e`  | Returns `e` (2.71828..)               |
+`math_pi` | Returns `pi` (3.14159..)               |
+`math_e`  | Returns `e` (2.71828..)                |
 `fact`    | Returns the factorial of a number      |
 `sin`     | Returns `sin` of a value (radians)     | Uses a 9th order Taylor polynomial
 `cos`     | Returns `cos` of a value (radians)     | Uses `sin`

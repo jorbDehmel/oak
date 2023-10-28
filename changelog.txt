@@ -4,6 +4,11 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.2.1           | 10/27/23 | Quality of life std rule adds. Also
+                |          | reformatted rule eval timing to
+                |          | allow rules to call compile macros.
+                |          | Also added several new rule cards.
+                |          |
 0.2.0           | 10/27/23 | Made the target language C instead
                 |          | of C++. Marginal efficiency boosts.
                 |          |

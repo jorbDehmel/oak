@@ -30,15 +30,14 @@ GPLv3 held by author
 #include "tags.hpp"
 #include "sizer.hpp"
 
-#define NUM_PHASES 10
-
 using namespace std;
 
-#define VERSION "0.2.0"
+#define VERSION "0.2.1"
 #define LICENSE "GPLv3"
 #define INFO "jdehmel@outlook.com"
 
 #define OAK_DIR_PATH "/usr/include/oak/"
+#define C_COMPILER "clang"
 
 #define MAX_CACHE_KB 5000
 
@@ -65,7 +64,6 @@ const string helpText = "Acorn - Oak Standard Translator\n" DASHED_LINE
                         " -n    | --no_save   | Produce nothing\n"
                         " -o    | --output    | Set the output file\n"
                         " -O    | --optimize  | Use LLVM optimization O3\n"
-                        " -p    | --pretty    | Prettify C++ files\n"
                         " -q    | --quit      | Quit immediately\n"
                         " -r    | --reinstall | Reinstall a package\n"
                         " -R    | --remove    | Uninstalls a package\n"
@@ -79,7 +77,7 @@ const string helpText = "Acorn - Oak Standard Translator\n" DASHED_LINE
                         " -w    | --new       | Create a new package\n"
                         " -x    | --syntax    | Ignore syntax errors\n";
 
-extern bool debug, compile, doLink, pretty, alwaysDump, manual, ignoreSyntaxErrors, timeAnalysis;
+extern bool debug, compile, doLink, alwaysDump, manual, ignoreSyntaxErrors, isMacroCall, timeAnalysis;
 extern set<string> visitedFiles, cppSources, objects, cflags;
 extern map<string, string> preprocDefines;
 extern vector<unsigned long long> phaseTimes;
@@ -88,7 +86,7 @@ extern vector<unsigned long long> phaseTimes;
 void getDiskUsage();
 
 void doFile(const string &From);
-void prettify(const string &Filename);
+// void prettify(const string &Filename);
 
 void makePackage(const string &Name);
 void ensureSyntax(const string &text, const bool &fatal = true);

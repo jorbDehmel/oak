@@ -7,18 +7,18 @@ GPLv3 held by author
 */
 
 #include "acorn_resources.hpp"
+#include <iomanip>
 using namespace std;
 
 int main(const int argc, const char *argv[])
 {
     auto start = chrono::high_resolution_clock::now(), end = start, compStart = start, compEnd = start;
-    unsigned long long int oakElapsed = 0;
+    unsigned long long int oakElapsed = 0, reconstructionElapsed = 0;
 
     vector<string> files;
     string out = "a.out";
     bool noSave = false;
     bool eraseTemp = false;
-    bool isMacroCall = false;
 
     try
     {
@@ -100,10 +100,6 @@ int main(const int argc, const char *argv[])
 
                         out = argv[i + 1];
                         i++;
-                    }
-                    else if (cur == "--pretty")
-                    {
-                        pretty = !pretty;
                     }
                     else if (cur == "--install")
                     {
@@ -261,9 +257,6 @@ int main(const int argc, const char *argv[])
                             }
 
                             break;
-                        case 'p':
-                            pretty = !pretty;
-                            break;
                         case 'q':
                             return 0;
                             break;
@@ -408,11 +401,14 @@ int main(const int argc, const char *argv[])
                  << tags::reset;
         }
 
+        auto reconstructionStart = chrono::high_resolution_clock::now();
+
         pair<string, string> names = reconstructAndSave(out);
         cppSources.insert(names.second);
 
         end = chrono::high_resolution_clock::now();
         oakElapsed = chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+        reconstructionElapsed = chrono::duration_cast<chrono::nanoseconds>(end - reconstructionStart).count();
 
         if (debug)
         {
@@ -451,7 +447,7 @@ int main(const int argc, const char *argv[])
                          << tags::reset;
                 }
 
-                string rootCommand = "clang -c ";
+                string rootCommand = C_COMPILER " -c ";
 
                 for (string flag : cflags)
                 {
@@ -481,7 +477,7 @@ int main(const int argc, const char *argv[])
                              << tags::reset;
                     }
 
-                    string command = "clang -o " + out + " ";
+                    string command = C_COMPILER " -o " + out + " ";
                     for (string flag : cflags)
                     {
                         command += flag + " ";
@@ -502,12 +498,6 @@ int main(const int argc, const char *argv[])
             }
 
             compEnd = chrono::high_resolution_clock::now();
-        }
-
-        // Prettification of C++ files
-        if (pretty)
-        {
-            prettify(names.second);
         }
 
         if (eraseTemp)
@@ -664,13 +654,12 @@ int main(const int argc, const char *argv[])
 
         vector<string> passNames = {
             "syntax check",
-            "contents!",
             "lexing\t",
-            "macro defs",
-            "preproc defs",
             "compiler macros",
-            "macro calls",
             "rules / dialect",
+            "macro defs",
+            "macro calls",
+            "preproc defs",
             "op subs\t",
             "sequencing",
         };
@@ -682,21 +671,36 @@ int main(const int argc, const char *argv[])
             total += t;
         }
 
+        unsigned long long int totalPlusCompilation = total + reconstructionElapsed + compElapsed;
+
         cout << "Total logged by compiler: " << total << '\n'
              << "By compiler pass (ns):\n";
 
-        for (int j = 0; j < NUM_PHASES; j++)
+        for (int j = 0; j < passNames.size(); j++)
         {
             cout << "\t" << j + 1
-                 << "\t" << ((j < passNames.size()) ? passNames[j] : "UNNAMED\t")
+                 << "\t" << passNames[j]
                  << "\t" << phaseTimes[j]
                  << ((phaseTimes[j] < 10'000'000) ? "\t\t" : "\t")
-                 << (100 * (double)phaseTimes[j] / total) << "%\n";
+                 << (100 * (double)phaseTimes[j] / total) << "%\t"
+                 << (100 * (double)phaseTimes[j] / totalPlusCompilation) << "%\n";
         }
-        cout << "\t" << NUM_PHASES + 1
+
+        cout << "\t" << passNames.size() + 1
+             << "\treconstruction\t"
+             << reconstructionElapsed
+             << ((reconstructionElapsed < 10'000'000) ? "\t\t" : "\t")
+             << "\t\t"
+             << (100 * (double)reconstructionElapsed / totalPlusCompilation)
+             << "%\n";
+
+        cout << "\t" << passNames.size() + 2
              << "\tC++ via Clang\t"
              << compElapsed
-             << ((compElapsed < 10'000'000) ? "\t\t" : "\t") << '\n';
+             << ((compElapsed < 10'000'000) ? "\t\t" : "\t")
+             << "\t\t"
+             << (100 * (double)compElapsed / totalPlusCompilation)
+             << "%\n";
 
 #ifdef LINUX
         cout << tags::green_bold

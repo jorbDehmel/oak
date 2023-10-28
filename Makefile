@@ -2,13 +2,6 @@
 # jdehmel@outlook.com
 # github.com/jorbDehmel/oak
 
-##########################################
-# Comparisons of build compilers         #
-# time make clean uninstall install test #
-# clang++: 125.25s 						 #
-# g++: 143.43							 #
-##########################################
-
 CC := clang++ -pedantic -Wall
 OBJS := build/lexer.o build/symbol-table.o \
 	build/type-builder.o build/reconstruct.o \
@@ -45,7 +38,7 @@ install: bin/acorn.out std_oak_header.h
 
 	sudo cp bin/acorn.out /usr/bin/acorn
 
-	acorn -S sdl
+	# acorn -S sdl
 
 uninstall:
 	sudo rm -rf /usr/bin/acorn /usr/include/oak /usr/include/std_oak_header.hpp
@@ -72,14 +65,15 @@ test: install
 	$(TEST) oak_demos/macro_test.oak -o macro_test.out
 	$(TEST) oak_demos/math_test.oak -o math_test.out
 	$(TEST) oak_demos/mem_test.oak -o mem_test.out
-	$(TEST) oak_demos/quine.oak -o quine.out
+	$(TEST) oak_demos/opt_test.oak -o opt_test.out
+	$(TEST) oak_demos/panic_test.oak -o panic_test.out
 	$(TEST) oak_demos/rec_test.oak -o rec_test.out
 	$(TEST) oak_demos/rule_test.oak -o rule_test.out
 	$(TEST) oak_demos/rule_test_2.oak -o rule_test_2.out
+	$(TEST) oak_demos/rule_test_3.oak -o rule_test_3.out
+	$(TEST) oak_demos/rule_test_4.oak -o rule_test_4.out
 	$(TEST) oak_demos/string_test.oak -o string_test.out
 	$(TEST) oak_demos/thread_test.oak -o thread_test.out
-	$(TEST) oak_demos/panic_test.oak -o panic_test.out
-	$(TEST) oak_demos/rule_test_3.oak -o rule_test_3.out
 
 	$(MAKE) sdltest
 	$(MAKE) gentest
