@@ -991,8 +991,8 @@ SYS_DEPS = "package1 package2"
 
 `NAME` is the name of the package. `VERSION` is the version
 number of the package (For instance, major release 1, minor
-release 15, path 12 would be `1.15.12`). `DATE` is the date this
-version was last updated. `SOURCE` is the URL where the
+release 15, patch 12 would be `1.15.12`). `DATE` is the date
+this version was last updated. `SOURCE` is the URL where the
 package's Git repo can be found. `AUTHOR` is the string which
 contains all the package author names, separated by commas.
 `EMAIL` is the same, but for emails. `ABOUT` is the package
@@ -1043,7 +1043,6 @@ line!            | i128 | The current line
 comp_time!       | i128 | The UNIX time of compilation
 prev_file!       | str  | The path of the previous `Oak` file
 file!            | str  | The path of the current `Oak` file
-contents!        | str  | The contents of the current `Oak` file
 sys!             | str  | The operating system compiled for
 
 Additional preprocessor definitions can be defined as follows.

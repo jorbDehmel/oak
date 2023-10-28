@@ -1,6 +1,7 @@
 package!("std");
 use_rule!("std");
 
+// Python-style compile macroa
 import "sdl";
 include "std/bool.oak";
 use "bool";
@@ -15,6 +16,7 @@ let test: struct
     data: i32,
 }
 
+// Convenient was to express methods
 let test.New() -> void
 {
     self.data = 0;
@@ -25,6 +27,7 @@ let main() -> i32
     let a: i32 = 5;
     let b = a;
 
+    // Type stealing
     let c = fn_which_returns_i32();
 
     print(a);
