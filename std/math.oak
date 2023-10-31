@@ -26,6 +26,22 @@ let even(a: i128) -> bool
     out
 }
 
+let even(a: u128) -> bool
+{
+    let out: bool;
+
+    if (a % to_u128(2) == to_u128(0))
+    {
+        out = true;
+    }
+    else
+    {
+        out = false;
+    }
+
+    out
+}
+
 // Return the absolute value of x
 let abs(x: i32) -> i32
 {

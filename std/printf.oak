@@ -73,7 +73,7 @@ let printf!(argc: i32, argv: ^^i8) -> i32
             {
                 // Formatted print
                 print("print(");
-                print(@Get(argv, cur_arg));
+                print(Get(argv, cur_arg));
                 print(");\n");
 
                 cur_arg += 1;

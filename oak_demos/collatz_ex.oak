@@ -1,0 +1,51 @@
+package!("std");
+use_rule!("std");
+
+include!("std/math.oak");
+
+// Takes in n_i and returns n_{i + 1}
+let collatz(n: u128) -> u128
+{
+    let out: u128;
+    out = n;
+
+    if (even(n))
+    {
+        out /= to_u128(2);
+    }
+    else
+    {
+        out *= to_u128(3);
+        out += to_u128(1);
+    }
+
+    out
+}
+
+let print_collatz_sequence(n: u128) -> void
+{
+    print(n);
+    print(" ");
+
+    if (n > to_u128(1))
+    {
+        let next: u128;
+        next = collatz(n);
+
+        print_collatz_sequence(next);
+    }
+    else
+    {
+        print("\n");
+    }
+}
+
+let main() -> i32
+{
+    for (let i: u128 = 1; i < to_u128(10); i += 1)
+    {
+        print_collatz_sequence(i);
+    }
+
+    0
+}

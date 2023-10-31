@@ -92,6 +92,12 @@ new_rule!(
     "use_rule! ( $a ) ;"
 );
 
+new_rule!(
+    "flag",
+    "flag $*a ;",
+    "flag! ( $a ) ;"
+);
+
 ////////////////////////////////////////////////////////////////
 
 // Bundle everything together
@@ -112,5 +118,6 @@ bundle_rule!(
     "import",
     "include",
     "link",
-    "use"
+    "use",
+    "flag"
 );

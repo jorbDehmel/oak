@@ -28,6 +28,12 @@ let print_err(what: str) -> void;
 // Get a char from cin
 let get_char() -> i8;
 
+// Get a i128 from cin
+let get_i128() -> i128;
+
+// Get a f64 from cin
+let get_f64() -> f64;
+
 // Read a number of chars from cin into a string
 let read(into: str, length: u128) -> void;
 

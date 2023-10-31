@@ -37,7 +37,9 @@ using namespace std;
 #define INFO "jdehmel@outlook.com"
 
 #define OAK_DIR_PATH "/usr/include/oak/"
-#define C_COMPILER "clang"
+
+#define C_COMPILER "clang" // This should be a C compiler- like clang or gcc
+#define LINKER "clang++"   // This should be a C++ compiler- like clang++ or g++
 
 #define MAX_CACHE_KB 5000
 

@@ -57,7 +57,7 @@ void doFile(const string &From)
     }
     int curPhase = 0;
 
-    const static set<string> compilerMacros = {"include!", "package!", "link!"};
+    const static set<string> compilerMacros = {"include!", "package!", "link!", "flag!"};
 
     auto start = chrono::high_resolution_clock::now();
     auto end = start;
@@ -391,6 +391,39 @@ void doFile(const string &From)
                                 }
 
                                 objects.insert(a);
+                            }
+                            i--;
+                        }
+                        else if (lexed[i] == "flag!")
+                        {
+                            vector<string> args = getMacroArgs(lexed, i);
+
+                            // Clean arguments
+                            for (int j = 0; j < args.size(); j++)
+                            {
+                                while (!args[j].empty() && (args[j].front() == '"' || args[j].front() == '\''))
+                                {
+                                    args[j].erase(0, 1);
+                                }
+                                while (!args[j].empty() && (args[j].back() == '"' || args[j].back() == '\''))
+                                {
+                                    args[j].pop_back();
+                                }
+
+                                if (!args[j].empty() && args[j][0] != '-')
+                                {
+                                    args[j] = OAK_DIR_PATH + args[j];
+                                }
+                            }
+
+                            for (string a : args)
+                            {
+                                if (debug)
+                                {
+                                    cout << debugTreePrefix << "Appending flag " << a << '\n';
+                                }
+
+                                cflags.insert(a);
                             }
                             i--;
                         }

@@ -55,6 +55,28 @@ void destroyUnits(const string &name, const Type &type, const bool &doThrow)
     return;
 }
 
+// returns true if a should be before b
+bool sortCandidates(__multiTableSymbol &a, __multiTableSymbol &b)
+{
+    auto a_args = getArgs(a.type);
+    auto b_args = getArgs(b.type);
+
+    int a_count = 0;
+    int b_count = 0;
+
+    for (int i = 0; i < a_args[0].second.size() && a_args[0].second[i].info == pointer; i++)
+    {
+        a_count++;
+    }
+
+    for (int i = 0; i < b_args[0].second.size() && b_args[0].second[i].info == pointer; i++)
+    {
+        b_count++;
+    }
+
+    return a_count < b_count;
+}
+
 // Actually used in dump files, not just for debugging.
 void debugPrint(const sequence &What, int spaces, ostream &to)
 {
@@ -1993,6 +2015,7 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
             sm_assert(table[name].size() != 0, "Function call '" + name + "' has no registered symbols.");
 
             auto candidates = table[name];
+            int indexOfExactMatch = -1;
 
             // Weed out any candidates which do not have the correct argument types
             for (int j = 0; j < candidates.size(); j++)
@@ -2020,14 +2043,27 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
                     continue;
                 }
 
+                bool isExactMatch = (indexOfExactMatch == -1);
                 for (int k = 0; k < candArgs.size(); k++)
                 {
+                    // Check exactly
+                    if (isExactMatch)
+                    {
+                        isExactMatch &= typesAreSameExact(&candArgs[k].second, &argTypes[k]);
+                    }
+
+                    // check inexactly
                     if (!typesAreSame(&candArgs[k].second, &argTypes[k]))
                     {
                         candidates.erase(candidates.begin() + j);
                         j--;
                         break;
                     }
+                }
+
+                if (isExactMatch)
+                {
+                    indexOfExactMatch = j;
                 }
             }
 
@@ -2089,10 +2125,22 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
                     }
                 }
 
-                // TODO
-                // Sort the candidates by access level (number of referencing needed, fewest first) here
+                // Check for exact match
 
-                // Now safe; Has been verified that all candidates have identical return types
+                if (indexOfExactMatch != -1)
+                {
+                    auto copy = candidates[indexOfExactMatch];
+
+                    candidates.clear();
+                    candidates.push_back(copy);
+                }
+                else
+                {
+                    sort(candidates.begin(), candidates.end(), sortCandidates);
+                }
+
+                // If has exact match, use it
+                // Otherwise, use match with fewest differences in reference status
             }
 
             // Single candidate

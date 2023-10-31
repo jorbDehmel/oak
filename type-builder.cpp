@@ -258,6 +258,51 @@ bool typesAreSame(Type *A, Type *B)
     return true;
 }
 
+// Like the above, but does not do auto-referencing or dereferencing
+bool typesAreSameExact(Type *A, Type *B)
+{
+    unsigned int left, right;
+    left = right = 0;
+
+    while (left < A->internal.size() && right < B->internal.size())
+    {
+        while (left < A->internal.size() && A->internal[left].info == var_name)
+        {
+            left++;
+        }
+
+        while (right < B->internal.size() && B->internal[right].info == var_name)
+        {
+            right++;
+        }
+
+        if (left >= A->internal.size() || right >= B->internal.size())
+        {
+            break;
+        }
+
+        if (A->internal[left].info != B->internal[right].info)
+        {
+            // Failure
+            return false;
+        }
+        else
+        {
+            if (A->internal[left].info == atomic && A->internal[left].name != B->internal[right].name)
+            {
+                // Failure
+                return false;
+            }
+        }
+
+        // Success; Move on
+        left++;
+        right++;
+    }
+
+    return true;
+}
+
 Type checkLiteral(const string &From)
 {
     // Check as bool

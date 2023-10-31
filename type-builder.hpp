@@ -60,6 +60,7 @@ protected:
 
     friend string toStr(const Type *const, const unsigned int &pos);
     friend bool typesAreSame(Type *A, Type *B);
+    friend bool typesAreSameExact(Type *A, Type *B);
 };
 
 ////////////////////////////////////////////////////////////////
@@ -86,5 +87,8 @@ string toStr(const Type *const What, const unsigned int &pos = 0);
 // As of 0.0.21, can also do automatic referencing
 // of arguments
 bool typesAreSame(Type *A, Type *B);
+
+// Like the above, but does not do auto-referencing or dereferencing
+bool typesAreSameExact(Type *A, Type *B);
 
 #endif

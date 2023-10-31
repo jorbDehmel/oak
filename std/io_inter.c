@@ -59,3 +59,19 @@ char get_char_FN_MAPS_char(void)
     char out = getchar();
     return out;
 }
+
+// Get a i128 from cin
+i128 get_i128_FN_MAPS_i128(void)
+{
+    i128 out;
+    scanf("%lld", &out);
+    return out;
+}
+
+// Get a f64 from cin
+f64 get_f64_FN_MAPS_f64(void)
+{
+    f64 out;
+    scanf("%lf", &out);
+    return out;
+}

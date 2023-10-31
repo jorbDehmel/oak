@@ -38,6 +38,7 @@ non-sequential parser.
 #include <cstring>
 #include <cmath>
 #include <map>
+#include <algorithm>
 
 #include <list>
 

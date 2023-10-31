@@ -1,0 +1,48 @@
+// Needed packages
+package!("std");
+use_rule!("std");
+
+include!("std/printf.oak");
+include!("std/rand_inter.oak");
+
+// Preprocessor definitions
+let low! = 0;
+let high! = 10;
+let num_guesses! = 5;
+
+let main() -> i32
+{
+    let chosen = rand(low!, high!);
+    let has_chosen_incorrectly = true;
+
+    printf!(
+        "Guess a number between % and %.\n",
+        low!,
+        high!
+    );
+
+    let current_guess: i32;
+    for (current_guess = 0;
+        current_guess < num_guesses! && has_chosen_incorrectly;
+        current_guess += 1)
+    {
+        print("Guess: ");
+        let guess = to_i32(get_i128());
+
+        if (guess < chosen)
+        {
+            print("Too low...\n");
+        }
+        else if (guess > chosen)
+        {
+            print("Too high...\n");
+        }
+        else
+        {
+            print("You guessed it!\n");
+            has_chosen_incorrectly = false;
+        }
+    }
+
+    0
+}

@@ -1,0 +1,16 @@
+/*
+A test of the RegEx interface for Oak from C++'s boost library
+Jordan Dehmel, 2023
+UNPASSED
+*/
+
+package!("std");
+use_rule!("std");
+
+include!("std/printf.oak");
+include!("std/regex_inter.oak");
+
+let main() -> i32
+{
+    0
+}

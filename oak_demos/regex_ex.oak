@@ -1,0 +1,59 @@
+package!("std");
+use_rule!("std");
+////////////////////////////
+
+include "std/regex_inter.oak";  // Real purposes
+include "std/string.oak";
+
+let main() -> i32
+{
+    let pattern_string: string = "abra*ca?dabra+";
+    let pattern: regex = pattern_string;
+
+    let string_one: string = "abrcadabraaa";
+    let string_two: string = "abraaaacdabra";
+    let string_three: string = "abrcdabr";
+    let string_four: string = "abarcdabrar";
+
+    // Test string 1
+    if regex_match(string_one, pattern)
+    {
+        print("String one matched.\n");
+    }
+    else
+    {
+        print("String one did not match.\n");
+    }
+
+    // Test string 2
+    if regex_match(string_two, pattern)
+    {
+        print("String two matched.\n");
+    }
+    else
+    {
+        print("String two did not match.\n");
+    }
+
+    // Test string 3
+    if regex_match(string_three, pattern)
+    {
+        print("String three matched.\n");
+    }
+    else
+    {
+        print("String three did not match.\n");
+    }
+
+    // Test string 4
+    if regex_match(string_four, pattern)
+    {
+        print("String four matched.\n");
+    }
+    else
+    {
+        print("String four did not match.\n");
+    }
+
+    0
+}

@@ -477,15 +477,15 @@ int main(const int argc, const char *argv[])
                              << tags::reset;
                     }
 
-                    string command = C_COMPILER " -o " + out + " ";
-                    for (string flag : cflags)
-                    {
-                        command += flag + " ";
-                    }
-
+                    string command = LINKER " -o " + out + " ";
                     for (string object : objects)
                     {
                         command += object + " ";
+                    }
+
+                    for (string flag : cflags)
+                    {
+                        command += flag + " ";
                     }
 
                     if (debug)
