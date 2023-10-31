@@ -4,6 +4,9 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.2.3           | 10/31/23 | Bug fixes, added regex_inter.oak.
+                |          | Expanded readme.
+                |          |
 0.2.2           | 10/28/23 | Bug fixes, added std/sock_inter.oak
                 |          | for POSIX sockets.
                 |          |

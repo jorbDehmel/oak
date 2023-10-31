@@ -156,7 +156,7 @@ void parenSub(vector<string> &From)
             // Replace contents with good ones
 
             // Erase old stuff
-            for (int j = startI; j <= endI; j++)
+            for (int j = startI; startI < From.size() && j <= endI; j++)
             {
                 From.erase(From.begin() + startI);
             }

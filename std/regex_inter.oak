@@ -1,19 +1,21 @@
 package!("std");
 use_rule!("std");
 
-include!("std/string.oak");
-include!("std/interface.oak");
+include "std/string.oak";
+include "std/interface.oak";
 
-link!("std/regex_inter.o");
-// flag!("-lboost_regex");
+link "std/regex_inter.o";
 
 let regex: struct
 {
     __a: hidden_32_bytes,
 }
 
-let regex.Copy(pattern: ^string) -> void;
-let regex.Copy(pattern: str) -> void;
+let New(self: ^regex) -> void;
+let Del(self: ^regex) -> void;
+
+let Copy(self: ^regex, pattern: ^string) -> void;
+let Copy(self: ^regex, pattern: str) -> void;
 
 let regex_smatch: struct
 {
@@ -21,9 +23,11 @@ let regex_smatch: struct
     __b: hidden_32_bytes,
 }
 
-let regex_smatch.size() -> u64;
-let regex_smatch.str() -> string;
-let regex_smatch.Get(index: u32) -> string;
+let New(self: ^regex_smatch) -> void;
+
+let size(self: ^regex_smatch) -> u64;
+let str(self: ^regex_smatch) -> string;
+let Get(self: ^regex_smatch, index: u32) -> string;
 
 let regex_match(text: ^string, pattern: ^regex) -> bool;
 let regex_match(text: ^string, pattern: ^regex,

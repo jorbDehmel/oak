@@ -36,36 +36,37 @@ let hidden_8_bytes: struct
 // Sixteen hidden bytes
 let hidden_16_bytes: struct
 {
-    __a: u128,
+    __a: u64,
+    __b: u64,
 }
 
 // Thirty two hidden bytes
 let hidden_32_bytes: struct
 {
-    __a: u128,
-    __b: u128,
+    __a: hidden_16_bytes,
+    __b: hidden_16_bytes,
 }
 
 // Sixty four hidden bytes
 let hidden_64_bytes: struct
 {
-    __a: u128,
-    __b: u128,
-    __c: u128,
-    __d: u128,
+    __a: hidden_16_bytes,
+    __b: hidden_16_bytes,
+    __c: hidden_16_bytes,
+    __d: hidden_16_bytes,
 }
 
 // One hundred and twenty eight hidden bytes
 let hidden_128_bytes: struct
 {
-    __a: u128,
-    __b: u128,
-    __c: u128,
-    __d: u128,
-    __e: u128,
-    __f: u128,
-    __g: u128,
-    __h: u128,
+    __a: hidden_16_bytes,
+    __b: hidden_16_bytes,
+    __c: hidden_16_bytes,
+    __d: hidden_16_bytes,
+    __e: hidden_16_bytes,
+    __f: hidden_16_bytes,
+    __g: hidden_16_bytes,
+    __h: hidden_16_bytes,
 }
 
 // Erase all the above structs, such that

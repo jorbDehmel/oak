@@ -51,16 +51,19 @@ void getDiskUsage()
 
 void doFile(const string &From)
 {
-    while (phaseTimes.size() < 9)
+    if (debug)
     {
-        phaseTimes.push_back(0);
+        while (phaseTimes.size() < 9)
+        {
+            phaseTimes.push_back(0);
+        }
     }
+
     int curPhase = 0;
 
     const static set<string> compilerMacros = {"include!", "package!", "link!", "flag!"};
 
-    auto start = chrono::high_resolution_clock::now();
-    auto end = start;
+    chrono::_V2::system_clock::time_point start, end;
 
     // Clear active rules
     activeRules.clear();
@@ -85,15 +88,18 @@ void doFile(const string &From)
     -MAC
     -UNKNOWN
     */
+    if (preprocDefines.count("sys!") == 0)
+    {
 #if (defined(_WIN32) || defined(_WIN64))
-    preprocDefines["sys!"] = "WINDOWS";
+        preprocDefines["sys!"] = "WINDOWS";
 #elif (defined(LINUX) || defined(__linux__))
-    preprocDefines["sys!"] = "LINUX";
+        preprocDefines["sys!"] = "LINUX";
 #elif (defined(__APPLE__))
-    preprocDefines["sys!"] = "MAC";
+        preprocDefines["sys!"] = "MAC";
 #else
-    preprocDefines["sys!"] = "UNKNOWN";
+        preprocDefines["sys!"] = "UNKNOWN";
 #endif
+    }
 
     try
     {
@@ -126,616 +132,629 @@ void doFile(const string &From)
             }
         }
 
-        if (visitedFiles.count(realName) == 0)
+        if (visitedFiles.count(realName) != 0)
         {
-            visitedFiles.insert(realName);
-
             if (debug)
             {
-                cout << debugTreePrefix << "Loading file '" << From << "'\n";
-                debugTreePrefix.append("|");
+                cout << debugTreePrefix << "Skipping repeated file '" << From << "'\n";
             }
+            return;
+        }
+        visitedFiles.insert(realName);
 
-            // A: Load file
-            ifstream file(From, ios::in | ios::ate);
-            if (!file.is_open())
+        if (debug)
+        {
+            cout << debugTreePrefix << "Loading file '" << From << "'\n";
+            debugTreePrefix.append("|");
+        }
+
+        // A: Load file
+        ifstream file(From, ios::in | ios::ate);
+        if (!file.is_open())
+        {
+            throw runtime_error("Could not open source file '" + From + "'");
+        }
+
+        long long size = file.tellg();
+
+        file.clear();
+        file.seekg(0, ios::beg);
+
+        size -= file.tellg();
+
+        string text, line;
+
+        text.reserve(size);
+        line.reserve(64);
+
+        while (getline(file, line))
+        {
+            text.append(line);
+            text.push_back('\n');
+        }
+
+        file.close();
+
+        // B: Syntax check
+
+        if (debug)
+        {
+            cout << debugTreePrefix << "Syntax check\n";
+            start = chrono::high_resolution_clock::now();
+        }
+
+        if (!ignoreSyntaxErrors || isMacroCall)
+        {
+            ensureSyntax(text, true);
+        }
+
+        if (debug)
+        {
+            end = chrono::high_resolution_clock::now();
+            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+            curPhase++;
+        }
+
+        // C: Lex
+        if (debug)
+        {
+            cout << debugTreePrefix << "Lexing\n";
+            start = chrono::high_resolution_clock::now();
+        }
+
+        lexed = lex(text);
+        lexedCopy = lexed;
+
+        if (debug)
+        {
+            end = chrono::high_resolution_clock::now();
+            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+            curPhase++;
+        }
+
+        // D: Scan for macro definitions and handle them
+        // This erases them from lexed
+        if (debug)
+        {
+            cout << debugTreePrefix << "Macro definitions\n";
+            start = chrono::high_resolution_clock::now();
+        }
+
+        for (int i = 1; i + 1 < lexed.size(); i++)
+        {
+            if (lexed[i] != "!" && lexed[i].back() == '!' && lexed[i - 1] == "let")
             {
-                throw runtime_error("Could not open source file '" + From + "'");
-            }
-
-            long long size = file.tellg();
-
-            file.clear();
-            file.seekg(0, ios::beg);
-
-            size -= file.tellg();
-
-            string text, line;
-
-            text.reserve(size);
-            line.reserve(64);
-
-            while (getline(file, line))
-            {
-                text.append(line);
-                text.push_back('\n');
-            }
-
-            file.close();
-
-            // B: Syntax check
-
-            if (debug)
-            {
-                cout << debugTreePrefix << "Syntax check\n";
-                start = chrono::high_resolution_clock::now();
-            }
-
-            if (!ignoreSyntaxErrors || isMacroCall)
-            {
-                ensureSyntax(text, true);
-            }
-
-            if (debug)
-            {
-                end = chrono::high_resolution_clock::now();
-                phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-                curPhase++;
-            }
-
-            // C: Lex
-            if (debug)
-            {
-                cout << debugTreePrefix << "Lexing\n";
-                start = chrono::high_resolution_clock::now();
-            }
-
-            lexed = lex(text);
-            lexedCopy = lexed;
-
-            if (debug)
-            {
-                end = chrono::high_resolution_clock::now();
-                phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-                curPhase++;
-            }
-
-            // D: Scan for macro definitions and handle them
-            // This erases them from lexed
-            if (debug)
-            {
-                cout << debugTreePrefix << "Macro definitions\n";
-                start = chrono::high_resolution_clock::now();
-            }
-
-            for (int i = 1; i + 1 < lexed.size(); i++)
-            {
-                if (lexed[i] != "!" && lexed[i].back() == '!' && lexed[i - 1] == "let")
+                if (lexed[i + 1] != "=")
                 {
-                    if (lexed[i + 1] != "=")
+                    string name, contents;
+                    name = lexed[i];
+
+                    // Safety checks
+                    if (preprocDefines.count(name) != 0)
                     {
-                        string name, contents;
-                        name = lexed[i];
+                        throw sequencing_error("Macro  '" + name + "' cannot overwrite definition of same name.");
+                    }
+                    else if (macros.count(name) != 0)
+                    {
+                        throw sequencing_error("Macro '" + name + "' cannot be overridden.");
+                    }
 
-                        // Safety checks
-                        if (preprocDefines.count(name) != 0)
-                        {
-                            throw sequencing_error("Macro  '" + name + "' cannot overwrite definition of same name.");
-                        }
-                        else if (macros.count(name) != 0)
-                        {
-                            throw sequencing_error("Macro '" + name + "' cannot be overridden.");
-                        }
+                    contents = "let main(argc: i32, argv: ^^i8) -> i32 ";
 
-                        contents = "let main(argc: i32, argv: ^^i8) -> i32 ";
+                    i--;
+                    lexed.erase(lexed.begin() + i); // Let
+                    lexed.erase(lexed.begin() + i); // Name
 
-                        i--;
-                        lexed.erase(lexed.begin() + i); // Let
-                        lexed.erase(lexed.begin() + i); // Name
+                    while (lexed.size() >= i && lexed[i] != "{" && lexed[i] != ";")
+                    {
+                        lexed.erase(lexed.begin() + i);
+                    }
 
-                        while (lexed.size() >= i && lexed[i] != "{" && lexed[i] != ";")
-                        {
-                            lexed.erase(lexed.begin() + i);
-                        }
-
-                        if (lexed[i] == ";")
-                        {
-                            contents += "{ 0 }";
-                        }
-                        else
-                        {
-                            int count = 1;
-                            lexed.erase(lexed.begin() + i);
-                            contents += "\n{";
-
-                            while (count != 0)
-                            {
-                                if (lexed[i] == "{")
-                                {
-                                    count++;
-                                }
-                                else if (lexed[i] == "}")
-                                {
-                                    count--;
-                                }
-
-                                if (lexed[i].size() < 2 || lexed[i].substr(0, 2) != "//")
-                                {
-                                    contents += " " + lexed[i];
-                                }
-                                else
-                                {
-                                    contents += "\n";
-                                }
-
-                                lexed.erase(lexed.begin() + i);
-                            }
-                        }
-
-                        macros[name] = contents;
-                        macroSourceFiles[name] = curFile;
+                    if (lexed[i] == ";")
+                    {
+                        contents += "{ 0 }";
                     }
                     else
                     {
-                        // Preproc definition; Not a full macro
+                        int count = 1;
+                        lexed.erase(lexed.begin() + i);
+                        contents += "\n{";
 
-                        // Safety checks
-                        if (preprocDefines.count(lexed[i]) != 0)
+                        while (count != 0)
                         {
-                            throw sequencing_error("Preprocessor definition '" + lexed[i] + "' cannot be overridden.");
-                        }
-                        else if (macros.count(lexed[i]) != 0)
-                        {
-                            throw sequencing_error("Preprocessor definition '" + lexed[i] + "' cannot overwrite macro of same name.");
-                        }
+                            if (lexed[i] == "{")
+                            {
+                                count++;
+                            }
+                            else if (lexed[i] == "}")
+                            {
+                                count--;
+                            }
 
-                        string name = lexed[i];
+                            if (lexed[i].size() < 2 || lexed[i].substr(0, 2) != "//")
+                            {
+                                contents += " " + lexed[i];
+                            }
+                            else
+                            {
+                                contents += "\n";
+                            }
 
-                        // Erase as needed
-                        i--;
-                        lexed.erase(lexed.begin() + i); // Let
-                        lexed.erase(lexed.begin() + i); // Name!
-                        lexed.erase(lexed.begin() + i); // =
-
-                        // Scrape until next semicolon
-                        string contents = "";
-                        while (lexed[i] != ";")
-                        {
-                            contents.append(lexed[i]);
                             lexed.erase(lexed.begin() + i);
                         }
-
-                        lexed.erase(lexed.begin() + i); // ;
-
-                        // Insert
-                        preprocDefines[name] = contents;
                     }
+
+                    macros[name] = contents;
+                    macroSourceFiles[name] = curFile;
                 }
-            }
-
-            if (debug)
-            {
-                end = chrono::high_resolution_clock::now();
-                phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-                curPhase++;
-            }
-
-            bool compilerMacrosLeft;
-            int compilerMacroPos = curPhase;
-            do
-            {
-                // E: Scan for compiler macros; Do these first
-                // This erases them from lexed
-                if (debug)
+                else
                 {
-                    curPhase = compilerMacroPos;
-                    cout << debugTreePrefix << "Compiler macros\n";
-                    start = chrono::high_resolution_clock::now();
-                }
+                    // Preproc definition; Not a full macro
 
-                for (int i = 0; i < lexed.size(); i++)
-                {
-                    if (lexed[i] != "!" && lexed[i].back() == '!')
+                    // Safety checks
+                    if (preprocDefines.count(lexed[i]) != 0)
                     {
-                        // File handling / translation unit macros
-                        if (lexed[i] == "include!")
-                        {
-                            vector<string> args = getMacroArgs(lexed, i);
-
-                            // Clean arguments
-                            for (int j = 0; j < args.size(); j++)
-                            {
-                                while (!args[j].empty() && (args[j].front() == '"' || args[j].front() == '\''))
-                                {
-                                    args[j].erase(0, 1);
-                                }
-                                while (!args[j].empty() && (args[j].back() == '"' || args[j].back() == '\''))
-                                {
-                                    args[j].pop_back();
-                                }
-                            }
-
-                            for (string a : args)
-                            {
-                                doFile(OAK_DIR_PATH + a);
-                            }
-                            i--;
-                        }
-                        else if (lexed[i] == "link!")
-                        {
-                            vector<string> args = getMacroArgs(lexed, i);
-
-                            // Clean arguments
-                            for (int j = 0; j < args.size(); j++)
-                            {
-                                while (!args[j].empty() && (args[j].front() == '"' || args[j].front() == '\''))
-                                {
-                                    args[j].erase(0, 1);
-                                }
-                                while (!args[j].empty() && (args[j].back() == '"' || args[j].back() == '\''))
-                                {
-                                    args[j].pop_back();
-                                }
-
-                                if (!args[j].empty() && args[j][0] != '-')
-                                {
-                                    args[j] = OAK_DIR_PATH + args[j];
-                                }
-                            }
-
-                            for (string a : args)
-                            {
-                                if (debug)
-                                {
-                                    cout << debugTreePrefix << "Inserting object " << a << '\n';
-                                }
-
-                                objects.insert(a);
-                            }
-                            i--;
-                        }
-                        else if (lexed[i] == "flag!")
-                        {
-                            vector<string> args = getMacroArgs(lexed, i);
-
-                            // Clean arguments
-                            for (int j = 0; j < args.size(); j++)
-                            {
-                                while (!args[j].empty() && (args[j].front() == '"' || args[j].front() == '\''))
-                                {
-                                    args[j].erase(0, 1);
-                                }
-                                while (!args[j].empty() && (args[j].back() == '"' || args[j].back() == '\''))
-                                {
-                                    args[j].pop_back();
-                                }
-
-                                if (!args[j].empty() && args[j][0] != '-')
-                                {
-                                    args[j] = OAK_DIR_PATH + args[j];
-                                }
-                            }
-
-                            for (string a : args)
-                            {
-                                if (debug)
-                                {
-                                    cout << debugTreePrefix << "Appending flag " << a << '\n';
-                                }
-
-                                cflags.insert(a);
-                            }
-                            i--;
-                        }
-                        else if (lexed[i] == "package!")
-                        {
-                            vector<string> args = getMacroArgs(lexed, i);
-                            vector<string> files;
-
-                            // Clean arguments
-                            for (int j = 0; j < args.size(); j++)
-                            {
-                                while (!args[j].empty() && (args[j].front() == '"' || args[j].front() == '\''))
-                                {
-                                    args[j].erase(0, 1);
-                                }
-                                while (!args[j].empty() && (args[j].back() == '"' || args[j].back() == '\''))
-                                {
-                                    args[j].pop_back();
-                                }
-                            }
-
-                            for (string a : args)
-                            {
-                                files = getPackageFiles(a);
-
-                                for (string f : files)
-                                {
-                                    if (debug)
-                                    {
-                                        cout << debugTreePrefix << "Loading package file '" << f << "'...\n";
-                                    }
-
-                                    doFile(f);
-                                }
-                            }
-                            i--;
-                        }
-                        else
-                        {
-                            // Non-compiler macro definition
-                            // Nested stuff may be allowed within
-                            if (i > 0 && lexed[i - 1] == "let")
-                            {
-                                while (lexed.size() >= i && lexed[i] != "{" && lexed[i] != ";")
-                                {
-                                    i++;
-                                }
-
-                                if (lexed[i] == ";")
-                                {
-                                    i++;
-                                }
-                                else
-                                {
-                                    int count = 1;
-                                    i++;
-
-                                    while (count != 0)
-                                    {
-                                        if (lexed[i] == "{")
-                                        {
-                                            count++;
-                                        }
-                                        else if (lexed[i] == "}")
-                                        {
-                                            count--;
-                                        }
-
-                                        i++;
-                                    }
-                                }
-                            }
-                        }
+                        throw sequencing_error("Preprocessor definition '" + lexed[i] + "' cannot be overridden.");
                     }
-                }
-
-                if (debug)
-                {
-                    end = chrono::high_resolution_clock::now();
-                    phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-                    curPhase = compilerMacroPos + 1;
-                }
-
-                // E: Rules
-                if (debug)
-                {
-                    cout << debugTreePrefix << "Rules\n";
-                    start = chrono::high_resolution_clock::now();
-                }
-
-                doRules(lexed);
-
-                if (debug)
-                {
-                    end = chrono::high_resolution_clock::now();
-                    phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-                }
-
-                // Update compilerMacrosLeft
-                compilerMacrosLeft = false;
-                for (const auto &item : lexed)
-                {
-                    if (compilerMacros.count(item) != 0)
+                    else if (macros.count(lexed[i]) != 0)
                     {
-                        compilerMacrosLeft = true;
-                        break;
-                    }
-                }
-            } while (compilerMacrosLeft);
-            curPhase = compilerMacroPos + 2;
-
-            // G: Scan for macro calls and handle them
-            if (debug)
-            {
-                cout << debugTreePrefix << "Macro calls\n";
-                start = chrono::high_resolution_clock::now();
-            }
-
-            for (int i = 0; i < lexed.size(); i++)
-            {
-                // We can assume that no macro definitions remain
-                if (lexed[i] != "!" && lexed[i].back() == '!' && i + 1 < lexed.size() && lexed[i + 1] == "(")
-                {
-                    // Special cases: Memory macros
-                    if (lexed[i] == "alloc!" || lexed[i] == "free!" || lexed[i] == "free_arr!")
-                    {
-                        continue;
-                    }
-
-                    // Another special case: Erasure macro
-                    else if (lexed[i] == "erase!")
-                    {
-                        continue;
-                    }
-
-                    // More special cases
-                    else if (lexed[i] == "c_print!")
-                    {
-                        continue;
-                    }
-                    else if (lexed[i] == "c_panic!")
-                    {
-                        continue;
-                    }
-
-                    // More special cases: Rule macros
-                    else if (lexed[i] == "new_rule!" || lexed[i] == "use_rule!" || lexed[i] == "rem_rule!" || lexed[i] == "bundle_rule!")
-                    {
-                        continue;
-                    }
-
-                    // Extra bonus special cases: Typing and sizing
-                    else if (lexed[i] == "type!" || lexed[i] == "size!")
-                    {
-                        continue;
+                        throw sequencing_error("Preprocessor definition '" + lexed[i] + "' cannot overwrite macro of same name.");
                     }
 
                     string name = lexed[i];
 
-                    // Erases all trace of the call in the process
-                    vector<string> args = getMacroArgs(lexed, i);
-
-                    string output = callMacro(name, args, debug);
-                    vector<string> lexedOutput = lex(output);
-
-                    // Reset preproc defs, as they tend to break w/ macros
-                    preprocDefines["prev_file!"] = (oldFile == "" ? "\"NULL\"" : ("\"" + oldFile + "\""));
-                    preprocDefines["file!"] = '"' + From + '"';
-
-                    // Remove lines
-                    for (int ind = 0; ind < lexedOutput.size(); ind++)
-                    {
-                        if (lexedOutput[ind].size() > 1 && lexedOutput[ind].substr(0, 2) == "//")
-                        {
-                            if (lexedOutput[ind].size() > 11 && lexedOutput[ind].substr(0, 11) == "//__LINE__=")
-                            {
-                                preprocDefines["line!"] = lexedOutput[ind].substr(11);
-                            }
-
-                            lexedOutput.erase(lexedOutput.begin() + ind);
-                        }
-
-                        // Preproc defines subs
-                        else if (preprocDefines.count(lexedOutput[ind]) != 0)
-                        {
-                            vector<string> lexedDef = lex(preprocDefines[lexedOutput[ind]]);
-                            lexedOutput.erase(lexedOutput.begin() + ind);
-
-                            for (int j = lexedDef.size() - 1; j >= 0; j--)
-                            {
-                                lexedOutput.insert(lexedOutput.begin() + ind, lexedDef[j]);
-                            }
-
-                            ind--;
-                        }
-                    }
-
-                    // Insert the new code
-                    for (int j = lexedOutput.size() - 1; j >= 0; j--)
-                    {
-                        lexed.insert(lexed.begin() + i, lexedOutput[j]);
-                    }
-
-                    // Since we do not change i, this new code will be scanned next.
-                }
-            }
-
-            if (debug)
-            {
-                end = chrono::high_resolution_clock::now();
-                phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-                curPhase++;
-            }
-
-            // H: Preproc definitions
-            if (debug)
-            {
-                cout << debugTreePrefix << "Preproc definitions\n";
-                start = chrono::high_resolution_clock::now();
-            }
-
-            preprocDefines["line!"] = "1";
-            for (int i = 0; i < lexed.size(); i++)
-            {
-                if (lexed[i].size() >= 2 && lexed[i].substr(0, 2) == "//")
-                {
-                    // Line update special symbol
-                    string newLineNum = lexed[i].substr(11);
-                    preprocDefines["line!"] = newLineNum;
-                }
-                else if (preprocDefines.count(lexed[i]) != 0)
-                {
-                    vector<string> lexedDef = lex(preprocDefines[lexed[i]]);
-                    lexed.erase(lexed.begin() + i);
-
-                    for (int j = lexedDef.size() - 1; j >= 0; j--)
-                    {
-                        lexed.insert(lexed.begin() + i, lexedDef[j]);
-                    }
-
+                    // Erase as needed
                     i--;
+                    lexed.erase(lexed.begin() + i); // Let
+                    lexed.erase(lexed.begin() + i); // Name!
+                    lexed.erase(lexed.begin() + i); // =
+
+                    // Scrape until next semicolon
+                    string contents = "";
+                    while (lexed[i] != ";")
+                    {
+                        contents.append(lexed[i]);
+                        lexed.erase(lexed.begin() + i);
+                    }
+
+                    lexed.erase(lexed.begin() + i); // ;
+
+                    // Insert
+                    preprocDefines[name] = contents;
                 }
-            }
-
-            if (debug)
-            {
-                end = chrono::high_resolution_clock::now();
-                phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-                curPhase++;
-            }
-
-            // I: Operator substitution (within parenthesis and between commas)
-            if (debug)
-            {
-                cout << debugTreePrefix << "Operator substitution\n";
-                start = chrono::high_resolution_clock::now();
-            }
-
-            parenSub(lexed);
-
-            if (debug)
-            {
-                end = chrono::high_resolution_clock::now();
-                phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-                curPhase++;
-            }
-
-            // J: Sequencing
-            if (debug)
-            {
-                cout << debugTreePrefix << "Sequencing (AST & translation)\n";
-                start = chrono::high_resolution_clock::now();
-            }
-
-            sequence fileSeq = createSequence(lexed);
-
-            if (debug)
-            {
-                end = chrono::high_resolution_clock::now();
-                phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-                curPhase++;
-            }
-
-            if (fileSeq.type != nullType)
-            {
-                cout << tags::yellow_bold
-                     << "Warning! File '" << From << "' has hanging type '"
-                     << toStr(&fileSeq.type) << "'\n"
-                     << tags::reset;
-            }
-
-            if (alwaysDump)
-            {
-                string name = "oak_dump_" + purifyStr(From) + ".log";
-
-                if (debug)
-                {
-                    cout << debugTreePrefix << "Saving dump file '" << name << "'\n";
-                }
-
-                dump(lexed, name, From, curLine, fileSeq, lexedCopy);
-            }
-
-            if (debug)
-            {
-                debugTreePrefix.pop_back();
-                cout << debugTreePrefix << "Finished file '" << From << "'\n";
             }
         }
-        else if (debug)
+
+        if (debug)
         {
-            cout << debugTreePrefix << "Skipping repeated file '" << From << "'\n";
+            end = chrono::high_resolution_clock::now();
+            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+            curPhase++;
+        }
+
+        bool compilerMacrosLeft;
+        int compilerMacroPos = curPhase;
+        do
+        {
+            // E: Scan for compiler macros; Do these first
+            // This erases them from lexed
+            if (debug)
+            {
+                curPhase = compilerMacroPos;
+                cout << debugTreePrefix << "Compiler macros\n";
+                start = chrono::high_resolution_clock::now();
+            }
+
+            for (int i = 0; i < lexed.size(); i++)
+            {
+                if (lexed[i] != "!" && lexed[i].back() == '!')
+                {
+                    // File handling / translation unit macros
+                    if (lexed[i] == "include!")
+                    {
+                        vector<string> args = getMacroArgs(lexed, i);
+
+                        // Clean arguments
+                        for (int j = 0; j < args.size(); j++)
+                        {
+                            while (!args[j].empty() && (args[j].front() == '"' || args[j].front() == '\''))
+                            {
+                                args[j].erase(0, 1);
+                            }
+                            while (!args[j].empty() && (args[j].back() == '"' || args[j].back() == '\''))
+                            {
+                                args[j].pop_back();
+                            }
+                        }
+
+                        for (string a : args)
+                        {
+                            doFile(OAK_DIR_PATH + a);
+                        }
+                        i--;
+                    }
+                    else if (lexed[i] == "link!")
+                    {
+                        vector<string> args = getMacroArgs(lexed, i);
+
+                        // Clean arguments
+                        for (int j = 0; j < args.size(); j++)
+                        {
+                            while (!args[j].empty() && (args[j].front() == '"' || args[j].front() == '\''))
+                            {
+                                args[j].erase(0, 1);
+                            }
+                            while (!args[j].empty() && (args[j].back() == '"' || args[j].back() == '\''))
+                            {
+                                args[j].pop_back();
+                            }
+
+                            if (!args[j].empty() && args[j][0] != '-')
+                            {
+                                args[j] = OAK_DIR_PATH + args[j];
+                            }
+                        }
+
+                        for (string a : args)
+                        {
+                            if (debug)
+                            {
+                                cout << debugTreePrefix << "Inserting object " << a << '\n';
+                            }
+
+                            objects.insert(a);
+                        }
+                        i--;
+                    }
+                    else if (lexed[i] == "flag!")
+                    {
+                        vector<string> args = getMacroArgs(lexed, i);
+
+                        // Clean arguments
+                        for (int j = 0; j < args.size(); j++)
+                        {
+                            while (!args[j].empty() && (args[j].front() == '"' || args[j].front() == '\''))
+                            {
+                                args[j].erase(0, 1);
+                            }
+                            while (!args[j].empty() && (args[j].back() == '"' || args[j].back() == '\''))
+                            {
+                                args[j].pop_back();
+                            }
+
+                            if (!args[j].empty() && args[j][0] != '-')
+                            {
+                                args[j] = OAK_DIR_PATH + args[j];
+                            }
+                        }
+
+                        for (string a : args)
+                        {
+                            if (debug)
+                            {
+                                cout << debugTreePrefix << "Appending flag " << a << '\n';
+                            }
+
+                            cflags.insert(a);
+                        }
+                        i--;
+                    }
+                    else if (lexed[i] == "package!")
+                    {
+                        vector<string> args = getMacroArgs(lexed, i);
+                        vector<string> files;
+
+                        // Clean arguments
+                        for (int j = 0; j < args.size(); j++)
+                        {
+                            while (!args[j].empty() && (args[j].front() == '"' || args[j].front() == '\''))
+                            {
+                                args[j].erase(0, 1);
+                            }
+                            while (!args[j].empty() && (args[j].back() == '"' || args[j].back() == '\''))
+                            {
+                                args[j].pop_back();
+                            }
+                        }
+
+                        // Backup dialect rules; These do NOT
+                        vector<string> backupDialectRules = dialectRules;
+                        dialectRules.clear();
+
+                        for (string a : args)
+                        {
+                            files = getPackageFiles(a);
+
+                            for (string f : files)
+                            {
+                                if (debug)
+                                {
+                                    cout << debugTreePrefix << "Loading package file '" << f << "'...\n";
+                                }
+
+                                // Backup dialect rules; These do NOT
+                                vector<string> backupDialectRules = dialectRules;
+                                dialectRules.clear();
+
+                                doFile(f);
+
+                                dialectRules = backupDialectRules;
+                            }
+                        }
+                        i--;
+
+                        dialectRules = backupDialectRules;
+                    }
+                    else
+                    {
+                        // Non-compiler macro definition
+                        // Nested stuff may be allowed within
+                        if (i > 0 && lexed[i - 1] == "let")
+                        {
+                            while (lexed.size() >= i && lexed[i] != "{" && lexed[i] != ";")
+                            {
+                                i++;
+                            }
+
+                            if (lexed[i] == ";")
+                            {
+                                i++;
+                            }
+                            else
+                            {
+                                int count = 1;
+                                i++;
+
+                                while (count != 0)
+                                {
+                                    if (lexed[i] == "{")
+                                    {
+                                        count++;
+                                    }
+                                    else if (lexed[i] == "}")
+                                    {
+                                        count--;
+                                    }
+
+                                    i++;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (debug)
+            {
+                end = chrono::high_resolution_clock::now();
+                phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+                curPhase = compilerMacroPos + 1;
+            }
+
+            // E: Rules
+            if (debug)
+            {
+                cout << debugTreePrefix << "Rules\n";
+                start = chrono::high_resolution_clock::now();
+            }
+
+            doRules(lexed);
+
+            if (debug)
+            {
+                end = chrono::high_resolution_clock::now();
+                phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+            }
+
+            // Update compilerMacrosLeft
+            compilerMacrosLeft = false;
+            for (const auto &item : lexed)
+            {
+                if (compilerMacros.count(item) != 0)
+                {
+                    compilerMacrosLeft = true;
+                    break;
+                }
+            }
+        } while (compilerMacrosLeft);
+        curPhase = compilerMacroPos + 2;
+
+        // G: Scan for macro calls and handle them
+        if (debug)
+        {
+            cout << debugTreePrefix << "Macro calls\n";
+            start = chrono::high_resolution_clock::now();
+        }
+
+        for (int i = 0; i < lexed.size(); i++)
+        {
+            // We can assume that no macro definitions remain
+            if (lexed[i] != "!" && lexed[i].back() == '!' && i + 1 < lexed.size() && lexed[i + 1] == "(")
+            {
+                // Special cases: Memory macros
+                if (lexed[i] == "alloc!" || lexed[i] == "free!" || lexed[i] == "free_arr!")
+                {
+                    continue;
+                }
+
+                // Another special case: Erasure macro
+                else if (lexed[i] == "erase!")
+                {
+                    continue;
+                }
+
+                // More special cases
+                else if (lexed[i] == "c_print!")
+                {
+                    continue;
+                }
+                else if (lexed[i] == "c_panic!")
+                {
+                    continue;
+                }
+
+                // More special cases: Rule macros
+                else if (lexed[i] == "new_rule!" || lexed[i] == "use_rule!" || lexed[i] == "rem_rule!" || lexed[i] == "bundle_rule!")
+                {
+                    continue;
+                }
+
+                // Extra bonus special cases: Typing and sizing
+                else if (lexed[i] == "type!" || lexed[i] == "size!")
+                {
+                    continue;
+                }
+
+                string name = lexed[i];
+
+                // Erases all trace of the call in the process
+                vector<string> args = getMacroArgs(lexed, i);
+
+                string output = callMacro(name, args, debug);
+                vector<string> lexedOutput = lex(output);
+
+                // Reset preproc defs, as they tend to break w/ macros
+                preprocDefines["prev_file!"] = (oldFile == "" ? "\"NULL\"" : ("\"" + oldFile + "\""));
+                preprocDefines["file!"] = '"' + From + '"';
+
+                // Remove lines
+                for (int ind = 0; ind < lexedOutput.size(); ind++)
+                {
+                    if (lexedOutput[ind].size() > 1 && lexedOutput[ind].substr(0, 2) == "//")
+                    {
+                        if (lexedOutput[ind].size() > 11 && lexedOutput[ind].substr(0, 11) == "//__LINE__=")
+                        {
+                            preprocDefines["line!"] = lexedOutput[ind].substr(11);
+                        }
+
+                        lexedOutput.erase(lexedOutput.begin() + ind);
+                    }
+
+                    // Preproc defines subs
+                    else if (preprocDefines.count(lexedOutput[ind]) != 0)
+                    {
+                        vector<string> lexedDef = lex(preprocDefines[lexedOutput[ind]]);
+                        lexedOutput.erase(lexedOutput.begin() + ind);
+
+                        for (int j = lexedDef.size() - 1; j >= 0; j--)
+                        {
+                            lexedOutput.insert(lexedOutput.begin() + ind, lexedDef[j]);
+                        }
+
+                        ind--;
+                    }
+                }
+
+                // Insert the new code
+                for (int j = lexedOutput.size() - 1; j >= 0; j--)
+                {
+                    lexed.insert(lexed.begin() + i, lexedOutput[j]);
+                }
+
+                // Since we do not change i, this new code will be scanned next.
+            }
+        }
+
+        if (debug)
+        {
+            end = chrono::high_resolution_clock::now();
+            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+            curPhase++;
+        }
+
+        // H: Preproc definitions
+        if (debug)
+        {
+            cout << debugTreePrefix << "Preproc definitions\n";
+            start = chrono::high_resolution_clock::now();
+        }
+
+        preprocDefines["line!"] = "1";
+        for (int i = 0; i < lexed.size(); i++)
+        {
+            if (lexed[i].size() >= 2 && lexed[i].substr(0, 2) == "//")
+            {
+                // Line update special symbol
+                string newLineNum = lexed[i].substr(11);
+                preprocDefines["line!"] = newLineNum;
+            }
+            else if (preprocDefines.count(lexed[i]) != 0)
+            {
+                vector<string> lexedDef = lex(preprocDefines[lexed[i]]);
+                lexed.erase(lexed.begin() + i);
+
+                for (int j = lexedDef.size() - 1; j >= 0; j--)
+                {
+                    lexed.insert(lexed.begin() + i, lexedDef[j]);
+                }
+
+                i--;
+            }
+        }
+
+        if (debug)
+        {
+            end = chrono::high_resolution_clock::now();
+            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+            curPhase++;
+        }
+
+        // I: Operator substitution (within parenthesis and between commas)
+        if (debug)
+        {
+            cout << debugTreePrefix << "Operator substitution\n";
+            start = chrono::high_resolution_clock::now();
+        }
+
+        parenSub(lexed);
+
+        if (debug)
+        {
+            end = chrono::high_resolution_clock::now();
+            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+            curPhase++;
+        }
+
+        // J: Sequencing
+        if (debug)
+        {
+            cout << debugTreePrefix << "Sequencing (AST & translation)\n";
+            start = chrono::high_resolution_clock::now();
+        }
+
+        sequence fileSeq = createSequence(lexed);
+
+        if (debug)
+        {
+            end = chrono::high_resolution_clock::now();
+            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+            curPhase++;
+        }
+
+        if (fileSeq.type != nullType)
+        {
+            cout << tags::yellow_bold
+                 << "Warning! File '" << From << "' has hanging type '"
+                 << toStr(&fileSeq.type) << "'\n"
+                 << tags::reset;
+        }
+
+        if (alwaysDump)
+        {
+            string name = "oak_dump_" + purifyStr(From) + ".log";
+
+            if (debug)
+            {
+                cout << debugTreePrefix << "Saving dump file '" << name << "'\n";
+            }
+
+            dump(lexed, name, From, curLine, fileSeq, lexedCopy);
+        }
+
+        if (debug)
+        {
+            debugTreePrefix.pop_back();
+            cout << debugTreePrefix << "Finished file '" << From << "'\n";
         }
     }
     catch (rule_error &e)

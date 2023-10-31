@@ -1,14 +1,13 @@
+// Use the standard Oak dialect
 package!("std");
 use_rule!("std");
-////////////////////////////
 
 include "std/regex_inter.oak";  // Real purposes
 include "std/string.oak";
 
 let main() -> i32
 {
-    let pattern_string: string = "abra*ca?dabra+";
-    let pattern: regex = pattern_string;
+    let pattern: regex = "abra*ca?dabra+";
 
     let string_one: string = "abrcadabraaa";
     let string_two: string = "abraaaacdabra";
@@ -54,6 +53,8 @@ let main() -> i32
     {
         print("String four did not match.\n");
     }
+
+    print("Done with everything!\n");
 
     0
 }

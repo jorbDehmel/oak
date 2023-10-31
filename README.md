@@ -2696,9 +2696,10 @@ file.
 // An Oak wrapper class for boost::regex
 struct regex
 {
-    boost::regex re;
+    boost::regex *re;   // Uses dynamically allocated memory
 
-    char padding[16]; // To get to 32 bytes
+    // To get to 32 bytes
+    char padding[32 - sizeof(boost::regex *)];
 };
 
 // An Oak wrapper class for boost::smatch
@@ -2706,21 +2707,26 @@ struct regex_smatch
 {
     boost::smatch m;
 
-    char padding[16]; // To get to 96 bytes
+    // To get to 96 bytes
+    char padding[96 - sizeof(boost::smatch)];
 };
 
-// Interfaces with the two-argument boost::regex_match
-bool regex_match(string *text, regex *pattern)
+// Ensures the C++ compiler will not mangle symbol names
+extern "C"
 {
-    ;
-}
+    // Interfaces with the two-argument boost::regex_match
+    bool regex_match(string *text, regex *pattern)
+    {
+        ;
+    }
 
-// Interfaces with the three-argument boost::regex_match
-bool regex_match(string *text,
-                 regex *pattern,
-                 regex_smatch *into)
-{
-    ;
+    // Interfaces with the three-argument boost::regex_match
+    bool regex_match(string *text,
+                    regex *pattern,
+                    regex_smatch *into)
+    {
+        ;
+    }
 }
 
 ```
@@ -2759,20 +2765,23 @@ struct regex_smatch
     char padding[16]; // To get to 96 bytes
 };
 
-// Interfaces with the two-argument boost::regex_match
-bool regex_match(string *text, regex *pattern)
+extern "C"
 {
-    return boost::regex_match(std::string(text->data), pattern->re);
-}
+    // Interfaces with the two-argument boost::regex_match
+    bool regex_match(string *text, regex *pattern)
+    {
+        return boost::regex_match(std::string(text->data), pattern->re);
+    }
 
-// Interfaces with the three-argument boost::regex_match
-bool regex_match(string *text,
-                 regex *pattern,
-                 regex_smatch *into)
-{
-    return boost::regex_match(std::string(text->data),
-                              into->m,
-                              pattern->re);
+    // Interfaces with the three-argument boost::regex_match
+    bool regex_match(string *text,
+                    regex *pattern,
+                    regex_smatch *into)
+    {
+        return boost::regex_match(std::string(text->data),
+                                into->m,
+                                pattern->re);
+    }
 }
 
 ```
@@ -2830,22 +2839,25 @@ struct regex_smatch
     char padding[16]; // To get to 96 bytes
 };
 
-// Interfaces with the two-argument boost::regex_match
-bool regex_match_FN_PTR_string_JOIN_PTR_regex_MAPS_bool(
-    string *text, regex *pattern)
+extern "C"
 {
-    return boost::regex_match(std::string(text->data), pattern->re);
-}
+    // Interfaces with the two-argument boost::regex_match
+    bool regex_match_FN_PTR_string_JOIN_PTR_regex_MAPS_bool(
+        string *text, regex *pattern)
+    {
+        return boost::regex_match(std::string(text->data), pattern->re);
+    }
 
-// Interfaces with the three-argument boost::regex_match
-bool regex_match_FN_PTR_string_JOIN_PTR_regex_JOIN_PTR_regex_smatch_MAPS_bool(
-    string *text,
-    regex *pattern,
-    regex_smatch *into)
-{
-    return boost::regex_match(std::string(text->data),
-                              into->m,
-                              pattern->re);
+    // Interfaces with the three-argument boost::regex_match
+    bool regex_match_FN_PTR_string_JOIN_PTR_regex_JOIN_PTR_regex_smatch_MAPS_bool(
+        string *text,
+        regex *pattern,
+        regex_smatch *into)
+    {
+        return boost::regex_match(std::string(text->data),
+                                into->m,
+                                pattern->re);
+    }
 }
 
 ```
@@ -2949,9 +2961,7 @@ lines.
 
 Now, we must add a way for `acorn` to know to include the `C++`
 implementations at link-time. This takes the form of a
-**`link!` macro**. Additionally, the `boost` regex library
-requires the use of the `-lboost_regex` flag at link-time. Thus,
-we add that with the `flag!` macro.
+**`link!` macro**.
 
 ```rust
 // re/re_inter.oak (excerpt)
@@ -2964,7 +2974,6 @@ include "std/interface.oak";
 
 // More shorthand for compiler macros via the "std" rule
 link "re/re_inter.o";
-flag "-lboost_regex";
 
 ```
 
@@ -2987,7 +2996,6 @@ include "std/string.oak";
 include "std/interface.oak";
 
 link "re/re_inter.o";
-flag "-lboost_regex";
 
 let regex: struct
 {
@@ -3001,16 +3009,134 @@ let regex_smatch: struct
 }
 
 let regex_match(text: ^string, pattern: ^regex) -> bool;
-let regex_match(text: ^string, pattern: ^regex, into: ^smatch)
-    -> bool;
+let regex_match(
+    text: ^string,
+    pattern: ^regex,
+    into: ^regex_smatch) -> bool;
 
 // To be externally defined in C++
+let New(self: ^regex) -> void;
+let Del(self: ^regex) -> void;
+
 let Copy(self: ^regex, pattern: string) -> void;
+let Copy(self: ^regex, pattern: str) -> void;
 
 // To be externally defined in C++
-let size(self: ^smatch) -> u64;
-let str(self: ^smatch) -> string;
-let Get(self: ^smatch, index: u32) -> string;
+let New(self: ^regex_smatch) -> void;
+
+let size(self: ^regex_smatch) -> u64;
+let str(self: ^regex_smatch) -> string;
+let Get(self: ^regex_smatch, index: u32) -> string;
+
+```
+
+Now, let's create the `C++` implementation of these functions.
+
+```cpp
+#include <boost/regex.hpp>
+#include <string>
+
+#include "oak/std_oak_header.h"
+#include "oak/std/string.c"
+
+struct regex
+{
+    boost::regex *re;
+
+    char padding[32 - sizeof(boost::regex *)]; // To get to 32 bytes
+};
+
+struct regex_smatch
+{
+    boost::smatch m;
+
+    char padding[96 - sizeof(boost::smatch)]; // To get to 96 bytes
+};
+
+extern "C"
+{
+    bool regex_match_FN_PTR_string_JOIN_PTR_regex_MAPS_bool(string *text, regex *pattern)
+    {
+        return boost::regex_match(std::string(text->data), *pattern->re);
+    }
+
+    bool regex_match_FN_PTR_string_JOIN_PTR_regex_JOIN_PTR_regex_smatch_MAPS_bool(string *text, regex *pattern, regex_smatch *into)
+    {
+        return boost::regex_match(std::string(text->data), into->m, *pattern->re);
+    }
+
+    //////////// Methods ////////////
+
+    void New_FN_PTR_regex_MAPS_void(regex *self)
+    {
+        memset(self, 0, sizeof(regex));
+        self->re = nullptr;
+    }
+
+    void Del_FN_PTR_regex_MAPS_void(regex *self)
+    {
+        if (self->re != nullptr)
+        {
+            delete self->re;
+        }
+    }
+
+    void Copy_FN_PTR_regex_JOIN_PTR_string_MAPS_void(regex *self, string *pattern)
+    {
+        if (self->re != nullptr)
+        {
+            delete self->re;
+        }
+
+        self->re = new boost::regex(pattern->data);
+    }
+
+    void Copy_FN_PTR_regex_JOIN_str_MAPS_void(regex *self, str pattern)
+    {
+        if (self->re != nullptr)
+        {
+            delete self->re;
+        }
+
+        self->re = new boost::regex(pattern);
+    }
+
+    void New_FN_PTR_regex_smatch_MAPS_void(regex_smatch *self)
+    {
+        memset(self, 0, sizeof(regex_smatch));
+    }
+
+    u64 size_FN_PTR_regex_smatch_MAPS_u64(regex_smatch *self)
+    {
+        return self->m.size();
+    }
+
+    string str_FN_PTR_regex_smatch_MAPS_string(regex_smatch *self)
+    {
+        string out;
+        out.size = self->m.str().size();
+
+        out.data = new i8[out.size + 1];
+        strcpy(out.data, self->m.str().c_str());
+        out.data[out.size] = '\0';
+
+        return out;
+    }
+
+    string Get_FN_PTR_smatch_JOIN_u32_MAPS_string(regex_smatch *self, u32 index)
+    {
+        string out;
+        std::string from = self->m[index].str();
+
+        out.size = from.size();
+
+        out.data = new i8[out.size + 1];
+        strcpy(out.data, from.c_str());
+        out.data[out.size] = '\0';
+
+        return out;
+    }
+}
 
 ```
 
@@ -3052,21 +3178,15 @@ acorn -S re
 Let's test it out! We'll create a test file first, and give it a
 skeleton main function.
 
-For this main function, **let's use the standard Oak dialect**.
-This means that, instead of activating the `std` rule inside our
-file, we will activate it at the command line.
-
 ```bash
 touch re_test.oak   # Create our test file
 ```
 
 ```rust
 // re_test.oak
+package!("std");
+use_rule!("std");
 
-// Because we are using the STD dialect instead of rule,
-// we do not need to call use_rule!("std")
-
-import "std";
 import "re";
 
 let main() -> i32
@@ -3079,16 +3199,108 @@ let main() -> i32
 To compile this program, we will use the command
 
 ```bash
-# Compile re_test.oak to re_test.out, using the
-# std/std.od dialect file (the STD Oak dialect)
-acorn -D std/std.od re_test.oak -o re_test.out
+# Compile re_test.oak to re_test.out
+acorn re_test.oak -o re_test.out
+```
+
+To run it after compilation, we will use
+
+```bash
+./re_test.out
 ```
 
 Let's test our RegEx interface by attempting a few RegEx
 matches. We will test the pattern `abra*ca?dabra+` against the
 strings `abrcadabraaa`, `abraaaacdabra`, `abrcdabr`, and
 `abarcdabrar`. The first two strings should be a match, and the
-second two should be a fail.
+second two should be a fail. Here's what our test file should
+look like with these tests implemented.
+
+```rust
+// Use the standard Oak dialect
+package!("std");
+use_rule!("std");
+
+import "re";
+include "std/string.oak";
+
+let main() -> i32
+{
+    let pattern: regex = "abra*ca?dabra+";
+
+    let string_one: string = "abrcadabraaa";
+    let string_two: string = "abraaaacdabra";
+    let string_three: string = "abrcdabr";
+    let string_four: string = "abarcdabrar";
+
+    // Test string 1
+    if regex_match(string_one, pattern)
+    {
+        print("String one matched.\n");
+    }
+    else
+    {
+        print("String one did not match.\n");
+    }
+
+    // Test string 2
+    if regex_match(string_two, pattern)
+    {
+        print("String two matched.\n");
+    }
+    else
+    {
+        print("String two did not match.\n");
+    }
+
+    // Test string 3
+    if regex_match(string_three, pattern)
+    {
+        print("String three matched.\n");
+    }
+    else
+    {
+        print("String three did not match.\n");
+    }
+
+    // Test string 4
+    if regex_match(string_four, pattern)
+    {
+        print("String four matched.\n");
+    }
+    else
+    {
+        print("String four did not match.\n");
+    }
+
+    print("Done with everything!\n");
+
+    0
+}
+
+```
+
+Now, lets test it out!
+
+```bash
+acorn oak_demos/regex_ex.oak -o regex_ex.out
+./regex_ex.out
+```
+
+```
+<Output>
+String one matched.
+String two matched.
+String three did not match.
+String four did not match.
+Done with everything!
+<End output>
+```
+
+It works!
+
+The techniques used herein can easily be adapted to create a
+wide variety of interfacial files.
 
 ## Grep- File RegEx Search
 

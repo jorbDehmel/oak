@@ -49,8 +49,8 @@ let main() -> i32
         wind.show();
 
         // Poll events
-        let flag: bool = true;
-        while flag
+        let flag_var: bool = true;
+        while flag_var
         {
             event.wrap_sdl_none();
             event = sdl_poll_event();
@@ -59,7 +59,7 @@ let main() -> i32
             {
                 case sdl_none()
                 {
-                    flag = false;
+                    flag_var = false;
                 }
 
                 case sdl_key_down_event(data)

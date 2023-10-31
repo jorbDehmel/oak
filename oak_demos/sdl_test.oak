@@ -49,9 +49,9 @@ let main() -> i32
         y += 10;
 
         let event: sdl_event;
-        let flag: bool = true;
+        let flag_var: bool = true;
 
-        while (flag)
+        while (flag_var)
         {
             event.wrap_sdl_none();
             event = sdl_poll_event();
@@ -60,7 +60,7 @@ let main() -> i32
             {
                 case sdl_none()
                 {
-                    flag = false;
+                    flag_var = false;
                 }
 
                 case sdl_key_down_event(data)
