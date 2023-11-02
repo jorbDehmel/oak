@@ -2412,6 +2412,302 @@ You guessed it!
 
 It works!
 
+## Grep- File RegEx Search
+
+Difficulty: Easy
+
+This example covers:
+- Terminal output
+- Command line arguments
+- Regular expressions
+- File input and output
+- Panics
+- Colored terminal output
+- `std/bool` and the `bool` rule
+
+This example requires:
+- An understanding of `Oak` syntax
+- A Linux terminal
+- An `acorn` compiler installation
+- A `boost` `C++` library installation
+- A basic understanding of regular expressions
+
+Let's create an `Oak` program which will take in a filename and
+a regular expression as command line arguments, and output every
+line in that file which matches the expression. This is similar
+to the `grep` utility in `POSIX` systems. A typical call to this
+program might look something like this:
+
+```
+./oak_grep.out file.txt "regex+ pat?tern h*ere"
+```
+
+Let's start by reading in the two command line arguments.
+
+```rust
+package!("std");
+use_rule!("std");
+
+include!("std/panic_inter.oak");
+include!("std/string.oak");
+include!("std/printf.oak");
+
+let main(argc: i32, argv: ^str) -> i32
+{
+    // If argc != 3, panic w/ the given message.
+    assert!(
+        argc == 3,
+        "Please provide exactly 3 command line arguments."
+    );
+
+    // Get the command line arguments
+    let filepath: string = argv.Get(1);
+    let pattern: string = argv.Get(2);
+    
+    printf!(
+        "Got filepath '%' and pattern '%'\n",
+        filepath,
+        pattern
+    );
+
+    0
+}
+
+```
+
+```bash
+[user@host dir]$ acorn oak_demos/oak_grep_ex.oak -o oak_grep.out
+[user@host dir]$ ./oak_grep.out file.txt "regex+ pat?tern h*ere"
+Got filepath 'file.txt' and pattern 'regex+ pat?tern h*ere'
+```
+
+It works! Now, lets open the given filepath as a `i_file`. This
+requires the use of the `std/file_inter.oak` file, so we will
+also add that to our list of inclusions. Let's also switch to
+the standard `Oak` dialect's notation for `include!` macros.
+Doing this, we get the following code.
+
+```rust
+package!("std");
+use_rule!("std");
+
+include "std/panic_inter.oak", "std/file_inter.oak",
+    "std/string.oak";
+
+let main(argc: i32, argv: ^str) -> i32
+{
+    // If argc != 3, panic w/ the given message.
+    assert!(
+        argc == 3,
+        "Please provide exactly 3 command line arguments."
+    );
+
+    // Get the command line arguments
+    let filepath: string = argv.Get(1);
+    let pattern: string = argv.Get(2);
+    
+    // Open filepath
+    let file: i_file;
+    file.open(filepath.c_str());
+
+    // Line variable to read the file into, line by line
+    let line: string;
+
+    // Read the first line of the file
+    line = file.getline(to_u128(512));
+
+    // Close the file
+    file.close();
+
+    0
+}
+
+```
+
+Now we have the file, but we have no way to iterate over it! To
+do this, we will include the `std/bool.oak` file in order to
+use the `bool` rule, which adds the `not` keyword (as well as
+boolean negation in general). Using this, we can use the
+`i_file`'s `eof` function, which returns true if the end of the
+file has been reached.
+
+```rust
+package!("std");
+use_rule!("std");
+
+include "std/panic_inter.oak", "std/file_inter.oak",
+    "std/string.oak";
+
+include "std/bool.oak";
+use "bool"; // STD Oak dialect notation for use_rule!("bool")
+
+let main(argc: i32, argv: ^str) -> i32
+{
+    // If argc != 3, panic w/ the given message.
+    assert!(
+        argc == 3,
+        "Please provide exactly 3 command line arguments."
+    );
+
+    // Get the command line arguments
+    let filepath: string = argv.Get(1);
+    let pattern: string = argv.Get(2);
+    
+    // Open filepath
+    let file: i_file;
+    let line: string;
+    file.open(filepath.c_str());
+
+    while not file.eof()
+    {
+        line = file.getline(to_u128(512));
+    }
+
+    file.close();
+
+    0
+}
+
+```
+
+Now we can iterate over the line! However, we still need to do
+the actual RegEx searching. For this, let's include the
+`std/regex_inter.oak` file, and use the `regex` struct and
+`regex_search` function. 
+
+```rust
+package!("std");
+use_rule!("std");
+
+include "std/panic_inter.oak", "std/file_inter.oak",
+    "std/string.oak", "std/regex_inter.oak";
+
+include "std/bool.oak";
+use "bool";
+
+let main(argc: i32, argv: ^str) -> i32
+{
+    // If argc != 3, panic w/ the given message.
+    assert!(
+        argc == 3,
+        "Please provide exactly 3 command line arguments."
+    );
+
+    // Get the command line arguments
+    let filepath: string = argv.Get(1);
+    let pattern: string = argv.Get(2);
+    
+    let pattern_reg: regex = pattern;
+
+    // Open filepath
+    let file: i_file;
+    let line: string;
+    file.open(filepath.c_str());
+
+    while not file.eof()
+    {
+        line = file.getline(to_u128(512));
+
+        if line.regex_search(pattern_reg)
+        {
+            print(line);
+        }
+    }
+
+    file.close();
+
+    0
+}
+
+```
+
+It's looking great! But we can be a little fancier. Let's print
+the lines which match in green text using the `std/color.oak`
+file. Using this, you just have to call the `.green()` method
+on any string to turn it green (and `.red()` for red, etc.).
+While we're here, let's count the number of matches we find,
+and output that when we finish.
+
+```rust
+package!("std");
+use_rule!("std");
+
+include "std/panic_inter.oak", "std/file_inter.oak",
+    "std/string.oak", "std/printf.oak",
+    "std/regex_inter.oak", "std/color.oak";
+
+include "std/bool.oak";
+use "bool";
+
+let main(argc: i32, argv: ^str) -> i32
+{
+    // If argc != 3, panic w/ the given message.
+    assert!(
+        argc == 3,
+        "Please provide exactly 3 command line arguments."
+    );
+
+    // Get the command line arguments
+    let filepath: string = argv.Get(1);
+    let pattern: string = argv.Get(2);
+    
+    let pattern_reg: regex = pattern;
+
+    let num_matches = 0;
+
+    // Open filepath
+    let file: i_file;
+    let line: string;
+    file.open(filepath.c_str());
+
+    while not file.eof()
+    {
+        line = file.getline(to_u128(512));
+
+        if line.regex_search(pattern_reg)
+        {
+            print(line.green());
+            num_matches += 1;
+        }
+    }
+
+    file.close();
+
+    print("\n");
+
+    if num_matches == 0
+    {   
+        print("No matches!\n".red());
+    }
+    else
+    {
+        begin_green_bold();
+        printf!("% lines matched.\n", num_matches);
+        end_effects();
+    }
+
+    0
+}
+
+```
+
+Let's try it out! (Note: This document is plaintext, so the
+terminal colors will not appear here)
+
+```bash
+[jorb@archlinux oak]$ acorn oak_grep.oak -o oak_grep.out
+[jorb@archlinux oak]$ ./oak_grep.out oak_grep.oak "print"
+    "std/string.oak", "std/printf.oak",
+            print(line.green());
+    print("\n");
+        print("No matches!\n".red());
+        printf!("% lines matched.\n", num_matches);
+
+5 lines matched.
+```
+
+It works!
+
 ## Collatz Sequence
 
 Difficulty: Moderate
@@ -2616,10 +2912,9 @@ This is correct.
 
 ## Creating a RegEx Interface
 
-Difficulty: Moderate
+Difficulty: Hard
 
 This example covers:
-- Regular expressions
 - The `Oak` mangler
 - The `link!` compiler macro
 - Interfacial files
@@ -3301,23 +3596,6 @@ It works!
 
 The techniques used herein can easily be adapted to create a
 wide variety of interfacial files.
-
-## Grep- File RegEx Search
-
-Difficulty: Moderate
-
-This example covers:
-- Terminal output
-- Command line arguments
-- Regular expressions
-- File input and output
-
-This example requires:
-- An understanding of `Oak` syntax
-- A Linux terminal
-- An `acorn` compiler installation
-- A `boost` `C++` library installation
-- A basic understanding of regular expressions
 
 ## A Server and Client Using Sockets, RegEx, and File IO
 

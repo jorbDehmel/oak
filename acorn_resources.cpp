@@ -59,6 +59,8 @@ void doFile(const string &From)
         }
     }
 
+    system("mkdir -p .oak_build");
+
     int curPhase = 0;
 
     const static set<string> compilerMacros = {"include!", "package!", "link!", "flag!"};

@@ -9,6 +9,14 @@ fstream library.
 #include "oak/std_oak_header.h"
 #include <stdio.h>
 
+struct string
+{
+    i8 *data;
+    u128 size;
+};
+
+extern str c_str_FN_PTR_string_MAPS_str(struct string *self);
+
 // Struct definitions
 struct i_file
 {
@@ -137,4 +145,22 @@ void seek_FN_PTR_o_file_JOIN_u128_MAPS_void(struct o_file *self, u128 pos)
     {
         fseek(self->raw, 0, pos);
     }
+}
+
+struct string getline_FN_PTR_i_file_JOIN_u128_MAPS_string(struct i_file *self, u128 max)
+{
+    struct string out;
+
+    out.size = max;
+    out.data = (i8 *)malloc(out.size + 1);
+    out.data[out.size] = 0;
+
+    fgets(out.data, out.size, self->raw);
+
+    return out;
+}
+
+bool eof_FN_PTR_i_file_MAPS_bool(struct i_file *self)
+{
+    return (feof(self->raw) != 0);
 }

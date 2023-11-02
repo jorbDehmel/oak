@@ -1,0 +1,59 @@
+package!("std");
+use_rule!("std");
+
+include "std/panic_inter.oak", "std/file_inter.oak",
+    "std/string.oak", "std/printf.oak",
+    "std/regex_inter.oak", "std/color.oak";
+
+include "std/bool.oak";
+use "bool";
+
+let main(argc: i32, argv: ^str) -> i32
+{
+    // If argc != 3, panic w/ the given message.
+    assert!(
+        argc == 3,
+        "Please provide exactly 3 command line arguments."
+    );
+
+    // Get the command line arguments
+    let filepath: string = argv.Get(1);
+    let pattern: string = argv.Get(2);
+    
+    let pattern_reg: regex = pattern;
+
+    let num_matches = 0;
+
+    // Open filepath
+    let file: i_file;
+    let line: string;
+    file.open(filepath.c_str());
+
+    while not file.eof()
+    {
+        line = file.getline(to_u128(512));
+
+        if line.regex_search(pattern_reg)
+        {
+            print(line.green());
+            num_matches += 1;
+        }
+    }
+
+    file.close();
+
+    print("\n");
+
+    if num_matches == 0
+    {   
+        print("No matches!\n".red());
+    }
+    else
+    {
+        begin_green_bold();
+        printf!("% lines matched.\n", num_matches);
+        end_effects();
+    }
+
+    0
+}

@@ -233,3 +233,113 @@ let cyan_bold(on: string) -> string
     out = out + temp;
     out
 }
+
+// Raw string literal versions
+
+let red(on: str) -> string
+{
+    let out: string;
+    out = on;
+
+    out = red(out);
+    out
+}
+
+let green(on: str) -> string
+{
+    let out: string;
+    out = on;
+
+    out = green(out);
+    out
+}
+
+let blue(on: str) -> string
+{
+    let out: string;
+    out = on;
+
+    out = blue(out);
+    out
+}
+
+let yellow(on: str) -> string
+{
+    let out: string;
+    out = on;
+
+    out = yellow(out);
+    out
+}
+
+let magenta(on: str) -> string
+{
+    let out: string;
+    out = on;
+
+    out = magenta(out);
+    out
+}
+
+let cyan(on: str) -> string
+{
+    let out: string;
+    out = on;
+
+    out = cyan(out);
+    out
+}
+
+let red_bold(on: str) -> string
+{
+    let out: string;
+    out = on;
+
+    out = red_bold(out);
+    out
+}
+
+let green_bold(on: str) -> string
+{
+    let out: string;
+    out = on;
+
+    out = green_bold(out);
+    out
+}
+
+let blue_bold(on: str) -> string
+{
+    let out: string;
+    out = on;
+
+    out = blue_bold(out);
+    out
+}
+
+let yellow_bold(on: str) -> string
+{
+    let out: string;
+    out = on;
+
+    out = yellow_bold(out);
+    out
+}
+
+let magenta_bold(on: str) -> string
+{
+    let out: string;
+    out = on;
+
+    out = magenta_bold(out);
+    out
+}
+
+let cyan_bold(on: str) -> string
+{
+    let out: string;
+    out = on;
+
+    out = cyan_bold(out);
+    out
+}
