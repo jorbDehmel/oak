@@ -9,7 +9,7 @@ all:	conv_inter.o file_inter.o io_inter.o \
 	clang $(FLAGS) -c -o $@ $<
 
 %.o:	%.cpp
-	clang++ -g $(FLAGS) -c -o $@ $<
+	clang++ $(FLAGS) -c -o $@ $<
 
 clean:
 	rm *.o

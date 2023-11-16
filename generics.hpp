@@ -44,6 +44,22 @@ public:
     generic_error(const string &what) : runtime_error(what) {}
 };
 
+// Internal struct for info
+struct genericInfo
+{
+    vector<string> typeVec;
+
+    vector<string> symbols;
+    vector<string> needsBlock;
+
+    vector<string> genericNames;
+
+    vector<vector<vector<string>>> instances;
+};
+
+// Avoid using this unless you absolutely must
+extern map<string, vector<genericInfo>> generics;
+
 // Can throw generic_error's if no viable options exist.
 // Ensure all items in genericSubs have been pre-mangled.
 // Returns the mangled version.

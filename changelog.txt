@@ -4,6 +4,9 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.2.4           | 11/15/23 | Added integrated uninstaller and
+                |          | updater.
+                |          |
 0.2.3           | 10/31/23 | Bug fixes, added regex_inter.oak.
                 |          | Expanded readme.
                 |          |

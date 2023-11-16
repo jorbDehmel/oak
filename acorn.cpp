@@ -7,8 +7,23 @@ GPLv3 held by author
 */
 
 #include "acorn_resources.hpp"
+#include <cstdlib>
 #include <iomanip>
 using namespace std;
+
+// Dummy wrapper function for updating
+void update()
+{
+    system("cp /usr/include/oak/update.sh /tmp/update.sh");
+    system("sudo bash /tmp/update.sh &");
+}
+
+// Dummy wrapper function for uninstalling
+void uninstall()
+{
+    system("cp /usr/include/oak/uninstall.sh /tmp/uninstall.sh");
+    system("sudo bash /tmp/uninstall.sh &");
+}
 
 int main(const int argc, const char *argv[])
 {
@@ -46,9 +61,7 @@ int main(const int argc, const char *argv[])
                     }
                     else if (cur == "--version")
                     {
-                        cout << "Version: " << VERSION << '\n'
-                             << "License: " << LICENSE << '\n'
-                             << INFO << '\n';
+                        cout << "Version: " << VERSION << '\n' << "License: " << LICENSE << '\n' << INFO << '\n';
                     }
                     else if (cur == "--debug")
                     {
@@ -182,6 +195,36 @@ int main(const int argc, const char *argv[])
                     {
                         switch (c)
                         {
+                        case 'a':
+                            cout << tags::green_bold << "Are you sure you want to update Acorn [y/N]? " << tags::reset
+                                 << flush;
+
+                            if (cin.peek() != 'y')
+                            {
+                                cout << tags::red_bold << "Update aborted.\n" << tags::reset;
+                                return 10;
+                            }
+
+                            cout << tags::green_bold << "Updating...\n" << tags::reset << flush;
+
+                            std::atexit(update);
+                            exit(0);
+
+                            break;
+                        case 'A':
+                            cout << tags::red_bold << "Are you sure you want to uninstall Acorn [y/N]? " << tags::reset
+                                 << flush;
+
+                            if (cin.peek() != 'y')
+                            {
+                                cout << tags::red_bold << "Uninstall aborted.\n" << tags::reset;
+                                return 10;
+                            }
+
+                            std::atexit(uninstall);
+                            exit(0);
+
+                            break;
                         case 'c':
                             compile = true;
                             noSave = doLink = false;
@@ -279,8 +322,7 @@ int main(const int argc, const char *argv[])
 
                             if (system((string("sudo rm -rf /usr/include/oak/") + argv[i + 1]).c_str()) != 0)
                             {
-                                cout << tags::red_bold
-                                     << "Warning! Failed to remove package '" << argv[i + 1] << "'\n"
+                                cout << tags::red_bold << "Warning! Failed to remove package '" << argv[i + 1] << "'\n"
                                      << tags::reset;
                             }
 
@@ -313,9 +355,7 @@ int main(const int argc, const char *argv[])
                             doRuleLogFile = !doRuleLogFile;
                             break;
                         case 'v':
-                            cout << "Version: " << VERSION << '\n'
-                                 << "License: " << LICENSE << '\n'
-                                 << INFO << '\n';
+                            cout << "Version: " << VERSION << '\n' << "License: " << LICENSE << '\n' << INFO << '\n';
                             break;
                         case 'w':
                             if (i + 1 >= argc)
@@ -347,9 +387,7 @@ int main(const int argc, const char *argv[])
         // Clean cache if not macro
         if (!isMacroCall && getSize(COMPILED_PATH) > MAX_CACHE_KB)
         {
-            cout << tags::yellow_bold
-                 << DB_INFO << "Purging cache\n"
-                 << tags::reset;
+            cout << tags::yellow_bold << DB_INFO << "Purging cache\n" << tags::reset;
 
             // Purge source .cpp, .hpp, and temp files
             system("rm -rf " COMPILED_PATH "/*.c " COMPILED_PATH "/*.h " COMPILED_PATH "/*.txt");
@@ -363,9 +401,7 @@ int main(const int argc, const char *argv[])
         // Actual calls
         if (debug)
         {
-            cout << tags::green_bold
-                 << "\nPhase 1: File analysis\n"
-                 << tags::reset;
+            cout << tags::green_bold << "\nPhase 1: File analysis\n" << tags::reset;
         }
 
         int i = 0;
@@ -383,22 +419,17 @@ int main(const int argc, const char *argv[])
         // Reconstruct and save
         if (debug)
         {
-            cout << tags::green_bold
-                 << "\nLoaded all " << files.size() << " initial files.\n"
+            cout << tags::green_bold << "\nLoaded all " << files.size() << " initial files.\n"
                  << visitedFiles.size() - files.size() << " more files were included,\n"
                  << "For " << visitedFiles.size() << " total files.\n"
                  << tags::reset;
 
-            cout << tags::green_bold
-                 << "\nPhase 2: Reconstruction.\n"
-                 << tags::reset;
+            cout << tags::green_bold << "\nPhase 2: Reconstruction.\n" << tags::reset;
         }
 
         if (table.count("main") == 0)
         {
-            cout << tags::yellow_bold
-                 << "Warning! No main function detected!\n"
-                 << tags::reset;
+            cout << tags::yellow_bold << "Warning! No main function detected!\n" << tags::reset;
         }
 
         auto reconstructionStart = chrono::high_resolution_clock::now();
@@ -422,9 +453,7 @@ int main(const int argc, const char *argv[])
 
             if (result != 0)
             {
-                cout << tags::yellow_bold
-                     << "Warning: Could not erase generated files.\n"
-                     << tags::reset;
+                cout << tags::yellow_bold << "Warning: Could not erase generated files.\n" << tags::reset;
             }
             else if (debug)
             {
@@ -441,8 +470,7 @@ int main(const int argc, const char *argv[])
 
                 if (debug)
                 {
-                    cout << tags::green_bold
-                         << "\nPhase 3: Compilation.\n"
+                    cout << tags::green_bold << "\nPhase 3: Compilation.\n"
                          << "(via Clang)\n"
                          << tags::reset;
                 }
@@ -471,8 +499,7 @@ int main(const int argc, const char *argv[])
                 {
                     if (debug)
                     {
-                        cout << tags::green_bold
-                             << "\nPhase 4: Linking.\n"
+                        cout << tags::green_bold << "\nPhase 4: Linking.\n"
                              << "(via Clang)\n"
                              << tags::reset;
                     }
@@ -497,6 +524,13 @@ int main(const int argc, const char *argv[])
                 }
             }
 
+            /*
+            if (cacheOut != "")
+            {
+                saveCompilerCache(cacheOut);
+            }
+            */
+
             compEnd = chrono::high_resolution_clock::now();
         }
 
@@ -506,8 +540,7 @@ int main(const int argc, const char *argv[])
             {
                 cout << "rm -rf .oak_build\n";
 
-                cout << tags::yellow_bold
-                     << "Warning! Failed to erase './.oak_build/'.\n"
+                cout << tags::yellow_bold << "Warning! Failed to erase './.oak_build/'.\n"
                      << "If left unfixed, this could cause problems.\n"
                      << tags::reset;
             }
@@ -526,9 +559,7 @@ int main(const int argc, const char *argv[])
 
             if (debug)
             {
-                cout << tags::green_bold
-                     << "Generating manual '" << manualPath << "'.\n"
-                     << tags::reset;
+                cout << tags::green_bold << "Generating manual '" << manualPath << "'.\n" << tags::reset;
             }
 
             generate(files, manualPath);
@@ -541,14 +572,11 @@ int main(const int argc, const char *argv[])
             cout << "Elapsed Oak ns: " << oakElapsed;
         }
 
-        cout << tags::red_bold
-             << "\n"
-             << curFile << ":" << curLine << "\n";
+        cout << tags::red_bold << "\n" << curFile << ":" << curLine << "\n";
 
         if (curLineSymbols.size() != 0)
         {
-            cout << tags::violet_bold
-                 << "In code line: `";
+            cout << tags::violet_bold << "In code line: `";
 
             for (auto s : curLineSymbols)
             {
@@ -557,11 +585,7 @@ int main(const int argc, const char *argv[])
             cout << "`\n";
         }
 
-        cout << tags::red_bold
-             << "\nAn error occurred with message:\n"
-             << e.what()
-             << "\n"
-             << tags::reset;
+        cout << tags::red_bold << "\nAn error occurred with message:\n" << e.what() << "\n" << tags::reset;
 
         return 2;
     }
@@ -572,8 +596,7 @@ int main(const int argc, const char *argv[])
             cout << "Elapsed Oak ns: " << oakElapsed;
         }
 
-        cout << tags::red_bold
-             << "\n"
+        cout << tags::red_bold << "\n"
              << curFile << " " << curLine << '\n'
              << "\nAn unknown error ocurred.\n"
              << tags::reset;
@@ -587,10 +610,7 @@ int main(const int argc, const char *argv[])
 
         if (size != 0)
         {
-            cout << tags::green_bold
-                 << "\nThe build process took up "
-                 << humanReadable(size)
-                 << " of local storage.\n"
+            cout << tags::green_bold << "\nThe build process took up " << humanReadable(size) << " of local storage.\n"
                  << "(This is stored in './.oak_build/', which is now safe to delete.)\n"
                  << tags::reset;
         }
@@ -607,10 +627,8 @@ int main(const int argc, const char *argv[])
 
         if (debug)
         {
-            cout << tags::green_bold
-                 << "\nProcess finished with no errors.\n\n"
-                 << tags::violet_bold
-                 << "Acorn-attributable time:\n"
+            cout << tags::green_bold << "\nProcess finished with no errors.\n\n"
+                 << tags::violet_bold << "Acorn-attributable time:\n"
                  << "Nanoseconds:  " << oakElapsed << '\n'
                  << "Microseconds: " << oakElapsed / 1'000.0 << '\n'
                  << "Milliseconds: " << oakElapsed / 1'000'000.0 << '\n'
@@ -647,21 +665,11 @@ int main(const int argc, const char *argv[])
             cout << tags::red_bold;
         }
 
-        cout << "Percent of time which was Acorn-attributable: "
-             << percentAcornTime
-             << "%\n\n"
-             << tags::reset;
+        cout << "Percent of time which was Acorn-attributable: " << percentAcornTime << "%\n\n" << tags::reset;
 
         vector<string> passNames = {
-            "syntax check",
-            "lexing\t",
-            "compiler macros",
-            "rules / dialect",
-            "macro defs",
-            "macro calls",
-            "preproc defs",
-            "op subs\t",
-            "sequencing",
+            "syntax check", "lexing\t",     "compiler macros", "rules / dialect", "macro defs",
+            "macro calls",  "preproc defs", "op subs\t",       "sequencing",
         };
 
         // Get total according to this:
@@ -673,38 +681,25 @@ int main(const int argc, const char *argv[])
 
         unsigned long long int totalPlusCompilation = total + reconstructionElapsed + compElapsed;
 
-        cout << "Total logged by compiler: " << total << '\n'
-             << "By compiler pass (ns):\n";
+        cout << "Total logged by compiler: " << total << '\n' << "By compiler pass (ns):\n";
 
         for (int j = 0; j < passNames.size(); j++)
         {
-            cout << "\t" << j + 1
-                 << "\t" << passNames[j]
-                 << "\t" << phaseTimes[j]
-                 << ((phaseTimes[j] < 10'000'000) ? "\t\t" : "\t")
-                 << (100 * (double)phaseTimes[j] / total) << "%\t"
+            cout << "\t" << j + 1 << "\t" << passNames[j] << "\t" << phaseTimes[j]
+                 << ((phaseTimes[j] < 10'000'000) ? "\t\t" : "\t") << (100 * (double)phaseTimes[j] / total) << "%\t"
                  << (100 * (double)phaseTimes[j] / totalPlusCompilation) << "%\n";
         }
 
-        cout << "\t" << passNames.size() + 1
-             << "\treconstruction\t"
-             << reconstructionElapsed
-             << ((reconstructionElapsed < 10'000'000) ? "\t\t" : "\t")
-             << "\t\t"
-             << (100 * (double)reconstructionElapsed / totalPlusCompilation)
-             << "%\n";
+        cout << "\t" << passNames.size() + 1 << "\treconstruction\t" << reconstructionElapsed
+             << ((reconstructionElapsed < 10'000'000) ? "\t\t" : "\t") << "\t\t"
+             << (100 * (double)reconstructionElapsed / totalPlusCompilation) << "%\n";
 
-        cout << "\t" << passNames.size() + 2
-             << "\tC++ via Clang\t"
-             << compElapsed
-             << ((compElapsed < 10'000'000) ? "\t\t" : "\t")
-             << "\t\t"
-             << (100 * (double)compElapsed / totalPlusCompilation)
-             << "%\n";
+        cout << "\t" << passNames.size() + 2 << "\tC++ via Clang\t" << compElapsed
+             << ((compElapsed < 10'000'000) ? "\t\t" : "\t") << "\t\t"
+             << (100 * (double)compElapsed / totalPlusCompilation) << "%\n";
 
 #ifdef LINUX
-        cout << tags::green_bold
-             << "\nPeak memory usage:\n";
+        cout << tags::green_bold << "\nPeak memory usage:\n";
 
         ifstream memUse("/proc/self/status");
         string line;

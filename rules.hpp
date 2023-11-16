@@ -59,6 +59,7 @@ extern string curFile;
 
 extern vector<string> activeRules;
 extern vector<string> dialectRules;
+extern bool dialectLock;
 
 extern map<string, vector<string>> bundles;
 

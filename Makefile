@@ -19,7 +19,7 @@ HEADS := lexer.hpp reconstruct.hpp symbol-table.hpp \
 
 # -O3 is best for actual installs, not for testing.
 # -g should be used when size doesn't matter
-FLAGS := -O3 -g
+FLAGS := -O3
 
 TEST := acorn
 
@@ -37,6 +37,8 @@ install: bin/acorn.out std_oak_header.h
 	sudo rm -f /usr/include/oak/std/Makefile
 
 	sudo cp bin/acorn.out /usr/bin/acorn
+
+	sudo mv /usr/include/oak/std/*.sh /usr/include/oak
 
 	# acorn -S sdl
 
@@ -96,6 +98,10 @@ build/%.o:	%.cpp $(HEADS)
 	$(CC) $(FLAGS) -c -o $@ $<
 
 bin/%.out:	build/%.o $(OBJS) $(HEADS)
+	mkdir -p bin
+	$(CC) $(FLAGS) -o $@ $< $(OBJS)
+
+bin/acorn.out:	build/acorn.o $(OBJS) $(HEADS)
 	mkdir -p bin
 	$(CC) $(FLAGS) -o $@ $< $(OBJS)
 

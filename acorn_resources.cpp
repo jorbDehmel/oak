@@ -32,9 +32,7 @@ string debugTreePrefix = "";
 // Prints the cumulative disk usage of Oak (in human-readable)
 void getDiskUsage()
 {
-    const vector<string> filesToCheck = {
-        "/usr/bin/acorn",
-        "/usr/include/oak"};
+    const vector<string> filesToCheck = {"/usr/bin/acorn", "/usr/include/oak"};
     unsigned long long int totalKB = 0;
 
     for (string s : filesToCheck)
@@ -107,9 +105,7 @@ void doFile(const string &From)
     {
         if (From.size() < 4 || From.substr(From.size() - 4) != ".oak")
         {
-            cout << tags::yellow_bold
-                 << "Warning! File '" << From << "' is not a .oak file.\n"
-                 << tags::reset;
+            cout << tags::yellow_bold << "Warning! File '" << From << "' is not a .oak file.\n" << tags::reset;
         }
 
         string realName;
@@ -126,8 +122,7 @@ void doFile(const string &From)
         {
             if ('A' <= c && c <= 'Z')
             {
-                cout << tags::yellow_bold
-                     << "Warning! File '" << From << "' has illegal name.\n"
+                cout << tags::yellow_bold << "Warning! File '" << From << "' has illegal name.\n"
                      << "Oak files use underscore formatting (ie /path/to/file_to_use.oak).\n"
                      << tags::reset;
                 break;
@@ -300,7 +295,8 @@ void doFile(const string &From)
                     }
                     else if (macros.count(lexed[i]) != 0)
                     {
-                        throw sequencing_error("Preprocessor definition '" + lexed[i] + "' cannot overwrite macro of same name.");
+                        throw sequencing_error("Preprocessor definition '" + lexed[i] +
+                                               "' cannot overwrite macro of same name.");
                     }
 
                     string name = lexed[i];
@@ -596,7 +592,8 @@ void doFile(const string &From)
                 }
 
                 // More special cases: Rule macros
-                else if (lexed[i] == "new_rule!" || lexed[i] == "use_rule!" || lexed[i] == "rem_rule!" || lexed[i] == "bundle_rule!")
+                else if (lexed[i] == "new_rule!" || lexed[i] == "use_rule!" || lexed[i] == "rem_rule!" ||
+                         lexed[i] == "bundle_rule!")
                 {
                     continue;
                 }
@@ -735,9 +732,8 @@ void doFile(const string &From)
 
         if (fileSeq.type != nullType)
         {
-            cout << tags::yellow_bold
-                 << "Warning! File '" << From << "' has hanging type '"
-                 << toStr(&fileSeq.type) << "'\n"
+            cout << tags::yellow_bold << "Warning! File '" << From << "' has hanging type '" << toStr(&fileSeq.type)
+                 << "'\n"
                  << tags::reset;
         }
 
@@ -761,9 +757,7 @@ void doFile(const string &From)
     }
     catch (rule_error &e)
     {
-        cout << tags::red_bold
-             << "Caught rule error '" << e.what() << "'\n"
-             << tags::reset;
+        cout << tags::red_bold << "Caught rule error '" << e.what() << "'\n" << tags::reset;
 
         string name = "oak_dump_" + purifyStr(From) + ".log";
         cout << "Dump saved in " << name << "\n";
@@ -773,9 +767,7 @@ void doFile(const string &From)
     }
     catch (sequencing_error &e)
     {
-        cout << tags::red_bold
-             << "Caught sequencing error '" << e.what() << "'\n"
-             << tags::reset;
+        cout << tags::red_bold << "Caught sequencing error '" << e.what() << "'\n" << tags::reset;
 
         string name = "oak_dump_" + purifyStr(From) + ".log";
         cout << "Dump saved in " << name << "\n";
@@ -785,9 +777,7 @@ void doFile(const string &From)
     }
     catch (parse_error &e)
     {
-        cout << tags::red_bold
-             << "Caught parse error '" << e.what() << "'\n"
-             << tags::reset;
+        cout << tags::red_bold << "Caught parse error '" << e.what() << "'\n" << tags::reset;
 
         string name = "oak_dump_" + purifyStr(From) + ".log";
         cout << "Dump saved in " << name << "\n";
@@ -797,9 +787,7 @@ void doFile(const string &From)
     }
     catch (package_error &e)
     {
-        cout << tags::red_bold
-             << "Caught package error '" << e.what() << "'\n"
-             << tags::reset;
+        cout << tags::red_bold << "Caught package error '" << e.what() << "'\n" << tags::reset;
 
         string name = "oak_dump_" + purifyStr(From) + ".log";
         cout << "Dump saved in " << name << "\n";
@@ -809,9 +797,7 @@ void doFile(const string &From)
     }
     catch (generic_error &e)
     {
-        cout << tags::red_bold
-             << "Caught generic error '" << e.what() << "'\n"
-             << tags::reset;
+        cout << tags::red_bold << "Caught generic error '" << e.what() << "'\n" << tags::reset;
 
         string name = "oak_dump_" + purifyStr(From) + ".log";
         cout << "Dump saved in " << name << "\n";
@@ -821,9 +807,7 @@ void doFile(const string &From)
     }
     catch (runtime_error &e)
     {
-        cout << tags::red_bold
-             << "Caught runtime error '" << e.what() << "'\n"
-             << tags::reset;
+        cout << tags::red_bold << "Caught runtime error '" << e.what() << "'\n" << tags::reset;
 
         string name = "oak_dump_" + purifyStr(From) + ".log";
         cout << "Dump saved in " << name << "\n";
@@ -905,25 +889,19 @@ void makePackage(const string &RawName)
 
 void printSyntaxError(const string &what, const vector<char> &curLineVec)
 {
-    cout << tags::yellow_bold
-         << '\n'
-         << "In line '";
+    cout << tags::yellow_bold << '\n' << "In line '";
 
     for (const auto &c : curLineVec)
     {
         cout << c;
     }
 
-    cout << "'\n"
-         << tags::reset;
+    cout << "'\n" << tags::reset;
 
     cout << '\n'
-         << tags::red_bold
-         << "Syntax error at " << curFile << ':' << curLine << '\n'
+         << tags::red_bold << "Syntax error at " << curFile << ':' << curLine << '\n'
          << what << '\n'
-         << "(Use -x to make syntax errors nonfatal)"
-         << tags::reset
-         << "\n\n";
+         << "(Use -x to make syntax errors nonfatal)" << tags::reset << "\n\n";
 
     return;
 }
@@ -1014,7 +992,8 @@ void ensureSyntax(const string &text, const bool &fatal)
                         }
                         else if (globalStringChoice == '\'')
                         {
-                            printSyntaxError("Precedent has been set for single-quotes, but double-quotes were used.", curLineVec);
+                            printSyntaxError("Precedent has been set for single-quotes, but double-quotes were used.",
+                                             curLineVec);
                             errorCount++;
                         }
                     }
@@ -1035,7 +1014,8 @@ void ensureSyntax(const string &text, const bool &fatal)
                         }
                         else if (globalStringChoice == '"' && stringMarker == ' ')
                         {
-                            printSyntaxError("Precedent has been set for double-quotes, but single-quotes were used.", curLineVec);
+                            printSyntaxError("Precedent has been set for double-quotes, but single-quotes were used.",
+                                             curLineVec);
                             errorCount++;
                         }
                     }
@@ -1103,9 +1083,7 @@ void ensureSyntax(const string &text, const bool &fatal)
                 curLineVec.push_back(text[i]);
             }
 
-            if (curLineVec.size() == 65 &&
-                !(curLineVec.front() == '\'' ||
-                  curLineVec.front() == '"'))
+            if (curLineVec.size() == 65 && !(curLineVec.front() == '\'' || curLineVec.front() == '"'))
             {
                 printSyntaxError("Lines should not exceed 64 characters", curLineVec);
                 errorCount++;

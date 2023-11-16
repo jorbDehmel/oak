@@ -9,30 +9,31 @@ GPLv3 held by author
 #ifndef ACORN_RESOURCES_HPP
 #define ACORN_RESOURCES_HPP
 
-#include <string>
+#include <chrono>
 #include <fstream>
 #include <iostream>
-#include <vector>
-#include <chrono>
 #include <map>
+#include <string>
+#include <vector>
 
+// #include "compiler_cache.hpp"
+#include "document.hpp"
 #include "lexer.hpp"
 #include "macros.hpp"
+#include "op-sub.hpp"
+#include "packages.hpp"
 #include "reconstruct.hpp"
+#include "rules.hpp"
+#include "sequence.hpp"
 #include "symbol-table.hpp"
 #include "type-builder.hpp"
-#include "sequence.hpp"
-#include "packages.hpp"
-#include "op-sub.hpp"
-#include "document.hpp"
-#include "rules.hpp"
 
-#include "tags.hpp"
 #include "sizer.hpp"
+#include "tags.hpp"
 
 using namespace std;
 
-#define VERSION "0.2.3"
+#define VERSION "0.2.4"
 #define LICENSE "GPLv3"
 #define INFO "jdehmel@outlook.com"
 
@@ -45,14 +46,17 @@ using namespace std;
 
 /*
 Remaining options:
--abfgjkyz
--ABCEFGHIJKLNOPQVWXYZ
+-bfgjkyz
+-BCEFGHIJKLNOPQVWXYZ
 */
 
-#define DASHED_LINE "------------------------------------------\n"
-const string helpText = "Acorn - Oak Standard Translator\n" DASHED_LINE
-                        "Translates .oak files to .cpp.\n"
-                        "Option | Verbose     | Purpose\n" DASHED_LINE
+const string helpText = "Acorn - Oak Standard Translator\n"
+                        "For the Oak programming language\n"
+                        "Translates .oak files to .cpp.\n\n"
+                        "Option | Verbose     | Purpose\n"
+                        "-------|-------------|-------------------------------\n"
+                        " -a    |             | Update acorn\n"
+                        " -A    |             | Uninstall acorn\n"
                         " -c    | --compile   | Produce object files\n"
                         " -d    | --debug     | Toggle debug mode\n"
                         " -D    | --dialect   | Uses a dialect file\n"

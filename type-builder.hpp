@@ -58,6 +58,7 @@ public:
 protected:
     vector<typeNode> internal;
 
+    friend istream &operator>>(istream &strm, Type &type);
     friend string toStr(const Type *const, const unsigned int &pos);
     friend bool typesAreSame(Type *A, Type *B);
     friend bool typesAreSameExact(Type *A, Type *B);

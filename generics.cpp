@@ -11,19 +11,6 @@ Jordan Dehmel, 2023
 // This avoids circular dependencies
 extern sequence createSequence(const vector<string> &From);
 
-// Internal struct for info
-struct genericInfo
-{
-    vector<string> typeVec;
-
-    vector<string> symbols;
-    vector<string> needsBlock;
-
-    vector<string> genericNames;
-
-    vector<vector<vector<string>>> instances;
-};
-
 // A pair of <name, number_of_generics> maps to a vector of symbols within
 map<string, vector<genericInfo>> generics;
 
