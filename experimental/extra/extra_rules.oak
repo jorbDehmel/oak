@@ -1,0 +1,15 @@
+/*
+Extra rules for Oak which would not be in place in the Oak
+standard library.
+
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+// Return keyword
+new_rule!("return", "return $*a ;", "$a");
+
+bundle_rule!(
+    "extra",
+    "return"
+);

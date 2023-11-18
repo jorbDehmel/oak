@@ -1,0 +1,71 @@
+/*
+A bitset for Oak
+*/
+
+package!("std");
+use_rule!("std");
+
+/*
+Creates a bitset with the same size as same_size. For instance,
+if you instantiated bitset<i8>, it would have 8 bits. If you
+instead used i64, it would have 64 bits. "Latches on" to
+whatever you copy into it, and performs all bitwise
+modifications upon that object. Requires the &, |, <<, !, and
+i32-copy operators to be implemented for same_size.
+*/
+let bitset<same_size>: struct
+{
+    data: ^same_size,
+}
+needs
+{
+    // Requirements on template type
+    same_size.Copy(_: i32);
+    same_size.Or();
+    same_size.And();
+    same_size.Not();
+    same_size.Lbs();
+
+    // Requirements on this type
+    bitset<same_size>.Copy<same_size>(what: ^same_size);
+    bitset<same_size>.Get<same_size>(index: i32);
+    bitset<same_size>.set<same_size>(index: i32);
+    bitset<same_size>.clear<same_size>(index: i32);
+
+}
+
+////////////////////////////////////////////////////////////////
+// Implementations
+////////////////////////////////////////////////////////////////
+
+let bitset<same_size>.Copy<same_size>(what: ^same_size) -> void
+{
+    self.data = what;
+}
+
+let bitset<same_size>.Get<same_size>(index: i32) -> bool
+{
+    let mask: same_size = 1;
+    mask = mask << index;
+
+    let result: same_size = data & mask;
+    let out: bool = false;
+
+    if result != 0
+    {
+        out = true;   
+    }
+
+    out
+}
+
+let bitset<same_size>.set<same_size>(index: i32) -> void
+{
+
+}
+
+let bitset<same_size>.clear<same_size>(index: i32) -> void
+{
+
+}
+

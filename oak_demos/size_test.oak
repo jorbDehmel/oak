@@ -1,0 +1,40 @@
+/*
+A test of the size! macro
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+
+Passed Nov. 17, 23
+*/
+
+package!("std");
+use_rule!("std");
+
+let main() -> i32
+{
+    let a: i8;
+
+    print(size!(a));
+    print("\n");
+
+    let b: i16;
+
+    print(size!(b));
+    print("\n");
+
+    let c: i32;
+
+    print(size!(c));
+    print("\n");
+
+    let d: i64;
+
+    print(size!(d));
+    print("\n");
+
+    let e: ^i64;
+
+    print(size!(e));
+    print("\n");
+
+    0
+}

@@ -11,18 +11,23 @@ is whether it says 'struct' or 'enum'.
 #ifndef ENUMS_HPP
 #define ENUMS_HPP
 
-#include <vector>
 #include <map>
 #include <string>
+#include <vector>
 
 #include "type-builder.hpp"
 
 using namespace std;
 
+// Used in type sizing later
+const static char enumTypeStr[] = "i32";
+const static int enumSize = 4;
+
 struct __enumLookupData
 {
     map<string, Type> options;
     vector<string> order;
+    unsigned long long size;
 
     bool erased = false;
 };

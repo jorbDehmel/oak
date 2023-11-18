@@ -13,7 +13,6 @@ GPLv3 held by author
 #define MEM_HPP
 
 #include "symbol-table.hpp"
-#include "reconstruct.hpp"
 using namespace std;
 
 // Returns the sequence which allocates an array of size num and type type.

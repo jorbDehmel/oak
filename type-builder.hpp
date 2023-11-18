@@ -1,10 +1,10 @@
 #ifndef TYPE_BUILDER_HPP
 #define TYPE_BUILDER_HPP
 
-#include <string>
-#include <set>
-#include <map>
 #include <iostream>
+#include <map>
+#include <set>
+#include <string>
 #include <vector>
 using namespace std;
 
@@ -30,7 +30,7 @@ struct typeNode
 
 class Type
 {
-public:
+  public:
     Type(const TypeInfo &Info, const string &Name = "");
     Type(const Type &What);
     Type(const Type &What, const int &startingAt);
@@ -55,7 +55,7 @@ public:
 
     unsigned long long ID;
 
-protected:
+  protected:
     vector<typeNode> internal;
 
     friend istream &operator>>(istream &strm, Type &type);
@@ -74,6 +74,7 @@ struct __structLookupData
 {
     map<string, Type> members;
     vector<string> order;
+    unsigned long long size;
 
     bool erased = false;
 };

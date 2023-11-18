@@ -15,19 +15,19 @@ table into compilable C++. This should be language
 agnostic with respect to input (as much as possible).
 */
 
-#include <vector>
-#include <string>
-#include <sstream>
 #include <fstream>
 #include <set>
+#include <sstream>
+#include <string>
+#include <vector>
 
+#include "enums.hpp"
 #include "lexer.hpp"
-#include "type-builder.hpp"
+#include "mangler.hpp"
+#include "rules.hpp"
 #include "sequence.hpp"
 #include "symbol-table.hpp"
-#include "rules.hpp"
-#include "enums.hpp"
-#include "mangler.hpp"
+#include "type-builder.hpp"
 
 #define OAK_HEADER_PATH "/usr/include/oak/std_oak_header.h"
 
@@ -37,12 +37,10 @@ using namespace std;
 string purifyStr(const string &What);
 
 // Reconstruct the existing symbol table into C++
-void reconstruct(const string &Name,
-                 stringstream &header,
-                 stringstream &body);
+void reconstruct(const string &Name, stringstream &header, stringstream &body);
 
 // Contains all the atomic types (ints, floats, bools, etc)
-extern set<string> atomics;
+extern map<string, unsigned long long> atomics;
 
 // Save reconstructed files and return compilation command
 // Return pair<sstream, sstream>{header, body};
@@ -62,8 +60,8 @@ string toStrCFunction(Type *What, const string &Name, const unsigned int &pos = 
 string toStrCFunctionRef(Type *What, const string &Name, const unsigned int &pos = 0);
 
 // Dump data to file
-void dump(const vector<string> &Lexed, const string &Where, const string &FileName,
-          const int &Line, const sequence &FileSeq, const vector<string> LexedBackup);
+void dump(const vector<string> &Lexed, const string &Where, const string &FileName, const int &Line,
+          const sequence &FileSeq, const vector<string> LexedBackup);
 
 string enumToC(const string &name);
 

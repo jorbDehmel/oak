@@ -32,23 +32,23 @@ Function signatures will be handles by the
 non-sequential parser.
 */
 
-#include <vector>
-#include <string>
-#include <set>
-#include <cstring>
-#include <cmath>
-#include <map>
 #include <algorithm>
+#include <cmath>
+#include <cstring>
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
 
 #include <list>
 
-#include "mem.hpp"
-#include "type-builder.hpp"
-#include "symbol-table.hpp"
-#include "reconstruct.hpp"
 #include "enums.hpp"
-#include "mangler.hpp"
 #include "generics.hpp"
+#include "mangler.hpp"
+#include "mem.hpp"
+#include "reconstruct.hpp"
+#include "symbol-table.hpp"
+#include "type-builder.hpp"
 
 #include "tags.hpp"
 
@@ -66,18 +66,17 @@ extern vector<string> curLineSymbols;
 // Extension of runtime error for Oak sequencing
 class sequencing_error : public runtime_error
 {
-public:
-    sequencing_error(const string &What) : runtime_error(What) {}
+  public:
+    sequencing_error(const string &What) : runtime_error(What)
+    {
+    }
 };
 
 // Sequence message assert
-#define sm_assert(expression, message)                                           \
-    ((bool)(expression)                                                          \
-         ? true                                                                  \
-         : throw sequencing_error(message                                        \
-                                  " (Failed assertion: '" #expression "') " +    \
-                                  string(strrchr("/" __FILE__, '/') + 1) + " " + \
-                                  to_string(__LINE__)))
+#define sm_assert(expression, message)                                                                                 \
+    ((bool)(expression) ? true                                                                                         \
+                        : throw sequencing_error(message " (Failed assertion: '" #expression "') " +                   \
+                                                 string(strrchr("/" __FILE__, '/') + 1) + " " + to_string(__LINE__)))
 
 // Externally useful functions
 

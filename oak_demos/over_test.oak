@@ -1,4 +1,4 @@
-include!("std/std_io.oak");
+include!("std/io_inter.oak");
 
 // Test for the verification of Autogen systems in Oak
 

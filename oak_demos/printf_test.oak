@@ -8,17 +8,18 @@ use_rule!("std");
 let main() -> i32
 {
     printf!("The number five: % \nThe number six: % \n", 5, 6);
-    printf!("The following should be a literal percentage sign: \\%\n");
+    printf!(
+        "The following should be a literal percentage sign: \\%\n"
+    );
 
     printf!("This tests the failure system of printf % \n");
 
     let i: i32 = 5;
     let j: f64 = 1.234;
     printf!(
-        "Variable i is %, j is %, and some text is '%'.\n",
+        "Variable i is %, j is %.\n",
         i,
-        j,
-        "some text here"
+        j
     );
 
     0

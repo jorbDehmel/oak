@@ -68,14 +68,21 @@ test:
 	$(TEST) oak_demos/math_test.oak -o math_test.out
 	$(TEST) oak_demos/mem_test.oak -o mem_test.out
 	$(TEST) oak_demos/opt_test.oak -o opt_test.out
+	$(TEST) oak_demos/over_test.oak -o over_test.out
 	$(TEST) oak_demos/panic_test.oak -o panic_test.out
+	$(TEST) oak_demos/printf_test.oak -o printf_test.out
 	$(TEST) oak_demos/rec_test.oak -o rec_test.out
 	$(TEST) oak_demos/rule_test.oak -o rule_test.out
 	$(TEST) oak_demos/rule_test_2.oak -o rule_test_2.out
 	$(TEST) oak_demos/rule_test_3.oak -o rule_test_3.out
 	$(TEST) oak_demos/rule_test_4.oak -o rule_test_4.out
+	$(TEST) oak_demos/size_test.oak -o size_test.out
+	$(TEST) oak_demos/sock_test_c.oak -o sock_test_c.out
+	$(TEST) oak_demos/sock_test_s.oak -o socket_test_s.out
 	$(TEST) oak_demos/string_test.oak -o string_test.out
 	$(TEST) oak_demos/thread_test.oak -o thread_test.out
+	$(TEST) oak_demos/time_test.oak -o time_test.out
+	$(TEST) oak_demos/type_macro_test.oak -o type_macro_test.out
 
 	$(MAKE) sdltest
 	$(MAKE) gentest

@@ -228,9 +228,7 @@ void addStruct(const vector<string> &FromIn)
 
     if (structData.count(name) != 0)
     {
-        cout << tags::yellow_bold
-             << "Warning! Redefinition of struct '" << name << "'.\n"
-             << tags::reset;
+        cout << tags::yellow_bold << "Warning! Redefinition of struct '" << name << "'.\n" << tags::reset;
     }
 
     // Ensures unit structs still get added
@@ -364,6 +362,31 @@ void addStruct(const vector<string> &FromIn)
         throw parse_error("Malformed struct definition; Expected ';' or '{'.");
     }
 
+    // Determine struct size
+    structData[name].size = 0;
+    for (const string &memberName : structData[name].order)
+    {
+        if (structData[name].members[memberName][0].info == atomic)
+        {
+            if (structData.count(structData[name].members[memberName][0].name) != 0)
+            {
+                structData[name].size += structData[structData[name].members[memberName][0].name].size;
+            }
+
+            // Otherwise, cannot determine member size
+        }
+        else
+        {
+            // Treat as pointer
+            structData[name].size += sizeof(void *);
+        }
+    }
+
+    if (structData[name].size == 0)
+    {
+        structData[name].size = 1;
+    }
+
     return;
 }
 
@@ -418,16 +441,13 @@ string restoreSymbolTable(multiSymbolTable &backup)
                 {
                     // Variable falling out of scope
                     // Do not call Del if is atomic literal
-                    if (!(s.type[0].info == atomic && (s.type[0].name == "u8" || s.type[0].name == "i8" ||
-                                                       s.type[0].name == "u16" || s.type[0].name == "i16" ||
-                                                       s.type[0].name == "u32" || s.type[0].name == "i32" ||
-                                                       s.type[0].name == "u64" || s.type[0].name == "i64" ||
-                                                       s.type[0].name == "u128" || s.type[0].name == "i128" ||
-                                                       s.type[0].name == "f32" || s.type[0].name == "f64" ||
-                                                       s.type[0].name == "f128" || s.type[0].name == "bool" ||
-                                                       s.type[0].name == "str")) &&
-                        s.type[0].info != function && s.type[0].info != pointer &&
-                        p.first != "")
+                    if (!(s.type[0].info == atomic &&
+                          (s.type[0].name == "u8" || s.type[0].name == "i8" || s.type[0].name == "u16" ||
+                           s.type[0].name == "i16" || s.type[0].name == "u32" || s.type[0].name == "i32" ||
+                           s.type[0].name == "u64" || s.type[0].name == "i64" || s.type[0].name == "u128" ||
+                           s.type[0].name == "i128" || s.type[0].name == "f32" || s.type[0].name == "f64" ||
+                           s.type[0].name == "f128" || s.type[0].name == "bool" || s.type[0].name == "str")) &&
+                        s.type[0].info != function && s.type[0].info != pointer && p.first != "")
                     {
                         // Del_FN_PTR_typename_MAPS_void
                         output += "Del_FN_PTR_" + s.type[0].name + "_MAPS_void(&" + p.first + ");\n";

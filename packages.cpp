@@ -7,6 +7,7 @@ GPLv3 held by author
 */
 
 #include "packages.hpp"
+#include "tags.hpp"
 
 /*
 File oak_package_info.txt:
@@ -16,6 +17,7 @@ VERSION = "0.0.1"
 LICENSE = "GPLv3"
 DATE = "April 1st, 2003"
 SOURCE = "www.google.com"
+PATH = ""
 AUTHOR = "John Smith"
 EMAIL = "JSmith@gmail.com"
 ABOUT = "A demo package"
@@ -24,18 +26,16 @@ SYS_DEPS = ""
 */
 
 // Macros that may conflict with other files; Thus, included only in the body
-#define ssystem(command)                                                                                    \
-    {                                                                                                       \
-        printf("%s\n", string(command).c_str());                                                            \
-        system(string(command).c_str()) == 0 ? 0 : throw package_error("System call " #command " failed."); \
+#define ssystem(command)                                                                                               \
+    {                                                                                                                  \
+        printf("%s\n", string(command).c_str());                                                                       \
+        system(string(command).c_str()) == 0 ? 0 : throw package_error("System call " #command " failed.");            \
     }
 
-#define sm_system(command, message)                                               \
-    {                                                                             \
-        printf("%s\n", string(command).c_str());                                  \
-        system(string(command).c_str()) == 0                                      \
-            ? 0                                                                   \
-            : throw package_error(message " (System call " #command " failed.)"); \
+#define sm_system(command, message)                                                                                    \
+    {                                                                                                                  \
+        printf("%s\n", string(command).c_str());                                                                       \
+        system(string(command).c_str()) == 0 ? 0 : throw package_error(message " (System call " #command " failed.)"); \
     }
 
 map<string, packageInfo> packages;
@@ -48,18 +48,18 @@ ostream &operator<<(ostream &strm, const packageInfo &info)
          << "Released '" << info.date << "'\n"
          << "Author(s) '" << info.author << "'\n"
          << "Email(s) '" << info.email << "'\n"
-         << "Via '" << info.source << "'\n\n"
+         << "Via '" << info.source << ":/" << info.path << "'\n\n"
          << info.description << "\n\n"
-         << "Include path '/usr/include/oak/"
-         << info.name << "/" << info.toInclude << "'\n"
+         << "Include path '/usr/include/oak/" << info.name << "/" << info.toInclude << "'\n"
          << "System Deps: '" << info.sysDeps << "'\n";
 
     return strm;
 }
 
-string installCommand = "";
 void install(const string &What)
 {
+    static string installCommand = "";
+
     if (installCommand == "")
     {
         // Get os-release info
@@ -220,6 +220,10 @@ packageInfo loadPackageInfo(const string &Filepath)
         {
             toAdd.sysDeps = content;
         }
+        else if (name == "PATH")
+        {
+            toAdd.path = content;
+        }
         else
         {
             throw package_error("Invalid item '" + name + "'");
@@ -246,7 +250,8 @@ void savePackageInfo(const packageInfo &Info, const string &Filepath)
         << "SOURCE = '" << Info.source << "'\n"
         << "ABOUT = '" << Info.description << "'\n"
         << "INCLUDE = '" << Info.toInclude << "'\n"
-        << "SYS_DEPS = '" << Info.sysDeps << "'\n";
+        << "SYS_DEPS = '" << Info.sysDeps << "'\n"
+        << "PATH = '" << Info.path << "'\n";
 
     out.close();
     return;
@@ -255,7 +260,7 @@ void savePackageInfo(const packageInfo &Info, const string &Filepath)
 /*
 Imagine using a compiled language for scripting; Couldn't be me
 */
-void downloadPackage(const string &URLArg, const bool &Reinstall)
+void downloadPackage(const string &URLArg, const bool &Reinstall, const string &Path)
 {
     string URL = URLArg;
 
@@ -270,9 +275,7 @@ void downloadPackage(const string &URLArg, const bool &Reinstall)
             }
             else
             {
-                cout << tags::yellow_bold
-                     << "Package '" << p.first << "' was already installed.\n"
-                     << tags::reset;
+                cout << tags::yellow_bold << "Package '" << p.first << "' was already installed.\n" << tags::reset;
                 return;
             }
         }
@@ -295,10 +298,7 @@ void downloadPackage(const string &URLArg, const bool &Reinstall)
     }
     catch (package_error &e)
     {
-        cout << tags::yellow_bold
-             << e.what() << '\n'
-             << "Attempting git-less copy...\n"
-             << tags::reset;
+        cout << tags::yellow_bold << e.what() << '\n' << "Attempting git-less copy...\n" << tags::reset;
 
         try
         {
@@ -313,7 +313,8 @@ void downloadPackage(const string &URLArg, const bool &Reinstall)
 
             // Load packages_list.txt
             ifstream packagesList(PACKAGES_LIST_PATH);
-            pm_assert(packagesList.is_open(), URL + " is not a valid package URL or name and failed to load packages list.");
+            pm_assert(packagesList.is_open(),
+                      URL + " is not a valid package URL or name and failed to load packages list.");
 
             string line;
             while (getline(packagesList, line))
@@ -326,19 +327,32 @@ void downloadPackage(const string &URLArg, const bool &Reinstall)
                 {
                     pm_assert(line.find(' ') != string::npos, "Malformed packages_list.txt");
 
-                    // name source
-                    string name, source;
+                    cout << 330 << '\t' << line << '\n';
+
+                    // name source path
+                    string name, source, path;
 
                     auto breakPoint = line.find(' ');
 
                     name = line.substr(0, breakPoint);
                     source = line.substr(breakPoint + 1);
 
+                    cout << 340 << '\t' << name << '\t' << source << '\n';
+
+                    pm_assert(source.find(' ') != string::npos, "Malformed packages_list.txt");
+                    breakPoint = source.find(' ');
+
+                    path = source.substr(breakPoint + 1);
+                    source = source.substr(0, breakPoint);
+
+                    cout << 347 << '\t' << name << '\t' << source << '\t' << path << '\n';
+
                     if (name == URL)
                     {
-                        cout << "Package '" << name << "' found in /usr/include/oak/packages_list.txt w/ repo URL of '" << source << "'\n";
+                        cout << "Package '" << name << "' found in /usr/include/oak/packages_list.txt w/ repo URL of '"
+                             << source << "'\n";
 
-                        downloadPackage(source, Reinstall);
+                        downloadPackage(source, Reinstall, path);
                         return;
                     }
                 }
@@ -350,10 +364,9 @@ void downloadPackage(const string &URLArg, const bool &Reinstall)
             // - It is not a valid local file
             // So it should error rather than proceed.
 
-            cout << tags::red_bold
-                 << "\nPackage '" << URLArg << "'\n"
+            cout << tags::red_bold << "\nPackage '" << URLArg << "'\n"
                  << "does not exist locally, is not a valid Git repo, and\n"
-                 << "does not have an installation URL known by Oak.\n"
+                 << "does not have an installation URL known by acorn.\n"
                  << tags::reset;
             throw package_error("Package '" + URLArg + "' does not exist in any form.");
         }
@@ -361,27 +374,39 @@ void downloadPackage(const string &URLArg, const bool &Reinstall)
 
     try
     {
-        // Ensure proper format
-        if (system(("[ -f " + tempFolderName + "/" + INFO_FILE " ]").c_str()) != 0)
+        string path = Path;
+
+        if (path == "")
         {
-            cout << tags::red_bold
-                 << "\nPackage '" << URLArg << "'\n"
-                 << "exists, but is ill-formed.\n"
+            cout << tags::yellow_bold
+                 << "Enter the path within the folder to install from [default .]: " << tags::reset;
+            cin >> path;
+            if (path == "")
+            {
+                path = ".";
+            }
+        }
+
+        pm_assert(path.find("..") == string::npos, "Illegal path: May not contain '..'.");
+
+        // Ensure proper format
+        if (system(("[ -f " + tempFolderName + "/" + path + "/" + INFO_FILE " ]").c_str()) != 0)
+        {
+            cout << tags::red_bold << "\nPackage '" << URLArg << "' "
+                 << "exists, but is ill-formed. PATH is likely incorrect.\n"
                  << tags::reset;
 
             throw package_error("Malformed package; Info file is not present.");
         }
 
         bool needsMake = false;
-        needsMake = (system(("[ -f " + tempFolderName + "/Makefile ]").c_str()) == 0 || system(("[ -f " + tempFolderName + "/makefile ]").c_str()) == 0);
+        needsMake = (system(("[ -f " + tempFolderName + "/" + path + "/Makefile ]").c_str()) == 0 ||
+                     system(("[ -f " + tempFolderName + "/" + path + "/makefile ]").c_str()) == 0);
 
         // Read info file
-        packageInfo info = loadPackageInfo(tempFolderName + "/" + INFO_FILE);
+        packageInfo info = loadPackageInfo(tempFolderName + "/" + path + "/" + INFO_FILE);
 
-        cout << tags::green
-             << "Loaded package from " << URL << "\n"
-             << info << '\n'
-             << tags::reset;
+        cout << tags::green << "Loaded package from " << URL << "\n" << info << '\n' << tags::reset;
 
         // Ensure valid formatting
         for (char c : info.name)
@@ -392,7 +417,8 @@ void downloadPackage(const string &URLArg, const bool &Reinstall)
         // Prepare destination
         string destFolderName = PACKAGE_INCLUDE_PATH + info.name;
         sm_system("sudo rm -rf " + destFolderName, "Failed to clear old package files.");
-        sm_system("sudo mkdir -p " + destFolderName, "Failed to create package folder in /usr/include/oak; Check user permissions.");
+        sm_system("sudo mkdir -p " + destFolderName,
+                  "Failed to create package folder in /usr/include/oak; Check user permissions.");
 
         // Install system deps
         if (info.sysDeps != "")
@@ -403,22 +429,21 @@ void downloadPackage(const string &URLArg, const bool &Reinstall)
         // Make package if needed
         if (needsMake)
         {
-            if (system(("make -C " + tempFolderName).c_str()) != 0)
+            if (system(("make -C " + tempFolderName + "/" + path).c_str()) != 0)
             {
                 throw package_error("Make failure; See cout for details.");
             }
         }
 
         // Copy files
-        sm_system("sudo rm -rf " + tempFolderName + "/*.cpp", "Failed to clean folder");
-        sm_system("sudo cp -r " + tempFolderName + "/* " + destFolderName, "Failed to copy folder");
+        sm_system("sudo rm -rf " + tempFolderName + "/" + path + "/*.cpp", "Failed to clean folder");
+        sm_system("sudo cp -r " + tempFolderName + "/" + path + "/* " + destFolderName, "Failed to copy folder");
 
         // Clean up garbage; Doesn't really matter if this fails
         cout << "sudo rm -rf " PACKAGE_TEMP_LOCATION << '\n';
         if (system("sudo rm -rf " PACKAGE_TEMP_LOCATION) != 0)
         {
-            cout << tags::yellow_bold
-                 << "Warning: Failed to erase trash folder '" << PACKAGE_TEMP_LOCATION << "'.\n"
+            cout << tags::yellow_bold << "Warning: Failed to erase trash folder '" << PACKAGE_TEMP_LOCATION << "'.\n"
                  << "If left unfixed, this could cause issues.\n"
                  << tags::reset;
         }
@@ -429,8 +454,7 @@ void downloadPackage(const string &URLArg, const bool &Reinstall)
 
         if (system("sudo rm -rf " PACKAGE_TEMP_LOCATION) != 0)
         {
-            cout << tags::yellow_bold
-                 << "Warning: Failed to erase trash folder '" << PACKAGE_TEMP_LOCATION << "'.\n"
+            cout << tags::yellow_bold << "Warning: Failed to erase trash folder '" << PACKAGE_TEMP_LOCATION << "'.\n"
                  << "If left unfixed, this could cause issues.\n"
                  << tags::reset;
         }

@@ -1,1 +1,8 @@
-std https://github.com/jorbDehmel/oak
+// The standard Oak package finder file
+// Jordan Dehmel, 2023
+// Format:
+//      name URL.to.git.repo path/within/repo
+
+std https://github.com/jorbDehmel/oak std
+sdl https://github.com/jorbDehmel/oak sdl
+extra https://github.com/jorbDehmel/oak extra

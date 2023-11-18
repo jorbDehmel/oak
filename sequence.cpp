@@ -35,9 +35,9 @@ void destroyUnits(const string &name, const Type &type, const bool &doThrow)
             if (table[name][i].type == type)
             {
                 // If is unit, erase
-                if (table[name][i].seq.items.size() == 0 || (table[name][i].seq.items.size() >= 1 &&
-                                                             table[name][i].seq.items[0].raw.size() > 8 &&
-                                                             table[name][i].seq.items[0].raw.substr(0, 9) == "//AUTOGEN"))
+                if (table[name][i].seq.items.size() == 0 ||
+                    (table[name][i].seq.items.size() >= 1 && table[name][i].seq.items[0].raw.size() > 8 &&
+                     table[name][i].seq.items[0].raw.substr(0, 9) == "//AUTOGEN"))
                 {
                     table.at(name).erase(table[name].begin() + i);
                     i--;
@@ -46,7 +46,8 @@ void destroyUnits(const string &name, const Type &type, const bool &doThrow)
                 // Else if doThrow, throw redef error
                 else if (doThrow)
                 {
-                    throw sequencing_error("Function " + name + toStr(&type) + "' cannot have multiple explicit definitions.");
+                    throw sequencing_error("Function " + name + toStr(&type) +
+                                           "' cannot have multiple explicit definitions.");
                 }
             }
         }
@@ -176,8 +177,7 @@ sequence __createSequence(list<string> &From)
         if (From.size() != 0)
         {
             for (auto it = From.begin();
-                 it != From.end() && !(it != From.begin() &&
-                                       it->size() > 11 && it->substr(0, 11) == "//__LINE__=");
+                 it != From.end() && !(it != From.begin() && it->size() > 11 && it->substr(0, 11) == "//__LINE__=");
                  it++)
             {
                 curLineSymbols.push_back(*it);
@@ -255,8 +255,7 @@ sequence __createSequence(list<string> &From)
                 }
                 else
                 {
-                    cout << tags::yellow_bold
-                         << "Warning! No symbols were erase!-ed via the symbol '" << symb << "'\n"
+                    cout << tags::yellow_bold << "Warning! No symbols were erase!-ed via the symbol '" << symb << "'\n"
                          << tags::reset;
                 }
             }
@@ -393,7 +392,8 @@ sequence __createSequence(list<string> &From)
                 numType = typeNode{atomic, "u128"};
             }
 
-            sm_assert(numType[0].info == atomic && numType[0].name == "u128", "'alloc!' takes 'u128', not '" + toStr(&numType) + "'.");
+            sm_assert(numType[0].info == atomic && numType[0].name == "u128",
+                      "'alloc!' takes 'u128', not '" + toStr(&numType) + "'.");
 
             out = getAllocSequence(temp.type, name, num);
 
@@ -469,7 +469,8 @@ sequence __createSequence(list<string> &From)
         // This is for the enum
         out.items.push_back(__createSequence(From));
 
-        sm_assert(out.items[0].type[0].info == atomic && enumData.count(out.items[0].type[0].name) != 0, out.raw + " statement argument must be enum. Instead, '" + toStr(&out.items[0].type) + "'");
+        sm_assert(out.items[0].type[0].info == atomic && enumData.count(out.items[0].type[0].name) != 0,
+                  out.raw + " statement argument must be enum. Instead, '" + toStr(&out.items[0].type) + "'");
         sm_assert(!From.empty(), "Missing statement after " + out.raw + "");
 
         string old = prevMatchTypeStr;
@@ -490,7 +491,8 @@ sequence __createSequence(list<string> &From)
 
             if (out.items[j].raw != "case" && out.items[j].raw != "default")
             {
-                throw sequencing_error("Match statement must contain only 'case' and 'default' statements, not '" + out.items[j].raw + "'.");
+                throw sequencing_error("Match statement must contain only 'case' and 'default' statements, not '" +
+                                       out.items[j].raw + "'.");
             }
 
             if (out.items[j].raw == "default" && j != out.items.size() - 1)
@@ -521,7 +523,8 @@ sequence __createSequence(list<string> &From)
         sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
         From.pop_front();
 
-        sm_assert(!From.empty() && From.front() == "(", "Enumeration option must be followed by capture parenthesis (IE name(capture_here)).");
+        sm_assert(!From.empty() && From.front() == "(",
+                  "Enumeration option must be followed by capture parenthesis (IE name(capture_here)).");
         sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
         From.pop_front();
 
@@ -591,7 +594,8 @@ sequence __createSequence(list<string> &From)
         // This is for the conditional
         out.items.push_back(__createSequence(From));
 
-        sm_assert(out.items[0].type == Type(atomic, "bool"), out.raw + " statement argument must be boolean. Instead, '" + toStr(&out.items[0].type) + "'");
+        sm_assert(out.items[0].type == Type(atomic, "bool"),
+                  out.raw + " statement argument must be boolean. Instead, '" + toStr(&out.items[0].type) + "'");
         sm_assert(!From.empty(), "Missing statement after " + out.raw + "");
 
         // This is for the code chunk
@@ -703,10 +707,9 @@ sequence __createSequence(list<string> &From)
                 bool exempt = false;
                 for (auto s : generics)
                 {
-                    if (structData.count(s) != 0 ||
-                        s == "u8" || s == "i8" || s == "u16" || s == "i16" ||
-                        s == "u32" || s == "i32" || s == "u64" || s == "i64" ||
-                        s == "u128" || s == "i128" || s == "str" || s == "bool")
+                    if (structData.count(s) != 0 || s == "u8" || s == "i8" || s == "u16" || s == "i16" || s == "u32" ||
+                        s == "i32" || s == "u64" || s == "i64" || s == "u128" || s == "i128" || s == "str" ||
+                        s == "bool")
                     {
                         exempt = true;
                         break;
@@ -865,7 +868,8 @@ sequence __createSequence(list<string> &From)
                 out.items.push_back(sequence{nullType, vector<sequence>(), atom, toStrC(&type, name)});
 
                 // Insert into table
-                table[name].push_back(__multiTableSymbol{sequence{type, vector<sequence>(), atom, ""}, type, false, curFile});
+                table[name].push_back(
+                    __multiTableSymbol{sequence{type, vector<sequence>(), atom, ""}, type, false, curFile});
 
                 // Call constructor (pointers, atomics and enums do not get constructors)
                 if (type[0].info != pointer && enumData.count(type[0].name) == 0 && atomics.count(type[0].name) == 0)
@@ -947,7 +951,8 @@ sequence __createSequence(list<string> &From)
                 {
                     if (!isSingleArg)
                     {
-                        throw runtime_error("Illegal method definition! Method '" + name + "' must have exactly one argument.");
+                        throw runtime_error("Illegal method definition! Method '" + name +
+                                            "' must have exactly one argument.");
                     }
                 }
 
@@ -1045,7 +1050,8 @@ sequence __createSequence(list<string> &From)
                                 seq.info = atom;
                                 seq.type = nullType;
 
-                                seq.raw = "Del_FN_PTR_" + var.second[0].name + "_MAPS_void(&" + argsWithType[0].first + "->" + varName + ")";
+                                seq.raw = "Del_FN_PTR_" + var.second[0].name + "_MAPS_void(&" + argsWithType[0].first +
+                                          "->" + varName + ")";
                                 table["Del"].back().seq.items.push_back(seq);
                             }
                         }
@@ -1214,7 +1220,8 @@ sequence __createSequence(list<string> &From)
             {
                 if (out.items[i].info == keyword && out.items[i].raw == "else")
                 {
-                    if (out.items[i - 1].items.size() != 0 && out.items[i - 1].items[0].info == keyword && out.items[i - 1].items[0].raw == "if")
+                    if (out.items[i - 1].items.size() != 0 && out.items[i - 1].items[0].info == keyword &&
+                        out.items[i - 1].items[0].raw == "if")
                     {
                         continue;
                     }
@@ -1321,6 +1328,7 @@ string toC(const sequence &What)
 {
     string out = "";
     string temp;
+    int scopeReturnCount;
 
     switch (What.info)
     {
@@ -1340,6 +1348,7 @@ string toC(const sequence &What)
     case code_scope:
         out += "{\n";
 
+        scopeReturnCount = 0;
         for (int i = 0; i < What.items.size(); i++)
         {
             if (What.items[i].info == keyword)
@@ -1364,7 +1373,15 @@ string toC(const sequence &What)
             }
             else
             {
-                out += "return (" + toC(What.items[i]) + ");\n";
+                if (scopeReturnCount == 0)
+                {
+                    out += "return (" + toC(What.items[i]) + ");\n";
+                    scopeReturnCount++;
+                }
+                else
+                {
+                    throw sequencing_error("A function definition must have exactly one return point.");
+                }
             }
         }
 
@@ -1428,8 +1445,10 @@ string toC(const sequence &What)
 
                     string optionName = cur.items[0].raw;
 
-                    sm_assert(enumData[typeStr].options.count(optionName) != 0, "'" + optionName + "' is not an option for enum '" + typeStr + "'");
-                    sm_assert(usedOptions.count(optionName) != 0, "Option '" + optionName + "' cannot be used multiple times in a match statement.");
+                    sm_assert(enumData[typeStr].options.count(optionName) != 0,
+                              "'" + optionName + "' is not an option for enum '" + typeStr + "'");
+                    sm_assert(usedOptions.count(optionName) != 0,
+                              "Option '" + optionName + "' cannot be used multiple times in a match statement.");
                     usedOptions.erase(optionName);
 
                     string captureName = cur.items[1].raw;
@@ -1466,7 +1485,8 @@ string toC(const sequence &What)
                             captureType += "*";
                         }
 
-                        out += captureType + " *" + captureName + " = &" + itemStr + ".__data." + optionName + "_data;\n";
+                        out +=
+                            captureType + " *" + captureName + " = &" + itemStr + ".__data." + optionName + "_data;\n";
                     }
 
                     // Add capture group to Oak table if needed
@@ -1479,7 +1499,8 @@ string toC(const sequence &What)
                     // Causes errors with destructor calls
                     // debugPrint(What.items[1]);
 
-                    sm_assert(ind + 2 >= What.items[1].items.size(), "Default statement must be final branch of match statement.");
+                    sm_assert(ind + 2 >= What.items[1].items.size(),
+                              "Default statement must be final branch of match statement.");
                     usedOptions.clear();
 
                     auto &cur = What.items[1].items[ind];
@@ -1503,8 +1524,8 @@ string toC(const sequence &What)
 
             if (usedOptions.size() != 0)
             {
-                cout << tags::yellow_bold
-                     << "Warning! Match statement does not handle option(s) of enum '" << typeStr << "':\n";
+                cout << tags::yellow_bold << "Warning! Match statement does not handle option(s) of enum '" << typeStr
+                     << "':\n";
 
                 for (auto opt : usedOptions)
                 {
@@ -1516,8 +1537,8 @@ string toC(const sequence &What)
         }
         else
         {
-            cout << tags::yellow_bold
-                 << "Warning! Unknown enum keyword '" << What.raw << "'. Treating as regular keyword.\n"
+            cout << tags::yellow_bold << "Warning! Unknown enum keyword '" << What.raw
+                 << "'. Treating as regular keyword.\n"
                  << tags::reset;
 
             out += What.raw + " ";
@@ -1869,7 +1890,61 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
             didTemplate = true;
         }
 
-        // If not function call
+        if (What[start] == "size!")
+        {
+            // Case for type!() macro
+
+            // Scrape entire type!(what) call to a vector
+            vector<string> toAnalyze;
+            int count = 0;
+
+            start++;
+            do
+            {
+                if (What[start] == "(")
+                {
+                    count++;
+                }
+                else if (What[start] == ")")
+                {
+                    count--;
+                }
+
+                if (!((What[start] == "(" && count == 1) || (What[start] == ")" && count == 0)))
+                {
+                    toAnalyze.push_back(What[start]);
+                }
+
+                start++;
+            } while (count != 0 && start < What.size());
+
+            // Garbage to feed to resolveFunction
+            string junk = "";
+            int pos = 0;
+
+            // Analyze type of collected
+            Type type = resolveFunction(toAnalyze, pos, junk);
+
+            // Append size
+            if (type[0].info == atomic)
+            {
+                if (atomics.count(type[0].name) != 0)
+                {
+                    c += to_string(atomics[type[0].name]);
+                }
+                else
+                {
+                    c += to_string(structData[type[0].name].size);
+                }
+            }
+            else
+            {
+                c += to_string(sizeof(void *));
+            }
+
+            return Type(atomic, "u128");
+        }
+
         // Function call
         if (What.size() > start + 1 && What[start + 1] == "(")
         {
@@ -1950,9 +2025,7 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
             }
 
             // Special case; Pointer array access
-            if (name == "Get" && argTypes.size() == 2 &&
-                argTypes[0][0].info == pointer &&
-                argTypes[0].size() > 1 &&
+            if (name == "Get" && argTypes.size() == 2 && argTypes[0][0].info == pointer && argTypes[0].size() > 1 &&
                 argTypes[0][1].info == pointer)
             {
                 c += argStrs[0] + "[" + argStrs[1] + "]";
@@ -1961,12 +2034,9 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
             }
 
             // Special case; Pointer copy
-            else if (name == "Copy" && argTypes.size() == 2 &&
-                     argTypes[0].size() > 2 &&
-                     argTypes[0][0].info == pointer &&
-                     argTypes[0][1].info == pointer &&
-                     argTypes[1][0].info == pointer &&
-                     argTypes[1].size() > 1)
+            else if (name == "Copy" && argTypes.size() == 2 && argTypes[0].size() > 2 &&
+                     argTypes[0][0].info == pointer && argTypes[0][1].info == pointer &&
+                     argTypes[1][0].info == pointer && argTypes[1].size() > 1)
             {
                 // Ensure equality; If not, throw error
 
@@ -2076,8 +2146,7 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
                 cout << "\nCandidates:\n";
                 for (auto c : candidates)
                 {
-                    cout << name << " has type " << toStr(&c.type) << '\n'
-                         << "Candidate arguments (";
+                    cout << name << " has type " << toStr(&c.type) << '\n' << "Candidate arguments (";
                     auto candArgs = getArgs(c.type);
                     cout << candArgs.size() << "):\n";
 
@@ -2089,8 +2158,7 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
                     // Provide reason for elimination
                     if (candArgs.size() != argTypes.size())
                     {
-                        cout << "\t(Too " << ((candArgs.size() < argTypes.size()) ? "few" : "many")
-                             << " arguments)\n";
+                        cout << "\t(Too " << ((candArgs.size() < argTypes.size()) ? "few" : "many") << " arguments)\n";
                     }
                     else if (c.erased)
                     {
@@ -2121,7 +2189,8 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
                 {
                     if (getReturnType(candidates[j].type) != type)
                     {
-                        throw sequencing_error("In function call '" + name + "': Cannot overload by return type alone.");
+                        throw sequencing_error("In function call '" + name +
+                                               "': Cannot overload by return type alone.");
                     }
                 }
 
@@ -2203,7 +2272,8 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
                 }
                 else if (numDeref != 0)
                 {
-                    throw sequencing_error("Illegal multiple automatic referencing in function call '" + name + "' (only auto-deref or single auto-ref is allowed).");
+                    throw sequencing_error("Illegal multiple automatic referencing in function call '" + name +
+                                           "' (only auto-deref or single auto-ref is allowed).");
                 }
 
                 c += "(" + argStrs[j] + ")";
@@ -2256,12 +2326,15 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
             string structName;
             try
             {
-                sm_assert(type[0].info == atomic, "Error during type trimming for member access; Could not find struct name.");
+                sm_assert(type[0].info == atomic,
+                          "Error during type trimming for member access; Could not find struct name.");
                 structName = type[0].name;
 
                 sm_assert(structData.count(structName) != 0, "Struct type '" + structName + "' does not exist.");
-                sm_assert(!structData[structName].erased, "Struct '" + structName + "' exists, but is erased (private).");
-                sm_assert(structData[structName].members.count(What[start + 2]) != 0, "Struct '" + structName + "' has no member '" + What[start + 2] + "'.");
+                sm_assert(!structData[structName].erased,
+                          "Struct '" + structName + "' exists, but is erased (private).");
+                sm_assert(structData[structName].members.count(What[start + 2]) != 0,
+                          "Struct '" + structName + "' has no member '" + What[start + 2] + "'.");
             }
             catch (sequencing_error &e)
             {
@@ -2278,8 +2351,7 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
                     cout << What[pos] << ' ';
                 }
 
-                cout << "'\n"
-                     << tags::reset;
+                cout << "'\n" << tags::reset;
 
                 throw e;
             }
@@ -2374,8 +2446,7 @@ void addEnum(const vector<string> &FromIn)
 
     if (enumData.count(name) != 0 || structData.count(name) != 0)
     {
-        cout << tags::yellow_bold
-             << "Warning! Definition of enum '" << name << "' erases struct of the same name.\n"
+        cout << tags::yellow_bold << "Warning! Definition of enum '" << name << "' erases struct of the same name.\n"
              << tags::reset;
     }
 
@@ -2489,10 +2560,34 @@ void addEnum(const vector<string> &FromIn)
         throw parse_error("Malformed enum definition; Expected ';' or '{'.");
     }
 
+    enumData[name].size = 0;
     __enumLookupData &cur = enumData[name];
     string enumTypeStr = name;
+    unsigned long long curSize;
     for (auto optionName : cur.order)
     {
+        // Sizing
+        if (cur.options[optionName][0].info == atomic)
+        {
+            if (structData.count(cur.options[optionName][0].name) != 0)
+            {
+                curSize = structData[cur.options[optionName][0].name].size;
+            }
+            else
+            {
+                curSize = 1;
+            }
+        }
+        else
+        {
+            curSize = sizeof(void *);
+        }
+
+        if (curSize > cur.size)
+        {
+            cur.size = curSize;
+        }
+
         if (cur.options[optionName][0].info == atomic && cur.options[optionName][0].name == "unit")
         {
             // Unit struct; Single argument constructor
@@ -2527,6 +2622,8 @@ void addEnum(const vector<string> &FromIn)
             table["wrap_" + optionName].push_back(__multiTableSymbol{sequence{}, constructorType, false, curFile});
         }
     }
+
+    cur.size += enumSize;
 
     return;
 }

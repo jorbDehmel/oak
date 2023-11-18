@@ -2,7 +2,7 @@
 #include <string>
 
 #include "oak/std_oak_header.h"
-#include "oak/std/string.c"
+#include "string.c"
 
 struct regex
 {
@@ -25,7 +25,8 @@ extern "C"
         return boost::regex_match(std::string(text->data), *pattern->re);
     }
 
-    bool regex_match_FN_PTR_string_JOIN_PTR_regex_JOIN_PTR_regex_smatch_MAPS_bool(string *text, regex *pattern, regex_smatch *into)
+    bool regex_match_FN_PTR_string_JOIN_PTR_regex_JOIN_PTR_regex_smatch_MAPS_bool(string *text, regex *pattern,
+                                                                                  regex_smatch *into)
     {
         return boost::regex_match(std::string(text->data), into->m, *pattern->re);
     }
@@ -35,7 +36,8 @@ extern "C"
         return boost::regex_search(std::string(text->data), *pattern->re);
     }
 
-    bool regex_search_FN_PTR_string_JOIN_PTR_regex_JOIN_PTR_regex_smatch_MAPS_bool(string *text, regex *pattern, regex_smatch *into)
+    bool regex_search_FN_PTR_string_JOIN_PTR_regex_JOIN_PTR_regex_smatch_MAPS_bool(string *text, regex *pattern,
+                                                                                   regex_smatch *into)
     {
         return boost::regex_search(std::string(text->data), into->m, *pattern->re);
     }

@@ -87,7 +87,7 @@ parameter a of type i32 and yielding a bool".
 
 Additionally, the `C++` code
 
-```
+```cpp
 bool isBiggerThanFive(int a)
 {
     return a > 5;
@@ -96,7 +96,7 @@ bool isBiggerThanFive(int a)
 
 would convert to
 
-```
+```rust
 let is_bigger_than_five(a: i32) -> bool
 {
     a > 5
@@ -105,6 +105,7 @@ let is_bigger_than_five(a: i32) -> bool
 
 Note that leaving off a semicolon is equivalent to `C++`'s
 `return` statement. `Oak` has no `return` keyword.
+**In `Oak`, a function should have exactly one return point.**
 
 Pointers are `^` (IE a pointer to a bool is `^bool`). The "get
 address" operator is `@`.
@@ -122,17 +123,18 @@ $$
 
 is equivalent to the code
 
-```
+```rust
 let f(_: f64) -> f64;
 ```
 
 Both of these statements can be read "let f be a function
-mapping a single real number to another".
+mapping a single real number to another" (although `f64`s are an
+extremely limited representation of the reals).
 
 As a final example for this section, examine the "Hello world"
 program below.
 
-```
+```rust
 // Include the standard (std) Oak package, which contains print.
 package!("std");
 
@@ -157,7 +159,7 @@ contiguous block of like-typed objects. To get the address of a
 variable in `Oak`, use the `@` symbol. To get the value that a 
 pointer references, use the `^` symbol. Pointer types are the
 `^` symbol, followed by the type they point to. You can have
-pointers.
+pointers to pointers.
 
 The `alloc!` macro for allocating new memory on the heap returns
 a pointer to the memory it allocated, should it be successful.
@@ -171,7 +173,7 @@ designates it a pointer. When calling a function, a single
 reference can be automatically added by the compiler, but no
 more than  that. For example,
 
-```
+```rust
 let fn_0(what: i32) -> void
 {
     ;
@@ -212,7 +214,7 @@ A pointer to an object can be used just like the object itself
 with respect to its members. For instance, all the following are
 legal calls.
 
-```
+```rust
 let item: struct
 {
     a: i32,
@@ -245,7 +247,7 @@ easily be considered an error by the compiler.
 
 Code scopes go like this:
 
-```
+```rust
 // Good
 
 if (true)
@@ -261,7 +263,7 @@ let fn() -> void
 
 NEVER like this:
 
-```
+```rust
 // Bad
 
 if (true) {
@@ -281,7 +283,7 @@ take precedent over literal compiler interpretation.
 variable names should never be used, and capitalized variables
 are reserved for special cases.
 
-```
+```rust
 // Good
 let long_variable_name_with_multiple_words: i32;
 
@@ -313,7 +315,7 @@ space), and multi-line comments should start with `/*`
 (slash-star-newline) and end with `*/` (newline-star-slash)
 (just like `C++`).
 
-```
+```rust
 // Correct single line comment
 //Do not format them like this (no leading space)
 
@@ -389,7 +391,7 @@ following lines should be tabbed exactly one further than the
 beginning line. Whenever possible, you should include exactly
 one argument per line in such a case.
 
-```
+```rust
 // Proper formatting:
 let long_function_name(long_argument_name_one: i32,
     long_argument_name_two: i32,
@@ -425,7 +427,7 @@ strings, each of which is a command line argument. The first
 item of this, `argv[0]`, is the name of the executable that was
 run.
 
-```
+```rust
 let main() -> i32;
 let main(argc: i32, argv: ^str) -> i32;
 let main(argc: i32, argv: ^^i8) -> i32;
@@ -442,26 +444,26 @@ variables can be named anything. A common form is
 methods. Methods are converted into equivalent function calls
 during translation as follows.
 
-```
-OBJ.METHOD_NAME(ARG, ARG, ..);
+```rust
+OBJ.METHOD_NAME(ARG, ARG, ...);
 ```
 
 Becomes
 
-```
-METHOD_NAME(@OBJ, ARG, ARG, ..);
+```rust
+METHOD_NAME(@OBJ, ARG, ARG, ...);
 ```
 
 Thus, you can define a method as follows.
 
-```
-let OBJ_TYPE.METHOD_NAME(self: ^OBJ_TYPE, ..) -> RETURN_TYPE;
+```rust
+let OBJ_TYPE.METHOD_NAME(...) -> RETURN_TYPE;
 ```
 
 For instance, if you wanted to define a method that converts an
 integer to a double, its signature would be:
 
-```
+```rust
 let i32.to_double(self: ^i32) -> f64;
 ```
 
@@ -472,7 +474,7 @@ In `Oak`, you can define new data structures as structs, and
 define any methods upon it later. For instance, a linked list
 could be broadly defined as follows.
 
-```
+```rust
 // Alloc is defined in std's std_mem.oak
 package!("std");
 
@@ -526,7 +528,7 @@ is reflected in `Oak`.
 
 Example of `alloc!` and `free!`:
 
-```
+```rust
 let New<t>(self: ^node<t>) -> void
 {
     // Legal call to alloc!
@@ -577,7 +579,7 @@ language's features to `Oak` is an **interfacial package**.
 
 The `Oak` function signatures
 
-```
+```rust
 let foo_bar(self: ^data_structure, what: data, hello: ^^data) -> data_structure;
 let hello_world() -> void;
 let fn_ptr_thing(fn: ^() -> void) -> void;
@@ -585,7 +587,7 @@ let fn_ptr_thing(fn: ^() -> void) -> void;
 
 Will, upon translation to `C`, become
 
-```
+```c
 // Note how the new "mangled" function name contains the entire type
 // Argument types are separated by JOIN, and the argument section ends
 // with MAPS, followed by the return type.
@@ -607,7 +609,7 @@ comes in the form of the `extern "C"` statement.
 
 Where in `C++` you would write
 
-```
+```cpp
 class example
 {
 public:
@@ -619,7 +621,7 @@ public:
 
 In `Oak` you would write
 
-```
+```rust
 // The unit struct; No members
 let example: struct
 {
@@ -696,7 +698,7 @@ flexible syntax means that they aren't too hard to implement.
 
 File: `main.oak`
 
-```
+```rust
 // Import the `Oak` standard package
 package!("std");
 
@@ -717,14 +719,14 @@ let main(argc: i32, argv: ^str)
 
 Commands (bash):
 
-```
+```bash
 acorn main.oak -o hello.out
 ./hello.out
 ```
 
 Output:
 
-```
+```bash
 <Compiler output here>
 This program was started with the command: .oak_build/a.out
 Hello, world!
@@ -762,14 +764,14 @@ pointers are moved to before the type they point to.
 
 For instance,
 
-```
+```cpp
 template <class T, class F>
 unsigned long long int **doThing(T &a, T b[]);
 ```
 
 Becomes
 
-```
+```rust
 let do_thing<t, f>(a: ^t, b: ^f) -> ^^u128;
 ```
 
@@ -779,7 +781,7 @@ You can declare a generic function (a function which can operate
 on a generic type, rather than a specific, defined type) by
 using the `<..>` notation as below.
 
-```
+```rust
 let generic_fn_demo<t>(arg1: t, arg2: bool, arg3: *t) -> t;
 ```
 
@@ -793,7 +795,7 @@ is instantiated).
 `Oak` does not have automatic instantiation of generic functions
 via argument type analysis.
 
-```
+```rust
 let gen_fn<t>(what: t) -> void
 {
     print(t);
@@ -815,7 +817,7 @@ let main() -> i32
 
 Similarly, you can define **generic structs** as follows.
 
-```
+```rust
 let node<t>: struct
 {
     data: t,
@@ -920,7 +922,7 @@ Macro arguments are always treated as strings. For instance,
 `link!(foobar)` is equivalent to `link!("foobar")`. You are
 encouraged to put quotations around any filenames.
 
-```
+```rust
 let hi!(argc: i32, argv: ^^i8) -> i32
 {
     include!("std/std_io.oak");
@@ -940,7 +942,7 @@ If you wanted to create a macro named `print_five_times!()`
 which prints the name of a symbol 5 types, you would do the
 following.
 
-```
+```rust
 let print_five_times!(argc: i32, argv: ^str)
 {
     if (argc != 2)
@@ -979,7 +981,7 @@ can use `--install` or `-S`.
 Every package must have a file named `oak_package_info.txt`.
 This file takes the following form.
 
-```
+```sh
 NAME = "name_goes_here"
 VERSION = "0.0.1"
 LICENSE = "license"
@@ -1025,7 +1027,7 @@ website is currently `github`.
 If you use VSCode, you can add this to your
 `.vscode/settings.json` file.
 
-```
+```json
 "files.associations": {
         "*.oak": "rust",
     }
@@ -1050,7 +1052,7 @@ sys!             | str  | The operating system compiled for
 
 Additional preprocessor definitions can be defined as follows.
 
-```
+```rust
 let name! = definition;
 ```
 
@@ -1160,7 +1162,7 @@ symbol).
 
 ### Example
 
-```
+```rust
 // File "source.oak"
 
 package!("std");
@@ -1187,7 +1189,7 @@ default.
 Here is the source code of the `std_method` bundle, which does 
 automatic method reformatting.
 
-```
+```rust
 new_rule!("argless_mut_method", "$a . . $b ( )", "$b ( @ $a )");
 new_rule!("argless_method", "$a . $b ( )", "$b ( $a )");
 new_rule!("mut_method", "$a . . $b (", "$b ( @ $a ,");
@@ -1221,7 +1223,7 @@ This update also introduces a stored glob operator `$*X` with
 `if $*a {` -> `if ( $a ) {` would auto-parenthesize `if` 
 statements.
 
-```
+```rust
 // STD Oak dialect rules
 clear
 
@@ -1249,7 +1251,7 @@ is called the rule **memory**. You can reset the memory with the
 Consider the following rule, taken from an old version of the 
 `std` `Oak` package.
 
-```
+```rust
 new_rule!(
     "for",
     "for ( $*a ; $*b ; $*c ) { $*d }",
@@ -1275,7 +1277,7 @@ the entire set of nesting braces in a variable.
 
 Below is the modern `Oak` equivalent of this rule.
 
-```
+```rust
 new_rule!(
     "for",
     "for ( $*a ; $*b ; $*c ) $~ $<${$}$> $>g",
@@ -1295,14 +1297,14 @@ deterministic finite autonoma and a push-down autonoma.
 A **suite** is a set of multiple literals, any of which can be
 matched in a given position. A suite is denoted as follows.
 
-```
+```txt
 $[$each$of$these$would$match$]
 ```
 
 Similarly, a **negated suite** matches any single symbol
 *except* those within.
 
-```
+```txt
 $/[$none$of$these$would$match$]
 ```
 
@@ -1312,14 +1314,14 @@ For both of these, literals are delineated by the dollar sign.
 
 A **negative lookbehind**, denoted by
 
-```
+```txt
 $/<$literal
 ```
 
 causes a pattern fail if the previous character was the
 specified literal. It does not advance the current position, so
 
-```
+```txt
 $/<hi $/<hey hello
 ```
 
@@ -1328,7 +1330,7 @@ hey.
 
 Similarly, there is the **negative lookahead**, denoted by
 
-```
+```txt
 $/>$literal
 ```
 
@@ -1526,7 +1528,7 @@ If a program were to modify the padding of a padded struct, the
 other side of the interface would have its data destroyed and
 made nonsensical.
 
-```
+```rust
 // sdl/sdl_interface.cpp
 
 struct sdl_window
@@ -1539,7 +1541,7 @@ struct sdl_window
 
 ```
 
-```
+```rust
 // sdl/sdl_interface.oak
 
 let sdl_window: struct
@@ -1580,7 +1582,7 @@ to read or write.
 
 Here is a useful demonstration of both structs.
 
-```
+```rust
 package!("std");
 include!("std/files.oak");
 include!("std/string.oak");
@@ -1639,7 +1641,7 @@ type. It can be called in the same way as any other functions.
 
 For example, the program
 
-```
+```rust
 package!("std");
 
 let a(what: i32) -> i32
@@ -1672,7 +1674,7 @@ let main() -> i32
 
 would print
 
-```
+```txt
 1
 2
 
@@ -1687,7 +1689,7 @@ a `C++` union, the type of an `Oak` enum is also stored. In this
 way, it is like a combination of `C++`'s enum and union. An
 `Oak` enum declaration looks like this:
 
-```
+```rust
 let example: enum
 {
     option_a: i32,
@@ -1699,7 +1701,7 @@ let example: enum
 Note that an `Oak` enum looks exactly like an `Oak` struct.
 Enums are handled through use of the `match` statement as below.
 
-```
+```rust
 let main() -> i32
 {
     // Assume the previous code chunk is included
@@ -1766,7 +1768,7 @@ after the format string corresponds to the first `%`, the second
 to the second, and so on. For instance,
 `printf!("% % % % %", 1, 2, 3, 4, 5);` would print `1 2 3 4 5`.
 
-```
+```rust
 package!("std");
 include!("std/printf.oak");
 use_rule!("std");
@@ -1853,7 +1855,7 @@ This is where the instantiation block, or **'needs' block**
 comes in. This utilizes another of the few keywords in
 `Oak`- `needs`. Consider the following source code.
 
-```
+```rust
 1  | let list<t>: struct
 2  | {
 3  |     data: t,
@@ -1880,7 +1882,7 @@ the compiler to instantiate the generic functions `New` and
 `Del` for use with `t = i32`. However, this is obviously
 cumbersome to an end user. Thus, we introduce the `needs` block.
 
-```
+```rust
 1  | let list<t>: struct
 2  | {
 3  |     data: t,
@@ -1929,7 +1931,7 @@ unit (empty) functions. For these reasons, we introduce the
 concepts of
 **explicit, implicit, and autogen function definitions.**
 
-```
+```rust
 // A casual definition
 let do_thing() -> void;
 
@@ -2099,7 +2101,7 @@ in the "std" package and the "std/rand_inter.oak" file. We will
 also activate the "std" rule, so that we can use some common
 `Oak` syntactical shortcuts like `for` loops.
 
-```
+```rust
 package!("std");    // For printing and standard functions
 use_rule!("std");   // For common syntactical shortcuts
 
@@ -2126,7 +2128,7 @@ before `rand`.
 
 We will save our random number in a variable named `chosen`.
 
-```
+```rust
 // Needed packages
 package!("std");
 use_rule!("std");
@@ -2158,7 +2160,7 @@ are different from variables in that they cannot be redefined.
 
 A preprocessor definition is defined as follows.
 
-```
+```rust
 // Not within any code scope
 let var_name! = var_definition;
 
@@ -2166,7 +2168,7 @@ let var_name! = var_definition;
 
 We can use this to augment our program as follows.
 
-```
+```rust
 // Needed packages
 package!("std");
 use_rule!("std");
@@ -2194,7 +2196,7 @@ string according to a **format string**. Inside a format string,
 any "%" will be replaced by the next variable passed. For
 example,
 
-```
+```rust
 package("std");
 use_rule!("std");
 
@@ -2217,7 +2219,7 @@ let main() -> i32
 
 We will use this to modify our code as follows.
 
-```
+```rust
 // Needed packages
 package!("std");
 use_rule!("std");
@@ -2246,7 +2248,7 @@ let main() -> i32
 
 Next, let's create the loop wherein the user will guess.
 
-```
+```rust
 // Needed packages
 package!("std");
 use_rule!("std");
@@ -2286,7 +2288,7 @@ let main() -> i32
 We can read an integer from the terminal using the `get_i128`
 function. We will store this in a variable called `guess`.
 
-```
+```rust
 // Needed packages
 package!("std");
 use_rule!("std");
@@ -2339,7 +2341,7 @@ has guessed correctly. If this is the case, the `for` loop
 should halt. In any case, we should update the user on the
 validity of their guess.
 
-```
+```rust
 // Needed packages
 package!("std");
 use_rule!("std");
@@ -2397,7 +2399,7 @@ executable `guessing_game.out`, which can then be run via
 the command `./guessing_game.out`. Here's the output from an
 example run.
 
-```
+```sh
 [user@hostname guessing_game]$ ./a.out
 Guess a number between 0 and 10.
 Guess: 5
@@ -2438,7 +2440,7 @@ line in that file which matches the expression. This is similar
 to the `grep` utility in `POSIX` systems. A typical call to this
 program might look something like this:
 
-```
+```sh
 ./oak_grep.out file.txt "regex+ pat?tern h*ere"
 ```
 
@@ -2782,7 +2784,7 @@ We will designate the mathematical function mapping some $n_i$
 to its $n_{i + 1}$ the **Collatz function**. This function is
 represented in `Oak` below.
 
-```
+```rust
 package!("std");
 use_rule!("std");
 
@@ -2812,7 +2814,7 @@ let collatz(n: u128) -> u128
 We can subsequently create the following function to print
 the Collatz sequence of a given number.
 
-```
+```rust
 let print_collatz_sequence(n: u128) -> void
 {
     print(n);
@@ -2839,7 +2841,7 @@ for the reader.
 
 Our full program is as follows.
 
-```
+```rust
 package!("std");
 use_rule!("std");
 
@@ -3094,13 +3096,13 @@ it.
 
 For a function which in `Oak` would be written
 
-```
+```rust
 let regex_match(text: ^string, pattern: ^regex) -> bool;
 ```
 
 The corresponding mangled symbol names is
 
-```
+```cpp
 regex_match_FN_PTR_string_JOIN_PTR_regex_MAPS_bool
 ```
 

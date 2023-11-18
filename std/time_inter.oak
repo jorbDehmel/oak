@@ -7,6 +7,7 @@ jdehmel@outlook.com
 */
 
 link!("std/time_inter.o");
+include!("std/interface.oak");
 
 let ns: struct
 {
