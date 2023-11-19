@@ -5,6 +5,8 @@ Jordan Dehmel, jdehmel@outlook.com, github.com/jorbDehmel/oak
 
 ----------------------------------------------------------------
 
+# User-Level Introduction
+
 ## Overview
 
 `Oak` is a modern, compiled, low-level, statically-typed
@@ -1991,6 +1993,26 @@ its own file, **you generally should do so.** For example,
 because it does not **need** to have anything more. `Oak` code 
 and, by extension, `.oak` files should be minimalist.
 
+## `c_print!` and `c_panic!`
+
+`c_print!` prints a message at compile time, concatenating the 
+passed strings. `c_panic!` does the same thing, but throws the 
+result as a compile error. In either case, the message will be 
+prefaced by its originating file and line number. Since these 
+two macros are compile-time only, any variables passed will not 
+be evaluated; Only their names will be printed. The `c` refers 
+to compilation, not to the `C` programming language.
+
+## The Erase Macro
+
+`Oak` does not have private members, but sometimes it is still 
+useful to disallow the use of a type after its declaration. In 
+this case, you can use the `erase!` macro. This takes the name 
+of a struct, and disallows it from being used again. For 
+instance, the `std/interface.oak` file provides erased structs 
+of various sizes for use in struct interfaces. These items can 
+never be accessed, but still take up space within a struct.
+
 ## List of Keywords
 
 The following are keywords- That is to say, these words cannot 
@@ -2022,16 +2044,6 @@ The following are atomic (built-in, indivisible) types.
 The `unit` (memberless 1 byte) struct is provided by 
 `std/unit.oak`.
 
-## `c_print!` and `c_panic!`
-
-`c_print!` prints a message at compile time, concatenating the 
-passed strings. `c_panic!` does the same thing, but throws the 
-result as a compile error. In either case, the message will be 
-prefaced by its originating file and line number. Since these 
-two macros are compile-time only, any variables passed will not 
-be evaluated; Only their names will be printed. The `c` refers 
-to compilation, not to the `C` programming language.
-
 ## List of Keyword-Like Macros
 
 The following are atomic (built-in, indivisible) macros.
@@ -2047,16 +2059,8 @@ The following are atomic (built-in, indivisible) macros.
 - free!
 - c_print!
 - c_panic!
-
-## The Erase Macro
-
-`Oak` does not have private members, but sometimes it is still 
-useful to disallow the use of a type after its declaration. In 
-this case, you can use the `erase!` macro. This takes the name 
-of a struct, and disallows it from being used again. For 
-instance, the `std/interface.oak` file provides erased structs 
-of various sizes for use in struct interfaces. These items can 
-never be accessed, but still take up space within a struct.
+- type!
+- size!
 
 ## Misc. Notes
 
@@ -2075,6 +2079,225 @@ their own section in this document:
     are single-argument only. Just use `Copy` for anything else.
 - You can call a multi-argument `=` operator (`Copy`) like this:
     `a = (b, c, d);` (as of `Oak` `0.0.10`)
+
+# `Oak` Compiler Structure
+
+This section is not required for a user-level understanding of
+the `Oak` language, but may be useful for troubleshooting and
+deeper understanding. The sections detailed below view each
+section of the `Oak` compiler as a discrete object, even when
+that is not technically the case (for instance, "the sequencer"
+and the "reconstructor" are really tightly intertwined, and few,
+if any, of the underlying units are represented by objects in
+code).
+
+## Compiler Frontend and `acorn`
+
+The `acorn` resource is a wrapper for the underlying `Oak`
+compiler system. It also provides numerous other resources, such
+as package management, which will not be detailed in this
+section. As far as the `Oak` compilation process is concerned,
+`acorn` takes in a file name, and processes all the code within
+that file, recursively following inclusions therein.
+
+It also handles higher-level calls to external systems. For
+instance, `acorn` calls the `C` compiler after the translation
+process, and the `C++` linker after compilation. While the
+following compiler sections are usually devoted to being free of
+fluff, `acorn` is allowed to have user-friendly features.
+
+Upon taking in a file name, the compiler frontend calls the
+lexer upon its contents. The lexer is detailed next.
+
+## Lexical Tokenization and the Lexer
+
+**Note: Within `Oak` documentation, the terms `token` and**
+**`symbol` are often taken to have the same meaning.**
+**Additionally, "lexical tokenization" is referred to as**
+**"lexicographical symbol parsing". This is an `Oak`-specific**
+**term.**
+
+The lexer takes in a string, and returns a **token stream**
+(a stream of discrete strings, each of which is the smallest it
+could meaningfully be). This process is called lexical
+tokenization, and these tokens will be the only thing used by
+the remainder of the compilation process.
+
+Tokenization is context-dependant. The same symbol set that in
+one place would signify a new token could, in another, continue
+on in the same token. For instance, if the lexer came across the
+string `"a+8"`, it would yield the token stream `"a", "+", "8"`.
+If it instead came across the string `"a8+8"`, it would yield
+`"a8", "+", "8"`. In this case, the `8` caused a new token to
+be started when following `+`, but not when following `a`.
+
+During lexing, several important processes happen. The first of
+these is that all comments, single-line or multi-line, are
+erased. All `#`-begun lines (the only legal use of which being
+the shebang `#!/path/to/program`) are also removed. The second
+important process is the insertion of **special symbols**. These
+are symbols which are ignored by everything following this
+process. They carry additional information that might otherwise
+be lost by tokenization, like the line number. These begin with
+`//`, but they are **not** tokenizations of comments in the
+source code. They are only inserted by the lexer, not the source
+code.
+
+## Preprocessor Rules and the Rule Processor
+
+A rule is a combination of an **input pattern** and an
+**output pattern**. The input pattern represents, via a series
+of **cards** (space-separated tokens which match some set of
+other tokens), the set of token streams which the rule targets.
+The output pattern is the content which a match will be replaced
+by in the token stream. There are several special cards for
+output patterns as well. More about the specifics of rules can
+be found earlier in this document.
+
+The rule processor, which is by default `$apling`, is a
+specialized turing machine (or, for more limited rule
+processors, deterministic finite autonoma) for the augmentation
+of patterns of tokens (or symbols, in `Oak` terminology).
+
+The original `$apling` is a deterministic finite autonoma,
+meaning it has limited functionality. However, work is in
+progress to replace it with a Token-Augmentation Turing Machine,
+which will offer Turing-completeness and thus more complete
+functionality.
+
+### Part 1- Rule Loading
+
+Upon encounter of the `new_rule!` macro, the `acorn` compiler
+frontend adds the rule contained within into its internal bank
+of rules. Upon `use_rule!`, it copies that rule into the bank
+of rules which are used in the **current file**. `use_rule!`
+does **not** carry over into other files.
+
+### Part 2- Compile-Time Rule Application
+
+During the iterative process executed by the `acorn` compiler
+frontend on a given file, there is a stage wherein rules are
+handled. The specific execution location of this stage, as well
+as the number of times it is executed, has changed numerous
+times in the lifetime of `Oak`.
+
+During this phase of compilation, the token stream is iterated
+over, and each of the active rules are applied. If a rule
+matches, the matched token stream section is replaced
+accordingly. The specifics of this vary according to the rule
+processor's pattern language, and cannot be detailed here. More
+information about these specifics can be found earlier in this
+document.
+
+## Macros, Definitions and the Macro Instantiation Unit
+
+Macros are compile-time functions. They output raw code, which
+is then used by the final program. They have the same notation
+as **compiler macros**, which are analogous to preprocessor
+directives in other languages. Technically, however, compiler
+macros operate on the compiler itself, rather than the source
+code's token stream.
+
+Preprocessor definitions are compile-time constants, as opposed
+to functions. They are analogous to `C`'s `#define` directive,
+except that they cannot be redefined after creation.
+
+**Note: Macros and definitions cannot be redefined. Attempting**
+**to do so will cause an error.**
+
+Macro definitions are collected by the `acorn` compiler frontend
+during one phase of the iterative compilation process, and
+replaced with their corresponding values before sequencing.
+
+Macro definitions are written to their own temporary `.oak` file
+during the build process. After this, they are compiled into
+executables by `acorn`. Input to a macro is provided as command
+line arguments into these executables, and their `cout` output
+is reinserted into the code at the desired spot.
+
+## Syntax Trees and the Sequencer
+
+Sequencing is the penultimate step of compilation, followed by
+reconstruction. This is the most time-consuming step, where the
+specific semantic meanings of statements are determined and they
+are translated into their equivalent low-level-language code.
+This is a highly recursive process, and is always evolving.
+
+`Oak` sequencing is perhaps best detailed by the source code
+itself. Thus, this author invites you to analyze `sequence.cpp`.
+
+## Translation and the Reconstructor
+
+The final phase of compilation is reconstruction, in which the
+low-level statements generated by sequencing are assembled into
+an equivalent `C` program, which is then compiled. This
+essentially works as a specialized traversal of the syntax tree
+where each node is replaced by its `C` statement. This `C` code
+is then written to an output file and compiled via an external
+`C` compiler. If so desired, a `C++` linker can also be called.
+
+## Templating and the Template Instantiation Unit
+
+**Note: In `Oak`, the terms *templated* and *generic* are used**
+**interchangeably. The former comes from `C++`, and the later**
+**from `Rust` (in the author's experience).**
+
+The template instantiation unit is the section of the `Oak`
+compiler which handles instantiation calls for generic /
+templated code blocks. There are three parts to the
+instantiation process, detailed below.
+
+### Part 1- Generic Insertion
+
+When a function, enum or struct is detected to be generic (via
+the `<t>`-style generic declaration), it is inserted as a
+template into the template instantiation unit's internal bank of
+templates. The specific generic arguments are also stored, as
+well as the type (for instance, a function or enum).
+
+### Part 2- Instantiation Call
+
+Later on, the sequencer will detect a call to the instantiator,
+denoted `<some_type_which_exists>`. Upon hearing this, the
+instantiator will search through its templates until it finds
+one which suites the call (some template such that, when the
+generic is substituted into the type, the resulting type matches
+that used in the instantiator call). Alternatively, if this
+specific template / generic combination has already been
+instantiated, it will simply return. Otherwise, once the correct
+template has been identified, it will move on to part 3.
+
+### Part 3 A- Needs Block
+
+A `needs` block is a block of code which can be attached to some
+forms of template. If attached, this code block will be
+instantiated before the main template in order to instantiate
+all the dependencies. For instance, in a generic struct, the
+`needs` block tells the instantiator which functions to
+instantiate along with the struct, so that the user does not
+have to explicitly instantiate each one themselves. If a `needs`
+block fails, it is not usually indicative of an error- This is
+simply an invalid choice for a template.
+
+`needs` blocks are instantiated just like regular code blocks,
+whose process is detailed below.
+
+### Part 3 B- Template Substitution
+
+Upon the selection of the proper code block, the instantiator
+will begin by iterating through the tokens of the code block,
+replacing any occurrence of the `i`-th generic with the `i`-th
+generic specified during the instantiator call. For instance,
+if the template was declared via `<t, h>` and the instantiator
+call was `<i32, f64>`, it would replace all instances of `t`
+with `i32` and all instances of `h` with `f64`. After this
+replacement, the resulting code section would be fed to the
+sequencer like any other code. This causes the symbols within
+to be entered into the global namespace as if they were never
+generics at all.
+
+Note: The generic system exists exclusively within `Oak`; There
+is no way to interface `C++` generics with `Oak` or vice-versa.
 
 # Examples
 
@@ -3616,6 +3839,172 @@ This example requires:
 - A `boost` `C++` library installation
 - A basic understanding of regular expressions
 - A basic understanding of socket programming
+
+In this example, we will be using the `Oak` standard library to
+create a file server and client. The client will be able to make
+requests to the server, and the server will send back some file
+matching the request. Let's start by creating the necessary
+files.
+
+```bash
+# Create Oak files for the file server and client
+touch file_server.oak file_client.oak
+```
+
+We'll add a skeleton into each.
+
+```rust
+// file_server.oak
+package!("std");
+use_rule!("std");
+
+let main() -> i32
+{
+    0
+}
+
+```
+
+```rust
+// file_client.oak
+package!("std");
+use_rule!("std");
+
+let main() -> i32
+{
+    0
+}
+
+```
+
+We want our file server to take in a request for a given file
+in the form of a regular expression, and send back the first
+file which matches it. Thus, it will need the `string`,
+`file_inter`, `regex_inter`, and `sock_inter` `Oak` files, all
+of which are found in the `std` package (although not included
+by default).
+
+The client program will only need to make requests and save
+files, so it will only need `string`, `file`, and `sock_inter`.
+
+Additionally, we will include `std/printf.oak` in both files for
+convenient printing. Now, the skeleton files should look like
+the following.
+
+```rust
+// file_server.oak
+package!("std");
+use_rule!("std");
+
+include "std/string.oak",
+        "std/file_inter.oak",
+        "std/regex_inter.oak",
+        "std/sock_inter.oak",
+        "std/printf.oak";
+
+let main() -> i32
+{
+    0
+}
+
+```
+
+```rust
+// file_client.oak
+package!("std");
+use_rule!("std");
+
+include "std/string.oak",
+        "std/file_inter.oak",
+        "std/sock_inter.oak",
+        "std/printf.oak";
+
+let main() -> i32
+{
+    0
+}
+
+```
+
+Now, let's focus on the server side of things. When not
+connected to a client, the server should listen for one. When
+one arrives, it should wait for a command from it. Upon hearing
+a command from the client, it should search for a file matching
+the given regular expression. If not found, it should send back
+an error message. Otherwise, it should send the file.
+
+When sending a file, we will first have the server send the size
+of the file. The client will echo back this size to indicate
+that it has received it. Then, the server will send the file.
+The `Oak` socket interface is always TCP, so the file will be
+broken apart automatically. Requests will work in the same way-
+size, then message.
+
+An error opening the file will be indicated by sending a size of
+zero.
+
+The above outline roughly translates to the code below.
+
+```rust
+// file_server.oak
+package!("std");
+use_rule!("std");
+
+include "std/string.oak",
+        "std/file_inter.oak",
+        "std/regex_inter.oak",
+        "std/sock_inter.oak",
+        "std/printf.oak";
+
+// Sizes will be sent using this many chars
+let size_chars! = 8;
+
+// Handle a single request
+let do_request(server: ^server_sock, request: string) -> void;
+
+let main() -> i32
+{
+    let is_listening = true;
+
+    // Create empty server socket
+    let server: server_sock;
+
+    // Initialize server socket to localhost on port 1234
+    // Save result of initialization into result
+    let result = server = ("127.0.0.1", to_u16(1234));
+
+    let size_str: string;
+    let size: u128;
+    let request: string;
+
+    while is_listening
+    {
+        // Listen for a connection
+        // save connection status in result
+        result = server.listen();
+
+        size_str = server.recv(size_chars!);
+        size = to_u128(size_str);
+
+        if size > 0
+        {
+            request = server.recv(size);
+
+            if request == "quit"
+            {
+                is_listening = false;
+            }
+            else
+            {
+                do_request(server, request);
+            }
+        }
+    }
+    
+    0
+}
+
+```
 
 # Appendix
 
