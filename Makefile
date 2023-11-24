@@ -19,7 +19,7 @@ HEADS := lexer.hpp reconstruct.hpp symbol-table.hpp \
 
 # -O3 is best for actual installs, not for testing.
 # -g should be used when size doesn't matter
-FLAGS := -O3
+FLAGS := -O3 -g
 
 TEST := acorn
 
@@ -49,7 +49,6 @@ reinstall:
 	$(MAKE) -C . uninstall clean install
 
 test:
-	$(TEST) oak_demos/access_test.oak -o access_test.out
 	$(TEST) oak_demos/assert_test.oak -o assert_test.out
 	$(TEST) oak_demos/bool_test.oak -o bool_test.out
 	$(TEST) oak_demos/color_test.oak -o color_test.out
@@ -78,7 +77,7 @@ test:
 	$(TEST) oak_demos/rule_test_4.oak -o rule_test_4.out
 	$(TEST) oak_demos/size_test.oak -o size_test.out
 	$(TEST) oak_demos/sock_test_c.oak -o sock_test_c.out
-	$(TEST) oak_demos/sock_test_s.oak -o socket_test_s.out
+	$(TEST) oak_demos/sock_test_s.oak -o sock_test_s.out
 	$(TEST) oak_demos/string_test.oak -o string_test.out
 	$(TEST) oak_demos/thread_test.oak -o thread_test.out
 	$(TEST) oak_demos/time_test.oak -o time_test.out

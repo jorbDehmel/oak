@@ -1,7 +1,7 @@
 # Maintainer: Jordan Dehmel <jdehmel@outlook.com>
 
 pkgname="oak-git"
-pkgver="0.2.5"
+pkgver="0.2.6"
 pkgrel="1"
 pkgdesc="The Oak programming language and Acorn compiler"
 depends=("clang" "make" "git")

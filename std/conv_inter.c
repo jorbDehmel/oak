@@ -247,3 +247,13 @@ u128 to_u128_FN_i128_MAPS_u128(i128 what)
         return what;
     }
 }
+
+bool Eq_FN_str_JOIN_i8_MAPS_bool(str what, i8 against)
+{
+    return what[0] == against;
+}
+
+bool Eq_FN_i8_JOIN_str_MAPS_bool(i8 what, str against)
+{
+    return against[0] == what;
+}

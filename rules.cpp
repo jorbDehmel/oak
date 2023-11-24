@@ -106,7 +106,9 @@ void doRules(vector<string> &From)
             for (int j = 0; j < args.size(); j++)
             {
                 rm_assert(args[j].size() >= 2, "Rule macro argument is of insufficient size.");
-                rm_assert((args[j].front() == '"' && args[j].back() == '"') || (args[j].front() == '\'' && args[j].back() == '\''), "All rule macro arguments must be strings.");
+                rm_assert((args[j].front() == '"' && args[j].back() == '"') ||
+                              (args[j].front() == '\'' && args[j].back() == '\''),
+                          "All rule macro arguments must be strings.");
                 args[j].pop_back();
                 args[j].erase(0, 1);
             }
@@ -131,7 +133,9 @@ void doRules(vector<string> &From)
             for (int j = 0; j < args.size(); j++)
             {
                 rm_assert(args[j].size() >= 2, "Rule macro argument is of insufficient size.");
-                rm_assert((args[j].front() == '"' && args[j].back() == '"') || (args[j].front() == '\'' && args[j].back() == '\''), "All rule macro arguments must be strings.");
+                rm_assert((args[j].front() == '"' && args[j].back() == '"') ||
+                              (args[j].front() == '\'' && args[j].back() == '\''),
+                          "All rule macro arguments must be strings.");
                 args[j].pop_back();
                 args[j].erase(0, 1);
             }
@@ -140,7 +144,8 @@ void doRules(vector<string> &From)
 
             for (auto arg : args)
             {
-                rm_assert(rules.count(arg) != 0 || bundles.count(arg) != 0, "Rule '" + arg + "' does not exist and is not a bundle.");
+                rm_assert(rules.count(arg) != 0 || bundles.count(arg) != 0,
+                          "Rule '" + arg + "' does not exist and is not a bundle.");
 
                 // bundles override rules with the same name
                 if (bundles.count(arg) != 0)
@@ -168,7 +173,9 @@ void doRules(vector<string> &From)
             for (int j = 0; j < args.size(); j++)
             {
                 rm_assert(args[j].size() >= 2, "Rule macro argument is of insufficient size.");
-                rm_assert((args[j].front() == '"' && args[j].back() == '"') || (args[j].front() == '\'' && args[j].back() == '\''), "All rule macro arguments must be strings.");
+                rm_assert((args[j].front() == '"' && args[j].back() == '"') ||
+                              (args[j].front() == '\'' && args[j].back() == '\''),
+                          "All rule macro arguments must be strings.");
                 args[j].pop_back();
                 args[j].erase(0, 1);
             }
@@ -204,7 +211,9 @@ void doRules(vector<string> &From)
             for (int j = 0; j < args.size(); j++)
             {
                 rm_assert(args[j].size() >= 2, "Rule macro argument is of insufficient size.");
-                rm_assert((args[j].front() == '"' && args[j].back() == '"') || (args[j].front() == '\'' && args[j].back() == '\''), "All rule macro arguments must be strings.");
+                rm_assert((args[j].front() == '"' && args[j].back() == '"') ||
+                              (args[j].front() == '\'' && args[j].back() == '\''),
+                          "All rule macro arguments must be strings.");
                 args[j].pop_back();
                 args[j].erase(0, 1);
             }
@@ -517,7 +526,8 @@ void doRules(vector<string> &From)
                             endOfCloser++;
                         }
 
-                        string opener = match.substr(3, endOfOpener - 3), closer = match.substr(endOfOpener + 1, endOfCloser - endOfOpener - 1);
+                        string opener = match.substr(3, endOfOpener - 3),
+                               closer = match.substr(endOfOpener + 1, endOfCloser - endOfOpener - 1);
                         long long count = 0;
 
                         int beginningPosition = posInFrom;
@@ -698,22 +708,21 @@ void doRules(vector<string> &From)
                             ruleLogFile << "Regular rule\n";
                         }
 
-                        ruleLogFile << "In rule index " << ruleIndex << '\n'
-                                    << "Input pattern '";
+                        ruleLogFile << "In rule index " << ruleIndex << '\n' << "Input pattern\t";
 
                         for (const auto &what : curRule.inputPattern)
                         {
-                            ruleLogFile << what << ' ';
+                            ruleLogFile << "'" << what << "' ";
                         }
 
-                        ruleLogFile << "'\nOutput pattern '";
+                        ruleLogFile << "\nOutput pattern\t";
 
                         for (const auto &what : curRule.outputPattern)
                         {
-                            ruleLogFile << what << ' ';
+                            ruleLogFile << "'" << what << "' ";
                         }
 
-                        ruleLogFile << "'\nMatch '";
+                        ruleLogFile << "\nMatch '";
                     }
 
                     // Erase old contents

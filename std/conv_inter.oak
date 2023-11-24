@@ -64,6 +64,9 @@ let to_u128(what: i128) -> u128;
 // (only uses the first character)
 let to_i8(what: str) -> i8;
 
+let Eq(what: str, against: i8) -> bool;
+let Eq(what: i8, against: str) -> bool;
+
 // Common aliases below
 
 let to_bool(what: str) -> bool

@@ -2,7 +2,7 @@
 // github.com/jorbDehmel/oak
 
 NAME = "std"
-VERSION = "0.2.5"
+VERSION = "0.2.6"
 LICENSE = "GPLv3"
 DATE = "October 27, 2023"
 SOURCE = "github.com/jorbDehmel"
@@ -10,5 +10,5 @@ AUTHOR = "Jordan Dehmel"
 EMAIL = "jdehmel@outlook.com"
 ABOUT = "Oak STD Package"
 INCLUDE = "std.oak"
-SYS_DEPS = "git clang"
+SYS_DEPS = "git clang boost"
 PATH = "."

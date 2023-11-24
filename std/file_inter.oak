@@ -67,6 +67,8 @@ let seek(self: ^o_file, pos: u128) -> void;
 let getline(self: ^i_file, max: u128) -> string;
 let eof(self: ^i_file) -> bool;
 
+let size(self: ^i_file) -> u128;
+
 // Defined in Oak
 let read(self: ^i_file, size: u128) -> string
 {

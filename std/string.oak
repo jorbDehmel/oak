@@ -5,7 +5,10 @@ Basic non-resizing heap string.
 */
 
 package!("std");
+use_rule!("std");
 link!("std/string.o");
+
+include!("std/conv_extra.oak");
 
 // For debugging
 // include!("std/printf.oak");
@@ -209,7 +212,87 @@ let Add(a: string, b: string) -> string
 // Do not modify.
 let c_str(self: ^string) -> str;
 
+let Eq(self: ^string, other: str) -> bool
+{
+    let out: bool = (self.c_str()) == other;
+    out
+}
+
+let Neq(self: ^string, other: str) -> bool
+{
+    let out: bool = (self.c_str()) != other;
+    out
+}
+
 let print(what: string) -> void
 {
     print(c_str(@what));
+}
+
+let to_i128(what: ^string) -> i128
+{
+    let out: i128 = 0;
+    let is_negative: bool = false;
+
+    if what.size != to_u128(0)
+    {
+        let i: u128 = 0;
+        if ^Get(what, to_u128(0)) == "-"
+        {
+            is_negative = true;
+            i += 1;
+        }
+
+        while i < what.size
+        {
+            out *= to_i128(10);
+
+            if ^Get(what, i) == "1"
+            {
+                out += 1;
+            }
+            else if ^Get(what, i) == "2"
+            {
+                out += 2;   
+            }
+            else if ^Get(what, i) == "3"
+            {
+                out += 3;
+            }
+            else if ^Get(what, i) == "4"
+            {
+                out += 4;
+            }
+            else if ^Get(what, i) == "5"
+            {
+                out += 5;
+            }
+            else if ^Get(what, i) == "6"
+            {
+                out += 6;
+            }
+            else if ^Get(what, i) == "7"
+            {
+                out += 7;
+            }
+            else if ^Get(what, i) == "8"
+            {
+                out += 8;
+            }
+            else if ^Get(what, i) == "9"
+            {
+                out += 9;
+            }
+
+            i += 1;
+        }
+    }
+
+    if is_negative
+    {
+        out *= to_i128(-1);
+    }
+
+    out
+
 }

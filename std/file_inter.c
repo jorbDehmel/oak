@@ -164,3 +164,18 @@ bool eof_FN_PTR_i_file_MAPS_bool(struct i_file *self)
 {
     return (feof(self->raw) != 0);
 }
+
+u128 size_FN_PTR_i_file_MAPS_u128(struct i_file *self)
+{
+    if (self->raw == 0)
+    {
+        return 0;
+    }
+
+    long temp = ftell(self->raw);
+    fseek(self->raw, 0, SEEK_END);
+    long out = ftell(self->raw);
+    fseek(self->raw, temp, SEEK_SET);
+
+    return out;
+}

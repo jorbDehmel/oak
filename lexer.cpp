@@ -73,7 +73,7 @@ vector<string> lex(const string &What)
         // Single-line comments, also shouldn't get to this point
         else if (c == '/' && i + 1 < What.size() && What[i + 1] == '/')
         {
-            while (What[i] != '\n')
+            while (i < What.size() && What[i] != '\n')
             {
                 i++;
             }
@@ -524,8 +524,7 @@ vector<string> lex(const string &What)
         }
 
         // Universal deliminators (non-ignored)
-        else if (c == ';' || c == '(' || c == ')' || c == '[' ||
-                 c == ']' || c == '{' || c == '}' || c == '.' ||
+        else if (c == ';' || c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}' || c == '.' ||
                  c == ',' || c == '^' || c == '@')
         {
             if (cur != "")

@@ -3950,14 +3950,15 @@ The above outline roughly translates to the code below.
 package!("std");
 use_rule!("std");
 
-include "std/string.oak",
+include!("std/string.oak",
         "std/file_inter.oak",
         "std/regex_inter.oak",
         "std/sock_inter.oak",
-        "std/printf.oak";
+        "std/printf.oak",
+        "std/conv_extra.oak");
 
 // Sizes will be sent using this many chars
-let size_chars! = 8;
+let size_chars! = to_u128(8);
 
 // Handle a single request
 let do_request(server: ^server_sock, request: string) -> void;
@@ -3984,9 +3985,9 @@ let main() -> i32
         result = server.listen();
 
         size_str = server.recv(size_chars!);
-        size = to_u128(size_str);
+        size = to_u128(to_i128(size_str));
 
-        if size > 0
+        if size != to_u128(0)
         {
             request = server.recv(size);
 
@@ -3999,10 +4000,133 @@ let main() -> i32
                 do_request(server, request);
             }
         }
+        else
+        {
+            is_listening = false;
+        }
     }
     
     0
 }
+
+```
+
+Great! Now we've got the basic outline of our server. However,
+we still need to define `do_request`. A request should be a
+regular expression, and our `do_request` function should send
+the first file it finds matching this description over the
+server socket. Once we have the exact filename to send, this
+won't be so hard. However, how do we find the first filename
+that matches the given regular expression? Let's do this the
+"hacky" way, using the `std/sys_inter.oak` file.
+
+We will tell the system to save a list of all local files to a
+temporary `.txt` file, then read that file in. From this, we can
+iterate through until we find a filename which matches the given
+regular expression. Then, we will load the matched file into
+memory and send it over the socket. After this, we must remember
+to delete our temporary `.txt` file. Let's create a skeleton of
+our `do_request` function.
+
+```rust
+// file_server.oak
+// (code above hidden)
+
+// This line will be integrated into the earlier include! block
+include!("std/sys_inter.oak");
+
+// Handle a single request
+let do_request(server: ^server_sock, request: string) -> void
+{
+    // Make system call to list all files in this directory
+
+    // Open file where the above output was saved
+
+    // Iterate over lines in this file
+    //      If the current line matches request
+    //          Load this file
+    //          Send this file
+    //          Break
+
+    // If no matches were found
+    //      Send error signal
+    
+    // Delete temporary text file
+}
+
+// (code below hidden)
+
+```
+
+The `Linux` command we will be using to save a list of all local
+files to a temporary text file is `ls > temp.txt`. After this,
+`temp.txt` will contain all the files in the current directory.
+
+```rust
+// file_server.oak
+// (code above hidden)
+
+include!("std/panic_inter.oak");
+include!("std/bool.oak");
+use_rule!("bool");
+
+// Handle a single request
+// Assumes the server is running on Linux
+let do_request(server: ^server_sock, request: string) -> void
+{
+    // Make system call to list all files in this directory
+    let result = sys("ls > temp.txt");
+    assert!(result == 0);
+
+    let pattern: regex = request;
+
+    // Open file where the above output was saved
+    let file: i_file;
+    file.open("temp.txt");
+
+    let line: string;
+    let found: bool = false;
+
+    // Iterate over lines in this file
+    while !file.eof() && !found
+    {
+        // Read a line of at most 256 chars
+        line = file.getline(256);
+
+        // If the current line matches request
+        if (line.regex_match(pattern))
+        {
+            // Load this file
+            let to_send: i_file;
+            to_send.open(line);
+
+            let contents: string;
+            contents = to_send.read(to_send.size());
+
+            // Send this file
+            server.send();
+            server.send(contents);
+
+            to_send.close();
+            
+            // Break
+            found = true;
+        }
+    }
+
+    file.close();
+
+    // If no matches were found
+    if !found
+    {
+        // Send error signal
+    }
+    
+    // Delete temporary text file
+    sys("rm temp.txt");
+}
+
+// (code below hidden)
 
 ```
 
