@@ -1292,7 +1292,7 @@ This version can recognize infinitely nested sets of curly
 brackets with no issues.
 
 Note: The `Sapling` interpreter is somewhere between a
-deterministic finite autonoma and a push-down autonoma.
+deterministic finite automata and a push-down automata.
 
 ### Suites
 
@@ -2156,10 +2156,10 @@ be found earlier in this document.
 
 The rule processor, which is by default `$apling`, is a
 specialized turing machine (or, for more limited rule
-processors, deterministic finite autonoma) for the augmentation
+processors, deterministic finite automata) for the augmentation
 of patterns of tokens (or symbols, in `Oak` terminology).
 
-The original `$apling` is a deterministic finite autonoma,
+The original `$apling` is a deterministic finite automata,
 meaning it has limited functionality. However, work is in
 progress to replace it with a Token-Augmentation Turing Machine,
 which will offer Turing-completeness and thus more complete
@@ -2920,8 +2920,8 @@ Let's try it out! (Note: This document is plaintext, so the
 terminal colors will not appear here)
 
 ```bash
-[jorb@archlinux oak]$ acorn oak_grep.oak -o oak_grep.out
-[jorb@archlinux oak]$ ./oak_grep.out oak_grep.oak "print"
+[user@host oak]$ acorn oak_grep.oak -o oak_grep.out
+[user@host oak]$ ./oak_grep.out oak_grep.oak "print"
     "std/string.oak", "std/printf.oak",
             print(line.green());
     print("\n");
