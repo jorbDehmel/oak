@@ -155,6 +155,58 @@ string __instantiateGeneric(const string &what, genericInfo &info, const vector<
 
     vector<string> copy;
 
+    // Needs block (pre, so no functions)
+    if (info.needsBlock.size() != 0)
+    {
+        copy.clear();
+
+        // Create copy of needs block
+        for (int i = 0; i < info.needsBlock.size(); i++)
+        {
+            copy.push_back(info.needsBlock[i]);
+
+            // Avoid functions; Only include struct instances
+            if (info.needsBlock[i] == "(")
+            {
+                while (i >= 0 && !copy.empty() && copy.back() != ";")
+                {
+                    copy.pop_back();
+                    i--;
+                }
+                do
+                {
+                    i++;
+                } while (i < info.needsBlock.size() && info.needsBlock[i] != ";");
+            }
+        }
+
+        // Iterate and mangle needs block
+        for (int i = 0; i < copy.size(); i++)
+        {
+            if (substitutions.count(copy[i]) != 0)
+            {
+                string temp = copy[i];
+                copy.erase(copy.begin() + i);
+                for (auto s : substitutions[temp])
+                {
+                    copy.insert(copy.begin() + i, s);
+                    i++;
+                }
+            }
+        }
+
+        try
+        {
+            // Call on substituted needs block
+            createSequence(copy);
+        }
+        catch (exception &e)
+        {
+            // This is only a failure case for this template
+            return e.what();
+        }
+    }
+
     // Make a copy of the template
     for (auto item : info.symbols)
     {
@@ -174,15 +226,27 @@ string __instantiateGeneric(const string &what, genericInfo &info, const vector<
     // Call on substituted results
     createSequence(copy);
 
-    // Needs block
+    // Needs block (post, so no structs)
     if (info.needsBlock.size() != 0)
     {
         copy.clear();
 
         // Create copy of needs block
-        for (auto item : info.needsBlock)
+        for (int i = 0; i < info.needsBlock.size(); i++)
         {
-            copy.push_back(item);
+            // Avoid structs; Only include function instances
+            if (info.needsBlock[i] == "(")
+            {
+                while (i >= 0 && info.needsBlock[i] != ";")
+                {
+                    i--;
+                }
+                do
+                {
+                    i++;
+                    copy.push_back(info.needsBlock[i]);
+                } while (i < info.needsBlock.size() && info.needsBlock[i] != ";");
+            }
         }
 
         // Iterate and mangle needs block

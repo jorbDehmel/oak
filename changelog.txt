@@ -6,7 +6,7 @@ Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
 0.2.7           | 11/29/23 | Added ptrcpy! and ptrarr! for ease
                 |          | of use. Bug fixes and minor
-                |          | optimization
+                |          | optimization, modified needs block.
                 |          |
 0.2.6           | 11/23/23 | Minor bug fixes
                 |          |
