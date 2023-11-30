@@ -13,6 +13,22 @@ typeNode &typeNode::operator=(const typeNode &other)
     return *this;
 }
 
+bool typeNode::operator==(const typeNode &other) const
+{
+    if (info != other.info)
+    {
+        return false;
+    }
+    else if (info == atomic)
+    {
+        return name == other.name;
+    }
+    else
+    {
+        return true;
+    }
+}
+
 const Type nullType(atomic, "NULL");
 
 Type::Type(const TypeInfo &Info, const string &Name)
@@ -103,24 +119,7 @@ void Type::append(const Type &Other)
 
 bool Type::operator==(const Type &Other) const
 {
-    for (int cur = 0; cur < internal.size(); cur++)
-    {
-        if (cur >= Other.size())
-        {
-            return false;
-        }
-
-        if (internal[cur].info != Other.internal[cur].info)
-        {
-            return false;
-        }
-        else if (internal[cur].info == atomic && internal[cur].name != Other.internal[cur].name)
-        {
-            return false;
-        }
-    }
-
-    return true;
+    return internal == Other.internal;
 }
 
 bool Type::operator!=(const Type &Other) const
@@ -226,7 +225,8 @@ bool typesAreSame(Type *A, Type *B)
             left++;
         }
 
-        while (right < B->internal.size() && (B->internal[right].info == var_name || B->internal[right].info == pointer))
+        while (right < B->internal.size() &&
+               (B->internal[right].info == var_name || B->internal[right].info == pointer))
         {
             right++;
         }
@@ -361,8 +361,7 @@ Type checkLiteral(const string &From)
     return nullType;
 }
 
-typeNode &Type::operator[](const int &Index)
+typeNode &Type::operator[](const int &Index) const
 {
-    ID = currentID++;
-    return internal[Index];
+    return (typeNode &)internal[Index];
 }

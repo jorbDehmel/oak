@@ -1,0 +1,29 @@
+/*
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+
+A test of the type! macro, which expands
+into the type of the object passed to it.
+
+Passed Oct 21, 23
+*/
+
+package!("std");
+use_rule!("std");
+
+let Fn() -> void
+{
+    let a: ^i32;
+    let b: ^i32;
+
+    alloc!(a, to_u128(16));
+    
+    ptrcpy!(b, a);
+
+    b = ptrarr!(a, to_u128(2));
+}
+
+let main() -> i32
+{
+    0
+}

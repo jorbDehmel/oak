@@ -188,6 +188,7 @@ void doFile(const string &From)
         if (debug)
         {
             end = chrono::high_resolution_clock::now();
+            // Log at 0
             phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
             curPhase++;
         }
@@ -205,6 +206,7 @@ void doFile(const string &From)
         if (debug)
         {
             end = chrono::high_resolution_clock::now();
+            // Log at 1
             phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
             curPhase++;
         }
@@ -600,6 +602,12 @@ void doFile(const string &From)
 
                 // Extra bonus special cases: Typing and sizing
                 else if (lexed[i] == "type!" || lexed[i] == "size!")
+                {
+                    continue;
+                }
+
+                // Super secret special cases: Pointer manipulation
+                else if (lexed[i] == "ptrcpy!" || lexed[i] == "ptrarr!")
                 {
                     continue;
                 }

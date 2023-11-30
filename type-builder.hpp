@@ -23,6 +23,7 @@ enum TypeInfo
 struct typeNode
 {
     typeNode &operator=(const typeNode &other);
+    bool operator==(const typeNode &other) const;
 
     TypeInfo info;
     string name;
@@ -51,7 +52,7 @@ class Type
 
     const size_t size() const;
 
-    typeNode &operator[](const int &Index);
+    typeNode &operator[](const int &Index) const;
 
     unsigned long long ID;
 

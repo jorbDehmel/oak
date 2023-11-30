@@ -25,7 +25,7 @@ agnostic with respect to input (as much as possible).
 #include "lexer.hpp"
 #include "mangler.hpp"
 #include "rules.hpp"
-#include "sequence.hpp"
+// #include "sequence.hpp"
 #include "symbol-table.hpp"
 #include "type-builder.hpp"
 
@@ -58,10 +58,6 @@ string toStrCFunction(Type *What, const string &Name, const unsigned int &pos = 
 
 // Other type of C++ function; IE bool (*what)(const bool &What);
 string toStrCFunctionRef(Type *What, const string &Name, const unsigned int &pos = 0);
-
-// Dump data to file
-void dump(const vector<string> &Lexed, const string &Where, const string &FileName, const int &Line,
-          const sequence &FileSeq, const vector<string> LexedBackup);
 
 string enumToC(const string &name);
 

@@ -15,10 +15,8 @@ extern sequence createSequence(const vector<string> &From);
 map<string, vector<genericInfo>> generics;
 
 // Returns true if template substitution would make the two typeVecs the same
-bool checkTypeVec(const vector<string> &candidateTypeVec,
-                  const vector<string> &genericTypeVec,
-                  const vector<string> &genericNames,
-                  const vector<vector<string>> &substitutions)
+bool checkTypeVec(const vector<string> &candidateTypeVec, const vector<string> &genericTypeVec,
+                  const vector<string> &genericNames, const vector<vector<string>> &substitutions)
 {
     if (genericNames.size() != substitutions.size())
     {
@@ -145,7 +143,8 @@ bool checkInstances(const vector<vector<string>> &a, const vector<vector<string>
 }
 
 // Skips all error checking; DO NOT FEED THIS THINGS THAT MAY ALREADY HAVE INSTANCES
-void __instantiateGeneric(const string &what, genericInfo &info, const vector<vector<string>> &genericSubs)
+// Returns true if it was successful
+string __instantiateGeneric(const string &what, genericInfo &info, const vector<vector<string>> &genericSubs)
 {
     // Build substitution table
     map<string, vector<string>> substitutions;
@@ -154,8 +153,9 @@ void __instantiateGeneric(const string &what, genericInfo &info, const vector<ve
         substitutions[info.genericNames[i]] = genericSubs[i];
     }
 
-    // Make a copy of the template
     vector<string> copy;
+
+    // Make a copy of the template
     for (auto item : info.symbols)
     {
         if (substitutions.count(item) != 0)
@@ -179,13 +179,13 @@ void __instantiateGeneric(const string &what, genericInfo &info, const vector<ve
     {
         copy.clear();
 
-        // Create copy of inst block
+        // Create copy of needs block
         for (auto item : info.needsBlock)
         {
             copy.push_back(item);
         }
 
-        // Iterate and mangle inst block
+        // Iterate and mangle needs block
         for (int i = 0; i < copy.size(); i++)
         {
             if (substitutions.count(copy[i]) != 0)
@@ -202,57 +202,25 @@ void __instantiateGeneric(const string &what, genericInfo &info, const vector<ve
 
         try
         {
-            // Call on substituted inst block
+            // Call on substituted needs block
             createSequence(copy);
         }
         catch (exception &e)
         {
-            cout << tags::red_bold
-                 << "\nDuring execution of needs block " << what << "<";
-
-            int itemIndex = 0;
-            for (auto item : genericSubs)
-            {
-                int subItemIndex = 0;
-                for (auto subItem : item)
-                {
-                    cout << subItem;
-
-                    if (subItemIndex + 1 < item.size())
-                    {
-                        cout << " ";
-                    }
-
-                    subItemIndex++;
-                }
-
-                if (itemIndex + 1 < genericSubs.size())
-                {
-                    cout << ", ";
-                }
-
-                itemIndex++;
-            }
-
-            cout << ">:\n\n"
-                 << tags::reset;
-
-            throw generic_error("During needs block execution: " + string(e.what()));
+            // This is only a failure case for this template
+            return e.what();
         }
     }
 
-    return;
+    return "";
 }
 
-string instantiateGeneric(const string &what,
-                          const vector<vector<string>> &genericSubs,
-                          const vector<string> &typeVec)
+string instantiateGeneric(const string &what, const vector<vector<string>> &genericSubs, const vector<string> &typeVec)
 {
     // Ensure it exists
     if (generics.count(what) == 0)
     {
-        cout << tags::red_bold
-             << "During attempt to instantiate template '" << what << "' w/ generics:\n";
+        cout << tags::red_bold << "During attempt to instantiate template '" << what << "' w/ generics:\n";
 
         for (auto s : genericSubs)
         {
@@ -270,6 +238,7 @@ string instantiateGeneric(const string &what,
 
     // Get mangled version (only meaningful for struct instantiations)
     string mangleStr = mangleStruct(what, genericSubs);
+    vector<string> errors;
 
     bool didInstantiate = false;
     for (auto &candidate : generics[what])
@@ -291,18 +260,29 @@ string instantiateGeneric(const string &what,
             if (!hasInstance)
             {
                 candidate.instances.push_back(genericSubs);
-                __instantiateGeneric(what, candidate, genericSubs);
-            }
+                string result = __instantiateGeneric(what, candidate, genericSubs);
+                errors.push_back(result);
 
-            didInstantiate = true;
-            break;
+                if (result == "")
+                {
+                    // Instantiated
+                    didInstantiate = true;
+                    break;
+                }
+
+                // Else, failed with this template. Not an overall failure.
+            }
+            else
+            {
+                didInstantiate = true;
+                break;
+            }
         }
     }
 
     if (!didInstantiate)
     {
-        cout << tags::yellow_bold
-             << "Desired:\n\t" << what << " w/ type ";
+        cout << tags::yellow_bold << "Desired:\n\t" << what << " w/ type ";
 
         for (auto item : typeVec)
         {
@@ -320,12 +300,12 @@ string instantiateGeneric(const string &what,
                 cout << b << ' ';
             }
 
-            cout << "' (mangle: " << mangle(item) << ")"
-                 << '\n';
+            cout << "' (mangle: " << mangle(item) << ")" << '\n';
         }
 
         cout << "Against:\n";
 
+        int i = 0;
         for (auto item : generics[what])
         {
             cout << '\t' << what << " w/ type ";
@@ -333,7 +313,9 @@ string instantiateGeneric(const string &what,
             {
                 cout << b << ' ';
             }
-            cout << '\n';
+            cout << '\n' << "Failed with error:\n\t" << errors[i] << '\n';
+
+            i++;
         }
 
         cout << tags::reset;
@@ -345,11 +327,8 @@ string instantiateGeneric(const string &what,
     return mangleStr;
 }
 
-void addGeneric(const vector<string> &what,
-                const string &name,
-                const vector<string> &genericsList,
-                const vector<string> &needsBlock,
-                const vector<string> &typeVec)
+void addGeneric(const vector<string> &what, const string &name, const vector<string> &genericsList,
+                const vector<string> &needsBlock, const vector<string> &typeVec)
 {
     genericInfo toAdd;
 
@@ -442,8 +421,7 @@ void printGenericDumpInfo(ostream &file)
                 file << cand.typeVec[i] << ' ';
             }
 
-            file << '\n'
-                 << "\t\tContents:";
+            file << '\n' << "\t\tContents:";
             for (int i = 0; i < cand.symbols.size(); i++)
             {
                 if (i % 10 == 0)
@@ -454,8 +432,7 @@ void printGenericDumpInfo(ostream &file)
                 file << cand.symbols[i] << ' ';
             }
 
-            file << '\n'
-                 << "\t\tNeeds block:";
+            file << '\n' << "\t\tNeeds block:";
             for (int i = 0; i < cand.needsBlock.size(); i++)
             {
                 if (i % 10 == 0)
@@ -466,8 +443,7 @@ void printGenericDumpInfo(ostream &file)
                 file << cand.needsBlock[i] << ' ';
             }
 
-            file << '\n'
-                 << "\t\tInstances:\n";
+            file << '\n' << "\t\tInstances:\n";
             for (auto inst : cand.instances)
             {
                 file << "\t\t\t" << p.first << "<";

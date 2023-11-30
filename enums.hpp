@@ -33,6 +33,5 @@ struct __enumLookupData
 };
 
 extern map<string, __enumLookupData> enumData;
-extern vector<string> enumOrder;
 
 #endif

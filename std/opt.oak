@@ -40,7 +40,7 @@ let unwrap<t>(self: ^opt<t>) -> t
     {
         case some(data)
         {
-            out = data;
+            @out = ^data;
         }
         default
         {

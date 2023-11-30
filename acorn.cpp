@@ -7,6 +7,7 @@ GPLv3 held by author
 */
 
 #include "acorn_resources.hpp"
+#include "macros.hpp"
 #include <cstdlib>
 #include <iomanip>
 using namespace std;
@@ -668,8 +669,9 @@ int main(const int argc, const char *argv[])
         cout << "Percent of time which was Acorn-attributable: " << percentAcornTime << "%\n\n" << tags::reset;
 
         vector<string> passNames = {
-            "syntax check", "lexing\t",     "compiler macros", "rules / dialect", "macro defs",
-            "macro calls",  "preproc defs", "op subs\t",       "sequencing",
+            "syntax check       ", "lexing             ", "macro defs         ",
+            "compiler macros    ", "macro calls        ", "rules / dialect    ",
+            "preproc defs       ", "op subs            ", "sequencing         ",
         };
 
         // Get total according to this:
@@ -697,24 +699,6 @@ int main(const int argc, const char *argv[])
         cout << "\t" << passNames.size() + 2 << "\tC++ via Clang\t" << compElapsed
              << ((compElapsed < 10'000'000) ? "\t\t" : "\t") << "\t\t"
              << (100 * (double)compElapsed / totalPlusCompilation) << "%\n";
-
-#ifdef LINUX
-        cout << tags::green_bold << "\nPeak memory usage:\n";
-
-        ifstream memUse("/proc/self/status");
-        string line;
-        while (getline(memUse, line))
-        {
-            if (line.substr(0, 6) == "VmPeak")
-            {
-                cout << line << '\n';
-                break;
-            }
-        }
-        memUse.close();
-
-        cout << tags::reset << "\n";
-#endif
 
         cout << "Output file: " << out << '\n';
     }

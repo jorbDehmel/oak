@@ -16,7 +16,6 @@ GPLv3 held by author
 #include <string>
 #include <vector>
 
-// #include "compiler_cache.hpp"
 #include "document.hpp"
 #include "lexer.hpp"
 #include "macros.hpp"
@@ -33,7 +32,7 @@ GPLv3 held by author
 
 using namespace std;
 
-#define VERSION "0.2.6"
+#define VERSION "0.2.7"
 #define LICENSE "GPLv3"
 #define INFO "jdehmel@outlook.com"
 

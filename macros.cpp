@@ -9,22 +9,9 @@ GPLv3 held by author
 #include "macros.hpp"
 
 // The pre-inserted ones are used by the compiler- Not literal macros
-set<string> compiled = {
-    "include!",
-    "link!",
-    "package!",
-    "alloc!",
-    "free!",
-    "free_arr!",
-    "new_rule!",
-    "use_rule!",
-    "rem_rule!",
-    "bundle_rule!",
-    "erase!",
-    "c_print!",
-    "c_panic!",
-    "type!",
-    "size!"};
+set<string> compiled = {"include!",  "link!",     "package!",  "alloc!",       "free!",  "free_arr!",
+                        "new_rule!", "use_rule!", "rem_rule!", "bundle_rule!", "erase!", "c_print!",
+                        "c_panic!",  "type!",     "size!",     "ptrcpy!",      "ptrarr!"};
 map<string, string> macros;
 map<string, string> macroSourceFiles;
 
@@ -125,13 +112,11 @@ void compileMacro(const string &Name, bool debug)
     {
         cout << "Compiling via command '" << command << "'\n";
 
-        cout << tags::yellow_bold
-             << "\n-----------------------------\n"
+        cout << tags::yellow_bold << "\n-----------------------------\n"
              << "Entering sub-file '" << srcPath << "'\n"
              << "-----------------------------\n"
              << "\\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/\n\n"
-             << tags::reset
-             << flush;
+             << tags::reset << flush;
     }
 
     try
@@ -142,13 +127,11 @@ void compileMacro(const string &Name, bool debug)
     {
         if (debug)
         {
-            cout << tags::yellow_bold
-                 << "\n/\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\\n"
+            cout << tags::yellow_bold << "\n/\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\\n"
                  << "-----------------------------\n"
                  << "Exiting sub-file '" << srcPath << "'\n"
                  << "-----------------------------\n\n"
-                 << tags::reset
-                 << flush;
+                 << tags::reset << flush;
         }
 
         throw runtime_error(string("Macro failure: ") + e.what());
@@ -156,13 +139,11 @@ void compileMacro(const string &Name, bool debug)
 
     if (debug)
     {
-        cout << tags::yellow_bold
-             << "/\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\\n"
+        cout << tags::yellow_bold << "/\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\\n"
              << "-----------------------------\n"
              << "Exiting sub-file '" << srcPath << "'\n"
              << "-----------------------------\n\n"
-             << tags::reset
-             << flush;
+             << tags::reset << flush;
     }
 
     compiled.insert(Name);
@@ -255,8 +236,7 @@ string callMacro(const string &Name, const vector<string> &Args, bool debug)
 
     if (debug)
     {
-        cout << "Macro returned\n```\n"
-             << out << "\n```\n";
+        cout << "Macro returned\n```\n" << out << "\n```\n";
     }
 
     return out;

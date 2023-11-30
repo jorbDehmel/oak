@@ -58,7 +58,7 @@ using namespace std;
 extern const set<string> specials;
 extern unsigned long long int curLine;
 extern string curFile;
-extern bool skipCodeScopes;
+// extern bool skipCodeScopes;
 
 // For error trace
 extern vector<string> curLineSymbols;
@@ -75,7 +75,7 @@ class sequencing_error : public runtime_error
 // Sequence message assert
 #define sm_assert(expression, message)                                                                                 \
     ((bool)(expression) ? true                                                                                         \
-                        : throw sequencing_error(message " (Failed assertion: '" #expression "') " +                   \
+                        : throw sequencing_error(string(message) + " (Failed assertion: '" #expression "') " +         \
                                                  string(strrchr("/" __FILE__, '/') + 1) + " " + to_string(__LINE__)))
 
 // Externally useful functions
@@ -107,5 +107,9 @@ Type checkLiteral(const string &From);
 string restoreSymbolTable(multiSymbolTable &backup);
 
 void addEnum(const vector<string> &FromIn);
+
+// Dump data to file
+void dump(const vector<string> &Lexed, const string &Where, const string &FileName, const int &Line,
+          const sequence &FileSeq, const vector<string> LexedBackup);
 
 #endif

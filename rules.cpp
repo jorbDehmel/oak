@@ -83,6 +83,7 @@ void doRules(vector<string> &From)
     }
 
     vector<map<string, string>> ruleVars;
+    ruleVars.reserve(dialectRules.size());
 
     // Initialize variable maps
     for (int i = 0; i < dialectRules.size() + activeRules.size(); i++)
@@ -100,8 +101,6 @@ void doRules(vector<string> &From)
         // Add a new rule to the list of all rules
         else if (From[i] == "new_rule!")
         {
-            // new_rule!("NAME", "INP_PAT", "OUT_PAT");
-
             auto args = getMacroArgs(From, i);
             for (int j = 0; j < args.size(); j++)
             {
@@ -265,12 +264,6 @@ void doRules(vector<string> &From)
                 for (int k = 0; posInFrom < From.size() && k < curRule.inputPattern.size(); k++)
                 {
                     string match = curRule.inputPattern[k];
-
-                    // Empty string in input match; IDK why this would happen
-                    if (match == "")
-                    {
-                        continue;
-                    }
 
                     while (From[posInFrom].size() >= 2 && From[posInFrom].substr(0, 2) == "//")
                     {

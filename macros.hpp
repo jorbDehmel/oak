@@ -12,15 +12,15 @@ GPLv3 held by author
 #ifndef MACROS_HPP
 #define MACROS_HPP
 
-#include <map>
-#include <string>
-#include <fstream>
-#include <set>
 #include <chrono>
+#include <fstream>
+#include <map>
+#include <set>
+#include <string>
 #include <vector>
 
-#include "symbol-table.hpp"
 #include "reconstruct.hpp"
+#include "symbol-table.hpp"
 
 using namespace std;
 

@@ -7,6 +7,7 @@ GPLv3 held by author
 */
 
 #include "sequence.hpp"
+#include "type-builder.hpp"
 
 // Activates "dirty" mode, where mem alloc and free are allowed
 bool insideMethod = false;
@@ -15,8 +16,6 @@ vector<string> curLineSymbols;
 
 unsigned long long int curLine = 1;
 string curFile = "";
-
-bool skipCodeScopes = false;
 
 // The current depth of createSequence
 unsigned long long int depth = 0;
@@ -119,10 +118,7 @@ sequence createSequence(const vector<string> &From)
     // Clone to feed into the consumptive version
     // vector<string> temp(From);
     list<string> temp;
-    for (auto i : From)
-    {
-        temp.push_back(i);
-    }
+    temp.assign(From.begin(), From.end());
 
     vector<sequence> out;
 
@@ -155,18 +151,19 @@ sequence createSequence(const vector<string> &From)
 }
 
 // Internal consumptive version: Erases from vector, so not safe for frontend
-string prevMatchTypeStr = "NULL";
 sequence __createSequence(list<string> &From)
 {
+    static string prevMatchTypeStr = "NULL";
+
     sequence out;
     out.info = code_line;
 
-    // Misc. Invalid cases (common)
+    // Misc. Invalid cases
     if (From.empty())
     {
         return out;
     }
-    else if (From.front().size() > 11 && From.front().substr(0, 11) == "//__LINE__=")
+    else if (strncmp(From.front().c_str(), "//__LINE__=", 11) == 0)
     {
         // Line update special symbol
         string newLineNum = From.front().substr(11);
@@ -201,7 +198,7 @@ sequence __createSequence(list<string> &From)
     else if (From.front().size() > 1 && From.front().back() == '!')
     {
         // Erasure macro; Erases types or struct members from existence
-        // Technically just moves them to another spot, as
+        // Technically just marks them erased
         if (From.front() == "erase!")
         {
             int count = 0;
@@ -432,10 +429,110 @@ sequence __createSequence(list<string> &From)
             string name = toC(temp);
 
             Type tempType = temp.type;
-            sm_assert(tempType[0].info == pointer, "'alloc!' returns a pointer.");
+            sm_assert(tempType[0].info == pointer, "'free!' takes a pointer.");
             temp.type.pop_front();
 
             out = getFreeSequence(name, false);
+
+            return out;
+        }
+        else if (From.front() == "ptrcpy!")
+        {
+            sm_assert(insideMethod, "Pointers cannot be copied outside of an operator-alias method.");
+
+            int count = 0;
+            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+            From.pop_front();
+            list<string> contents;
+
+            do
+            {
+                if (From.front() == "(")
+                {
+                    count++;
+                }
+                else if (From.front() == ")")
+                {
+                    count--;
+                }
+
+                if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")"))
+                {
+                    contents.push_back(From.front());
+                }
+
+                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                From.pop_front();
+            } while (!From.empty() && count != 0);
+
+            sequence lhsSeq = __createSequence(contents);
+            string lhs = toC(lhsSeq);
+
+            while (contents.front() == ",")
+            {
+                contents.pop_front();
+            }
+
+            sequence rhsSeq = __createSequence(contents);
+            string rhs = toC(rhsSeq);
+
+            sm_assert(lhsSeq.type[0].info == pointer, "First argument of cpyptr! must be pointer.");
+            sm_assert(rhsSeq.type[0].info == pointer || rhsSeq.raw == "0",
+                      "Second argument of cpyptr! must be a pointer or 0.");
+
+            out.info = code_line;
+            out.type = nullType;
+            out.items.clear();
+
+            out.items.push_back(sequence{nullType, vector<sequence>(), atom, lhs + " = (void*)(" + rhs + ")"});
+
+            return out;
+        }
+        else if (From.front() == "ptrarr!")
+        {
+            int count = 0;
+            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+            From.pop_front();
+            list<string> contents;
+
+            do
+            {
+                if (From.front() == "(")
+                {
+                    count++;
+                }
+                else if (From.front() == ")")
+                {
+                    count--;
+                }
+
+                if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")"))
+                {
+                    contents.push_back(From.front());
+                }
+
+                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                From.pop_front();
+            } while (!From.empty() && count != 0);
+
+            sequence lhsSeq = __createSequence(contents);
+            string lhs = toC(lhsSeq);
+
+            while (contents.front() == ",")
+            {
+                contents.pop_front();
+            }
+
+            sequence rhsSeq = __createSequence(contents);
+            string rhs = toC(rhsSeq);
+
+            sm_assert(lhsSeq.type[0].info == pointer, "First argument of ptrarr! must be pointer.");
+            sm_assert(rhsSeq.type == Type(atomic, "u128"),
+                      "Second argument of ptrarr! must be a u128, not " + toStr(&rhsSeq.type));
+
+            out.info = atom;
+            out.type = Type(lhsSeq.type, 1);
+            out.raw = "(" + lhs + "[" + rhs + "])";
 
             return out;
         }
@@ -1144,138 +1241,87 @@ sequence __createSequence(list<string> &From)
         sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
         From.pop_front();
 
-        if (!skipCodeScopes)
+        // Save symbol table for later restoration
+        auto oldTable = table;
+
+        out.info = code_scope;
+
+        // Code scope.
+        int count = 1;
+        list<string> curVec;
+        while (true)
         {
-
-            // Save symbol table for later restoration
-            auto oldTable = table;
-
-            out.info = code_scope;
-
-            // Code scope.
-            int count = 1;
-            list<string> curVec;
-            while (true)
+            if (From.empty())
             {
-                if (From.empty())
+                break;
+            }
+
+            if (From.front() == "{")
+            {
+                count++;
+            }
+            else if (From.front() == "}")
+            {
+                count--;
+
+                if (count == 0)
                 {
+                    out.items.push_back(__createSequence(curVec));
+                    curVec.clear();
+                    sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                    From.pop_front();
                     break;
                 }
+            }
 
-                if (From.front() == "{")
+            if (count == 1 && (From.front() == ";" || From.front() == "}"))
+            {
+                if (!curVec.empty())
                 {
-                    count++;
-                }
-                else if (From.front() == "}")
-                {
-                    count--;
-
-                    if (count == 0)
-                    {
-                        out.items.push_back(__createSequence(curVec));
-                        curVec.clear();
-                        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-                        From.pop_front();
-                        break;
-                    }
+                    out.items.push_back(__createSequence(curVec));
+                    out.items.back().type = nullType;
+                    curVec.clear();
                 }
 
-                if (count == 1 && (From.front() == ";" || From.front() == "}"))
+                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                From.pop_front();
+            }
+            else
+            {
+                if (!From.empty())
                 {
-                    if (!curVec.empty())
-                    {
-                        out.items.push_back(__createSequence(curVec));
-                        out.items.back().type = nullType;
-                        curVec.clear();
-                    }
-
+                    curVec.push_back(From.front());
                     sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
                     From.pop_front();
                 }
                 else
                 {
-                    if (!From.empty())
-                    {
-                        curVec.push_back(From.front());
-                        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-                        From.pop_front();
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-            }
-
-            // Restore symbol table
-
-            // This copies only newly instantiated functions; No other symbols.
-            string output = restoreSymbolTable(oldTable);
-
-            // Call destructors
-            out.items.push_back(sequence{nullType, vector<sequence>(), atom, output});
-
-            // Check if/else validity
-            for (int i = 1; i < out.items.size(); i++)
-            {
-                if (out.items[i].info == keyword && out.items[i].raw == "else")
-                {
-                    if (out.items[i - 1].items.size() != 0 && out.items[i - 1].items[0].info == keyword &&
-                        out.items[i - 1].items[0].raw == "if")
-                    {
-                        continue;
-                    }
-
-                    sm_assert(out.items[i - 1].info == keyword && out.items[i - 1].raw == "if",
-                              "Else statement must be prefixed by if statement.");
+                    break;
                 }
             }
         }
-        else
+
+        // Restore symbol table
+
+        // This copies only newly instantiated functions; No other symbols.
+        string output = restoreSymbolTable(oldTable);
+
+        // Call destructors
+        out.items.push_back(sequence{nullType, vector<sequence>(), atom, output});
+
+        // Check if/else validity
+        for (int i = 1; i < out.items.size(); i++)
         {
-            // Skip if needed
-
-            int count = 1;
-            while (true)
+            if (out.items[i].info == keyword && out.items[i].raw == "else")
             {
-                if (From.empty())
+                if (out.items[i - 1].items.size() != 0 && out.items[i - 1].items[0].info == keyword &&
+                    out.items[i - 1].items[0].raw == "if")
                 {
-                    break;
+                    continue;
                 }
 
-                if (From.front() == "{")
-                {
-                    count++;
-                }
-                else if (From.front() == "}")
-                {
-                    count--;
-
-                    if (count == 0)
-                    {
-                        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-                        From.pop_front();
-                        break;
-                    }
-                }
-
-                if (count == 1 && (From.front() == ";" || From.front() == "}"))
-                {
-                    sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-                    From.pop_front();
-                }
-                else
-                {
-                    if (!From.empty())
-                    {
-                        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-                        From.pop_front();
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
+                sm_assert(out.items[i - 1].info == keyword && out.items[i - 1].raw == "if",
+                          "Else statement must be prefixed by if statement.");
             }
         }
 
@@ -1304,6 +1350,11 @@ sequence __createSequence(list<string> &From)
     for (auto i : From)
     {
         tempVec.push_back(i);
+
+        if (i == ";")
+        {
+            break;
+        }
     }
     temp.type = resolveFunction(tempVec, i, temp.raw);
 
@@ -1554,11 +1605,11 @@ string toC(const sequence &What)
     return out;
 }
 
-map<unsigned long long, Type> getReturnTypeCache;
-
 // Get the return type from a Type (of a function signature)
 Type getReturnType(const Type &T)
 {
+    static map<unsigned long long, Type> getReturnTypeCache;
+
     if (getReturnTypeCache.count(T.ID) != 0)
     {
         return getReturnTypeCache[T.ID];
@@ -1599,9 +1650,10 @@ Type getReturnType(const Type &T)
     return T;
 }
 
-map<unsigned long long, vector<pair<string, Type>>> cache;
 vector<pair<string, Type>> getArgs(Type &type)
 {
+    static map<unsigned long long, vector<pair<string, Type>>> cache;
+
     // Check cache for existing value
     if (cache.count(type.ID) != 0)
     {
@@ -1943,6 +1995,42 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
             }
 
             return Type(atomic, "u128");
+        }
+        else if (What[start].back() == '!')
+        {
+            // Otherwise unspecified macro: Void
+
+            // Scrape entire type!(what) call to a vector
+            list<string> toAnalyze = {What[start], "("};
+            int count = 0;
+
+            start++;
+            do
+            {
+                if (What[start] == "(")
+                {
+                    count++;
+                }
+                else if (What[start] == ")")
+                {
+                    count--;
+                }
+
+                if (!((What[start] == "(" && count == 1) || (What[start] == ")" && count == 0)))
+                {
+                    toAnalyze.push_back(What[start]);
+                }
+
+                start++;
+            } while (count != 0 && start < What.size());
+            toAnalyze.push_back(")");
+
+            // Analyze type of collected
+            sequence s = __createSequence(toAnalyze);
+
+            c += toC(s);
+
+            return s.type;
         }
 
         // Function call
@@ -2451,11 +2539,6 @@ void addEnum(const vector<string> &FromIn)
     }
 
     // Ensure for unit enums
-    enumData[name];
-    enumOrder.push_back(name);
-
-    // Insert enum as unit struct
-    structData[name];
     structOrder.push_back(name);
 
     // Auto-create unit New and Del
@@ -2625,5 +2708,146 @@ void addEnum(const vector<string> &FromIn)
 
     cur.size += enumSize;
 
+    return;
+}
+
+// Dump data to file
+void dump(const vector<string> &Lexed, const string &Where, const string &FileName, const int &Line,
+          const sequence &FileSeq, const vector<string> LexedBackup)
+{
+    string sep = "";
+    for (int i = 0; i < 50; i++)
+    {
+        sep += '-';
+    }
+    sep += '\n';
+
+    ofstream file(Where);
+    if (!file.is_open())
+    {
+        throw runtime_error("Failed to open dump file '" + Where + "'; At this point, you should give up.");
+    }
+
+    auto curTime = time(NULL);
+
+    file << sep << "Dump file for " << FileName << " generated by Acorn at " << ctime(&curTime);
+
+    file << sep << "// Pre-everything lexed:\n";
+
+    for (auto s : LexedBackup)
+    {
+        if (s.size() >= 2 && s.substr(0, 2) == "//")
+        {
+            file << "\n" << s << "\t|\t";
+        }
+        else
+        {
+            file << s << ' ';
+        }
+    }
+    file << '\n';
+
+    file << sep << "// Post-substitution lexed:\n";
+
+    for (auto s : Lexed)
+    {
+        if (s.size() >= 2 && s.substr(0, 2) == "//")
+        {
+            file << "\n" << s << "\t|\t";
+        }
+        else
+        {
+            file << s << ' ';
+        }
+    }
+    file << '\n';
+
+    file << sep << "// Symbols and their types:\n";
+
+    for (auto p : table)
+    {
+        file << p.first << ":\n";
+
+        for (auto item : p.second)
+        {
+            file << '\t' << toStr(&item.type) << '\n';
+        }
+    }
+
+    file << sep << "// Structs:\n";
+
+    for (auto s : structData)
+    {
+        file << s.first << "\n";
+
+        for (auto m : s.second.members)
+        {
+            file << '\t' << m.first << '\t' << toStr(&m.second) << '\n';
+        }
+    }
+
+    file << sep << "// Enums:\n";
+
+    for (auto e : enumData)
+    {
+        file << e.first << "\n";
+
+        for (auto m : e.second.options)
+        {
+            file << '\t' << m.first << '\t' << toStr(&m.second) << '\n';
+        }
+    }
+
+    file << sep << "// Generics:\n";
+
+    printGenericDumpInfo(file);
+
+    file << sep << "// Full anatomy:\n";
+
+    debugPrint(FileSeq, 0, file);
+
+    file << sep << "// All rules:\n";
+
+    for (auto s : rules)
+    {
+        file << s.first << '\n' << '\t';
+
+        for (auto t : s.second.inputPattern)
+        {
+            file << t << ' ';
+        }
+
+        file << "\n\t";
+
+        for (auto t : s.second.outputPattern)
+        {
+            file << t << ' ';
+        }
+
+        file << "\n";
+    }
+
+    file << sep << "// All bundles:\n";
+
+    for (auto p : bundles)
+    {
+        file << p.first << "\n\t";
+
+        for (auto r : p.second)
+        {
+            file << r << ' ';
+        }
+
+        file << '\n';
+    }
+
+    file << sep << "// Active rules:\n";
+
+    for (auto s : activeRules)
+    {
+        file << s << '\n';
+    }
+
+    file.close();
     return;
 }
