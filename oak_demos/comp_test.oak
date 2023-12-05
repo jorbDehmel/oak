@@ -1,0 +1,29 @@
+/*
+A test of some special compile-time macros
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+// Run a command at compile time
+c_sys!(
+    "pwd",
+    "echo hi"
+);
+
+// Print something at compile time
+c_print!(
+    "you're",
+    "mother",
+    "hahah lol"
+);
+
+// Halt compilation
+c_panic!(
+    "alalalala",
+    "gloobelsnirt"
+);
+
+let main() -> i32
+{
+    0
+}

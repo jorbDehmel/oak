@@ -7,7 +7,6 @@ GPLv3 held by author
 */
 
 #include "acorn_resources.hpp"
-using namespace std;
 
 // Settings
 bool debug = false;
@@ -589,6 +588,10 @@ void doFile(const string &From)
                     continue;
                 }
                 else if (lexed[i] == "c_panic!")
+                {
+                    continue;
+                }
+                else if (lexed[i] == "c_sys!")
                 {
                     continue;
                 }

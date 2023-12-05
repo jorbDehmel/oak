@@ -35,12 +35,11 @@ non-sequential parser.
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <list>
 #include <map>
 #include <set>
 #include <string>
 #include <vector>
-
-#include <list>
 
 #include "enums.hpp"
 #include "generics.hpp"

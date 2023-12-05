@@ -280,9 +280,12 @@ sequence __createSequence(list<string> &From)
                     count--;
                 }
 
-                if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")"))
+                if (strncmp(From.front().c_str(), "//", 2) != 0)
                 {
-                    message += From.front() + " ";
+                    if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")"))
+                    {
+                        message += From.front() + " ";
+                    }
                 }
 
                 sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
@@ -315,19 +318,68 @@ sequence __createSequence(list<string> &From)
                     count--;
                 }
 
-                if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")"))
+                if (strncmp(From.front().c_str(), "//", 2) != 0)
                 {
-                    message += From.front() + " ";
+                    if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")"))
+                    {
+                        message += From.front() + " ";
+                    }
                 }
 
                 sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
                 From.pop_front();
-
             } while (!From.empty() && count != 0);
 
             message += "\n";
 
             throw sequencing_error(message);
+        }
+        else if (From.front() == "c_sys!")
+        {
+            cout << curFile << ":" << to_string(curLine) << ":c_sys! ";
+
+            string command;
+            int count = 0;
+            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+            From.pop_front();
+
+            do
+            {
+                if (From.front() == "(")
+                {
+                    count++;
+                }
+                else if (From.front() == ")")
+                {
+                    count--;
+                }
+
+                if (From.front().size() > 2 && strncmp(From.front().c_str(), "//", 2) != 0)
+                {
+                    if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")"))
+                    {
+                        if (command != "")
+                        {
+                            command += " && ";
+                        }
+
+                        command += From.front().substr(1, From.front().size() - 2);
+                    }
+                }
+
+                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                From.pop_front();
+            } while (!From.empty() && count != 0);
+
+            cout << '`' << command << "`\n";
+            int res = system(command.c_str()) != 0;
+
+            if (res != 0)
+            {
+                cout << tags::red_bold << "Compile-time command failed w/ error code " << res << ".\n" << tags::reset;
+            }
+
+            return out;
         }
 
         // else
@@ -1059,6 +1111,11 @@ sequence __createSequence(list<string> &From)
                 // Insert explicit symbol
                 if (From.size() > 0 && From.front() == "{")
                 {
+                    if (name == "main")
+                    {
+                        sm_assert(table[name].size() == 0, "Function 'main' cannot be overloaded.");
+                    }
+
                     destroyUnits(name, type, true);
 
                     table[name].push_back(__multiTableSymbol{sequence{}, type, false, curFile});

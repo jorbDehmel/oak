@@ -4,6 +4,9 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.2.8           | 12/5/23  | Added c_sys! for compile-time sys
+                |          | calls. Also, bug fixes.
+                |          |
 0.2.7           | 11/29/23 | Added ptrcpy! and ptrarr! for ease
                 |          | of use. Bug fixes and minor
                 |          | optimization, modified needs block.

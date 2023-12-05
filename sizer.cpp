@@ -2,13 +2,6 @@
 
 unsigned long long int getSize(const string &FilePath)
 {
-    static map<string, unsigned long long int> sizeCache;
-
-    if (sizeCache.count(FilePath) != 0)
-    {
-        return sizeCache[FilePath];
-    }
-
 #if (defined(_WIN32) || defined(_WIN64) || defined(__APPLE__))
     cout << "Cannot call the getSize function outside of Linux.\n";
     return 0;
@@ -32,12 +25,6 @@ unsigned long long int getSize(const string &FilePath)
 
     inp.close();
     throw_assert(system("rm -f sizer_temp.txt") == 0);
-
-    if (sizeCache.size() > 1000)
-    {
-        sizeCache.clear();
-    }
-    sizeCache[FilePath] = kb;
 
     return kb;
 }

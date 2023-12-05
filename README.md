@@ -21,17 +21,21 @@ formatting style is unadvisable, and considered bad form.
 
 `Oak` is, as of now, a translated language; `Oak` code is
 translated via the `acorn` utility (see later) into `C`.
-`acorn` can also compile `Oak` into object code, or link it to
-create executables.
+`acorn` can also compile `Oak` into object code and link it to
+create executables via `clang` and `clang++`, respectively.
+
+## Compile-Time-Modifiable Syntax?
 
 `Oak` has compile-time-modifiable syntax (see the section on
 preprocessor rules), making it highly customizable and flexible
-in a way that no other mainstream languages are. It supports the
-creation of "dialects", which are `Oak` variants which use
-preprocessor rules to support independent syntactical
-structures.
+in a way that no other mainstream languages are. In `Oak`, if
+you think the language should have a certain shorthand, you can
+create it. `Oak` can similarly be a testing ground for new
+language syntaxes. It supports the creation of "dialects", which
+are `Oak` variants which use preprocessor rules to support
+independent syntactical structures.
 
-## Names
+## Names and Prerequisites
 
 Name      | Meaning
 ----------|-----------------------------------------------------
@@ -39,20 +43,19 @@ Name      | Meaning
 `Acorn`   | The `Oak` translator / compiler.
 `Sapling` | The sub-language for creating `Oak` dialects/rules.
 Dialect   | A syntactically-modified branch of `Oak`.
+`TARM`    | Prototype for more advanced rule system.
+
+This document assumes a level of knowledge about programming
+languages and compiler design. A thorough understanding of `C++`
+and a cursory knowledge of `Rust` are recommended.
 
 ## Compilation, Installation, and Uninstallation
 
 To install, open a terminal in this folder and run
 `make install`. This repo is only compatible with Linux. This
 will compile and install `Oak`, as well as the standard `Oak`
-package. To uninstall, open this folder in terminal and run
-`make uninstall`. If you've already deleted this folder, you can
-run `sudo rm -rf /usr/include/oak /usr/bin/acorn`. Both of these
-will accomplish the same thing.
-
-There is also a `PKGBUILD` file included in this directory. If
-you use Arch Linux, you can just download this and install it
-via `makepkg -si`.
+package. To uninstall, call `acorn -A`. To update, call
+`acorn -a`.
 
 ## For More Help
 
@@ -110,7 +113,7 @@ Note that leaving off a semicolon is equivalent to `C++`'s
 **In `Oak`, a function should have exactly one return point.**
 
 Pointers are `^` (IE a pointer to a bool is `^bool`). The "get
-address" operator is `@`.
+address" operator is @.
 
 Syntax is fluid and user-modifiable in `Oak`. For more
 information about this aspect, see the `Preproc Rules` section
@@ -209,7 +212,7 @@ let main() -> i32
 
 ```
 
-The address-of operator `@` should be avoided unless strictly
+The address-of operator @ should be avoided unless strictly
 necessary.
 
 A pointer to an object can be used just like the object itself
@@ -848,31 +851,33 @@ first translated into `C`, which is then compiled and linked.
 Acorn command line arguments:
 
 Name | Verbose     | Function
------|-------------|----------------------
+-----|-------------|----------------------------
+ -a  |             | Update acorn
+ -A  |             | Uninstall acorn
  -c  | --compile   | Produce object files
  -d  | --debug     | Toggle debug mode
- -D  | --dialect   | Use a dialect file
- -e  | --clean     | Work from scratch
- -g  | --exe_debug | Uses LLVM -g flag
- -h  | --help      | Show help (this)
+ -D  | --dialect   | Uses a dialect file
+ -e  | --clean     | Toggle erasure (default off)
+ -g  | --exe_debug | Use LLVM debug flag
+ -h  | --help      | Show this
  -i  | --install   | Install a package
  -l  | --link      | Produce executables
- -m  | --manual    | Generate auto-documentation
+ -m  | --manual    | Produce a .md doc
  -M  |             | Used for macros
  -n  | --no_save   | Produce nothing
  -o  | --output    | Set the output file
- -O  | --optimize  | Uses LLVM -O3 flag
- -p  | --pretty    | Prettify `C` files
+ -O  | --optimize  | Use LLVM optimization O3
  -q  | --quit      | Quit immediately
  -r  | --reinstall | Reinstall a package
  -R  | --remove    | Uninstalls a package
- -s  | --size      | Show `Oak` disk usage
+ -s  | --size      | Show Oak disk usage
  -S  | --install   | Install a package
- -t  | --translate | Produce `C++` files
- -u  | --dump      | Produce dump files
- -U  |             | Save rule logs
- -v  | --version   | Show Acorn version
- -w  | --new       | Make a new package
+ -t  | --translate | Produce C++ files
+ -u  | --dump      | Save dump files
+ -U  |             | Save rule log files
+ -v  | --version   | Show version
+ -w  | --new       | Create a new package
+ -x  | --syntax    | Ignore syntax errors
 
 ## Optimization and Runtime Debugging
 
@@ -1858,25 +1863,25 @@ comes in. This utilizes another of the few keywords in
 `Oak`- `needs`. Consider the following source code.
 
 ```rust
-1  | let list<t>: struct
-2  | {
-3  |     data: t,
-4  |     next: ^list<t>,
-5  | }
-6  | 
-7  | let New<t>(self: ^list<t>) -> void;
-8  | let Del<t>(self: ^list<t>) -> void;
-9  | 
-10 | let main() -> i32
-11 | {
-12 |     New<i32>;
-13 |     Del<i32>;
-14 | 
-15 |     let node: list<i32>;
-16 | 
-17 |     0
-18 | }
-19 | 
+let list<t>: struct
+{
+    data: t,
+    next: ^list<t>,
+}
+
+let New<t>(self: ^list<t>) -> void;
+let Del<t>(self: ^list<t>) -> void;
+
+let main() -> i32
+{
+    New<i32>;
+    Del<i32>;
+
+    let node: list<i32>;
+
+    0
+}
+
 ```
 
 `Oak` as discussed so far necessitates lines 7 and 8. These tell
@@ -1885,26 +1890,24 @@ the compiler to instantiate the generic functions `New` and
 cumbersome to an end user. Thus, we introduce the `needs` block.
 
 ```rust
-1  | let list<t>: struct
-2  | {
-3  |     data: t,
-4  |     next: ^list<t>,
-5  | }
-6  | needs
-7  | {
-8  |     New<t>(self: ^list<t>);
-9  |     Del<t>(_: ^list<t>);
-10 | }
-11 |
-12 | let New<t>(self: ^list<t>) -> void;
-13 | let Del<t>(self: ^list<t>) -> void;
-14 |
-15 | let main() -> i32
-16 | {
-17 |     let node: list<i32>;
-18 |     0
-19 | }
-20 |
+let list<t>: struct
+{
+    data: t,
+    next: ^list<t>,
+}
+needs
+{
+    New<t>(self: ^list<t>);
+    Del<t>(_: ^list<t>);
+}
+let New<t>(self: ^list<t>) -> void;
+let Del<t>(self: ^list<t>) -> void;
+let main() -> i32
+{
+    let node: list<i32>;
+    0
+}
+
 ```
 
 The above code tells the compiler to instantiate `New` and `Del`
@@ -1969,22 +1972,19 @@ File names, especially in libraries, and **especially** in the
 `Oak` `std` library, should be clear and concise. Names should
 be singular, even if the file describes a class or data 
 structure (IE `std/strings.oak` should become `std/string.oak`). 
-Files linking `Oak` to another language should have a 
-pre-file-extension suffix of `_inter` and be as physically close 
-as possible to their partner file as possible (IE `std/time.oak` 
-and `std/time/sub/time.cpp` should become `std/time_inter.oak` 
-and `std/time_inter.cpp`). These interfacial partner files 
-should be named as close to the `Oak` naming scheme as is 
-possible for their language, and their compiled object files 
-**must** adhere to the `Oak` naming scheme. File names may be 
-shortened to a reasonable degree, so long as they do not 
-conflict with any other package and their full name can be 
-reasonably extracted from the abbreviation (for instance, 
-`input_output.oak` to `io.oak` is a valid abbreviation, while 
-`regex.oak` to `re.oak` is not). The same can be said about 
-struct and enum names. If there is an addendum required to the 
-name, it should go after the main name (for instance, the `std`
-file `std/conv_extra.oak`).
+Files linking `Oak` to another language should be as physically
+close  as possible to their partner file as possible. These
+interfacial partner files should be named as close to the `Oak`
+naming scheme as is possible for their language, and their
+compiled object files **must** adhere to the `Oak` naming
+scheme. File names may be shortened to a reasonable degree, so
+long as they do not conflict with any other package and their
+full name can be reasonably extracted from the abbreviation (for
+instance, `input_output.oak` to `io.oak` is a valid
+abbreviation). The same can be said about struct and enum names.
+If there is an addendum required to the name, it should go after
+the main name (for instance, the `std` file
+`std/conv_extra.oak`).
 
 Files should provide nothing more than they have to. If you have 
 the option to split something (especially interfaces) off into 
@@ -1993,15 +1993,37 @@ its own file, **you generally should do so.** For example,
 because it does not **need** to have anything more. `Oak` code 
 and, by extension, `.oak` files should be minimalist.
 
-## `c_print!` and `c_panic!`
+## `c_print!`, `c_sys!` and `c_panic!`
 
 `c_print!` prints a message at compile time, concatenating the 
 passed strings. `c_panic!` does the same thing, but throws the 
-result as a compile error. In either case, the message will be 
-prefaced by its originating file and line number. Since these 
-two macros are compile-time only, any variables passed will not 
-be evaluated; Only their names will be printed. The `c` refers 
-to compilation, not to the `C` programming language.
+result as a compile error. `c_sys!` runs a command at compile
+time. In any of these cases, the message will be prefaced by its
+originating file and line number. Since these macros are
+compile-time only, any variables passed will not be evaluated;
+Only their names will be printed.
+
+The `c` refers to compilation, not to the `C` programming
+language.
+
+## Pointer Macros
+
+Because `Oak` uses pointers to denote mutability, functions are
+allowed to automatically reference or dereference arguments.
+However, in maintaining interoperability with the `C` family,
+`Oak` also supports pointer arrays. This combination of facts
+makes `Oak` pointers uniquely hard to work with. To address
+this, the `ptrarr!` and `ptrcpy!` macros are used. `ptrcpy!`
+takes two pointers, and copies the second into the first. If
+these are `a` and `b`, it performs `a = b`. `ptrarr!` takes the
+head of a pointer array and an integer. If we are to denote
+these `a` and `b`, it returns `a[(unsigned long long)b]` (that
+is to say, `*(a + (unsigned long long)b)`).
+
+Note: Pointer copying is only allowed in places where `alloc!`
+and `free!` are valid, since it can cause duplicate addresses.
+`ptrcpy!` can also accept `0` as its second argument, setting
+the pointer to the null pointer.
 
 ## The Erase Macro
 
@@ -2059,8 +2081,11 @@ The following are atomic (built-in, indivisible) macros.
 - free!
 - c_print!
 - c_panic!
+- c_sys!
 - type!
 - size!
+- ptrcpy!
+- ptrarr!
 
 ## Misc. Notes
 
@@ -4131,6 +4156,32 @@ let do_request(server: ^server_sock, request: string) -> void
 ```
 
 # Appendix
+
+## `acorn` and `Oak` source code
+
+`acorn` and the `Oak` are free and open source software. They
+are available with the GPLv3 at github.com/jorbDehmel/oak.
+
+## `acorn` Error Lookup
+
+Code | Meaning
+-----|-----------------
+ 0   | Success
+ 2   | Runtime error caught
+ 3   | Unknown error caught
+ 10  | Aborted Acorn update or install
+
+## `acorn` Error Classes
+
+Error Class      | Meaning
+-----------------|----------------------------------------------
+runtime_error    | Miscellaneous error not attributable below
+sequencing_error | Syntax error within symbol tree construction
+generic_error    | Error instantiating or entering a template
+package_error    | Error loading a package
+rule_error       | Error processing rule
+parse_error      | Error parsing token stream (depreciated)
+unknown          | An unknown bug- issue w/ `acorn`
 
 ## Disclaimer
 

@@ -8,6 +8,8 @@ GPLv3 held by author
 
 #include "acorn_resources.hpp"
 #include "macros.hpp"
+#include "sequence.hpp"
+#include "tags.hpp"
 #include <cstdlib>
 #include <iomanip>
 using namespace std;
@@ -154,10 +156,6 @@ int main(const int argc, const char *argv[])
                     else if (cur == "--size")
                     {
                         getDiskUsage();
-                    }
-                    else if (cur == "--time")
-                    {
-                        timeAnalysis = !timeAnalysis;
                     }
                     else if (cur == "--dump")
                     {
@@ -346,9 +344,6 @@ int main(const int argc, const char *argv[])
                         case 't':
                             noSave = compile = doLink = false;
                             break;
-                        case 'T':
-                            timeAnalysis = !timeAnalysis;
-                            break;
                         case 'u':
                             alwaysDump = !alwaysDump;
                             break;
@@ -388,10 +383,19 @@ int main(const int argc, const char *argv[])
         // Clean cache if not macro
         if (!isMacroCall && getSize(COMPILED_PATH) > MAX_CACHE_KB)
         {
-            cout << tags::yellow_bold << DB_INFO << "Purging cache\n" << tags::reset;
+            cout << tags::yellow_bold << DB_INFO << "Performing partial cache purge\n" << tags::reset;
 
             // Purge source .cpp, .hpp, and temp files
-            system("rm -rf " COMPILED_PATH "/*.c " COMPILED_PATH "/*.h " COMPILED_PATH "/*.txt");
+            system("rm -rf " COMPILED_PATH "/*.c " COMPILED_PATH "/*.h " COMPILED_PATH "/*.txt " COMPILED_PATH
+                   "/*.oak");
+
+            if (getSize(COMPILED_PATH) > MAX_CACHE_KB)
+            {
+                cout << tags::yellow_bold << DB_INFO << "Performing full cache purge\n" << tags::reset;
+
+                // Purge all cache files
+                system("rm -rf " COMPILED_PATH "/*");
+            }
         }
 
         if (files.empty())
@@ -428,9 +432,10 @@ int main(const int argc, const char *argv[])
             cout << tags::green_bold << "\nPhase 2: Reconstruction.\n" << tags::reset;
         }
 
-        if (table.count("main") == 0)
+        if (table.count("main") == 0 && compile)
         {
-            cout << tags::yellow_bold << "Warning! No main function detected!\n" << tags::reset;
+            cout << tags::red_bold << "Error! No main function detected while in compilation mode!\n" << tags::reset;
+            throw sequencing_error("A compilation unit must contain a main function.");
         }
 
         auto reconstructionStart = chrono::high_resolution_clock::now();
@@ -617,7 +622,7 @@ int main(const int argc, const char *argv[])
         }
     }
 
-    if (debug || timeAnalysis)
+    if (debug)
     {
         end = chrono::high_resolution_clock::now();
         unsigned long long totalElapsed = chrono::duration_cast<chrono::nanoseconds>(end - start).count();

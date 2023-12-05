@@ -32,21 +32,25 @@ GPLv3 held by author
 
 using namespace std;
 
-#define VERSION "0.2.7"
+// Info
+#define VERSION "0.2.8"
 #define LICENSE "GPLv3"
 #define INFO "jdehmel@outlook.com"
 
+// The main include directory for oak
 #define OAK_DIR_PATH "/usr/include/oak/"
 
+// Underlying compilers and linkers allowing Acorn to function
 #define C_COMPILER "clang" // This should be a C compiler- like clang or gcc
 #define LINKER "clang++"   // This should be a C++ compiler- like clang++ or g++
 
-#define MAX_CACHE_KB 5000
+// Max allowable size of .acorn_build in kilobytes
+#define MAX_CACHE_KB 2000
 
 /*
 Remaining options:
--bfgjkyz
--BCEFGHIJKLNOPQVWXYZ
+-bfgjktyz
+-BCEFGHIJKLNOPQTVWXYZ
 */
 
 const string helpText = "Acorn - Oak Standard Translator\n"
@@ -59,7 +63,7 @@ const string helpText = "Acorn - Oak Standard Translator\n"
                         " -c    | --compile   | Produce object files\n"
                         " -d    | --debug     | Toggle debug mode\n"
                         " -D    | --dialect   | Uses a dialect file\n"
-                        " -e    | --clean     | Toggle erasure (default on)\n"
+                        " -e    | --clean     | Toggle erasure (default off)\n"
                         " -g    | --exe_debug | Use LLVM debug flag\n"
                         " -h    | --help      | Show this\n"
                         " -i    | --install   | Install a package\n"
@@ -75,14 +79,13 @@ const string helpText = "Acorn - Oak Standard Translator\n"
                         " -s    | --size      | Show Oak disk usage\n"
                         " -S    | --install   | Install a package\n"
                         " -t    | --translate | Produce C++ files\n"
-                        " -T    | --time      | Output time usage\n"
                         " -u    | --dump      | Save dump files\n"
                         " -U    |             | Save rule log files\n"
                         " -v    | --version   | Show version\n"
                         " -w    | --new       | Create a new package\n"
                         " -x    | --syntax    | Ignore syntax errors\n";
 
-extern bool debug, compile, doLink, alwaysDump, manual, ignoreSyntaxErrors, isMacroCall, timeAnalysis;
+extern bool debug, compile, doLink, alwaysDump, manual, ignoreSyntaxErrors, isMacroCall;
 extern set<string> visitedFiles, cppSources, objects, cflags;
 extern map<string, string> preprocDefines;
 extern vector<unsigned long long> phaseTimes;
