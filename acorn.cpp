@@ -418,177 +418,177 @@ int main(const int argc, const char *argv[])
             }
         }
 
-        if (files.empty())
+        if (!files.empty())
         {
-            return 0;
-        }
 
-        // Actual calls
-        if (debug)
-        {
-            cout << tags::green_bold << "\nPhase 1: File analysis\n" << tags::reset;
-        }
-
-        int i = 0;
-        for (auto f : files)
-        {
+            // Actual calls
             if (debug)
             {
-                cout << 100.0 * (i / (double)files.size()) << "% done with initial files.\n";
+                cout << tags::green_bold << "\nPhase 1: File analysis\n" << tags::reset;
             }
 
-            doFile(f);
-            i++;
-        }
-
-        // Reconstruct and save
-        if (debug)
-        {
-            cout << tags::green_bold << "\nLoaded all " << files.size() << " initial files.\n"
-                 << visitedFiles.size() - files.size() << " more files were included,\n"
-                 << "For " << visitedFiles.size() << " total files.\n"
-                 << tags::reset;
-
-            cout << tags::green_bold << "\nPhase 2: Reconstruction.\n" << tags::reset;
-        }
-
-        if (table.count("main") == 0 && compile)
-        {
-            cout << tags::red_bold << "Error! No main function detected while in compilation mode!\n" << tags::reset;
-            throw sequencing_error("A compilation unit must contain a main function.");
-        }
-
-        auto reconstructionStart = chrono::high_resolution_clock::now();
-
-        pair<string, string> names = reconstructAndSave(out);
-        cppSources.insert(names.second);
-
-        end = chrono::high_resolution_clock::now();
-        oakElapsed = chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-        reconstructionElapsed = chrono::duration_cast<chrono::nanoseconds>(end - reconstructionStart).count();
-
-        if (debug)
-        {
-            cout << "Output header: '" << names.first << "'\n"
-                 << "Output body:   '" << names.second << "'\n";
-        }
-
-        if (noSave)
-        {
-            int result = system((string("rm ") + names.first + " " + names.second).c_str());
-
-            if (result != 0)
+            int i = 0;
+            for (auto f : files)
             {
-                cout << tags::yellow_bold << "Warning: Could not erase generated files.\n" << tags::reset;
-            }
-            else if (debug)
-            {
-                cout << "Erased output files.\n";
-            }
-        }
-        else
-        {
-            compStart = chrono::high_resolution_clock::now();
-
-            if (compile)
-            {
-                smartSystem("mkdir -p .oak_build");
-
                 if (debug)
                 {
-                    cout << tags::green_bold << "\nPhase 3: Compilation.\n"
-                         << "(via Clang)\n"
-                         << tags::reset;
+                    cout << 100.0 * (i / (double)files.size()) << "% done with initial files.\n";
                 }
 
-                string rootCommand = C_COMPILER " -c ";
+                doFile(f);
+                i++;
+            }
 
-                for (string flag : cflags)
+            // Reconstruct and save
+            if (debug)
+            {
+                cout << tags::green_bold << "\nLoaded all " << files.size() << " initial files.\n"
+                     << visitedFiles.size() - files.size() << " more files were included,\n"
+                     << "For " << visitedFiles.size() << " total files.\n"
+                     << tags::reset;
+
+                cout << tags::green_bold << "\nPhase 2: Reconstruction.\n" << tags::reset;
+            }
+
+            if (table.count("main") == 0 && compile)
+            {
+                cout << tags::red_bold << "Error! No main function detected while in compilation mode!\n"
+                     << tags::reset;
+                throw sequencing_error("A compilation unit must contain a main function.");
+            }
+
+            auto reconstructionStart = chrono::high_resolution_clock::now();
+
+            pair<string, string> names = reconstructAndSave(out);
+            cppSources.insert(names.second);
+
+            end = chrono::high_resolution_clock::now();
+            oakElapsed = chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+            reconstructionElapsed = chrono::duration_cast<chrono::nanoseconds>(end - reconstructionStart).count();
+
+            if (debug)
+            {
+                cout << "Output header: '" << names.first << "'\n"
+                     << "Output body:   '" << names.second << "'\n";
+            }
+
+            if (noSave)
+            {
+                int result = system((string("rm ") + names.first + " " + names.second).c_str());
+
+                if (result != 0)
                 {
-                    rootCommand += flag + " ";
+                    cout << tags::yellow_bold << "Warning: Could not erase generated files.\n" << tags::reset;
                 }
-
-                for (string source : cppSources)
+                else if (debug)
                 {
-                    string command = rootCommand + source + " -o " + source + ".o";
+                    cout << "Erased output files.\n";
+                }
+            }
+            else
+            {
+                compStart = chrono::high_resolution_clock::now();
+
+                if (compile)
+                {
+                    smartSystem("mkdir -p .oak_build");
 
                     if (debug)
                     {
-                        cout << "System call `" << command << "`\n";
-                    }
-
-                    throw_assert(system(command.c_str()) == 0);
-                    objects.insert(source + ".o");
-                }
-
-                if (doLink)
-                {
-                    if (debug)
-                    {
-                        cout << tags::green_bold << "\nPhase 4: Linking.\n"
+                        cout << tags::green_bold << "\nPhase 3: Compilation.\n"
                              << "(via Clang)\n"
                              << tags::reset;
                     }
 
-                    string command = LINKER " -o " + out + " ";
-                    for (string object : objects)
-                    {
-                        command += object + " ";
-                    }
+                    string rootCommand = C_COMPILER " -c ";
 
                     for (string flag : cflags)
                     {
-                        command += flag + " ";
+                        rootCommand += flag + " ";
                     }
 
-                    if (debug)
+                    for (string source : cppSources)
                     {
-                        cout << "System call `" << command << "`\n";
+                        string command = rootCommand + source + " -o " + source + ".o";
+
+                        if (debug)
+                        {
+                            cout << "System call `" << command << "`\n";
+                        }
+
+                        throw_assert(system(command.c_str()) == 0);
+                        objects.insert(source + ".o");
                     }
 
-                    throw_assert(system(command.c_str()) == 0);
+                    if (doLink)
+                    {
+                        if (debug)
+                        {
+                            cout << tags::green_bold << "\nPhase 4: Linking.\n"
+                                 << "(via Clang)\n"
+                                 << tags::reset;
+                        }
+
+                        string command = LINKER " -o " + out + " ";
+                        for (string object : objects)
+                        {
+                            command += object + " ";
+                        }
+
+                        for (string flag : cflags)
+                        {
+                            command += flag + " ";
+                        }
+
+                        if (debug)
+                        {
+                            cout << "System call `" << command << "`\n";
+                        }
+
+                        throw_assert(system(command.c_str()) == 0);
+                    }
+                }
+
+                /*
+                if (cacheOut != "")
+                {
+                    saveCompilerCache(cacheOut);
+                }
+                */
+
+                compEnd = chrono::high_resolution_clock::now();
+            }
+
+            if (eraseTemp)
+            {
+                if (system("rm -rf .oak_build") != 0)
+                {
+                    cout << "rm -rf .oak_build\n";
+
+                    cout << tags::yellow_bold << "Warning! Failed to erase './.oak_build/'.\n"
+                         << "If left unfixed, this could cause problems.\n"
+                         << tags::reset;
                 }
             }
 
-            /*
-            if (cacheOut != "")
+            // Manual generation if requested
+            if (manual)
             {
-                saveCompilerCache(cacheOut);
+                string manualPath = out;
+                if (manualPath.find(".") != string::npos)
+                {
+                    manualPath = manualPath.substr(0, manualPath.find("."));
+                }
+
+                manualPath += ".md";
+
+                if (debug)
+                {
+                    cout << tags::green_bold << "Generating manual '" << manualPath << "'.\n" << tags::reset;
+                }
+
+                generate(files, manualPath);
             }
-            */
-
-            compEnd = chrono::high_resolution_clock::now();
-        }
-
-        if (eraseTemp)
-        {
-            if (system("rm -rf .oak_build") != 0)
-            {
-                cout << "rm -rf .oak_build\n";
-
-                cout << tags::yellow_bold << "Warning! Failed to erase './.oak_build/'.\n"
-                     << "If left unfixed, this could cause problems.\n"
-                     << tags::reset;
-            }
-        }
-
-        // Manual generation if requested
-        if (manual)
-        {
-            string manualPath = out;
-            if (manualPath.find(".") != string::npos)
-            {
-                manualPath = manualPath.substr(0, manualPath.find("."));
-            }
-
-            manualPath += ".md";
-
-            if (debug)
-            {
-                cout << tags::green_bold << "Generating manual '" << manualPath << "'.\n" << tags::reset;
-            }
-
-            generate(files, manualPath);
         }
     }
     catch (runtime_error &e)
@@ -735,24 +735,9 @@ int main(const int argc, const char *argv[])
             out = "./" + out;
         }
 
-        cout << "\nExecuting " << out << "...\n";
-        for (int i = 0; i < 40; i++)
-        {
-            cout << '-';
-        }
-        cout << '\n' << flush;
-
         int result = system(out.c_str());
-
-        for (int i = 0; i < 40; i++)
-        {
-            cout << '-';
-        }
-        cout << '\n' << flush;
-
         if (result != 0)
         {
-            cout << tags::red_bold << "Execution failed w/ code " << result << tags::reset;
             return result;
         }
     }
@@ -766,6 +751,7 @@ int main(const int argc, const char *argv[])
         ifstream file;
         string line;
         vector<string> files;
+        vector<string> failed;
 
         // Get all files to run
         result = system("mkdir -p .oak_build && ls ./tests/*.oak > .oak_build/test_suite_temp.txt");
@@ -804,15 +790,26 @@ int main(const int argc, const char *argv[])
             }
             else
             {
+                failed.push_back(test);
                 bad++;
             }
         }
 
-        cout << tags::green_bold << "\nPassed: " << good << '\n'
-             << "Failed: " << bad << '\n'
+        cout << tags::violet_bold << "\nPassed: " << good << " (" << 100 * (double)good / (good + bad) << "%)" << '\n'
+             << "Failed: " << bad << " (" << 100 * (double)bad / (good + bad) << "%)" << '\n'
              << "Total:  " << good + bad << '\n'
-             << "ms:     " << totalMs << '\n'
-             << tags::reset;
+             << "ms:     " << totalMs << '\n';
+
+        if (bad != 0)
+        {
+            cout << "Failed files:\n";
+            for (auto item : failed)
+            {
+                cout << " - " << item << '\n';
+            }
+        }
+
+        cout << tags::reset;
     }
 
     return 0;
