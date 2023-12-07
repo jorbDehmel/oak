@@ -20,6 +20,53 @@ string curFile = "";
 // The current depth of createSequence
 unsigned long long int depth = 0;
 
+string cleanMacroArgument(const string &from)
+{
+    sm_assert(from.size() > 1 && (from.front() == '"' && from.back() == '"') ||
+                  (from.front() == '\'' && from.back() == '\''),
+              "Internal macro arguments must be string-enclosed.");
+
+    string out;
+    out.reserve(from.size() - 2);
+    bool force = false;
+    for (int l = 1; l + 1 < from.size(); l++)
+    {
+        if (!force)
+        {
+            if (from[l] == '\\')
+            {
+                force = true;
+                continue;
+            }
+
+            out.push_back(from[l]);
+        }
+        else
+        {
+            if (from[l] == 'n')
+            {
+                out.push_back('\n');
+            }
+            else if (from[l] == 't')
+            {
+                out.push_back('\t');
+            }
+            else if (from[l] == 'b')
+            {
+                out.push_back('\b');
+            }
+            else
+            {
+                out.push_back(from[l]);
+            }
+
+            force = false;
+        }
+    }
+
+    return out;
+}
+
 // Destroy all unit, temp, or autogen definitions matching a given type.
 // Can throw errors if doThrow is true.
 // Mostly used for New and Del, Oak ~0.0.14
@@ -263,7 +310,7 @@ sequence __createSequence(list<string> &From)
         // Misc macros
         else if (From.front() == "c_print!")
         {
-            string message = curFile + ":" + to_string(curLine) + ":c_print! ";
+            cout << curFile << ":" << curLine << ":c_print! ";
 
             int count = 0;
             sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
@@ -282,9 +329,11 @@ sequence __createSequence(list<string> &From)
 
                 if (strncmp(From.front().c_str(), "//", 2) != 0)
                 {
-                    if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")"))
+                    if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")") &&
+                        From.front() != ",")
                     {
-                        message += From.front() + " ";
+                        string cur = From.front();
+                        cout << cleanMacroArgument(cur) << " ";
                     }
                 }
 
@@ -293,9 +342,7 @@ sequence __createSequence(list<string> &From)
 
             } while (!From.empty() && count != 0);
 
-            message += "\n";
-
-            cout << message;
+            cout << "\n";
 
             return out;
         }
@@ -320,9 +367,10 @@ sequence __createSequence(list<string> &From)
 
                 if (strncmp(From.front().c_str(), "//", 2) != 0)
                 {
-                    if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")"))
+                    if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")") &&
+                        From.front() != ",")
                     {
-                        message += From.front() + " ";
+                        message += cleanMacroArgument(From.front()) + " ";
                     }
                 }
 
@@ -356,14 +404,15 @@ sequence __createSequence(list<string> &From)
 
                 if (From.front().size() > 2 && strncmp(From.front().c_str(), "//", 2) != 0)
                 {
-                    if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")"))
+                    if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")") &&
+                        From.front() != ",")
                     {
                         if (command != "")
                         {
                             command += " && ";
                         }
 
-                        command += From.front().substr(1, From.front().size() - 2);
+                        command += cleanMacroArgument(From.front());
                     }
                 }
 
@@ -528,9 +577,9 @@ sequence __createSequence(list<string> &From)
             sequence rhsSeq = __createSequence(contents);
             string rhs = toC(rhsSeq);
 
-            sm_assert(lhsSeq.type[0].info == pointer, "First argument of cpyptr! must be pointer.");
+            sm_assert(lhsSeq.type[0].info == pointer, "First argument of ptrcpy! must be pointer.");
             sm_assert(rhsSeq.type[0].info == pointer || rhsSeq.raw == "0",
-                      "Second argument of cpyptr! must be a pointer or 0.");
+                      "Second argument of ptrcpy! must be a pointer or 0.");
 
             out.info = code_line;
             out.type = nullType;
@@ -1431,10 +1480,8 @@ sequence __createSequence(list<string> &From)
     return out;
 } // __createSequence
 
-// Turn a .oak sequence into a .cpp one
-string toC(const sequence &What)
+void toCInternal(const sequence &What, vector<string> &out)
 {
-    string out = "";
     string temp;
     int scopeReturnCount;
 
@@ -1443,25 +1490,25 @@ string toC(const sequence &What)
     case code_line:
         for (int i = 0; i < What.items.size(); i++)
         {
-            out += toC(What.items[i]);
+            toCInternal(What.items[i], out);
 
             if (i + 1 != What.items.size())
             {
-                out += " ";
+                out.push_back(" ");
             }
         }
 
         break;
 
     case code_scope:
-        out += "{\n";
+        out.push_back("{\n");
 
         scopeReturnCount = 0;
         for (int i = 0; i < What.items.size(); i++)
         {
             if (What.items[i].info == keyword)
             {
-                out += toC(What.items[i]);
+                toCInternal(What.items[i], out);
             }
             else if (What.items[i].type == nullType)
             {
@@ -1469,21 +1516,23 @@ string toC(const sequence &What)
 
                 if (temp != "" && temp != ";")
                 {
-                    out += temp;
+                    out.push_back(temp);
 
                     if (!(temp.size() > 1 && temp.substr(0, 2) == "//"))
                     {
-                        out += ";";
+                        out.push_back(";");
                     }
 
-                    out += "\n";
+                    out.push_back("\n");
                 }
             }
             else
             {
                 if (scopeReturnCount == 0)
                 {
-                    out += "return (" + toC(What.items[i]) + ");\n";
+                    out.push_back("return (");
+                    toCInternal(What.items[i], out);
+                    out.push_back(");\n");
                     scopeReturnCount++;
                 }
                 else
@@ -1493,20 +1542,22 @@ string toC(const sequence &What)
             }
         }
 
-        out += "}\n";
+        out.push_back("}\n");
 
         break;
 
     case atom:
-        out += What.raw;
+        out.push_back(What.raw);
         break;
 
     case keyword:
-        out += What.raw + " ";
+        out.push_back(What.raw);
+        out.push_back(" ");
 
         for (auto child : What.items)
         {
-            out += toC(child) + " ";
+            toCInternal(child, out);
+            out.push_back(" ");
         }
 
         break;
@@ -1518,8 +1569,6 @@ string toC(const sequence &What)
             // VERY different!
             // First item is object to capture.
             // Remaining items are case or defaults.
-
-            string itemStr = toC(What.items[0]);
 
             Type type = What.items[0].type;
             string typeStr = toStrC(&type);
@@ -1565,10 +1614,19 @@ string toC(const sequence &What)
 
                     if (ind != 0)
                     {
-                        out += "else ";
+                        out.push_back("else ");
                     }
 
-                    out += "if (" + itemStr + ".__info == " + typeStr + "_OPT_" + optionName + ")\n{";
+                    out.push_back("if (");
+
+                    toCInternal(What.items[0], out);
+                    string itemStr = out.back();
+
+                    out.push_back(".__info == ");
+                    out.push_back(typeStr);
+                    out.push_back("_OPT_");
+                    out.push_back(optionName);
+                    out.push_back(")\n{");
 
                     if (captureName != "NULL")
                     {
@@ -1585,7 +1643,7 @@ string toC(const sequence &What)
 
                         if (atomics.count(captureType) == 0)
                         {
-                            out += "struct ";
+                            out.push_back("struct ");
                         }
 
                         for (int l = 0; l < numPtrs; l++)
@@ -1593,14 +1651,20 @@ string toC(const sequence &What)
                             captureType += "*";
                         }
 
-                        out +=
-                            captureType + " *" + captureName + " = &" + itemStr + ".__data." + optionName + "_data;\n";
+                        out.push_back(captureType);
+                        out.push_back(" *");
+                        out.push_back(captureName);
+                        out.push_back(" = &");
+                        out.push_back(itemStr);
+                        out.push_back(".__data.");
+                        out.push_back(optionName);
+                        out.push_back("_data;\n");
                     }
 
                     // Add capture group to Oak table if needed
 
-                    out += toC(cur.items[2]);
-                    out += "\n}\n";
+                    toCInternal(cur.items[2], out);
+                    out.push_back("\n}\n");
                 }
                 else if (What.items[1].items[ind].raw == "default")
                 {
@@ -1613,15 +1677,17 @@ string toC(const sequence &What)
 
                     auto &cur = What.items[1].items[ind];
 
-                    string contents = toC(cur.items[0]);
-
                     if (ind == 0)
                     {
-                        out += "{\n" + contents + "\n}\n";
+                        out.push_back("{\n");
+                        toCInternal(cur.items[0], out);
+                        out.push_back("\n}\n");
                     }
                     else
                     {
-                        out += "else\n{\n" + contents + "\n}\n";
+                        out.push_back("else\n{\n");
+                        toCInternal(cur.items[0], out);
+                        out.push_back("\n}\n");
                     }
                 }
                 else if (What.items[1].items[ind].raw != "")
@@ -1649,17 +1715,39 @@ string toC(const sequence &What)
                  << "'. Treating as regular keyword.\n"
                  << tags::reset;
 
-            out += What.raw + " ";
+            out.push_back(What.raw);
+            out.push_back(" ");
             for (auto child : What.items)
             {
-                out += toC(child) + " ";
+                toCInternal(child, out);
+                out.push_back(" ");
             }
         }
 
         break;
     }
+}
 
-    return out;
+// Turn a .oak sequence into a .cpp one
+string toC(const sequence &What)
+{
+    vector<string> out;
+    toCInternal(What, out);
+
+    int size = 0;
+    for (const auto &what : out)
+    {
+        size += what.size();
+    }
+
+    string outStr;
+    outStr.reserve(size);
+    for (const auto &what : out)
+    {
+        outStr += what;
+    }
+
+    return outStr;
 }
 
 // Get the return type from a Type (of a function signature)
@@ -1819,7 +1907,7 @@ vector<pair<string, Type>> getArgs(Type &type)
 
 // This should only be called after method replacement
 // I know I wrote this, but it still feels like black magic and I don't really understand it
-Type resolveFunction(const vector<string> &What, int &start, string &c)
+Type resolveFunctionInternal(const vector<string> &What, int &start, vector<string> &c)
 {
     while (start < What.size() && What[start].size() > 1 && What[start].substr(0, 2) == "//")
     {
@@ -1835,6 +1923,7 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
     if (What[start] == "@")
     {
         start++;
+        c.push_back("&");
 
         string name = What[start];
 
@@ -1847,8 +1936,7 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
         }
 
         type.prepend(pointer);
-
-        c += "&" + followingC;
+        c.push_back(followingC);
 
         return type;
     }
@@ -1856,13 +1944,12 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
     {
         start++;
 
-        string followingC = "";
-        Type type = resolveFunction(What, start, followingC);
+        c.push_back("*");
+
+        Type type = resolveFunctionInternal(What, start, c);
 
         sm_assert(type[0].info == pointer, "Cannot dereference non-pointer.");
         type.pop_front();
-
-        c += "*" + followingC;
 
         return type;
     }
@@ -1870,7 +1957,7 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
     // Semicolon check
     else if (What[start] == ";")
     {
-        c += ";";
+        c.push_back(";");
         return nullType;
     }
 
@@ -1878,7 +1965,7 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
     else if (What[start].size() >= 2 && What[start].substr(0, 2) == "//")
     {
         start++;
-        return resolveFunction(What, start, c);
+        return resolveFunctionInternal(What, start, c);
     }
 
     // Standard case
@@ -1915,8 +2002,15 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
         }
 
         int trash = 0;
-        Type toReturn = resolveFunction(toUse, trash, c);
-        c = "(" + c + ")";
+        Type toReturn = resolveFunctionInternal(toUse, trash, c);
+
+        // c = "(" + c + ")";
+        // Costly:
+        // c.insert(c.begin(), "(");
+
+        // Less costly:
+        c.front().insert(c.front().begin(), '(');
+        c.push_back(")");
 
         return toReturn;
     }
@@ -1999,11 +2093,42 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
             didTemplate = true;
         }
 
-        if (What[start] == "size!")
+        // Append literal C code, without interpretation from Oak
+        if (What[start] == "raw_c!")
         {
-            // Case for type!() macro
+            // Scrape call to a vector
+            int count = 0;
 
-            // Scrape entire type!(what) call to a vector
+            start++;
+            do
+            {
+                if (What[start] == "(")
+                {
+                    count++;
+                }
+                else if (What[start] == ")")
+                {
+                    count--;
+                }
+
+                if (!((What[start] == "(" && count == 1) || (What[start] == ")" && count == 0)))
+                {
+                    // Append raw C code
+                    c.push_back(cleanMacroArgument(What[start]));
+                    c.push_back(" ");
+                }
+
+                start++;
+            } while (count != 0 && start < What.size());
+
+            return Type(atomic, "void");
+        }
+
+        else if (What[start] == "size!")
+        {
+            // Case for size!() macro
+
+            // Scrape entire size!(what) call to a vector
             vector<string> toAnalyze;
             int count = 0;
 
@@ -2039,25 +2164,26 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
             {
                 if (atomics.count(type[0].name) != 0)
                 {
-                    c += to_string(atomics[type[0].name]);
+                    c.push_back(to_string(atomics[type[0].name]));
                 }
                 else
                 {
-                    c += to_string(structData[type[0].name].size);
+                    c.push_back(to_string(structData[type[0].name].size));
                 }
             }
             else
             {
-                c += to_string(sizeof(void *));
+                c.push_back(to_string(sizeof(void *)));
             }
 
             return Type(atomic, "u128");
         }
+
         else if (What[start].back() == '!')
         {
-            // Otherwise unspecified macro: Void
+            // Otherwise unspecified macro
 
-            // Scrape entire type!(what) call to a vector
+            // Scrape entire size!(what) call to a vector
             list<string> toAnalyze = {What[start], "("};
             int count = 0;
 
@@ -2085,7 +2211,7 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
             // Analyze type of collected
             sequence s = __createSequence(toAnalyze);
 
-            c += toC(s);
+            c.push_back(toC(s));
 
             return s.type;
         }
@@ -2173,7 +2299,10 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
             if (name == "Get" && argTypes.size() == 2 && argTypes[0][0].info == pointer && argTypes[0].size() > 1 &&
                 argTypes[0][1].info == pointer)
             {
-                c += argStrs[0] + "[" + argStrs[1] + "]";
+                c.push_back(argStrs[0]);
+                c.push_back("[");
+                c.push_back(argStrs[1]);
+                c.push_back("]");
 
                 return Type(argTypes[0], 1);
             }
@@ -2219,7 +2348,10 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
                 sm_assert(isValid, "Cannot ptr copy '" + toStr(&argTypes[1]) + "' to '" + toStr(&argTypes[0]) + "'.");
 
                 // Turn to C
-                c += "(*" + argStrs[0] + ") = " + argStrs[1];
+                c.push_back("(*");
+                c.push_back(argStrs[0]);
+                c.push_back(")=");
+                c.push_back(argStrs[1]);
 
                 // Return nullType (Copy yields void)
                 return nullType;
@@ -2360,21 +2492,22 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
             // Single candidate
             type = getReturnType(candidates[0].type);
 
-            // do stuff here
             if (candidates[0].type[0].info == pointer)
             {
-                c += name + "(";
+                c.push_back(name);
+                c.push_back("(");
             }
             else
             {
-                c += mangleSymb(name, mangleType(candidates[0].type)) + "(";
+                c.push_back(mangleSymb(name, mangleType(candidates[0].type)));
+                c.push_back("(");
             }
 
             for (int j = 0; j < argStrs.size(); j++)
             {
                 if (j != 0)
                 {
-                    c += ", ";
+                    c.push_back(", ");
                 }
 
                 // do referencing stuff here for each argument
@@ -2405,14 +2538,14 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
                 {
                     for (int k = 0; k < numDeref; k++)
                     {
-                        c.append("*");
+                        c.push_back("*");
                     }
                 }
                 else if (numDeref == -1)
                 {
                     for (int k = 0; k < -numDeref; k++)
                     {
-                        c.append("&");
+                        c.push_back("&");
                     }
                 }
                 else if (numDeref != 0)
@@ -2421,9 +2554,11 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
                                            "' (only auto-deref or single auto-ref is allowed).");
                 }
 
-                c += "(" + argStrs[j] + ")";
+                c.push_back("(");
+                c.push_back(argStrs[j]);
+                c.push_back(")");
             }
-            c += ")";
+            c.push_back(")");
 
             start--;
         }
@@ -2449,7 +2584,7 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
                 type = litType;
             }
 
-            c += What[start];
+            c.push_back(What[start]);
         }
 
         // if member access, resolve that
@@ -2462,10 +2597,11 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
                 {
                     type.pop_front();
 
-                    c = "*" + c;
+                    c.front() = "*" + c.front();
                 }
 
-                c = "(" + c + ")";
+                c.front() = "(" + c.front();
+                c.push_back(")");
             }
 
             string structName;
@@ -2503,7 +2639,8 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
 
             type = structData[structName].members[What[start + 2]];
 
-            c += "." + What[start + 2];
+            c.push_back(".");
+            c.push_back(What[start + 2]);
 
             start += 2;
         }
@@ -2515,6 +2652,27 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
     }
 
     // unreachable
+}
+
+Type resolveFunction(const vector<string> &What, int &start, string &c)
+{
+    vector<string> cVec = {c};
+    Type out = resolveFunctionInternal(What, start, cVec);
+
+    int size = 0;
+    for (const auto &item : cVec)
+    {
+        size += item.size();
+    }
+    c.clear();
+    c.reserve(size);
+
+    for (const auto &item : cVec)
+    {
+        c += item;
+    }
+
+    return out;
 }
 
 /////////////////////////////////////////
@@ -2734,6 +2892,8 @@ void addEnum(const vector<string> &FromIn)
 
             // Insert Oak version
             Type constructorType = nullType;
+            constructorType.reserve(6);
+
             constructorType.append(function);
             constructorType.append(var_name, "self");
             constructorType.append(pointer);
@@ -2749,6 +2909,8 @@ void addEnum(const vector<string> &FromIn)
 
             // Insert Oak version
             Type constructorType = nullType;
+            constructorType.reserve(9);
+
             constructorType.append(function);
             constructorType.append(var_name, "self");
             constructorType.append(pointer);

@@ -52,6 +52,9 @@ class Type
 
     const size_t size() const;
 
+    // Not const, but does not modify ID
+    void reserve(const unsigned long long &To);
+
     typeNode &operator[](const int &Index) const;
 
     unsigned long long ID;

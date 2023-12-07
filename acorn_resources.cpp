@@ -609,6 +609,12 @@ void doFile(const string &From)
                     continue;
                 }
 
+                // Raw C insertion
+                else if (lexed[i] == "raw_c!")
+                {
+                    continue;
+                }
+
                 // Super secret special cases: Pointer manipulation
                 else if (lexed[i] == "ptrcpy!" || lexed[i] == "ptrarr!")
                 {

@@ -117,6 +117,11 @@ void Type::append(const Type &Other)
     return;
 }
 
+void Type::reserve(const unsigned long long &To)
+{
+    internal.reserve(To);
+}
+
 bool Type::operator==(const Type &Other) const
 {
     return internal == Other.internal;

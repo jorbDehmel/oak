@@ -33,7 +33,7 @@ GPLv3 held by author
 using namespace std;
 
 // Info
-#define VERSION "0.2.8"
+#define VERSION "0.2.9"
 #define LICENSE "GPLv3"
 #define INFO "jdehmel@outlook.com"
 
@@ -49,8 +49,8 @@ using namespace std;
 
 /*
 Remaining options:
--bfgjktyz
--BCEFGHIJKLNOPQTVWXYZ
+ - "bfgjktyz"
+ - "BCFGHIJKLNOPQVWXYZ"
 */
 
 const string helpText = "Acorn - Oak Standard Translator\n"
@@ -64,6 +64,7 @@ const string helpText = "Acorn - Oak Standard Translator\n"
                         " -d    | --debug     | Toggle debug mode\n"
                         " -D    | --dialect   | Uses a dialect file\n"
                         " -e    | --clean     | Toggle erasure (default off)\n"
+                        " -E    | --execute   | Run executable when done\n"
                         " -g    | --exe_debug | Use LLVM debug flag\n"
                         " -h    | --help      | Show this\n"
                         " -i    | --install   | Install a package\n"
@@ -79,6 +80,7 @@ const string helpText = "Acorn - Oak Standard Translator\n"
                         " -s    | --size      | Show Oak disk usage\n"
                         " -S    | --install   | Install a package\n"
                         " -t    | --translate | Produce C++ files\n"
+                        " -T    | --test      | Compile and run tests/*.oak\n"
                         " -u    | --dump      | Save dump files\n"
                         " -U    |             | Save rule log files\n"
                         " -v    | --version   | Show version\n"

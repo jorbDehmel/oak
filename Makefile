@@ -19,7 +19,7 @@ HEADS := lexer.hpp reconstruct.hpp symbol-table.hpp \
 
 # -O3 is best for actual installs, not for testing.
 # -g should be used when size doesn't matter
-FLAGS := -O3 -g
+FLAGS := -O3
 
 TEST := acorn
 

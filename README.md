@@ -9,11 +9,16 @@ Jordan Dehmel, jdehmel@outlook.com, github.com/jorbDehmel/oak
 
 ## Overview
 
-`Oak` is a modern, compiled, low-level, statically-typed
-programming language. It uses `Rust`-like typing, without
-`Rust`'s lifetimes system. It is analogous to `C++` with
-stronger macro support, modern typing, compile-time syntax
-modification and integrated package management.
+`Oak` is a modern low-level programming language with
+compile-time modifiable syntax. Its usecase is in low-level
+language and compiler design (see the later section on
+dialects). `Oak` also aims to have an integrated build system,
+necessitating only one call to the compiler per executable.
+
+`Oak` uses `Rust`-like typing, without
+`Rust`'s lifetimes system. It is similar to `C` with
+stronger macro support, modern typing, generics, compile-time
+syntax modification and integrated package management.
 
 This document outlines the basics of `Oak`, as well as the
 canonical formatting of `Oak` code. Deviation from this
@@ -34,6 +39,10 @@ create it. `Oak` can similarly be a testing ground for new
 language syntaxes. It supports the creation of "dialects", which
 are `Oak` variants which use preprocessor rules to support
 independent syntactical structures.
+
+**Note: `Oak` has a default syntax, called canon `Oak`.** Syntax
+modifications must be opted into on a file-by-file basis, or
+specified by the compiler.
 
 ## Names and Prerequisites
 
@@ -850,34 +859,36 @@ first translated into `C`, which is then compiled and linked.
 
 Acorn command line arguments:
 
-Name | Verbose     | Function
------|-------------|----------------------------
- -a  |             | Update acorn
- -A  |             | Uninstall acorn
- -c  | --compile   | Produce object files
- -d  | --debug     | Toggle debug mode
- -D  | --dialect   | Uses a dialect file
- -e  | --clean     | Toggle erasure (default off)
- -g  | --exe_debug | Use LLVM debug flag
- -h  | --help      | Show this
- -i  | --install   | Install a package
- -l  | --link      | Produce executables
- -m  | --manual    | Produce a .md doc
- -M  |             | Used for macros
- -n  | --no_save   | Produce nothing
- -o  | --output    | Set the output file
- -O  | --optimize  | Use LLVM optimization O3
- -q  | --quit      | Quit immediately
- -r  | --reinstall | Reinstall a package
- -R  | --remove    | Uninstalls a package
- -s  | --size      | Show Oak disk usage
- -S  | --install   | Install a package
- -t  | --translate | Produce C++ files
- -u  | --dump      | Save dump files
- -U  |             | Save rule log files
- -v  | --version   | Show version
- -w  | --new       | Create a new package
- -x  | --syntax    | Ignore syntax errors
+Option | Verbose     | Purpose
+-------|-------------|-------------------------------
+ -a    |             | Update acorn
+ -A    |             | Uninstall acorn
+ -c    | --compile   | Produce object files
+ -d    | --debug     | Toggle debug mode
+ -D    | --dialect   | Uses a dialect file
+ -e    | --clean     | Toggle erasure (default off)
+ -E    | --execute   | Run executable when done
+ -g    | --exe_debug | Use LLVM debug flag
+ -h    | --help      | Show this
+ -i    | --install   | Install a package
+ -l    | --link      | Produce executables
+ -m    | --manual    | Produce a .md doc
+ -M    |             | Used for macros
+ -n    | --no_save   | Produce nothing
+ -o    | --output    | Set the output file
+ -O    | --optimize  | Use LLVM optimization O3
+ -q    | --quit      | Quit immediately
+ -r    | --reinstall | Reinstall a package
+ -R    | --remove    | Uninstalls a package
+ -s    | --size      | Show Oak disk usage
+ -S    | --install   | Install a package
+ -t    | --translate | Produce C++ files
+ -T    | --test      | Compile and run tests/*.oak
+ -u    | --dump      | Save dump files
+ -U    |             | Save rule log files
+ -v    | --version   | Show version
+ -w    | --new       | Create a new package
+ -x    | --syntax    | Ignore syntax errors
 
 ## Optimization and Runtime Debugging
 
@@ -1851,7 +1862,7 @@ variables), every datatype in `Oak` has one and only one
 members are called upon instantiation. This default value is
 said to be the "canonical" or "unit" value of that datatype.
 
-## Needs- Instantiation Blocks and Generic Data Structures
+## Needs / Instantiation Blocks and Generic Data Structures
 
 As should be obvious to anyone who has worked with a templated
 data structure library, it is necessary for structures to
@@ -2035,6 +2046,13 @@ instance, the `std/interface.oak` file provides erased structs
 of various sizes for use in struct interfaces. These items can 
 never be accessed, but still take up space within a struct.
 
+## Advanced Language Augmentation Via `raw_c!` Macro
+
+The `raw_c!` macro completely bypasses the `Oak` compiler and
+directly inserts its arguments as `C` code. This can be used for
+more advanced language development features which may require
+efficiency or capabilities beyon that of `Oak`.
+
 ## List of Keywords
 
 The following are keywords- That is to say, these words cannot 
@@ -2086,6 +2104,7 @@ The following are atomic (built-in, indivisible) macros.
 - size!
 - ptrcpy!
 - ptrarr!
+- raw_c!
 
 ## Misc. Notes
 

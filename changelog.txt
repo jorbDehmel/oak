@@ -4,6 +4,10 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.2.9           | 12/7/23  | Efficiency boost via vectorization.
+                |          | Also added raw_c! macro for raw C
+                |          | code.
+                |          |
 0.2.8           | 12/5/23  | Added c_sys! for compile-time sys
                 |          | calls. Also, bug fixes.
                 |          |

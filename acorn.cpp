@@ -10,8 +10,11 @@ GPLv3 held by author
 #include "macros.hpp"
 #include "sequence.hpp"
 #include "tags.hpp"
+#include <bits/chrono.h>
+#include <chrono>
 #include <cstdlib>
 #include <iomanip>
+#include <ratio>
 using namespace std;
 
 // Dummy wrapper function for updating
@@ -37,6 +40,9 @@ int main(const int argc, const char *argv[])
     string out = "a.out";
     bool noSave = false;
     bool eraseTemp = false;
+
+    bool execute = false;
+    bool test = false;
 
     try
     {
@@ -106,6 +112,14 @@ int main(const int argc, const char *argv[])
                     else if (cur == "--quit")
                     {
                         return 0;
+                    }
+                    else if (cur == "--test")
+                    {
+                        test = !test;
+                    }
+                    else if (cur == "--execute")
+                    {
+                        execute = !execute;
                     }
                     else if (cur == "--output")
                     {
@@ -251,6 +265,9 @@ int main(const int argc, const char *argv[])
                             }
 
                             break;
+                        case 'E':
+                            execute = !execute;
+                            break;
                         case 'g':
                             if (cflags.count("-g") == 0)
                             {
@@ -343,6 +360,9 @@ int main(const int argc, const char *argv[])
                             break;
                         case 't':
                             noSave = compile = doLink = false;
+                            break;
+                        case 'T':
+                            test = !test;
                             break;
                         case 'u':
                             alwaysDump = !alwaysDump;
@@ -697,15 +717,102 @@ int main(const int argc, const char *argv[])
                  << (100 * (double)phaseTimes[j] / totalPlusCompilation) << "%\n";
         }
 
-        cout << "\t" << passNames.size() + 1 << "\treconstruction\t" << reconstructionElapsed
+        cout << "\t" << passNames.size() + 1 << "\treconstruction\t\t" << reconstructionElapsed
              << ((reconstructionElapsed < 10'000'000) ? "\t\t" : "\t") << "\t\t"
              << (100 * (double)reconstructionElapsed / totalPlusCompilation) << "%\n";
 
-        cout << "\t" << passNames.size() + 2 << "\tC++ via Clang\t" << compElapsed
+        cout << "\t" << passNames.size() + 2 << "\tC via " << C_COMPILER << "\t\t" << compElapsed
              << ((compElapsed < 10'000'000) ? "\t\t" : "\t") << "\t\t"
              << (100 * (double)compElapsed / totalPlusCompilation) << "%\n";
 
         cout << "Output file: " << out << '\n';
+    }
+
+    if (execute)
+    {
+        if (out[0] != '/' && out[0] != '~' && out[0] != '.')
+        {
+            out = "./" + out;
+        }
+
+        cout << "\nExecuting " << out << "...\n";
+        for (int i = 0; i < 40; i++)
+        {
+            cout << '-';
+        }
+        cout << '\n' << flush;
+
+        int result = system(out.c_str());
+
+        for (int i = 0; i < 40; i++)
+        {
+            cout << '-';
+        }
+        cout << '\n' << flush;
+
+        if (result != 0)
+        {
+            cout << tags::red_bold << "Execution failed w/ code " << result << tags::reset;
+            return result;
+        }
+    }
+
+    // Run test suite ./tests/*
+    if (test)
+    {
+        int good = 0, bad = 0, result;
+        unsigned long long ms, totalMs = 0;
+        chrono::_V2::high_resolution_clock::time_point start, end;
+        ifstream file;
+        string line;
+        vector<string> files;
+
+        // Get all files to run
+        result = system("mkdir -p .oak_build && ls ./tests/*.oak > .oak_build/test_suite_temp.txt");
+        file.open(".oak_build/test_suite_temp.txt");
+        if (result != 0 || !file.is_open())
+        {
+            cout << tags::red_bold << "Error: Failed to find test suite `./tests/`.\n" << tags::reset;
+
+            return 7;
+        }
+
+        while (!file.eof())
+        {
+            getline(file, line);
+            files.push_back(line);
+        }
+
+        file.close();
+
+        cout << tags::violet_bold << "Running " << files.size() << " tests...\n\n" << tags::reset;
+
+        // Iterate through files
+        for (auto test : files)
+        {
+            start = chrono::high_resolution_clock::now();
+            result = system(("acorn --execute " + test).c_str());
+            end = chrono::high_resolution_clock::now();
+
+            ms = chrono::duration_cast<chrono::milliseconds>(end - start).count();
+            totalMs += ms;
+
+            cout << "[" << result << "] `" << test << "` took " << ms << " ms.\n";
+            if (result == 0)
+            {
+                good++;
+            }
+            else
+            {
+                bad++;
+            }
+        }
+
+        cout << tags::green_bold << "\nPassed: " << good << '\n'
+             << "Failed: " << bad << '\n'
+             << "Total:  " << good + bad << '\n'
+             << "ms:     " << totalMs << '\n'
+             << tags::reset;
     }
 
     return 0;

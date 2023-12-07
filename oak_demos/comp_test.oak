@@ -18,12 +18,16 @@ c_print!(
 );
 
 // Halt compilation
-c_panic!(
-    "alalalala",
-    "gloobelsnirt"
-);
+// c_panic!(
+//     "alalalala",
+//     "gloobelsnirt"
+// );
 
 let main() -> i32
 {
+    // Allows raw C code to be inserted, completely bypassing
+    // any Oak interpretations
+    raw_c!("#include <stdio.h>\nprintf(\"Hello!\\n\");");
+
     0
 }
