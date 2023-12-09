@@ -4,6 +4,9 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.2.10          | 12/9/23  | Moved regex from std to extra.
+                |          | Improved test suite testing.
+                |          |
 0.2.9           | 12/7/23  | Efficiency boost via vectorization.
                 |          | Also added raw_c! macro for raw C
                 |          | code.

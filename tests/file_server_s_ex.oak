@@ -4,10 +4,11 @@ use_rule!("std");
 
 include!("std/string.oak",
         "std/file_inter.oak",
-        "std/regex_inter.oak",
         "std/sock_inter.oak",
         "std/printf.oak",
         "std/conv_extra.oak");
+
+include!("extra/regex_inter.oak");
 
 // Sizes will be sent using this many chars
 let size_chars! = to_u128(8);

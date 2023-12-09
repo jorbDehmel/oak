@@ -39,7 +39,7 @@ install: bin/acorn.out std_oak_header.h
 
 	sudo mv /usr/include/oak/std/*.sh /usr/include/oak
 
-	# acorn -S sdl
+	acorn -S sdl -S experimental/extra
 
 uninstall:
 	sudo rm -rf /usr/bin/acorn /usr/include/oak /usr/include/std_oak_header.hpp
@@ -48,7 +48,7 @@ reinstall:
 	$(MAKE) -C . uninstall clean install
 
 test:
-	$(TEST) -T
+	$(TEST) -eT
 
 sdltest:
 	$(TEST) oak_demos/sdl_test.oak -o sdl_test.out

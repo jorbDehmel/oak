@@ -2048,12 +2048,48 @@ instance, the `std/interface.oak` file provides erased structs
 of various sizes for use in struct interfaces. These items can 
 never be accessed, but still take up space within a struct.
 
+## Test Suites
+
+A test suite is a set of unit tests that `acorn` will compile
+and optionally execute in order to test the validity of a build.
+A test suite is created by creating a folder named `tests`, and
+putting any number of `*.oak` files within it. After this
+structure has been imposed, `acorn -T` will compile the entire
+test suite and report on any failures it discovers. Similarly,
+`acorn -TE` will compile and execute each item in the test
+suite. A compilation is considered a success if and only if the
+`acorn` compile process returns no errors. An execution is
+considered a success if and only if its main function returns a
+$0$. Either of these cases occurring will be considered a
+failure and will count towards an internal failure counter. The
+results of running the test suite will be reported after the
+test's conclusion.
+
+The `Oak` standard test suite is included in the installation
+`git` repo. Each item within this test suite must compile in
+order for an `Oak` update to be considered valid. This can be
+tested via `make test` or `acorn -T`. These items do not need to
+execute with a zero exit status, as some of them are
+demonstrations.
+
 ## Advanced Language Augmentation Via `raw_c!` Macro
 
 The `raw_c!` macro completely bypasses the `Oak` compiler and
 directly inserts its arguments as `C` code. This can be used for
 more advanced language development features which may require
 efficiency or capabilities beyond that of `Oak`.
+
+## Future Improvements to `$apling` - `TARM`
+
+`$apling` is limited in the modifications it can make to `Oak`,
+but it is nevertheless a vital resource. In addition to the
+existing rule system, a more powerful rule engine is in
+development. This new rule system is called `TARM`, for Token
+Augmentation Register Machine. It is a type of Turing Machine
+optimized for low-level token stream augmentations which will be
+controlled by an assembly language. A rigorous exploration of
+`TARM` will not be attempted here, especially since it is not
+yet implemented into `Oak`.
 
 ## List of Keywords
 
@@ -2843,7 +2879,7 @@ let main(argc: i32, argv: ^str) -> i32
 
 Now we can iterate over the line! However, we still need to do
 the actual RegEx searching. For this, let's include the
-`std/regex_inter.oak` file, and use the `regex` struct and
+`extra/regex_inter.oak` file, and use the `regex` struct and
 `regex_search` function. 
 
 ```rust
@@ -2851,7 +2887,7 @@ package!("std");
 use_rule!("std");
 
 include "std/panic_inter.oak", "std/file_inter.oak",
-    "std/string.oak", "std/regex_inter.oak";
+    "std/string.oak", "extra/regex_inter.oak";
 
 include "std/bool.oak";
 use "bool";
@@ -2905,7 +2941,7 @@ use_rule!("std");
 
 include "std/panic_inter.oak", "std/file_inter.oak",
     "std/string.oak", "std/printf.oak",
-    "std/regex_inter.oak", "std/color.oak";
+    "extra/regex_inter.oak", "std/color.oak";
 
 include "std/bool.oak";
 use "bool";
@@ -3200,7 +3236,7 @@ This example requires:
 - A basic understanding of regular expressions
 
 In this example, we will be creating a version of the `Oak`
-`std/regex_inter.oak` interfacial file. This will allow us to
+`extra/regex_inter.oak` interfacial file. This will allow us to
 access the `C++` `boost` RegEx library from within `Oak`, and
 give us a better understanding of how to create interfacial
 files and libraries in `Oak`.
@@ -3944,7 +3980,7 @@ use_rule!("std");
 
 include "std/string.oak",
         "std/file_inter.oak",
-        "std/regex_inter.oak",
+        "extra/regex_inter.oak",
         "std/sock_inter.oak",
         "std/printf.oak";
 
@@ -3998,7 +4034,7 @@ use_rule!("std");
 
 include!("std/string.oak",
         "std/file_inter.oak",
-        "std/regex_inter.oak",
+        "extra/regex_inter.oak",
         "std/sock_inter.oak",
         "std/printf.oak",
         "std/conv_extra.oak");

@@ -2,8 +2,9 @@ package!("std");
 use_rule!("std");
 
 include "std/panic_inter.oak", "std/file_inter.oak",
-    "std/string.oak", "std/printf.oak",
-    "std/regex_inter.oak", "std/color.oak";
+    "std/string.oak", "std/printf.oak", "std/color.oak";
+
+include "extra/regex_inter.oak";
 
 include "std/bool.oak";
 use "bool";
