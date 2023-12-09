@@ -13,7 +13,9 @@ include!("std/string.oak",
 let size_chars! = to_u128(8);
 
 // Handle a single request
-let do_request(server: ^server_sock, request: string) -> void;
+let do_request(server: ^server_sock, request: string) -> void
+{
+}
 
 let main() -> i32
 {

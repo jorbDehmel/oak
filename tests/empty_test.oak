@@ -1,0 +1,8 @@
+// Tests the baseline efficiency of acorn
+// Jordan Dehmel, 2023
+// jdehmel@outlook.com
+
+let main() -> i32
+{
+    0
+}

@@ -766,24 +766,39 @@ int main(const int argc, const char *argv[])
         while (!file.eof())
         {
             getline(file, line);
-            files.push_back(line);
+
+            if (line != "")
+            {
+                files.push_back(line);
+            }
         }
 
         file.close();
 
-        cout << tags::violet_bold << "Running " << files.size() << " tests...\n\n" << tags::reset;
+        system("rm test_suite.log");
+        cout << tags::violet_bold << "Running " << files.size() << " tests...\n" << tags::reset;
+
+        cout << "[compiling " << (execute ? "and" : "but not") << " executing]\n\n";
 
         // Iterate through files
         for (auto test : files)
         {
             start = chrono::high_resolution_clock::now();
-            result = system(("acorn --execute " + test).c_str());
+            if (execute)
+            {
+                result = system(("acorn --execute " + test + " >> test_suite.log 2>&1").c_str());
+            }
+            else
+            {
+                result = system(("acorn " + test + " >> test_suite.log 2>&1").c_str());
+            }
             end = chrono::high_resolution_clock::now();
 
             ms = chrono::duration_cast<chrono::milliseconds>(end - start).count();
             totalMs += ms;
 
-            cout << "[" << result << "] `" << test << "` took " << ms << " ms.\n";
+            cout << "[" << (result == 0 ? tags::green : tags::red) << result << tags::reset << "]\t" << ms << " ms\t"
+                 << test << "\n";
             if (result == 0)
             {
                 good++;
@@ -795,21 +810,29 @@ int main(const int argc, const char *argv[])
             }
         }
 
-        cout << tags::violet_bold << "\nPassed: " << good << " (" << 100 * (double)good / (good + bad) << "%)" << '\n'
-             << "Failed: " << bad << " (" << 100 * (double)bad / (good + bad) << "%)" << '\n'
-             << "Total:  " << good + bad << '\n'
-             << "ms:     " << totalMs << '\n';
+        if (good != 0)
+        {
+            cout << tags::green_bold << "\nPassed:\t\t" << good << "\t(" << 100 * (double)good / (good + bad) << "%)"
+                 << '\n';
+        }
+        if (bad != 0)
+        {
+            cout << tags::red_bold << "Failed:\t\t" << bad << "\t(" << 100 * (double)bad / (good + bad) << "%)" << '\n';
+        }
+
+        cout << tags::reset << "Total:\t\t" << good + bad << '\n'
+             << "ms:\t\t" << totalMs << '\n'
+             << "ms per test:\t" << (totalMs) / (double)(good + bad) << '\n';
 
         if (bad != 0)
         {
-            cout << "Failed files:\n";
+            cout << tags::red_bold << "\nFailed files:\n";
             for (auto item : failed)
             {
                 cout << " - " << item << '\n';
             }
+            cout << tags::reset;
         }
-
-        cout << tags::reset;
     }
 
     return 0;

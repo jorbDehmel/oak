@@ -4,6 +4,7 @@
 package!("std");
 use_rule!("std");
 
+include!("std/opt.oak");
 include!("std/unit.oak");
 
 let print<t>(what: opt<t>) -> void

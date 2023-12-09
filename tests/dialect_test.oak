@@ -1,3 +1,6 @@
+package!("std");
+use_rule!("std");
+
 /*
 A demonstration using the standard Oak dialect
 Passed Oct 13, 23
@@ -11,12 +14,12 @@ let obj: struct
     a: i32,
 }
 
-let obj.Copy(what: i32)
+let obj.Copy(what: i32) -> void
 {
     self.a = what;
 }
 
-let obj.method()
+let obj.method() -> void
 {
     print(self.a);
     print("\n");

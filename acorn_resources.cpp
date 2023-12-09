@@ -7,6 +7,10 @@ GPLv3 held by author
 */
 
 #include "acorn_resources.hpp"
+#include "rules.hpp"
+#include <bits/chrono.h>
+#include <chrono>
+#include <ratio>
 
 // Settings
 bool debug = false;
@@ -48,6 +52,10 @@ void getDiskUsage()
 
 void doFile(const string &From)
 {
+    // chrono::high_resolution_clock::time_point global_start, global_end;
+    // unsigned long long elapsedms = 0;
+    // global_start = chrono::high_resolution_clock::now();
+
     if (debug)
     {
         while (phaseTimes.size() < 9)
@@ -366,10 +374,16 @@ void doFile(const string &From)
                             }
                         }
 
+                        // global_end = chrono::high_resolution_clock::now();
+                        // elapsedms += chrono::duration_cast<chrono::milliseconds>(global_end - global_start).count();
+
                         for (string a : args)
                         {
                             doFile(OAK_DIR_PATH + a);
                         }
+
+                        // global_start = chrono::high_resolution_clock::now();
+
                         i--;
                     }
                     else if (lexed[i] == "link!")
@@ -475,7 +489,13 @@ void doFile(const string &From)
                                 vector<string> backupDialectRules = dialectRules;
                                 dialectRules.clear();
 
+                                // global_end = chrono::high_resolution_clock::now();
+                                // elapsedms +=
+                                //     chrono::duration_cast<chrono::milliseconds>(global_end - global_start).count();
+
                                 doFile(f);
+
+                                // global_start = chrono::high_resolution_clock::now();
 
                                 dialectRules = backupDialectRules;
                             }
@@ -832,6 +852,16 @@ void doFile(const string &From)
 
         throw runtime_error("Failure in file '" + From + "': " + e.what());
     }
+    catch (exception &e)
+    {
+        cout << tags::red_bold << "Caught exception '" << e.what() << "'\n" << tags::reset;
+
+        string name = "oak_dump_" + purifyStr(From) + ".log";
+        cout << "Dump saved in " << name << "\n";
+        dump(lexed, name, From, curLine, sequence(), lexedCopy);
+
+        throw runtime_error("Failure in file '" + From + "': " + e.what());
+    }
     catch (...)
     {
         string name = "oak_dump_" + purifyStr(From) + ".log";
@@ -840,6 +870,10 @@ void doFile(const string &From)
 
         throw runtime_error("Unknown failure in file '" + From + "'");
     }
+
+    // global_end = chrono::high_resolution_clock::now();
+    // elapsedms += chrono::duration_cast<chrono::milliseconds>(global_end - global_start).count();
+    // cout << DB_INFO << curFile << "\t" << elapsedms << " ms\n";
 
     curLine = oldLineNum;
     curFile = oldFile;

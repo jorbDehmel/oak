@@ -2,7 +2,8 @@
 # jdehmel@outlook.com
 # github.com/jorbDehmel/oak
 
-CC := clang++ -pedantic -Wall
+CC := clang++ -g
+
 OBJS := build/lexer.o build/symbol-table.o \
 	build/type-builder.o build/reconstruct.o \
 	build/macros.o build/sequence.o \
@@ -17,9 +18,7 @@ HEADS := lexer.hpp reconstruct.hpp symbol-table.hpp \
 	acorn_resources.hpp document.hpp rules.hpp \
 	enums.hpp mangler.hpp generics.hpp
 
-# -O3 is best for actual installs, not for testing.
-# -g should be used when size doesn't matter
-FLAGS := -O3
+FLAGS := -pedantic -Wall -O3
 
 TEST := acorn
 
@@ -49,42 +48,7 @@ reinstall:
 	$(MAKE) -C . uninstall clean install
 
 test:
-	$(TEST) oak_demos/assert_test.oak -o assert_test.out
-	$(TEST) oak_demos/bool_test.oak -o bool_test.out
-	$(TEST) oak_demos/color_test.oak -o color_test.out
-	$(TEST) oak_demos/cond_test.oak -o cond_test.out
-	$(TEST) oak_demos/conv_test.oak -o conv_test.out
-	$(TEST) oak_demos/def_test.oak -o def_test.out
-	$(TEST) oak_demos/enum_test.oak -o enum_test.out
-	$(TEST) oak_demos/erase_test.oak -o erase_test.out
-	$(TEST) oak_demos/file_test.oak -o file_test.out
-	$(TEST) oak_demos/fn_ptr_test.oak -o fn_ptr_test.out
-	$(TEST) oak_demos/fn_ptr_test_2.oak -o fn_ptr_test_2.out
-	$(TEST) oak_demos/hello_world.oak -o hello_world.out
-	$(TEST) oak_demos/i_file_test.oak -o i_file_test.out
-	$(TEST) oak_demos/loop_test.oak -o loop_test.out
-	$(TEST) oak_demos/macro_test.oak -o macro_test.out
-	$(TEST) oak_demos/math_test.oak -o math_test.out
-	$(TEST) oak_demos/mem_test.oak -o mem_test.out
-	$(TEST) oak_demos/opt_test.oak -o opt_test.out
-	$(TEST) oak_demos/over_test.oak -o over_test.out
-	$(TEST) oak_demos/panic_test.oak -o panic_test.out
-	$(TEST) oak_demos/printf_test.oak -o printf_test.out
-	$(TEST) oak_demos/rec_test.oak -o rec_test.out
-	$(TEST) oak_demos/rule_test.oak -o rule_test.out
-	$(TEST) oak_demos/rule_test_2.oak -o rule_test_2.out
-	$(TEST) oak_demos/rule_test_3.oak -o rule_test_3.out
-	$(TEST) oak_demos/rule_test_4.oak -o rule_test_4.out
-	$(TEST) oak_demos/size_test.oak -o size_test.out
-	$(TEST) oak_demos/sock_test_c.oak -o sock_test_c.out
-	$(TEST) oak_demos/sock_test_s.oak -o sock_test_s.out
-	$(TEST) oak_demos/string_test.oak -o string_test.out
-	$(TEST) oak_demos/thread_test.oak -o thread_test.out
-	$(TEST) oak_demos/time_test.oak -o time_test.out
-	$(TEST) oak_demos/type_macro_test.oak -o type_macro_test.out
-
-	$(MAKE) sdltest
-	$(MAKE) gentest
+	$(TEST) -T
 
 sdltest:
 	$(TEST) oak_demos/sdl_test.oak -o sdl_test.out

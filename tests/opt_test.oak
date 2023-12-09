@@ -1,6 +1,8 @@
 package!("std");
 use_rule!("std");
 
+include!("std/opt.oak");
+
 let main() -> i32
 {
     let obj: opt<i32>;

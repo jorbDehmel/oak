@@ -165,6 +165,45 @@ let main() -> i32
 
 ```
 
+## Demo
+
+File: `main.oak`
+
+```rust
+// Import the `Oak` standard package
+package!("std");
+
+// Use the standard `Oak` rule set
+use_rule!("std");
+
+let main(argc: i32, argv: ^str)
+{
+    print("This program was started with the command: ");
+    println(argv[0]);
+
+    println("Hello, world!");
+
+    0
+}
+
+```
+
+Commands (bash):
+
+```bash
+acorn main.oak -o hello.out
+./hello.out
+```
+
+Output:
+
+```bash
+<Compiler output here>
+This program was started with the command: .oak_build/a.out
+Hello, world!
+<Process finished with exit code 0>
+```
+
 ## Pointers
 
 Pointers are variables which hold a memory address. This address
@@ -679,9 +718,10 @@ OrEq   | \|=       | Bitwise OR and assign  | let OrEq(self: ^T, other: T) -> T;
 Lbs    | <<        | Left bitshift          | let Lbs(self: T, other: T) -> T;
 Rbs    | >>        | Right bitshift         | let Rbs(self: T, other: T) -> T;
 New    | TYPE_NAME | Instantiation          | let New(self: ^T) -> ^T;
+Del    | N/A       | Deletion               | let Del(self: ^T) -> void;
 
-There is no `Oak` equivalent to `C++`'s prefix increment or
-decrement operator.
+There is no `Oak` equivalent to `C++`'s increment and decrement
+operators.
 
 It is notable that there is not a set return type for many of
 these. It is common to see `copy` return `T`, `^T`, or `void`.
@@ -708,46 +748,7 @@ parenthesis are inferred.
 `Oak` does not have `C++` streams by default, although its
 flexible syntax means that they aren't too hard to implement.
 
-## Demo
-
-File: `main.oak`
-
-```rust
-// Import the `Oak` standard package
-package!("std");
-
-// Use the standard `Oak` rule set
-use_rule!("std");
-
-let main(argc: i32, argv: ^str)
-{
-    print("This program was started with the command: ");
-    println(argv[0]);
-
-    println("Hello, world!");
-
-    0
-}
-
-```
-
-Commands (bash):
-
-```bash
-acorn main.oak -o hello.out
-./hello.out
-```
-
-Output:
-
-```bash
-<Compiler output here>
-This program was started with the command: .oak_build/a.out
-Hello, world!
-<Process finished with exit code 0>
-```
-
-## Atomic Conversions (If You Don't Know Rust)
+## Atomic Types
 
 `C++`               | `Oak`
 --------------------|-------
@@ -768,6 +769,7 @@ bool                | bool
 T&                  | ^t
 T[]                 | ^t
 T*                  | ^t
+const T             | t
 template\<class T\> | \<t\>
 
 The last few entries show two things; That `Oak` does not have

@@ -83,7 +83,11 @@ void doRules(vector<string> &From)
     }
 
     vector<map<string, string>> ruleVars;
-    ruleVars.reserve(dialectRules.size());
+
+    if (dialectRules.size() > 0)
+    {
+        ruleVars.reserve(dialectRules.size());
+    }
 
     // Initialize variable maps
     for (int i = 0; i < dialectRules.size() + activeRules.size(); i++)
@@ -93,6 +97,8 @@ void doRules(vector<string> &From)
 
     for (int i = 0; i < From.size(); i++)
     {
+        // cout << __FILE__ << ' ' << __LINE__ << ' ' << curFile << ' ' << i << '\t' << From[i] << '\n';
+
         if (From[i].size() >= 2 && From[i].substr(0, 2) == "//")
         {
             continue;
@@ -233,6 +239,8 @@ void doRules(vector<string> &From)
 
             for (int ruleIndex = 0; ruleIndex < dialectRules.size() + activeRules.size(); ruleIndex++)
             {
+                // cout << "On rule " << ruleIndex << '\n';
+
                 int isMatch = true;
 
                 rule curRule;
@@ -567,7 +575,7 @@ void doRules(vector<string> &From)
                         throw_assert(k + 1 < curRule.inputPattern.size());
                         string nextSymb = curRule.inputPattern[k + 1];
 
-                        while (From[posInFrom] != nextSymb)
+                        while (posInFrom < From.size() && From[posInFrom] != nextSymb)
                         {
                             if (ruleVars[ruleIndex].count(name) == 0)
                             {
@@ -760,6 +768,8 @@ void doRules(vector<string> &From)
             }
         }
     }
+
+    // cout << "Done.\n";
 
     return;
 }

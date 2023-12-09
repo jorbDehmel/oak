@@ -4,6 +4,8 @@
 package!("std");
 use_rule!("std");
 
+include!("std/result.oak");
+
 let fn_which_returns_result() -> result<i32, i32>
 {
     let out: result<i32, i32>;

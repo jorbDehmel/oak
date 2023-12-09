@@ -3027,23 +3027,44 @@ void dump(const vector<string> &Lexed, const string &Where, const string &FileNa
 
     file << sep << "// All rules:\n";
 
-    for (auto s : rules)
+    int i = 0;
+    for (auto s : dialectRules)
     {
-        file << s.first << '\n' << '\t';
+        file << i << '\t' << s << '\n' << '\t';
 
-        for (auto t : s.second.inputPattern)
+        for (auto t : rules[s].inputPattern)
         {
             file << t << ' ';
         }
 
         file << "\n\t";
 
-        for (auto t : s.second.outputPattern)
+        for (auto t : rules[s].outputPattern)
         {
             file << t << ' ';
         }
 
         file << "\n";
+        i++;
+    }
+    for (auto s : activeRules)
+    {
+        file << i << '\t' << s << '\n' << '\t';
+
+        for (auto t : rules[s].inputPattern)
+        {
+            file << t << ' ';
+        }
+
+        file << "\n\t";
+
+        for (auto t : rules[s].outputPattern)
+        {
+            file << t << ' ';
+        }
+
+        file << "\n";
+        i++;
     }
 
     file << sep << "// All bundles:\n";
