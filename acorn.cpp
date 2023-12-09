@@ -778,7 +778,7 @@ int main(const int argc, const char *argv[])
         system("rm test_suite.log");
         cout << tags::violet_bold << "Running " << files.size() << " tests...\n" << tags::reset;
 
-        cout << "[compiling " << (execute ? "and" : "but not") << " executing]\n\n";
+        cout << "[compiling " << (execute ? "and" : "but not") << " executing]\n";
 
         // Iterate through files
         for (auto test : files)
@@ -812,7 +812,7 @@ int main(const int argc, const char *argv[])
 
         if (good != 0)
         {
-            cout << tags::green_bold << "\nPassed:\t\t" << good << "\t(" << 100 * (double)good / (good + bad) << "%)"
+            cout << tags::green_bold << "Passed:\t\t" << good << "\t(" << 100 * (double)good / (good + bad) << "%)"
                  << '\n';
         }
         if (bad != 0)

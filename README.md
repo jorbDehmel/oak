@@ -69,11 +69,11 @@ package. To uninstall, call `acorn -A`. To update, call
 ## For More Help
 
 For examples on the concepts presented in this document, see the
-`./oak_demos/` directory included in this `git` repo. The files
+`./tests/` directory included in this `git` repo. The files
 therein are labeled `CONCEPT_test.oak`, where `CONCEPT` is the
 concept covered within. These files are both demos and unit
 tests for `Oak` and `acorn`. Consequently, you can compile all
-demos via `make test`.
+demos via `make test` or `acorn -T`.
 
 ## Syntax Overview
 
@@ -1509,9 +1509,9 @@ in the context of `Oak` is the network of `.oak`, `.o`, `.od`,
 `.cpp`, `.hpp`, `.h`, and `.c` files used by `acorn` during a
 given command.
 
-For instance, the command `acorn oak_demos/macro_test.oak` would
+For instance, the command `acorn tests/macro_test.oak` would
 begin with a translation unit containing only
-`oak_demos/macro_test.oak`. If that test were to open with the
+`tests/macro_test.oak`. If that test were to open with the
 line `package!("std");`, the translation unit would grow to
 include the file listed under `INCLUDE=` in the `std` package.
 This file (`std/std.oak`), would likely contain `link!`,
@@ -2053,7 +2053,7 @@ never be accessed, but still take up space within a struct.
 The `raw_c!` macro completely bypasses the `Oak` compiler and
 directly inserts its arguments as `C` code. This can be used for
 more advanced language development features which may require
-efficiency or capabilities beyon that of `Oak`.
+efficiency or capabilities beyond that of `Oak`.
 
 ## List of Keywords
 
@@ -2747,7 +2747,7 @@ let main(argc: i32, argv: ^str) -> i32
 ```
 
 ```bash
-[user@host dir]$ acorn oak_demos/oak_grep_ex.oak -o oak_grep.out
+[user@host dir]$ acorn tests/oak_grep_ex.oak -o oak_grep.out
 [user@host dir]$ ./oak_grep.out file.txt "regex+ pat?tern h*ere"
 Got filepath 'file.txt' and pattern 'regex+ pat?tern h*ere'
 ```
@@ -3849,7 +3849,7 @@ let main() -> i32
 Now, lets test it out!
 
 ```bash
-acorn oak_demos/regex_ex.oak -o regex_ex.out
+acorn tests/regex_ex.oak -o regex_ex.out
 ./regex_ex.out
 ```
 
