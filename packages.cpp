@@ -380,7 +380,7 @@ void downloadPackage(const string &URLArg, const bool &Reinstall, const string &
         {
             cout << tags::yellow_bold
                  << "Enter the path within the folder to install from [default .]: " << tags::reset;
-            cin >> path;
+            getline(cin, path);
             if (path == "")
             {
                 path = ".";
