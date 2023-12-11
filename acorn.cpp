@@ -427,16 +427,9 @@ int main(const int argc, const char *argv[])
                 cout << tags::green_bold << "\nPhase 1: File analysis\n" << tags::reset;
             }
 
-            int i = 0;
             for (auto f : files)
             {
-                if (debug)
-                {
-                    cout << 100.0 * (i / (double)files.size()) << "% done with initial files.\n";
-                }
-
                 doFile(f);
-                i++;
             }
 
             // Reconstruct and save

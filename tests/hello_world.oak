@@ -1,7 +1,7 @@
 // Jordan Dehmel, 2023
 // Legacy passed
 
-package!("std");
+include!("std/io_inter.oak");
 
 let main(argc: i32, argv: ^str) -> i32
 {

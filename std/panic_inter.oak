@@ -10,7 +10,10 @@ let internal_panic() -> void;
 
 let panic!(argc: i32, argv: ^^i8) -> i32
 {
-    include!("std/io_inter.oak");
+    include!(
+        "std/io_inter.oak",
+        "std/conv_extra.oak"
+    );
 
     print(
         "print(\"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\\n\");\n"
@@ -39,7 +42,10 @@ let panic!(argc: i32, argv: ^^i8) -> i32
 
 let assert!(argc: i32, argv: ^^i8) -> i32
 {
-    include!("std/io_inter.oak");
+    include!(
+        "std/io_inter.oak",
+        "std/conv_extra.oak"
+    );
 
     let out: i32;
     out = 1;

@@ -641,6 +641,31 @@ vector<string> lex(const string &What)
             }
         }
 
+        else if (prev.back() == '"' && cur.front() == '"')
+        {
+            prev.pop_back();
+
+            out[i] = prev + out[i].substr(1);
+            out.erase(out.begin() + (i - 1));
+            i--;
+
+            cur = out[i];
+            next = out[i + 1];
+        }
+
+        else if (prev.back() == '"' && strncmp(cur.c_str(), "//", 2) == 0 && next.front() == '"')
+        {
+            prev.pop_back();
+
+            out[i] = prev + next.substr(1);
+            out.erase(out.begin() + (i - 1));
+            out.erase(out.begin() + i);
+            i--;
+
+            cur = out[i];
+            next = out[i + 1];
+        }
+
         prev = cur;
     }
 

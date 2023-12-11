@@ -9,6 +9,7 @@ GPLv3 held by author
 #ifndef LEXER_HPP
 #define LEXER_HPP
 
+#include <cstring>
 #include <iostream>
 #include <set>
 #include <string>

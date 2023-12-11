@@ -144,6 +144,7 @@ void doFile(const string &From)
             }
             return;
         }
+
         visitedFiles.insert(realName);
 
         if (debug)

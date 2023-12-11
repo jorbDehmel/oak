@@ -1,0 +1,15 @@
+include!("std/io_inter.oak");
+
+let main() -> i32
+{
+    print(
+        "This is an exceptionally long string.\n"
+        "In fact, it is so long that it has to be broken across\n"
+        "multiple lines of code, due to the fact that Oak files\n"
+        "have a maximal width of only 64 characters.\n"
+        "Anyways, this file is a test of the merging of\n"
+        "multiple successive string literals into one.\n"
+    );
+
+    0
+}
