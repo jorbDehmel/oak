@@ -48,6 +48,7 @@ reinstall:
 	$(MAKE) -C . uninstall clean install
 
 test:
+	sudo tlp false
 	$(TEST) -eT
 
 sdltest:

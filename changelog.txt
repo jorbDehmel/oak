@@ -4,6 +4,9 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.2.11          | 12/11/23 | Added support for multiple rule
+                |          | engines. Also some minor bug fixes.
+                |          |
 0.2.10          | 12/9/23  | Moved regex from std to extra.
                 |          | Improved test suite testing.
                 |          |

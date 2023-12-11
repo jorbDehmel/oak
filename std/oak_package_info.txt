@@ -2,7 +2,7 @@
 // github.com/jorbDehmel/oak
 
 NAME = "std"
-VERSION = "0.2.9"
+VERSION = "0.2.11"
 LICENSE = "GPLv3"
 DATE = "October 27, 2023"
 SOURCE = "github.com/jorbDehmel"

@@ -8,6 +8,7 @@ GPLv3 held by author
 
 #include "acorn_resources.hpp"
 #include "macros.hpp"
+#include "packages.hpp"
 #include "sequence.hpp"
 #include "tags.hpp"
 #include <bits/chrono.h>
@@ -29,6 +30,28 @@ void uninstall()
 {
     system("cp /usr/include/oak/uninstall.sh /tmp/uninstall.sh");
     system("sudo bash /tmp/uninstall.sh &");
+}
+
+void queryPackage(const string &name)
+{
+    string filepath = "/usr/include/oak/" + name + "/oak_package_info.txt";
+
+    // loadPackageInfo
+    try
+    {
+        packageInfo info = loadPackageInfo(filepath);
+
+        // Print output
+        cout << tags::green << info << '\n' << tags::reset;
+    }
+    catch (...)
+    {
+        cout << tags::red_bold << "Failed to query package " << name << ": It is most likely not installed.\n"
+             << tags::reset;
+        throw package_error("Failed to query package");
+    }
+
+    return;
 }
 
 int main(const int argc, const char *argv[])
@@ -67,6 +90,18 @@ int main(const int argc, const char *argv[])
                              << "Version: " << VERSION << '\n'
                              << "License: " << LICENSE << '\n'
                              << INFO << '\n';
+                    }
+                    else if (cur == "--query")
+                    {
+                        // Construct filepath
+                        if (i + 1 >= argc)
+                        {
+                            throw runtime_error("--install must be followed by a package name");
+                        }
+
+                        queryPackage(argv[i + 1]);
+
+                        i++;
                     }
                     else if (cur == "--version")
                     {
@@ -318,6 +353,16 @@ int main(const int argc, const char *argv[])
                             break;
                         case 'q':
                             return 0;
+                            break;
+                        case 'Q':
+                            if (i + 1 >= argc)
+                            {
+                                throw runtime_error("--install must be followed by a package name");
+                            }
+
+                            queryPackage(argv[i + 1]);
+                            i++;
+
                             break;
                         case 'r':
                             if (i + 1 >= argc)

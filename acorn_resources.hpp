@@ -33,7 +33,7 @@ GPLv3 held by author
 using namespace std;
 
 // Info
-#define VERSION "0.2.9"
+#define VERSION "0.2.11"
 #define LICENSE "GPLv3"
 #define INFO "jdehmel@outlook.com"
 
@@ -75,6 +75,7 @@ const string helpText = "Acorn - Oak Standard Translator\n"
                         " -o    | --output    | Set the output file\n"
                         " -O    | --optimize  | Use LLVM optimization O3\n"
                         " -q    | --quit      | Quit immediately\n"
+                        " -Q    | --query     | Query an installed package\n"
                         " -r    | --reinstall | Reinstall a package\n"
                         " -R    | --remove    | Uninstalls a package\n"
                         " -s    | --size      | Show Oak disk usage\n"

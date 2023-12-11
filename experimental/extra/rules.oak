@@ -1,0 +1,12 @@
+/*
+Extra experimental rules for Oak
+
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+new_rule!(
+    "cast",
+    "( $~ $<($)$> $>b ) ( $*a )",
+    "to_ $< $b ( $a )"
+);

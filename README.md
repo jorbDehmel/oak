@@ -1086,6 +1086,10 @@ be replaced by `definition`.
 Use with caution. Rules alter the fundamental syntax of the
 language.
 
+The following subsection describes the use of the `Sapling` rule
+engine. Additional rule engines are available via minor changes
+to the `acorn` source code.
+
 Rules are an experimental feature that allow you to add more
 functionality to `Oak`. They take in a pattern of symbols, and
 replace it with a different one when it is detected in the code.
@@ -2090,6 +2094,9 @@ optimized for low-level token stream augmentations which will be
 controlled by an assembly language. A rigorous exploration of
 `TARM` will not be attempted here, especially since it is not
 yet implemented into `Oak`.
+
+`acorn` version `0.2.11` introduced the option for multiple
+rule engines, allowing the future integration of `TARM`.
 
 ## List of Keywords
 

@@ -26,12 +26,6 @@ SYS_DEPS = ""
 */
 
 // Macros that may conflict with other files; Thus, included only in the body
-#define ssystem(command)                                                                                               \
-    {                                                                                                                  \
-        printf("%s\n", string(command).c_str());                                                                       \
-        system(string(command).c_str()) == 0 ? 0 : throw package_error("System call " #command " failed.");            \
-    }
-
 #define sm_system(command, message)                                                                                    \
     {                                                                                                                  \
         printf("%s\n", string(command).c_str());                                                                       \
