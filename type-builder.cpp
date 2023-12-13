@@ -1,4 +1,5 @@
 #include "type-builder.hpp"
+#include "sequence.hpp"
 
 set<string> deps;
 map<string, __structLookupData> structData;
@@ -319,21 +320,126 @@ Type checkLiteral(const string &From)
     // Check as string
     else if ((From.front() == '"' && From.back() == '"') || (From.front() == '\'' && From.back() == '\''))
     {
+        // Char (do not use)
+        // if (From.size() == 3)
+        // {
+        //     return Type(atomic, "i8");
+        // }
+
+        // Str
         return Type(atomic, "str");
     }
 
+    // Check as hex or binary literal
+    if (From.size() > 2 && From.substr(0, 2) == "0b")
+    {
+        // Ensure validity
+        for (int i = 2; i < From.size(); i++)
+        {
+            if (From[i] != '0' && From[i] != '1')
+            {
+                throw sequencing_error("Invalid binary literal '" + From + "'");
+            }
+        }
+
+        // Single byte
+        if (From.size() <= 10)
+        {
+            return Type(atomic, "u8");
+        }
+
+        // Two bytes
+        else if (From.size() <= 18)
+        {
+            return Type(atomic, "u16");
+        }
+
+        // Four bytes
+        else if (From.size() <= 34)
+        {
+            return Type(atomic, "u32");
+        }
+
+        // Eight bytes
+        else if (From.size() <= 66)
+        {
+            return Type(atomic, "u64");
+        }
+
+        // Sixteen bytes
+        else if (From.size() <= 130)
+        {
+            return Type(atomic, "u128");
+        }
+
+        // Too many bytes
+        else
+        {
+            throw sequencing_error("Binary '" + From + "' cannot fit in integer literal.");
+        }
+    }
+    else if (From.size() > 2 && From.substr(0, 2) == "0x")
+    {
+        // Ensure validity
+        for (int i = 2; i < From.size(); i++)
+        {
+            if (!(('0' <= From[i] && From[i] <= '9') || ('a' <= From[i] && From[i] <= 'f') ||
+                  ('A' <= From[i] && From[i] <= 'F')))
+            {
+                cout << "Due to char " << From[i] << '\n';
+                throw sequencing_error("Invalid hex literal '" + From + "'");
+            }
+        }
+
+        // Single byte
+        if (From.size() <= 4)
+        {
+            return Type(atomic, "u8");
+        }
+
+        // Two bytes
+        else if (From.size() <= 6)
+        {
+            return Type(atomic, "u16");
+        }
+
+        // Four bytes
+        else if (From.size() <= 10)
+        {
+            return Type(atomic, "u32");
+        }
+
+        // Eight bytes
+        else if (From.size() <= 18)
+        {
+            return Type(atomic, "u64");
+        }
+
+        // Sixteen bytes
+        else if (From.size() <= 34)
+        {
+            return Type(atomic, "u128");
+        }
+
+        // Too many bytes
+        else
+        {
+            throw sequencing_error("Hex '" + From + "' cannot fit in integer literal.");
+        }
+    }
+
     // Check as numbers
-    bool canBeDouble = true;
+    bool canBeNumber = true;
     for (char c : From)
     {
         if (!('0' <= c && c <= '9') && c != '-' && c != '.')
         {
-            canBeDouble = false;
+            canBeNumber = false;
             break;
         }
     }
 
-    if (canBeDouble)
+    if (canBeNumber)
     {
         if (From.find(".") == string::npos)
         {

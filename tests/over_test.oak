@@ -1,14 +1,13 @@
-include!("std/io_inter.oak");
-
 // Test for the verification of Autogen systems in Oak
+// Jordan Dehmel, 2023
+// jdehmel@outlook.com
+
+include!("std/io_inter.oak");
 
 let test: struct
 {
     a: i32,
 }
-
-// Autogen of:
-// New(what: ^test) -> void
 
 // Now casual mention: Should erase autogen
 let New(what: ^test) -> void;
@@ -29,8 +28,3 @@ let main() -> i32
 {
     0
 }
-
-/*
-Results:
-- Early attempt: No erasure of autogen
-*/

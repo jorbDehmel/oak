@@ -1,0 +1,15 @@
+include!("std/io_inter.oak");
+link!("extra/bit_print.o");
+
+let bit_print_internal(what: ^i8, size: u128) -> void;
+
+let bit_print<t>(what: ^t) -> void;
+{
+    let ptr: ^i8;
+    ptrcpy!(ptr, what);
+
+    let size: u128;
+    size = size!(t);
+
+    bit_print_internal(ptr, size);
+}

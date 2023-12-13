@@ -1,0 +1,49 @@
+/*
+Tests non-decimal bases and other numeric fanciness in Oak int
+literals. These are mostly implemented in the lexer during the
+conglomeration pass, but also must be seen as valid by the
+sequencer's literal recognizer.
+
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+package!("std");
+include!("std/printf.oak");
+
+let main() -> i32
+{
+    let i: u8;
+    let j: u32;
+
+    // Binary
+    i = 0b11110000;
+    j = 0b10101010101010101010101010101010;
+
+    printf!("i: %\nj: %\n\n", to_i32(i), j);
+    
+    // Hex
+    i = 0xAB;
+    j = 0x01234567;
+
+    printf!("i: %\nj: %\n\n", to_i32(i), j);
+
+    // Separation for easier numbers
+    i = 0b 1111 1111;
+
+    printf!("i: %\n\n", to_i32(i));
+
+    i = 0b1111 1111;
+
+    printf!("i: %\n\n", to_i32(i));
+
+    i = 0b 11111111;
+
+    printf!("i: %\n\n", to_i32(i));
+    
+    j = 123 456;
+
+    printf!("j: %\n\n", j);
+
+    0
+}

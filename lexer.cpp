@@ -570,13 +570,14 @@ vector<string> lex(const string &What)
         }
 
         // Character set change deliminator (number to letter only)
-        else if (i + 1 < What.size() && numbers.find(c) != string::npos && alphabet.find(What[i + 1]) != string::npos)
-        {
-            cur += c;
-            out.push_back(cur);
-            cur = "";
-            continue;
-        }
+        // else if (i + 1 < What.size() && numbers.find(c) != string::npos && alphabet.find(What[i + 1]) !=
+        // string::npos)
+        // {
+        //     cur += c;
+        //     out.push_back(cur);
+        //     cur = "";
+        //     continue;
+        // }
 
         // Non-deliminators
         else
@@ -600,7 +601,7 @@ vector<string> lex(const string &What)
         }
     }
 
-    // Coagulate number literals
+    // Coagulation pass
     string prev, next;
     for (int i = 0; i < out.size(); i++)
     {
@@ -661,6 +662,33 @@ vector<string> lex(const string &What)
             out.erase(out.begin() + (i - 1));
             out.erase(out.begin() + i);
             i--;
+
+            cur = out[i];
+            next = out[i + 1];
+        }
+
+        else if (cur == "0x" || cur == "0b")
+        {
+            if (next != "")
+            {
+                out[i] += next;
+                out.erase(out.begin() + (i + 1));
+
+                cur = out[i];
+                next = out[i + 1];
+            }
+        }
+
+        // Two successive numerical literals; Merge
+        else if ((cur.size() >= 1 && '0' <= cur[0] && cur[0] <= '9') &&
+                 (('0' <= cur.back() && cur.back() <= '9') || ('a' <= cur.back() && cur.back() <= 'f') ||
+                  ('A' <= cur.back() && cur.back() <= 'F')) &&
+                 next != "" &&
+                 (('0' <= next.front() && next.front() <= '9') || ('a' <= next.front() && next.front() <= 'f') ||
+                  ('A' <= next.front() && next.front() <= 'F')))
+        {
+            out[i] += next;
+            out.erase(out.begin() + (i + 1));
 
             cur = out[i];
             next = out[i + 1];

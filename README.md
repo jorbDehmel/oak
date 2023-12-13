@@ -1,11 +1,13 @@
 
 # The Oak Programming Language
+## Version 0.2.12
 
-Jordan Dehmel, jdehmel@outlook.com, github.com/jorbDehmel/oak
+![](logo_trimmed.png)
 
-----------------------------------------------------------------
+Jordan Dehmel, jdehmel@outlook.com \
+github.com/jorbDehmel/oak
 
-# User-Level Introduction
+# Programmer Introduction
 
 ## Overview
 
@@ -791,6 +793,61 @@ Becomes
 let do_thing<t, f>(a: ^t, b: ^f) -> ^^u128;
 ```
 
+## Advanced Literals
+
+`Oak` has built-in support for hexadecimal, decimal, and binary
+integer literals. Hex numbers are prefixed by `0x`, binary by
+`0b`, and decimal by nothing. Additionally, the `Oak` lexer will
+merge successive integer literals together, so spacing can be
+inserted anywhere within an integer literal. This is extremely
+necessary for readability.
+
+The following code segment demonstrates these ideas.
+
+```rust
+package!("std");
+
+let main() -> i32
+{
+    let j: u32;
+
+    // Binary
+    j = 0b10101010101010101010101010101010;
+
+    // Hex
+    j = 0x01234567;
+
+    // Separation: All of the following are valid.
+
+    j = 123 456;
+
+    j = 0b 0000 1111 0101 1010 0000 1111 0000 1111;
+    
+    j = 0b11111111111111111111111111111111;
+    
+    j = 0x 01 23 45 67;
+
+    printf!("j: %\n\n", j);
+
+    0
+}
+
+```
+
+Similarly, strings are automatically concatenated over spaces or
+lines.
+
+```rust
+let long_string! = "hello! This is a very long string which it"
+                   "is necessary to split over several lines.";
+
+let split_string! = "we can also" "do this";
+
+```
+
+**Note:** Integer literals *cannot* be split across multiple
+lines.
+
 ## Generics
 
 You can declare a generic function (a function which can operate
@@ -880,6 +937,7 @@ Option | Verbose     | Purpose
  -o    | --output    | Set the output file
  -O    | --optimize  | Use LLVM optimization O3
  -q    | --quit      | Quit immediately
+ -Q    | --query     | Query an installed package
  -r    | --reinstall | Reinstall a package
  -R    | --remove    | Uninstalls a package
  -s    | --size      | Show Oak disk usage
@@ -2100,10 +2158,11 @@ rule engines, allowing the future integration of `TARM`.
 
 ## List of Keywords
 
-The following are keywords- That is to say, these words cannot 
-be the names of variables, structs, enums, or functions. `Oak` 
-aims to have as few keywords as possible, keeping with its theme 
-of minimalism.
+The following are the canonical `Oak` keywords- That is to say,
+these words cannot be the names of variables, structs, enums,
+or functions in canonical `Oak`. `Oak` aims to have as few
+keywords as possible, keeping with its theme of baseline
+minimalism.
 
 - let
 - if
@@ -2114,7 +2173,11 @@ of minimalism.
 - default
 - needs
 
-## List of Atomic Types
+**Note:** There is nothing stopping a rule or dialect from
+adding more keywords. For instance, the `bool` rules add the
+`and`, `not`, and `or` keywords.
+
+## List of Atomic Structs
 
 The following are atomic (built-in, indivisible) types.
 
@@ -2122,7 +2185,7 @@ The following are atomic (built-in, indivisible) types.
 - enum
 - integers - u8, i8, u16, i16, u32, i32, u64, i64, u128, i128
 - floats - f32, f64, f128
-- str
+- str - equal to `^i8`
 - bool
 - void
 
@@ -2151,6 +2214,9 @@ The following are atomic (built-in, indivisible) macros.
 - ptrarr!
 - raw_c!
 
+This list is not inclusive, as additional compiler macros are
+constantly being added.
+
 ## Misc. Notes
 
 Some miscellaneous notes which are not long enough to warrant 
@@ -2162,7 +2228,7 @@ their own section in this document:
 - `Oak` was previously (0.1.*) translated to `C++`. As of 0.2.0,
     it is instead translated to `C`.
 - `Oak` does not have stack-stored arrays; Only heap-stored
-    ones. In fact, all heap-stored data is technically
+    ones. In fact, all heap-stored data in `Oak` is technically
     array-based.
 - As of version `0.0.10`, the `New` and `Del` operator aliases
     are single-argument only. Just use `Copy` for anything else.
@@ -2171,14 +2237,18 @@ their own section in this document:
 
 # `Oak` Compiler Structure
 
-This section is not required for a user-level understanding of
-the `Oak` language, but may be useful for troubleshooting and
-deeper understanding. The sections detailed below view each
-section of the `Oak` compiler as a discrete object, even when
-that is not technically the case (for instance, "the sequencer"
-and the "reconstructor" are really tightly intertwined, and few,
-if any, of the underlying units are represented by objects in
-code).
+This section is not required for a programmer-level
+understanding of the `Oak` language, but may be useful for
+troubleshooting and deeper understanding. The sections detailed
+below view each section of the `Oak` compiler as a discrete
+object, even when that is not technically the case (for
+instance, "the sequencer" and the "reconstructor" are really
+tightly intertwined, and few, if any, of the underlying units
+are represented by `C++` objects in code).
+
+The following sections represent a tangled nest of calls, and
+thus it should not be assumed that they are presented in the
+strict order in which they occur.
 
 ## Compiler Frontend and `acorn`
 
@@ -2232,6 +2302,21 @@ be lost by tokenization, like the line number. These begin with
 source code. They are only inserted by the lexer, not the source
 code.
 
+The final pass of the lexer is called the conglomeration pass.
+At this time, the tokenized input will be iterated over, and
+qualifying series of tokens will be merged. For instance, `-` is
+a valid token on its own, but when it precedes a number, it
+should not be considered its own token. Similarly, two string
+literals separated by whitespace will be merged together.
+
+## Operation Substitution
+
+The operation substitution phase of compilation replaces
+operator calls (addition, subtraction, etc) with their formal
+function call definitions. This phase is a sort of hardcoded
+preprocessor rule pass. After this phase, no operators remain-
+only function calls.
+
 ## Preprocessor Rules and the Rule Processor
 
 A rule is a combination of an **input pattern** and an
@@ -2248,11 +2333,32 @@ specialized turing machine (or, for more limited rule
 processors, deterministic finite automata) for the augmentation
 of patterns of tokens (or symbols, in `Oak` terminology).
 
-The original `$apling` is a deterministic finite automata,
-meaning it has limited functionality. However, work is in
-progress to replace it with a Token-Augmentation Turing Machine,
-which will offer Turing-completeness and thus more complete
+The original `$apling` is a push-down automata, meaning it has
+limited functionality. However, work is in progress to replace
+it with a Token-Augmentation Register Machine (`TARM`), which
+will offer Turing-completeness and thus more complete
 functionality.
+
+### Side Note: The Hierarchy of Automata
+
+The following lists several models of automata from least
+powerful to most, with an example for each. Each successive
+class can perform all computations of those above it and more.
+
+- Combinatorial Logic (Boolean logic)
+- Finite-State Automata (RegEx)
+- Push-Down Automata (Sapling rule engine)
+- Turing Machine (TARM rule engine)
+
+### Part 0- Rule Engines
+
+A rule engine is a function which takes in a certain portion of
+the input token stream and augments it in some way. This is an
+abstraction which allows `$apling` and `TARM` to function
+interchangeably in the compilation process. New rule engines
+can only be added by directly modifying the `C++` `acorn` source
+code and recompiling. Thus, they are not to be considered a
+front-facing resource for developers- Even those of dialects.
 
 ### Part 1- Rule Loading
 
@@ -2261,6 +2367,12 @@ frontend adds the rule contained within into its internal bank
 of rules. Upon `use_rule!`, it copies that rule into the bank
 of rules which are used in the **current file**. `use_rule!`
 does **not** carry over into other files.
+
+The standard call to `new_rule!` takes three arguments: A rule
+name, an input pattern, and an output pattern. However, if a
+fourth argument is provided, it will be treated as the rule
+engine. If no such engine is provided, `$apling` will be
+presumed.
 
 ### Part 2- Compile-Time Rule Application
 
@@ -2278,6 +2390,12 @@ processor's pattern language, and cannot be detailed here. More
 information about these specifics can be found earlier in this
 document.
 
+**Note:** This process can occur multiple times. A rule can, for
+instance, cause the inclusion of another file which must be
+loaded before compilation can continue. This might, in turn,
+require the application of more rules. This section ceases after
+no further rules can be applied.
+
 ## Macros, Definitions and the Macro Instantiation Unit
 
 Macros are compile-time functions. They output raw code, which
@@ -2291,8 +2409,8 @@ Preprocessor definitions are compile-time constants, as opposed
 to functions. They are analogous to `C`'s `#define` directive,
 except that they cannot be redefined after creation.
 
-**Note: Macros and definitions cannot be redefined. Attempting**
-**to do so will cause an error.**
+**Note:** Macros and definitions cannot be redefined. Attempting
+to do so will cause an error.
 
 Macro definitions are collected by the `acorn` compiler frontend
 during one phase of the iterative compilation process, and
@@ -2389,6 +2507,12 @@ Note: The generic system exists exclusively within `Oak`; There
 is no way to interface `C++` generics with `Oak` or vice-versa.
 
 # Examples
+
+The remainder of this document is dedicated to examples designed
+to get a programmer comfortable with `Oak`. These examples are
+largely arranged from easiest to hardest, with the final few
+demonstrating the more esoteric regions of `Oak` development
+(like interfaces and dialects).
 
 ## Number Guessing Game
 

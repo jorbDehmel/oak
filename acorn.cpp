@@ -63,6 +63,7 @@ int main(const int argc, const char *argv[])
     string out = "a.out";
     bool noSave = false;
     bool eraseTemp = false;
+    bool prettify = false;
 
     bool execute = false;
     bool test = false;
@@ -165,6 +166,10 @@ int main(const int argc, const char *argv[])
 
                         out = argv[i + 1];
                         i++;
+                    }
+                    else if (cur == "--prettify")
+                    {
+                        prettify = !prettify;
                     }
                     else if (cur == "--install")
                     {
@@ -350,6 +355,9 @@ int main(const int argc, const char *argv[])
                                 cflags.insert("-O3");
                             }
 
+                            break;
+                        case 'p':
+                            prettify = !prettify;
                             break;
                         case 'q':
                             return 0;
@@ -871,6 +879,11 @@ int main(const int argc, const char *argv[])
             }
             cout << tags::reset;
         }
+    }
+
+    if (prettify)
+    {
+        sm_assert(system(PRETTIFIER " .oak_build/*") == 0, "Failed to prettify output files.");
     }
 
     return 0;

@@ -1,0 +1,11 @@
+include!("extra/bit_print.oak");
+
+let main() -> i32
+{
+    let i: i32;
+    i = 1234;
+
+    bit_print(i);
+
+    0
+}

@@ -41,7 +41,7 @@ Variable i is 123, j is 1.234, and some text is \
 'some text here'.
 ```
 
-You can escape this behaviour for a literal
+You can escape this behavior for a literal
 % via the backslash.
 
 This is not the most efficient implementation,

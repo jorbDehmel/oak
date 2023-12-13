@@ -33,7 +33,7 @@ GPLv3 held by author
 using namespace std;
 
 // Info
-#define VERSION "0.2.11"
+#define VERSION "0.2.12"
 #define LICENSE "GPLv3"
 #define INFO "jdehmel@outlook.com"
 
@@ -43,6 +43,7 @@ using namespace std;
 // Underlying compilers and linkers allowing Acorn to function
 #define C_COMPILER "clang" // This should be a C compiler- like clang or gcc
 #define LINKER "clang++"   // This should be a C++ compiler- like clang++ or g++
+#define PRETTIFIER "clang-format --style=Microsoft -i "
 
 // Max allowable size of .acorn_build in kilobytes
 #define MAX_CACHE_KB 2000
@@ -50,7 +51,7 @@ using namespace std;
 /*
 Remaining options:
  - "bfgjktyz"
- - "BCFGHIJKLNOPQVWXYZ"
+ - "BCFGHIJKLNPVWXYZ"
 */
 
 const string helpText = "Acorn - Oak Standard Translator\n"
@@ -74,6 +75,7 @@ const string helpText = "Acorn - Oak Standard Translator\n"
                         " -n    | --no_save   | Produce nothing\n"
                         " -o    | --output    | Set the output file\n"
                         " -O    | --optimize  | Use LLVM optimization O3\n"
+                        " -p    | --prettify  | Use clang-format on output C\n"
                         " -q    | --quit      | Quit immediately\n"
                         " -Q    | --query     | Query an installed package\n"
                         " -r    | --reinstall | Reinstall a package\n"
