@@ -29,6 +29,10 @@ bool checkTypeVec(const vector<string> &candidateTypeVec, const vector<string> &
         {
             return true;
         }
+        else
+        {
+            return false;
+        }
     }
 
     // Build substitution table

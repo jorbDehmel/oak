@@ -1,0 +1,17 @@
+// Import the `Oak` standard package
+package!("std");
+
+// Use the standard `Oak` rule set
+use_rule!("std");
+
+let main(argc: i32, argv: ^str) -> i32
+{
+    print("This program was started with the command: ");
+
+    print(argv.Get(0));
+    print("\n");
+
+    print("Hello, world!\n");
+
+    0
+}

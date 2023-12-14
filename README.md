@@ -17,10 +17,10 @@ language and compiler design (see the later section on
 dialects). `Oak` also aims to have an integrated build system,
 necessitating only one call to the compiler per executable.
 
-`Oak` uses `Rust`-like typing, without
-`Rust`'s lifetimes system. It is similar to `C` with
-stronger macro support, modern typing, generics, compile-time
-syntax modification and integrated package management.
+`Oak` uses `Rust`-like typing, without `Rust`'s lifetime
+system. It is similar to `C` with stronger macro support, modern
+typing, generics, compile-time syntax modification and
+integrated package management.
 
 This document outlines the basics of `Oak`, as well as the
 canonical formatting of `Oak` code. Deviation from this
@@ -31,7 +31,7 @@ translated via the `acorn` utility (see later) into `C`.
 `acorn` can also compile `Oak` into object code and link it to
 create executables via `clang` and `clang++`, respectively.
 
-## Compile-Time-Modifiable Syntax?
+## Did You Say "Compile-Time-Modifiable Syntax"?
 
 `Oak` has compile-time-modifiable syntax (see the section on
 preprocessor rules), making it highly customizable and flexible
@@ -42,9 +42,9 @@ language syntaxes. It supports the creation of "dialects", which
 are `Oak` variants which use preprocessor rules to support
 independent syntactical structures.
 
-**Note: `Oak` has a default syntax, called canon `Oak`.** Syntax
-modifications must be opted into on a file-by-file basis, or
-specified by the compiler.
+**Note: `Oak` has a default syntax, called canonical `Oak`.**
+Syntax modifications must be opted into on a file-by-file basis,
+or specified by the compiler via the use of dialect files.
 
 ## Names and Prerequisites
 
@@ -56,9 +56,11 @@ Name      | Meaning
 Dialect   | A syntactically-modified branch of `Oak`.
 `TARM`    | Prototype for more advanced rule system.
 
-This document assumes a level of knowledge about programming
-languages and compiler design. A thorough understanding of `C++`
-and a cursory knowledge of `Rust` are recommended.
+This document assumes a moderate level of knowledge about
+programming languages and compiler design. A thorough
+understanding of `C++` and `C`, as well as a cursory knowledge
+of `Rust`, `Python` or `Carbon` are recommended (as these
+languages use the same type specification syntax as `Oak`).
 
 ## Compilation, Installation, and Uninstallation
 
@@ -169,21 +171,23 @@ let main() -> i32
 
 ## Demo
 
-File: `main.oak`
-
 ```rust
+// main.oak
+
 // Import the `Oak` standard package
 package!("std");
 
 // Use the standard `Oak` rule set
 use_rule!("std");
 
-let main(argc: i32, argv: ^str)
+let main(argc: i32, argv: ^str) -> i32
 {
     print("This program was started with the command: ");
-    println(argv[0]);
 
-    println("Hello, world!");
+    print(argv.Get(0));
+    print("\n");
+
+    print("Hello, world!\n");
 
     0
 }
@@ -472,6 +476,15 @@ translation process as follows:
 
 `oak_hindi_dialect.oak -> oak_canonical_dialect.oak`
 ` -> cpp_version.cpp -> executable.exe`
+
+## Unicode
+
+Unicode works perfectly fine in `Oak`, although the later was
+not designed with the former in mind. International coders
+should have no troubles.
+
+If `Oak` reports unicode characters as illegal, please report it
+as a bug.
 
 ## Main Functions
 
@@ -866,7 +879,8 @@ appropriately-typed function exists (otherwise, such a function
 is instantiated).
 
 `Oak` does not have automatic instantiation of generic functions
-via argument type analysis.
+via argument type analysis. You must manually call the template
+instantiation unit as follows.
 
 ```rust
 let gen_fn<t>(what: t) -> void
@@ -887,6 +901,11 @@ let main() -> i32
     0
 }
 ```
+
+**Note:** It is common to replace the names of any and all
+argument in the instantiator call with the null-name token `_`.
+This is equivalent to writing anything else there, but signals
+to the user that it is an instantiation call.
 
 Similarly, you can define **generic structs** as follows.
 
@@ -2134,6 +2153,9 @@ tested via `make test` or `acorn -T`. These items do not need to
 execute with a zero exit status, as some of them are
 demonstrations.
 
+Test suite executables are not individually saved. Each test
+is compiled into `a.out`, which is overwritten by the next test.
+
 ## Advanced Language Augmentation Via `raw_c!` Macro
 
 The `raw_c!` macro completely bypasses the `Oak` compiler and
@@ -2477,14 +2499,25 @@ template has been identified, it will move on to part 3.
 ### Part 3 A- Needs Block
 
 A `needs` block is a block of code which can be attached to some
-forms of template. If attached, this code block will be
-instantiated before the main template in order to instantiate
-all the dependencies. For instance, in a generic struct, the
+forms of template. For instance, in a generic struct, the
 `needs` block tells the instantiator which functions to
 instantiate along with the struct, so that the user does not
 have to explicitly instantiate each one themselves. If a `needs`
 block fails, it is not usually indicative of an error- This is
 simply an invalid choice for a template.
+
+`needs` block instantiation technically occurs both before and
+after the regular code block's instantiation. All struct-type
+instantiator calls within the `needs` block will be executed
+first, followed by the main code block, followed by all
+function-type instantiator calls. This is because struct-type
+calls are usually templated structs which need to exist before
+the main code block is compilable, while function-type calls are
+usually functions which need to be instantiated after the main
+block- like a constructor for a struct.
+
+If more direct control over instantiation ordering is needed,
+instantiator calls can be used throughout the template as usual.
 
 `needs` blocks are instantiated just like regular code blocks,
 whose process is detailed below.
@@ -2505,6 +2538,164 @@ generics at all.
 
 Note: The generic system exists exclusively within `Oak`; There
 is no way to interface `C++` generics with `Oak` or vice-versa.
+
+## Package Importing Via the `package!` Macro
+
+The `package!` macro belongs to the compiler macros, in that it
+directly controls the actions of the compiler before any other
+code is evaluated (roughly equivalent to the preprocessor in
+`C`). Upong a call to `package!`, the compiler looks for a
+directory in the `Oak` include directory which matches the
+passed name. On UNIX systems, this directory is
+`/usr/include/oak`. If you wanted to import the `std` package,
+`acorn` would check for the existance of `/usr/include/oak/std`.
+If this folder does not exist, `acorn` throws an error.
+
+Assuming that the aforementioned folder does exist, `acorn`
+attempts to load the `oak_package_info.txt` file within it. This
+is a specially formatted file which tells the compiler some
+basic information about the package: Most importantly, it
+contains an `INCLUDE` tag, which lists the file(s) to include
+when the package is loaded by the compiler. This value is
+usually a central "linkage" file which links all the others
+together. Upon finding this entry point, `acorn` will begin
+loading all files included by the package. After finishing, it
+will return to after the original `include!` statement.
+
+## The Mangler
+
+The mangler is how `Oak` differentiates between functions with
+identical names but different types. It takes in a type and a
+function name, and returns a string which fully disambiguates
+this function from any others of the same name. It does this by
+appending a certain special string for each item in the type.
+
+### Prefix - `Oak`'s Internal Type Representation
+
+`Oak` types can be represented in a linear fashion. Consider the
+following code.
+
+```rust
+let a: i32;
+```
+
+Internally, `Oak`'s symbol table will store a definition for `a`
+with type `["i32"]` (where `[]` represents a `C++` vector).
+
+```rust
+let b: ^^i32;
+```
+
+`Oak` would store this type as `[PTR, PTR, "i32"]`. Similarly,
+
+```rust
+let c(arg: bool) -> void;
+```
+
+would be `[FN, "bool", MAPS, "void"]`. A more complex version
+like
+
+```rust
+let d(arg_a: ^i32, arg_b: ^^bool) -> bool;
+```
+
+would become
+`[FN, PTR, "i32", JOIN, PTR, PTR, "bool", MAPS, "bool"]`. This
+is a way to represent unambiguous types in a linear vector
+format. The mangler leverages this to turn a type vector into a
+string.
+
+
+### The Mangler: Easy Cases
+
+If a symbol `a` has the type `[FN, "i32", MAPS, "void"]`, the
+mangler would produce the output name `a_FN_i32_MAPS_void`.
+This symbol would keep the same type, but would be unambiguous
+in name. This is one of the reasons why capital letters are not
+allowed to coexist with underscores in `Oak`- it could interfere
+with the mangler.
+
+The following are several more complex cases mapping input `Oak`
+directly to its output `C`.
+
+```rust
+let a(arg: i32, arg_b: ^^bool) -> bool;
+
+let foo: struct
+{
+    ,
+}
+
+let b(arg: foo) -> ^void;
+let c(arg: ^(_: bool) -> void) -> void;
+```
+
+```C
+struct foo
+{
+};
+
+bool a_FN_i32_JOIN_PTR_PTR_bool_MAPS_bool(i32 arg, bool **arg_b);
+void *b_FN_foo_MAPS_PTR_void(struct foo arg);
+void c_FN_PTR_FN_bool_MAPS_void_MAPS_void(void (*arg)(bool));
+```
+
+This can become a pain in interfacial files, where the literal
+name of the symbol defined externally must match the `Oak`
+mangled version. However, many language manglers do not even
+provide a consistent standard across compilers, so `Oak` is at
+least better than that.
+
+### The Mangler: Edge Cases
+
+Consider the following `Oak` code for a singly-linked list node.
+
+```rust
+let node<t>: struct
+{
+    data: t,
+    next: ^node<t>,
+}
+needs
+{
+    New<t>(_: ^node<t>);
+}
+
+let New<t>(self: ^node<t>) -> void
+{
+    // ...
+}
+
+let main()
+{
+    node<i32>;
+}
+
+```
+
+What does the instance of `New` created for `node<i32>` mangle
+to? In fact, what does `node<i32>` mangle to? `Oak`'s target
+language is `C`, which does not have generics, so it cannot
+contain the `<...>` syntax.
+
+As you may have guessed, this solution is solved similarly to
+the one mentioned above. `node<i32>` simply mangles to
+`node_GEN_i32_ENDGEN`, and this is used as its atomic type name
+internally for mangling purposes. This means that the `Oak`
+
+```rust
+let New<i32>(self: ^node<i32>) -> void
+```
+
+will mangle to the `C`
+
+```c
+void New_FN_PTR_node_GEN_i32_ENDGEN_MAPS_void(struct node_GEN_i32_ENDGEN *self);
+```
+
+This means it is possible for the compiler (and technically the
+programmer) to tell the type of a given symbol in the target `C`
+code given just its mangled name.
 
 # Examples
 
@@ -4352,12 +4543,21 @@ are available with the GPLv3 at github.com/jorbDehmel/oak.
 
 ## `acorn` Error Lookup
 
+The following table maps a **compile-mode** acorn call return
+value to its meaning. If `acorn` executes its result via the
+`-E` flag, it will return the return value of that execution, no
+matter what.
+
 Code | Meaning
 -----|-----------------
  0   | Success
  2   | Runtime error caught
  3   | Unknown error caught
+ 7   | Failed to create test suite file
  10  | Aborted Acorn update or install
+
+Most compile-time errors will have meaningful descriptions in
+their outputs, and thus do not return different values.
 
 ## `acorn` Error Classes
 
@@ -4370,6 +4570,9 @@ package_error    | Error loading a package
 rule_error       | Error processing rule
 parse_error      | Error parsing token stream (depreciated)
 unknown          | An unknown bug- issue w/ `acorn`
+
+**Note:** Unknown errors represent bugs in `acorn`, and should
+be reported as such. Errors without reasons are unacceptable.
 
 ## Disclaimer
 

@@ -671,6 +671,7 @@ int main(const int argc, const char *argv[])
         cout << tags::red_bold << "\n"
              << curFile << " " << curLine << '\n'
              << "\nAn unknown error ocurred.\n"
+             << "This is an issue with acorn, please report this bug!\n"
              << tags::reset;
 
         return 3;
@@ -879,6 +880,8 @@ int main(const int argc, const char *argv[])
             }
             cout << tags::reset;
         }
+
+        cout << "\nAny and all compiler output can be found in ./test_suite.log.\n";
     }
 
     if (prettify)

@@ -3,10 +3,21 @@ include!("extra/bit_print.oak");
 
 let main() -> i32
 {
-    let i: i32;
-    i = 1234;
+    let j: u8;
+    bit_print<u8>(_: ^u8);
+    hex_print<u8>(_: ^u8);
 
-    bit_print<i32>(ptr);
+    j = 0;
+    while (j < to_u8(255))
+    {
+        bit_print(j);
+        print("\n");
+        
+        hex_print(j);
+        print("\n");
+
+        j += 1;
+    }
 
     0
 }

@@ -1,19 +1,35 @@
 link!("extra/bit_print.o");
 
-let PtrCpy(into: ^^void, from: ^i32) -> void
+let bit_print_internal(what: ^void, size: u128) -> void;
+let hex_print_internal(what: ^void, size: u128) -> void;
+
+let PtrCpy<t>(into: ^^void, from: ^t) -> void
 {
     ptrcpy!(^into, from);
 }
-
-let bit_print_internal(what: ^void, size: u128) -> void;
 
 let bit_print<t>(what: ^t) -> void
 {
     let ptr: ^void;
     let size: u128;
 
+    PtrCpy<t>(_: ^^void, _: ^t);
+
     PtrCpy(ptr, what);
     size = size!(^what);
 
     bit_print_internal(ptr, size);
+}
+
+let hex_print<t>(what: ^t) -> void
+{
+    let ptr: ^void;
+    let size: u128;
+
+    PtrCpy<t>(_: ^^void, _: ^t);
+
+    PtrCpy(ptr, what);
+    size = size!(^what);
+
+    hex_print_internal(ptr, size);
 }

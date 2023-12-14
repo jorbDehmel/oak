@@ -9,8 +9,5 @@ let main() -> i32
     print((i8)(123));
     print("\n");
 
-    let i: i32;
-    i = (i32)("hi");
-
     0
 }

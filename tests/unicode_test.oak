@@ -1,0 +1,33 @@
+/*
+Test to see if unicode is supported in Oak. Oak was not built
+with this feature in mind, but there isn't anything stopping it
+from working.
+
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+package!("std");
+
+let আ: struct
+{
+
+};
+
+let main() -> i32
+{
+    // Variable names
+    let আআআ: i32;
+    আআআ = 123;
+
+    print(আআআ);
+    print("\n");
+
+    print(
+        "The following are some random unicode values:\n"
+        "✀❉☯☠☎\n"
+        "(May or may not show, depending on the terminal)\n"
+    );
+
+    0
+}
