@@ -342,6 +342,10 @@ string instantiateGeneric(const string &what, const vector<vector<string>> &gene
                 break;
             }
         }
+        else
+        {
+            errors.push_back("Did not match generic substitution.");
+        }
     }
 
     if (!didInstantiate)
@@ -377,7 +381,7 @@ string instantiateGeneric(const string &what, const vector<vector<string>> &gene
             {
                 cout << b << ' ';
             }
-            cout << '\n' << "Failed with error:\n\t" << errors[i] << '\n';
+            cout << '\n' << "Failed with error:\n\t" << (i < errors.size() ? errors[i] : "Unknown error") << '\n';
 
             i++;
         }
