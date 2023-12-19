@@ -4,17 +4,17 @@
 
 CC := clang++
 
-OBJS := build/lexer.o build/symbol-table.o \
-	build/type-builder.o build/reconstruct.o \
+OBJS := build/lexer.o build/symbol_table.o \
+	build/type_builder.o build/reconstruct.o \
 	build/macros.o build/sequence.o \
-	build/packages.o build/sizer.o build/op-sub.o \
+	build/packages.o build/sizer.o build/op_sub.o \
 	build/mem.o build/acorn_resources.o \
 	build/document.o build/rules.o build/enums.o \
 	build/mangler.o build/generics.o
 
-HEADS := lexer.hpp reconstruct.hpp symbol-table.hpp \
-	type-builder.hpp macros.hpp tags.hpp \
-	sequence.hpp packages.hpp sizer.hpp op-sub.hpp \
+HEADS := lexer.hpp reconstruct.hpp symbol_table.hpp \
+	type_builder.hpp macros.hpp tags.hpp \
+	sequence.hpp packages.hpp sizer.hpp op_sub.hpp \
 	acorn_resources.hpp document.hpp rules.hpp \
 	enums.hpp mangler.hpp generics.hpp
 
@@ -49,7 +49,6 @@ reinstall:
 	$(MAKE) -C . uninstall clean install
 
 test:
-	sudo tlp false
 	$(TEST) -eT
 
 README.pdf:	README.md

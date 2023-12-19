@@ -18,7 +18,7 @@ is whether it says 'struct' or 'enum'.
 #include <string>
 #include <vector>
 
-#include "type-builder.hpp"
+#include "type_builder.hpp"
 
 using namespace std;
 

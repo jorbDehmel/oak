@@ -15,7 +15,7 @@ jdehmel@outlook.com
 
 #include "enums.hpp"
 #include "mangler.hpp"
-#include "symbol-table.hpp"
+#include "symbol_table.hpp"
 
 using namespace std;
 

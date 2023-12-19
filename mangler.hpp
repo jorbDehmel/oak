@@ -8,7 +8,7 @@ Mangles symbol names and types into unambiguous C names.
 #ifndef MANGLER_HPP
 #define MANGLER_HPP
 
-#include "type-builder.hpp"
+#include "type_builder.hpp"
 #include <string>
 #include <vector>
 using namespace std;

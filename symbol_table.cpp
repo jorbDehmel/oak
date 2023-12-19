@@ -6,7 +6,7 @@ github.com/jorbDehmel
 GPLv3 held by author
 */
 
-#include "symbol-table.hpp"
+#include "symbol_table.hpp"
 
 multiSymbolTable table;
 

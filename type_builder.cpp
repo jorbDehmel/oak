@@ -1,4 +1,4 @@
-#include "type-builder.hpp"
+#include "type_builder.hpp"
 #include "sequence.hpp"
 
 set<string> deps;

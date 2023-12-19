@@ -12,7 +12,7 @@ Should be done after macros
 #ifndef OP_SUB_HPP
 #define OP_SUB_HPP
 
-#include "symbol-table.hpp"
+#include "symbol_table.hpp"
 #include <iostream>
 #include <string>
 #include <vector>
@@ -22,6 +22,6 @@ using namespace std;
 Takes entire lexed token stream. After call, no operators
 should remain.
 */
-void parenSub(vector<string> &From);
+void operatorSub(vector<string> &From);
 
 #endif

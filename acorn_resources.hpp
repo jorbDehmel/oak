@@ -19,13 +19,13 @@ GPLv3 held by author
 #include "document.hpp"
 #include "lexer.hpp"
 #include "macros.hpp"
-#include "op-sub.hpp"
+#include "op_sub.hpp"
 #include "packages.hpp"
 #include "reconstruct.hpp"
 #include "rules.hpp"
 #include "sequence.hpp"
-#include "symbol-table.hpp"
-#include "type-builder.hpp"
+#include "symbol_table.hpp"
+#include "type_builder.hpp"
 
 #include "sizer.hpp"
 #include "tags.hpp"
@@ -33,7 +33,7 @@ GPLv3 held by author
 using namespace std;
 
 // Info
-#define VERSION "0.2.12"
+#define VERSION "0.2.13"
 #define LICENSE "GPLv3"
 #define INFO "jdehmel@outlook.com"
 

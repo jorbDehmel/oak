@@ -1,6 +1,6 @@
 
 # The Oak Programming Language
-## Version 0.2.12
+## Version 0.2.13
 
 ![](logo_trimmed.png)
 
@@ -743,27 +743,15 @@ operators.
 It is notable that there is not a set return type for many of
 these. It is common to see `copy` return `T`, `^T`, or `void`.
 
-The order of operations for the above operators is as follows
-(with the top of the list being evaluated first and the bottom
-last)
-
-Level | Group Name | Member operators
-------|------------|--------------------
-0     | Misc       | (), ^, @
-1     | Assignment | =, +=, -=, *=, /=, %=, &=, \|=
-2     | Booleans   | &&, \||
-3     | Comparison | ==, !=, <, >, <=, >=
-4     | Mult / Div | *, /, %
-5     | Add / Sub  | +, -
-6     | Bitwise    | &, \|, ^, <<, >>
-
 With a few exceptions, operator alias replacement occurs within
 parenthesis (either as standalone blocks for evaluation or as
 part of a function call). However, in cases like assignment
 parenthesis are inferred.
 
-`Oak` does not have `C++` streams by default, although its
-flexible syntax means that they aren't too hard to implement.
+No `std` `Oak` files use `C++`-style streams, but there is
+nothing in the language stopping them from working. However, the
+obfuscation they add to programmers only familiar with modern
+languages most likely outweighs any benefit they might provide.
 
 ## Atomic Types
 

@@ -12,7 +12,7 @@ compiler frontend.
 #ifndef SIZER_HPP
 #define SIZER_HPP
 
-#include "symbol-table.hpp"
+#include "symbol_table.hpp"
 
 #include <fstream>
 #include <string>

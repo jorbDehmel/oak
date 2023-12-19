@@ -745,7 +745,7 @@ void doFile(const string &From)
             start = chrono::high_resolution_clock::now();
         }
 
-        parenSub(lexed);
+        operatorSub(lexed);
 
         if (debug)
         {
@@ -1115,6 +1115,13 @@ void ensureSyntax(const string &text, const bool &fatal)
                                 printSyntaxError("Unmatched end parenthesis", curLineVec);
                                 errorCount++;
                             }
+                        }
+
+                        else if (c == '.' && j > 0 && curLineVec[j - 1] == ')')
+                        {
+                            printSyntaxError("Illegal inline access to return value. Use a temporary variable instead.",
+                                             curLineVec);
+                            errorCount++;
                         }
                     }
                 }

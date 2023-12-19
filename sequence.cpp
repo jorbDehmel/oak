@@ -7,7 +7,6 @@ GPLv3 held by author
 */
 
 #include "sequence.hpp"
-#include "type-builder.hpp"
 
 // Activates "dirty" mode, where mem alloc and free are allowed
 bool insideMethod = false;

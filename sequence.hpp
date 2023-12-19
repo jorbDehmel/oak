@@ -44,8 +44,7 @@ non-sequential parser.
 #include "mangler.hpp"
 #include "mem.hpp"
 #include "reconstruct.hpp"
-#include "symbol-table.hpp"
-#include "type-builder.hpp"
+#include "symbol_table.hpp"
 
 #include "tags.hpp"
 

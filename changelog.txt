@@ -4,6 +4,10 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.2.13          | 12/19/23 | Finally fixed operator precedence.
+                |          | Also made file naming scheme
+                |          | internally consistent.
+                |          |
 0.2.12          | 12/12/23 | Added binary and hex int literals,
                 |          | made whitespace separated integers
                 |          | fuse together for readability.

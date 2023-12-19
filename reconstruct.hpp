@@ -23,8 +23,8 @@ agnostic with respect to input (as much as possible).
 #include "lexer.hpp"
 #include "mangler.hpp"
 #include "rules.hpp"
-#include "symbol-table.hpp"
-#include "type-builder.hpp"
+#include "symbol_table.hpp"
+#include "type_builder.hpp"
 
 using namespace std;
 

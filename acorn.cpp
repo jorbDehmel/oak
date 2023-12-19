@@ -828,6 +828,7 @@ int main(const int argc, const char *argv[])
         cout << "[compiling " << (execute ? "and" : "but not") << " executing]\n";
 
         // Iterate through files
+        int i = 1;
         for (auto test : files)
         {
             start = chrono::high_resolution_clock::now();
@@ -844,8 +845,8 @@ int main(const int argc, const char *argv[])
             ms = chrono::duration_cast<chrono::milliseconds>(end - start).count();
             totalMs += ms;
 
-            cout << "[" << (result == 0 ? tags::green : tags::red) << result << tags::reset << "]\t" << ms << " ms\t"
-                 << test << "\n";
+            cout << "[" << i << "/" << files.size() << "]\t[" << (result == 0 ? tags::green : tags::red) << result
+                 << tags::reset << "]\t" << ms << " ms\t" << test << "\n";
             if (result == 0)
             {
                 good++;
@@ -855,6 +856,8 @@ int main(const int argc, const char *argv[])
                 failed.push_back(test);
                 bad++;
             }
+
+            i++;
         }
 
         if (good != 0)
@@ -881,7 +884,7 @@ int main(const int argc, const char *argv[])
             cout << tags::reset;
         }
 
-        cout << "\nAny and all compiler output can be found in ./test_suite.log.\n";
+        cout << "\nAny compiler is in ./test_suite.log.\n";
     }
 
     if (prettify)

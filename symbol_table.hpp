@@ -18,7 +18,7 @@ Handles the Oak symbol table.
 #include <vector>
 
 #include "lexer.hpp"
-#include "type-builder.hpp"
+#include "type_builder.hpp"
 
 using namespace std;
 

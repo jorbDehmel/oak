@@ -12,7 +12,7 @@ To be called by sequencing when in dirty mode
 #ifndef MEM_HPP
 #define MEM_HPP
 
-#include "symbol-table.hpp"
+#include "symbol_table.hpp"
 using namespace std;
 
 // Returns the sequence which allocates an array of size num and type type.
