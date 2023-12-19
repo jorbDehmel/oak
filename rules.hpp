@@ -4,10 +4,8 @@ jdehmel@outlook.com
 github.com/jorbDehmel
 2023 - present
 GPLv3 held by author
-*/
 
-/*
-TODO: Provide support for multiple rule engines
+Defines preprocessor rules for Oak
 */
 
 #ifndef RULES_HPP
@@ -24,16 +22,6 @@ TODO: Provide support for multiple rule engines
 #include "lexer.hpp"
 
 using namespace std;
-
-/*
-Defines preprocessor rules for Oak
-
-uses simple finite state machine pattern matching,
-similar to regex
-
-$v - variable name
-$$ - wildcard
-*/
 
 class rule_error : public runtime_error
 {

@@ -349,7 +349,7 @@ void doFile(const string &From)
             if (debug)
             {
                 curPhase = compilerMacroPos;
-                cout << debugTreePrefix << "Compiler macros\n";
+                cout << debugTreePrefix << "Compiler macro\n";
                 start = chrono::high_resolution_clock::now();
             }
 
@@ -548,6 +548,8 @@ void doFile(const string &From)
             {
                 end = chrono::high_resolution_clock::now();
                 phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+                cout << debugTreePrefix << "Compiler macro finished in "
+                     << chrono::duration_cast<chrono::nanoseconds>(end - start).count() << " ns\n";
                 curPhase = compilerMacroPos + 1;
             }
 

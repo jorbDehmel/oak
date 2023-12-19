@@ -1530,9 +1530,9 @@ void toCInternal(const sequence &What, vector<string> &out)
             {
                 if (scopeReturnCount == 0)
                 {
-                    out.push_back("return (");
+                    out.push_back("return ");
                     toCInternal(What.items[i], out);
-                    out.push_back(");\n");
+                    out.push_back(";\n");
                     scopeReturnCount++;
                 }
                 else

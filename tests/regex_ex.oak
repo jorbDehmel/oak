@@ -2,7 +2,7 @@
 package!("std");
 use_rule!("std");
 
-include "extra/regex_inter.oak";  // Real purposes
+include "extra/regex.oak";  // Real purposes
 include "std/string.oak";
 
 let main() -> i32

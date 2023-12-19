@@ -10,8 +10,7 @@ link!("std/string.o");
 
 include!("std/conv_extra.oak");
 
-// For debugging
-// include!("std/printf.oak");
+let strlen(what: str) -> u128;
 
 let string: struct
 {

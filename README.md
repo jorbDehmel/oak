@@ -64,11 +64,13 @@ languages use the same type specification syntax as `Oak`).
 
 ## Compilation, Installation, and Uninstallation
 
+**`Oak` is not compatible with Windows.** `Oak` assumes a UNIX
+system.
+
 To install, open a terminal in this folder and run
-`make install`. This repo is only compatible with Linux. This
-will compile and install `Oak`, as well as the standard `Oak`
-package. To uninstall, call `acorn -A`. To update, call
-`acorn -a`.
+`make install`. This will compile and install `Oak`, as well as
+the standard `Oak` package. To uninstall, call `acorn -A`. To
+update, call `acorn -a`.
 
 ## For More Help
 

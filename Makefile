@@ -52,6 +52,9 @@ test:
 	sudo tlp false
 	$(TEST) -eT
 
+README.pdf:	README.md
+	pandoc README.md -o README.pdf
+
 sdltest:
 	$(TEST) oak_demos/sdl_test.oak -o sdl_test.out
 	$(TEST) oak_demos/sdl_test_2.oak -o sdl_test_2.out

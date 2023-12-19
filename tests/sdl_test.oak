@@ -6,7 +6,7 @@ package!("std");
 use_rule!("std");
 
 package!("sdl");
-include!("std/time_inter.oak");
+include!("std/time.oak");
 
 let main() -> i32
 {

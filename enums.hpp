@@ -1,4 +1,7 @@
 /*
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+
 Handles enumerations in Oak Enumerations
 (unfortunately) must have templates. There must
 be only one enumeration per name, like structs.

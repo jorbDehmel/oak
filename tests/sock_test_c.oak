@@ -8,7 +8,7 @@ package!("std");
 use_rule!("std");
 
 include!("std/printf.oak");
-include!("std/sock_inter.oak");
+include!("std/sock.oak");
 include!("std/panic.oak");
 
 let main() -> i32

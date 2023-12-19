@@ -4,16 +4,14 @@ jdehmel@outlook.com
 github.com/jorbDehmel
 2023 - present
 GPLv3 held by author
+
+Reconstruct an abstract symbol tree and symbol
+table into compilable C. This should be language
+agnostic with respect to input (as much as possible).
 */
 
 #ifndef RECONSTRUCT_HPP
 #define RECONSTRUCT_HPP
-
-/*
-Reconstruct an abstract symbol tree and symbol
-table into compilable C++. This should be language
-agnostic with respect to input (as much as possible).
-*/
 
 #include <fstream>
 #include <set>
@@ -25,13 +23,12 @@ agnostic with respect to input (as much as possible).
 #include "lexer.hpp"
 #include "mangler.hpp"
 #include "rules.hpp"
-// #include "sequence.hpp"
 #include "symbol-table.hpp"
 #include "type-builder.hpp"
 
-#define OAK_HEADER_PATH "/usr/include/oak/std_oak_header.h"
-
 using namespace std;
+
+#define OAK_HEADER_PATH "/usr/include/oak/std_oak_header.h"
 
 // Removes illegal characters
 string purifyStr(const string &What);

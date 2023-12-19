@@ -4,20 +4,20 @@ jdehmel@outlook.com
 github.com/jorbDehmel
 2023 - present
 GPLv3 held by author
+
+Generates a markdown document from the commenting
+of an Oak source file
 */
 
 #ifndef DOCUMENT_HPP
 #define DOCUMENT_HPP
 
-// Generates a markdown document from the commenting
-// of an Oak source file
-
-#include <iostream>
+#include <chrono>
 #include <fstream>
-#include <vector>
+#include <iostream>
 #include <map>
 #include <string>
-#include <chrono>
+#include <vector>
 
 using namespace std;
 

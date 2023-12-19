@@ -3,7 +3,7 @@
 
 package!("std");
 use_rule!("std");
-include!("std/thread_inter.oak");
+include!("std/thread.oak");
 
 let call() -> void
 {

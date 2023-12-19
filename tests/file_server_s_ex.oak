@@ -3,8 +3,8 @@ package!("std");
 use_rule!("std");
 
 include!("std/string.oak",
-        "std/file_inter.oak",
-        "std/sock_inter.oak",
+        "std/file.oak",
+        "std/sock.oak",
         "std/printf.oak",
         "std/conv_extra.oak");
 

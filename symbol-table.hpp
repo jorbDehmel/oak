@@ -4,29 +4,36 @@ jdehmel@outlook.com
 github.com/jorbDehmel
 2023 - present
 GPLv3 held by author
+
+Handles the Oak symbol table.
 */
 
 #ifndef SYMBOL_TABLE_HPP
 #define SYMBOL_TABLE_HPP
 
+#include <iostream>
 #include <map>
+#include <stdexcept>
 #include <string>
 #include <vector>
-#include <stdexcept>
-#include <iostream>
 
-#include "type-builder.hpp"
 #include "lexer.hpp"
+#include "type-builder.hpp"
 
 using namespace std;
 
 class parse_error : public runtime_error
 {
-public:
-    parse_error(const string &What) : runtime_error(What) {}
+  public:
+    parse_error(const string &What) : runtime_error(What)
+    {
+    }
 };
 
-#define parse_assert(what) ((bool)(what)) ? true : (throw parse_error("Assertion '" #what "' failed (file " __FILE__ " line " + to_string(__LINE__) + ")"))
+#define parse_assert(what)                                                                                             \
+    ((bool)(what))                                                                                                     \
+        ? true                                                                                                         \
+        : (throw parse_error("Assertion '" #what "' failed (file " __FILE__ " line " + to_string(__LINE__) + ")"))
 
 // External definition
 string mangle(const vector<string> &what);
@@ -86,9 +93,7 @@ void addStruct(const vector<string> &From);
 
 // Extern defs
 string mangleStruct(const string &name, const vector<vector<string>> &generics);
-string instantiateGeneric(const string &what,
-                          const vector<vector<string>> &genericSubs,
-                          const vector<string> &typeVec);
+string instantiateGeneric(const string &what, const vector<vector<string>> &genericSubs, const vector<string> &typeVec);
 
 /*
 Erases any non-function symbols which were not present

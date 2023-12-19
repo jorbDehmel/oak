@@ -1,0 +1,3 @@
+// Linkage file
+
+include!("std/thread_inter.oak");

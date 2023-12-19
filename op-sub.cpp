@@ -8,6 +8,8 @@ GPLv3 held by author
 
 #include "op-sub.hpp"
 
+void operatorSub(vector<string> &From);
+
 void doSub(vector<string> &From, const int &i, const string &SubName, const bool &IsConst)
 {
     // Everything before, after, and what to replace all this with
@@ -172,9 +174,8 @@ void parenSub(vector<string> &From)
 
             i = startI + finalContents.size();
         }
-        else if (From[i] == "=" || From[i] == "+=" || From[i] == "-=" || From[i] == "*=" ||
-                 From[i] == "/=" || From[i] == "%=" || From[i] == "|=" || From[i] == "&=" ||
-                 From[i] == "++" || From[i] == "--")
+        else if (From[i] == "=" || From[i] == "+=" || From[i] == "-=" || From[i] == "*=" || From[i] == "/=" ||
+                 From[i] == "%=" || From[i] == "|=" || From[i] == "&=" || From[i] == "++" || From[i] == "--")
         {
             int begin = i, end = i, count = 0;
 

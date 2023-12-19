@@ -1,0 +1,19 @@
+/*
+Rigorous test of operator and parenthesis substitutions for Oak.
+This has been buggy for far too long.
+
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+// package!("std");
+// include!("std/io.oak");
+// include!("std/panic.oak");
+
+let main() -> i32
+{
+    let i: i32;
+    i = (5 * 6 / 2) + (15 / 3);
+
+    0
+}

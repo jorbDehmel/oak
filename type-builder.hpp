@@ -1,3 +1,10 @@
+/*
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+
+Underlying class for representing types in Oak source code.
+*/
+
 #ifndef TYPE_BUILDER_HPP
 #define TYPE_BUILDER_HPP
 

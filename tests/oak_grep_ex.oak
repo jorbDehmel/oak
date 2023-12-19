@@ -1,10 +1,10 @@
 package!("std");
 use_rule!("std");
 
-include "std/panic_inter.oak", "std/file_inter.oak",
+include "std/panic.oak", "std/file.oak",
     "std/string.oak", "std/printf.oak", "std/color.oak";
 
-include "extra/regex_inter.oak";
+include "extra/regex.oak";
 
 include "std/bool.oak";
 use "bool";

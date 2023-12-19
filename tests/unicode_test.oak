@@ -11,8 +11,7 @@ package!("std");
 
 let আ: struct
 {
-
-};
+}
 
 let main() -> i32
 {

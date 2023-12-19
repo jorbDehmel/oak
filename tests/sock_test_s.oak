@@ -7,8 +7,8 @@ UNPASSED
 package!("std");
 use_rule!("std");
 
-include!("std/sock_inter.oak");
-include!("std/panic_inter.oak");
+include!("std/sock.oak");
+include!("std/panic.oak");
 include!("std/printf.oak");
 
 let main() -> i32

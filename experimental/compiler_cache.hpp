@@ -11,7 +11,7 @@ jdehmel@outlook.com
 #define COMPILER_CACHE_HPP
 
 // #include "acorn_resources.hpp"
-#include "generics.hpp"
+#include "../generics.hpp"
 
 #include <cassert>
 #include <fstream>

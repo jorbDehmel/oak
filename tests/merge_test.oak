@@ -1,4 +1,4 @@
-include!("std/io_inter.oak");
+include!("std/io.oak");
 
 let main() -> i32
 {

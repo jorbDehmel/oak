@@ -719,7 +719,7 @@ int main(const int argc, const char *argv[])
                  << "Acorn Milliseconds per file: " << (oakElapsed / 1'000'000.0) / visitedFiles.size() << "\n\n";
         }
 
-        cout << "Note: This data is only accurate to one recursion.\n";
+        cout << tags::reset << "Note: This data is only accurate to one recursion.\n";
 
         if (percentAcornTime < 25)
         {
@@ -756,21 +756,21 @@ int main(const int argc, const char *argv[])
         unsigned long long int totalPlusCompilation = total + reconstructionElapsed + compElapsed;
 
         cout << "Total logged by compiler: " << total << '\n' << "By compiler pass (ns):\n";
+        cout.precision(3);
 
         for (int j = 0; j < passNames.size(); j++)
         {
-            cout << "\t" << j + 1 << "\t" << passNames[j] << "\t" << phaseTimes[j]
-                 << ((phaseTimes[j] < 10'000'000) ? "\t\t" : "\t") << (100 * (double)phaseTimes[j] / total) << "%\t"
+            cout << left << "\t" << j + 1 << "\t" << setw(20) << passNames[j] << right << setw(15) << phaseTimes[j]
+                 << setw(10) << (100 * (double)phaseTimes[j] / total) << "%\t" << setw(10)
                  << (100 * (double)phaseTimes[j] / totalPlusCompilation) << "%\n";
         }
 
-        cout << "\t" << passNames.size() + 1 << "\treconstruction\t\t" << reconstructionElapsed
-             << ((reconstructionElapsed < 10'000'000) ? "\t\t" : "\t") << "\t\t"
-             << (100 * (double)reconstructionElapsed / totalPlusCompilation) << "%\n";
+        cout << left << "\t" << passNames.size() + 1 << "\t" << setw(20) << "reconstruction" << right << setw(15)
+             << reconstructionElapsed << setw(23) << (100 * (double)reconstructionElapsed / totalPlusCompilation)
+             << "%\n";
 
-        cout << "\t" << passNames.size() + 2 << "\tC via " << C_COMPILER << "\t\t" << compElapsed
-             << ((compElapsed < 10'000'000) ? "\t\t" : "\t") << "\t\t"
-             << (100 * (double)compElapsed / totalPlusCompilation) << "%\n";
+        cout << left << "\t" << passNames.size() + 2 << "\t" << setw(20) << "C via " C_COMPILER << right << setw(15)
+             << compElapsed << setw(23) << (100 * (double)compElapsed / totalPlusCompilation) << "%\n";
 
         cout << "Output file: " << out << '\n';
     }

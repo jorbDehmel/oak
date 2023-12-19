@@ -1,0 +1,3 @@
+// Linkage file
+
+include!("std/time_inter.oak");

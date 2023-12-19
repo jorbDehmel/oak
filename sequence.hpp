@@ -4,12 +4,7 @@ jdehmel@outlook.com
 github.com/jorbDehmel
 2023 - present
 GPLv3 held by author
-*/
 
-#ifndef SEQUENCE_HPP
-#define SEQUENCE_HPP
-
-/*
 If a sequence's type is the NULL atomic, that means
 that it has no hanging type. It does NOT mean it is
 an empty sequence; Consider semicolon-terminated
@@ -31,6 +26,9 @@ All functions have exactly one attached sequence.
 Function signatures will be handles by the
 non-sequential parser.
 */
+
+#ifndef SEQUENCE_HPP
+#define SEQUENCE_HPP
 
 #include <algorithm>
 #include <cmath>

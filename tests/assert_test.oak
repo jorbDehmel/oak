@@ -1,5 +1,5 @@
 package!("std");
-include!("std/panic_inter.oak");
+include!("std/panic.oak");
 
 let main() -> i32
 {

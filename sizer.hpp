@@ -4,6 +4,9 @@ jdehmel@outlook.com
 github.com/jorbDehmel
 2023 - present
 GPLv3 held by author
+
+Resources for getting file sizes. Used by the acorn
+compiler frontend.
 */
 
 #ifndef SIZER_HPP
@@ -11,8 +14,8 @@ GPLv3 held by author
 
 #include "symbol-table.hpp"
 
-#include <string>
 #include <fstream>
+#include <string>
 using namespace std;
 
 // Use system calls to get the size in kilobytes of a given filepath

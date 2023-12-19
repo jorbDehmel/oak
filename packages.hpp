@@ -4,6 +4,8 @@ jdehmel@outlook.com
 github.com/jorbDehmel
 2023 - present
 GPLv3 held by author
+
+Package loading for Oak.
 */
 
 #ifndef PACKAGES_HPP

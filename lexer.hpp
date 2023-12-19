@@ -4,6 +4,8 @@ jdehmel@outlook.com
 github.com/jorbDehmel
 2023 - present
 GPLv3 held by author
+
+Lexes files into tokens to be handled by the compiler.
 */
 
 #ifndef LEXER_HPP

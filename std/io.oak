@@ -1,0 +1,3 @@
+// Linkage file
+
+include!("std/io_inter.oak");

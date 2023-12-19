@@ -1,23 +1,21 @@
 /*
-The UNIVERSAL file for dealing with generics in Oak
-To be pushed in Oak ~0.0.13 after temporary generic
-removal in 0.0.12
+Handles generics and templates in Oak source code.
 
 Jordan Dehmel, 2023
-
+jdehmel@outlook.com
 */
 
 #ifndef GENERICS_HPP
 #define GENERICS_HPP
 
 #include <map>
-#include <vector>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
+#include "enums.hpp"
 #include "mangler.hpp"
 #include "symbol-table.hpp"
-#include "enums.hpp"
 
 using namespace std;
 
@@ -40,8 +38,10 @@ addressed herein.
 
 class generic_error : public runtime_error
 {
-public:
-    generic_error(const string &what) : runtime_error(what) {}
+  public:
+    generic_error(const string &what) : runtime_error(what)
+    {
+    }
 };
 
 // Internal struct for info
@@ -63,16 +63,11 @@ extern map<string, vector<genericInfo>> generics;
 // Can throw generic_error's if no viable options exist.
 // Ensure all items in genericSubs have been pre-mangled.
 // Returns the mangled version.
-string instantiateGeneric(const string &what,
-                          const vector<vector<string>> &genericSubs,
-                          const vector<string> &typeVec);
+string instantiateGeneric(const string &what, const vector<vector<string>> &genericSubs, const vector<string> &typeVec);
 
 // Also holds the skeleton of the inst block system, although gathering of these happens elsewhere.
-void addGeneric(const vector<string> &what,
-                const string &name,
-                const vector<string> &genericsList,
-                const vector<string> &instBlock,
-                const vector<string> &typeVec);
+void addGeneric(const vector<string> &what, const string &name, const vector<string> &genericsList,
+                const vector<string> &instBlock, const vector<string> &typeVec);
 
 // Print the info of all existing generics to a file stream
 void printGenericDumpInfo(ostream &to);

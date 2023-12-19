@@ -4,10 +4,10 @@ jdehmel@outlook.com
 github.com/jorbDehmel
 2023 - present
 GPLv3 held by author
-*/
 
-// Stack operations for Oak
-// To be called by sequencing when in dirty mode
+Heap operations for Oak
+To be called by sequencing when in dirty mode
+*/
 
 #ifndef MEM_HPP
 #define MEM_HPP

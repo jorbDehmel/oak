@@ -4,10 +4,10 @@ jdehmel@outlook.com
 github.com/jorbDehmel
 2023 - present
 GPLv3 held by author
-*/
 
-// NOTE: This file is extremely dependant on the Acorn
-// translator!
+Handles macro extraction, compilation, and replacement for Oak
+source code.
+*/
 
 #ifndef MACROS_HPP
 #define MACROS_HPP

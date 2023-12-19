@@ -1,19 +1,17 @@
-// Canonical manglings for Oak symbols
+/*
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+
+Mangles symbol names and types into unambiguous C names.
+*/
 
 #ifndef MANGLER_HPP
 #define MANGLER_HPP
 
+#include "type-builder.hpp"
 #include <string>
 #include <vector>
-
-#include "type-builder.hpp"
-
 using namespace std;
-
-/*
-Mangling is a way to reduce items which require multiple
-symbols to get to into a single symbol.
-*/
 
 // Used for mangling and resolving generics pre-sequencing
 string mangle(const vector<string> &what);

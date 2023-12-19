@@ -4,7 +4,7 @@
 package!("std");
 use_rule!("std");
 
-include!("std/result.oak");
+include!("std/res.oak");
 
 let fn_which_returns_result() -> result<i32, i32>
 {

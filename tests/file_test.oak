@@ -2,7 +2,7 @@
 // Legacy passed
 
 package!("std");
-include!("std/file_inter.oak");
+include!("std/file.oak");
 include!("std/string.oak");
 use_rule!("std");
 
