@@ -187,7 +187,7 @@ let sin(x: f64) -> f64
 
     if (real_x < 0.0)
     {
-        while (real_x <= -1.0 * pi)
+        while (real_x <= (-1.0 * pi))
         {
             real_x += 2.0 * pi;
         }

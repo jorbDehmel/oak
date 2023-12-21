@@ -834,11 +834,11 @@ int main(const int argc, const char *argv[])
             start = chrono::high_resolution_clock::now();
             if (execute)
             {
-                result = system(("acorn --execute " + test + " >> test_suite.log 2>&1").c_str());
+                result = system(("acorn -o /dev/null --execute " + test + " >> test_suite.log 2>&1").c_str());
             }
             else
             {
-                result = system(("acorn " + test + " >> test_suite.log 2>&1").c_str());
+                result = system(("acorn -o /dev/null " + test + " >> test_suite.log 2>&1").c_str());
             }
             end = chrono::high_resolution_clock::now();
 

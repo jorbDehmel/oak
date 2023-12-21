@@ -8,6 +8,7 @@ GPLv3 held by author
 
 #include "acorn_resources.hpp"
 #include "rules.hpp"
+#include "sequence.hpp"
 #include <bits/chrono.h>
 #include <chrono>
 #include <ratio>
@@ -142,6 +143,8 @@ void doFile(const string &From)
             {
                 cout << debugTreePrefix << "Skipping repeated file '" << From << "'\n";
             }
+            curFile = oldFile;
+            curLine = oldLineNum;
             return;
         }
 
@@ -157,6 +160,8 @@ void doFile(const string &From)
         ifstream file(From, ios::in | ios::ate);
         if (!file.is_open())
         {
+            curFile = oldFile;
+            curLine = oldLineNum;
             throw runtime_error("Could not open source file '" + From + "'");
         }
 
@@ -188,7 +193,7 @@ void doFile(const string &From)
             start = chrono::high_resolution_clock::now();
         }
 
-        if (!ignoreSyntaxErrors || isMacroCall)
+        if (!(ignoreSyntaxErrors || isMacroCall))
         {
             ensureSyntax(text, true);
         }
@@ -941,7 +946,7 @@ void makePackage(const string &RawName)
     return;
 }
 
-void printSyntaxError(const string &what, const vector<char> &curLineVec)
+void printSyntaxError(const string &what, const vector<char> &curLineVec, const int &curLine)
 {
     cout << tags::yellow_bold << '\n' << "In line '";
 
@@ -984,7 +989,7 @@ void ensureSyntax(const string &text, const bool &fatal)
             {
                 if (curLineVec[2] != ' ' && curLineVec[2] != '/')
                 {
-                    printSyntaxError("Comments must begin with either '// ' or '///'", curLineVec);
+                    printSyntaxError("Comments must begin with either '// ' or '///'", curLineVec, curLine);
                     errorCount++;
                 }
             }
@@ -994,7 +999,7 @@ void ensureSyntax(const string &text, const bool &fatal)
             {
                 if (curLineVec.size() > 2)
                 {
-                    printSyntaxError("Symbol '/*' must occupy its own line", curLineVec);
+                    printSyntaxError("Symbol '/*' must occupy its own line", curLineVec, curLine);
                     errorCount++;
                 }
 
@@ -1006,7 +1011,7 @@ void ensureSyntax(const string &text, const bool &fatal)
             {
                 if (curLineVec.size() > 2)
                 {
-                    printSyntaxError("Symbol '*/' must occupy its own line", curLineVec);
+                    printSyntaxError("Symbol '*/' must occupy its own line", curLineVec, curLine);
                     errorCount++;
                 }
 
@@ -1047,7 +1052,7 @@ void ensureSyntax(const string &text, const bool &fatal)
                         else if (globalStringChoice == '\'')
                         {
                             printSyntaxError("Precedent has been set for single-quotes, but double-quotes were used.",
-                                             curLineVec);
+                                             curLineVec, curLine);
                             errorCount++;
                         }
                     }
@@ -1069,7 +1074,7 @@ void ensureSyntax(const string &text, const bool &fatal)
                         else if (globalStringChoice == '"' && stringMarker == ' ')
                         {
                             printSyntaxError("Precedent has been set for double-quotes, but single-quotes were used.",
-                                             curLineVec);
+                                             curLineVec, curLine);
                             errorCount++;
                         }
                     }
@@ -1082,7 +1087,7 @@ void ensureSyntax(const string &text, const bool &fatal)
 
                             if (curLineVec.size() != 0)
                             {
-                                printSyntaxError("Symbol '{' must occupy its own line", curLineVec);
+                                printSyntaxError("Symbol '{' must occupy its own line", curLineVec, curLine);
                                 errorCount++;
                             }
                         }
@@ -1092,13 +1097,13 @@ void ensureSyntax(const string &text, const bool &fatal)
 
                             if (bracketDepth < 0)
                             {
-                                printSyntaxError("Unmatched close curly bracket", curLineVec);
+                                printSyntaxError("Unmatched close curly bracket", curLineVec, curLine);
                                 errorCount++;
                             }
 
                             if (curLineVec.size() != 0)
                             {
-                                printSyntaxError("Symbol '}' must occupy its own line", curLineVec);
+                                printSyntaxError("Symbol '}' must occupy its own line", curLineVec, curLine);
                                 errorCount++;
                             }
                         }
@@ -1112,7 +1117,7 @@ void ensureSyntax(const string &text, const bool &fatal)
 
                             if (parenthesisDepth < 0)
                             {
-                                printSyntaxError("Unmatched end parenthesis", curLineVec);
+                                printSyntaxError("Unmatched end parenthesis", curLineVec, curLine);
                                 errorCount++;
                             }
                         }
@@ -1120,7 +1125,7 @@ void ensureSyntax(const string &text, const bool &fatal)
                         else if (c == '.' && j > 0 && curLineVec[j - 1] == ')')
                         {
                             printSyntaxError("Illegal inline access to return value. Use a temporary variable instead.",
-                                             curLineVec);
+                                             curLineVec, curLine);
                             errorCount++;
                         }
                     }
@@ -1128,25 +1133,26 @@ void ensureSyntax(const string &text, const bool &fatal)
 
                 if (stringMarker != ' ')
                 {
-                    printSyntaxError("Unclosed string", curLineVec);
+                    printSyntaxError("Unclosed string", curLineVec, curLine);
                     errorCount++;
                 }
             }
 
             // Reset line
             curLineVec.clear();
+            curLine++;
         }
         else
         {
             // Append to curLineVec
-            if (!(curLineVec.size() == 0 && (text[i] == ' ' || text[i] == '\t')))
+            if (!(curLineVec.empty() && (text[i] == ' ' || text[i] == '\t')))
             {
                 curLineVec.push_back(text[i]);
             }
 
             if (curLineVec.size() == 65 && !(curLineVec.front() == '\'' || curLineVec.front() == '"'))
             {
-                printSyntaxError("Lines should not exceed 64 characters", curLineVec);
+                printSyntaxError("Lines should not exceed 64 characters", curLineVec, curLine);
                 errorCount++;
             }
         }
@@ -1154,19 +1160,19 @@ void ensureSyntax(const string &text, const bool &fatal)
 
     if (text.size() == 0 || text.back() != '\n')
     {
-        printSyntaxError("File must end with newline", curLineVec);
+        printSyntaxError("File must end with newline", curLineVec, curLine);
         errorCount++;
     }
 
     if (bracketDepth > 0)
     {
-        printSyntaxError("Unmatched open curly bracket", curLineVec);
+        printSyntaxError("Unmatched open curly bracket", curLineVec, curLine);
         errorCount++;
     }
 
     if (parenthesisDepth > 0)
     {
-        printSyntaxError("Unmatched open parenthesis", curLineVec);
+        printSyntaxError("Unmatched open parenthesis", curLineVec, curLine);
         errorCount++;
     }
 

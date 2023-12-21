@@ -16,12 +16,12 @@ let b(what: i32) -> i32
 let main() -> i32
 {
     let f: ^(i32) -> i32;
-    Copy(@f, @a);
+    ptrcpy!(f, @a);
 
     print(f(1));
     print("\n");
 
-    Copy(@f, @b);
+    ptrcpy!(f, @b);
 
     print(f(1));
     print("\n");

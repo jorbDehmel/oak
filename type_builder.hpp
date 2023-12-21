@@ -8,6 +8,7 @@ Underlying class for representing types in Oak source code.
 #ifndef TYPE_BUILDER_HPP
 #define TYPE_BUILDER_HPP
 
+#include <array>
 #include <iostream>
 #include <map>
 #include <set>
@@ -25,6 +26,7 @@ enum TypeInfo
     function, // Function start (mostly fluff)
     maps,     // Syntactic fluff for functions
     var_name, // A variable name for functions
+    arr,      // An array. Equivalent to pointer. Experimental.
 };
 
 struct typeNode
@@ -66,13 +68,7 @@ class Type
 
     unsigned long long ID;
 
-  protected:
     vector<typeNode> internal;
-
-    friend istream &operator>>(istream &strm, Type &type);
-    friend string toStr(const Type *const, const unsigned int &pos);
-    friend bool typesAreSame(Type *A, Type *B);
-    friend bool typesAreSameExact(Type *A, Type *B);
 };
 
 ////////////////////////////////////////////////////////////////
@@ -99,9 +95,9 @@ string toStr(const Type *const What, const unsigned int &pos = 0);
 // Ignores all var_names
 // As of 0.0.21, can also do automatic referencing
 // of arguments
-bool typesAreSame(Type *A, Type *B);
+bool typesAreSame(const Type *const A, const Type *const B, int &changes);
 
 // Like the above, but does not do auto-referencing or dereferencing
-bool typesAreSameExact(Type *A, Type *B);
+bool typesAreSameExact(const Type *const A, const Type *const B);
 
 #endif

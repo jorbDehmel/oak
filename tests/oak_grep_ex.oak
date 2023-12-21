@@ -18,8 +18,8 @@ let main(argc: i32, argv: ^str) -> i32
     );
 
     // Get the command line arguments
-    let filepath: string = argv.Get(1);
-    let pattern: string = argv.Get(2);
+    let filepath: string = ptrarr!(argv, 1);
+    let pattern: string = ptrarr!(argv, 2);
     
     let pattern_reg: regex = pattern;
 

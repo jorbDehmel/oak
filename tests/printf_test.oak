@@ -22,5 +22,11 @@ let main() -> i32
         j
     );
 
+    printf!(
+        "This passes more argument to printf than it knows "
+        "what to do with.\n",
+        i
+    );
+
     0
 }

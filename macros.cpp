@@ -88,7 +88,7 @@ void compileMacro(const string &Name, bool debug)
     string binPath = COMPILED_PATH + rootName + ".out";
 
     // Check ages, makefile-style
-    if (!isSourceNewer(macroSourceFiles[Name], srcPath))
+    if (!isSourceNewer(macroSourceFiles[Name], binPath))
     {
         return;
     }

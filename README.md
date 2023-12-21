@@ -1,6 +1,6 @@
 
 # The Oak Programming Language
-## Version 0.2.13
+## Version 0.2.14
 
 ![](logo_trimmed.png)
 
@@ -11,7 +11,7 @@ github.com/jorbDehmel/oak
 
 ## Overview
 
-`Oak` is a modern low-level programming language with
+`Oak` is a modern low-level functional programming language with
 compile-time modifiable syntax. Its usecase is in low-level
 language and compiler design (see the later section on
 dialects). `Oak` also aims to have an integrated build system,
@@ -134,11 +134,11 @@ Syntax is fluid and user-modifiable in `Oak`. For more
 information about this aspect, see the `Preproc Rules` section
 below.
 
-The `:` and `->` operators come from mathematics. For
+The `:`, `let` and `->` operators come from mathematics. For
 instance, the mathematical statement
 
 $$
-    f: \mathbb{R} \to \mathbb{R}
+    \verb|let | f: \mathbb{R} \to \mathbb{R}
 $$
 
 is equivalent to the code
@@ -149,7 +149,7 @@ let f(_: f64) -> f64;
 
 Both of these statements can be read "let f be a function
 mapping a single real number to another" (although `f64`s are an
-extremely limited representation of the reals).
+extremely limited representation of the real numbers).
 
 As a final example for this section, examine the "Hello world"
 program below.
@@ -2686,6 +2686,76 @@ void New_FN_PTR_node_GEN_i32_ENDGEN_MAPS_void(struct node_GEN_i32_ENDGEN *self);
 This means it is possible for the compiler (and technically the
 programmer) to tell the type of a given symbol in the target `C`
 code given just its mangled name.
+
+## Function Candidate Identification
+
+There are several ways in which a function can be matched to a
+function call.
+
+- Precision match (all types match exactly)
+- Implicit casting for built-in types
+- Auto referencing and dereferencing
+
+Demonstration of the first case:
+
+```rust
+let fn(a: foo, b: bar) -> void;
+
+let main() -> i32
+{
+    let first: foo;
+    let second: bar;
+
+    fn(first, second);
+
+    0
+}
+```
+
+Demonstration of the second case:
+
+```rust
+let fn(a: i128) -> void;
+
+let main() -> i32
+{
+    let arg: i32;
+
+    fn(arg);
+
+    0
+}
+```
+
+Demonstration of the third case:
+
+```rust
+let fn(a: ^i32) -> void;
+
+let main() -> i32
+{
+    let arg: i32;
+
+    fn(arg);
+
+    let arg2: ^^i32;
+
+    fn(arg2);
+
+    0
+}
+```
+
+If a function signature can be matched exactly, the compiler
+will not look for signatures using casting. If a signature can
+be found exactly or by using casting, the compiler will not look
+for signatures requiring referencing or dereferencing.
+
+**Note:** Implicit casting can cast anything from the set
+`[i8, u8, i16, u16, i32, u32, i64, u64, i128, u128]` to anything
+else in that set, or anything from the set `[f64, f128, f256]`
+to anything else in that set. No other types are supported for
+implicit casting, **including** any pointers to these types.
 
 # Examples
 

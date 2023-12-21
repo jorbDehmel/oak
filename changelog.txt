@@ -4,6 +4,12 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.2.14          | 12/21/23 | Revamped function candidate finding
+                |          | to be more modular. Also broke
+                |          | sequence.cpp in half and removed
+                |          | legacy `Copy` redundant special
+                |          | cases.
+                |          |
 0.2.13          | 12/19/23 | Finally fixed operator precedence.
                 |          | Also made file naming scheme
                 |          | internally consistent.

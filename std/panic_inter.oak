@@ -27,7 +27,7 @@ let panic!(argc: i32, argv: ^^i8) -> i32
     if (argc == 2)
     {
         print("print(\"\\n");
-        print(Get(argv, 1));
+        print(ptrarr!(argv, 1));
         print("\");\n");
     }
 
@@ -53,9 +53,9 @@ let assert!(argc: i32, argv: ^^i8) -> i32
     if (argc == 2)
     {
         print("if (");
-        print(Get(argv, 1));
+        print(ptrarr!(argv, 1));
         print(") {} else { panic!(\"");
-        print(Get(argv, 1));
+        print(ptrarr!(argv, 1));
         print("\"); }\n");
 
         out = 0;
@@ -63,9 +63,9 @@ let assert!(argc: i32, argv: ^^i8) -> i32
     else if (argc == 3)
     {
         print("if (");
-        print(Get(argv, 1));
+        print(ptrarr!(argv, 1));
         print(") {} else { panic!(\"");
-        print(Get(argv, 2));
+        print(ptrarr!(argv, 2));
         print("\"); }\n");
 
         out = 0;

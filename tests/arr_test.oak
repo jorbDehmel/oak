@@ -51,7 +51,7 @@ let Get<t>(self: ^arr<t>, index: u128) -> opt<^t>
 
     if index < self.size
     {
-        out.wrap_some(Get(@self.data, index));
+        out.wrap_some(ptrarr!(@self.data, index));
     }
     else
     {

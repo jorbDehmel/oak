@@ -219,7 +219,7 @@ void Type::pop_back()
 // Ignores all var_names
 // As of 0.0.21, can also do automatic referencing
 // of arguments
-bool typesAreSame(Type *A, Type *B)
+bool typesAreSame(const Type *const A, const Type *const B, int &changes)
 {
     unsigned int left, right;
     left = right = 0;
@@ -228,12 +228,22 @@ bool typesAreSame(Type *A, Type *B)
     {
         while (left < A->internal.size() && (A->internal[left].info == var_name || A->internal[left].info == pointer))
         {
+            if (A->internal[left].info == pointer)
+            {
+                changes++;
+            }
+
             left++;
         }
 
         while (right < B->internal.size() &&
                (B->internal[right].info == var_name || B->internal[right].info == pointer))
         {
+            if (B->internal[right].info == pointer)
+            {
+                changes++;
+            }
+
             right++;
         }
 
@@ -265,7 +275,7 @@ bool typesAreSame(Type *A, Type *B)
 }
 
 // Like the above, but does not do auto-referencing or dereferencing
-bool typesAreSameExact(Type *A, Type *B)
+bool typesAreSameExact(const Type *const A, const Type *const B)
 {
     unsigned int left, right;
     left = right = 0;

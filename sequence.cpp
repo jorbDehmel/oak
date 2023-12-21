@@ -7,6 +7,8 @@ GPLv3 held by author
 */
 
 #include "sequence.hpp"
+#include "symbol_table.hpp"
+#include "tags.hpp"
 
 // Activates "dirty" mode, where mem alloc and free are allowed
 bool insideMethod = false;
@@ -19,145 +21,8 @@ string curFile = "";
 // The current depth of createSequence
 unsigned long long int depth = 0;
 
-string cleanMacroArgument(const string &from)
-{
-    sm_assert(from.size() > 1 && (from.front() == '"' && from.back() == '"') ||
-                  (from.front() == '\'' && from.back() == '\''),
-              "Internal macro arguments must be string-enclosed.");
-
-    string out;
-    out.reserve(from.size() - 2);
-    bool force = false;
-    for (int l = 1; l + 1 < from.size(); l++)
-    {
-        if (!force)
-        {
-            if (from[l] == '\\')
-            {
-                force = true;
-                continue;
-            }
-
-            out.push_back(from[l]);
-        }
-        else
-        {
-            if (from[l] == 'n')
-            {
-                out.push_back('\n');
-            }
-            else if (from[l] == 't')
-            {
-                out.push_back('\t');
-            }
-            else if (from[l] == 'b')
-            {
-                out.push_back('\b');
-            }
-            else
-            {
-                out.push_back(from[l]);
-            }
-
-            force = false;
-        }
-    }
-
-    return out;
-}
-
-// Destroy all unit, temp, or autogen definitions matching a given type.
-// Can throw errors if doThrow is true.
-// Mostly used for New and Del, Oak ~0.0.14
-void destroyUnits(const string &name, const Type &type, const bool &doThrow)
-{
-    // Safety check
-    if (table.count(name) != 0 && table[name].size() != 0)
-    {
-        // Iterate over items
-        for (int i = 0; i < table[name].size(); i++)
-        {
-            if (table[name][i].type == type)
-            {
-                // If is unit, erase
-                if (table[name][i].seq.items.size() == 0 ||
-                    (table[name][i].seq.items.size() >= 1 && table[name][i].seq.items[0].raw.size() > 8 &&
-                     table[name][i].seq.items[0].raw.substr(0, 9) == "//AUTOGEN"))
-                {
-                    table.at(name).erase(table[name].begin() + i);
-                    i--;
-                }
-
-                // Else if doThrow, throw redef error
-                else if (doThrow)
-                {
-                    throw sequencing_error("Function " + name + toStr(&type) +
-                                           "' cannot have multiple explicit definitions.");
-                }
-            }
-        }
-    }
-
-    return;
-}
-
-// returns true if a should be before b
-bool sortCandidates(__multiTableSymbol &a, __multiTableSymbol &b)
-{
-    auto a_args = getArgs(a.type);
-    auto b_args = getArgs(b.type);
-
-    int a_count = 0;
-    int b_count = 0;
-
-    for (int i = 0; i < a_args[0].second.size() && a_args[0].second[i].info == pointer; i++)
-    {
-        a_count++;
-    }
-
-    for (int i = 0; i < b_args[0].second.size() && b_args[0].second[i].info == pointer; i++)
-    {
-        b_count++;
-    }
-
-    return a_count < b_count;
-}
-
-// Actually used in dump files, not just for debugging.
-void debugPrint(const sequence &What, int spaces, ostream &to)
-{
-    for (int i = 0; i < spaces; i++)
-    {
-        to << "| ";
-    }
-
-    switch (What.info)
-    {
-    case code_scope:
-        to << "code_scope";
-        break;
-    case code_line:
-        to << "code_line";
-        break;
-    case atom:
-        to << "atom";
-        break;
-    case keyword:
-        to << "keyword";
-        break;
-    case enum_keyword:
-        to << "enum_keyword";
-        break;
-    }
-
-    to << " w/ raw " << What.raw << ", type " << toStr(&What.type) << ":\n";
-    for (auto s : What.items)
-    {
-        debugPrint(s, spaces + 1, to);
-    }
-
-    return;
-}
+// Internal consumptive version: Erases from vector, so not safe for frontend
+sequence __createSequence(list<string> &From);
 
 sequence createSequence(const vector<string> &From)
 {
@@ -538,8 +403,6 @@ sequence __createSequence(list<string> &From)
         }
         else if (From.front() == "ptrcpy!")
         {
-            sm_assert(insideMethod, "Pointers cannot be copied outside of an operator-alias method.");
-
             int count = 0;
             sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
             From.pop_front();
@@ -627,8 +490,15 @@ sequence __createSequence(list<string> &From)
             string rhs = toC(rhsSeq);
 
             sm_assert(lhsSeq.type[0].info == pointer, "First argument of ptrarr! must be pointer.");
-            sm_assert(rhsSeq.type == Type(atomic, "u128"),
-                      "Second argument of ptrarr! must be a u128, not " + toStr(&rhsSeq.type));
+            sm_assert(rhsSeq.type.size() == 1 && rhsSeq.type[0].info == atomic,
+                      "second argument of ptrarr! must be an atomic.");
+
+            string t = rhsSeq.type[0].name;
+            if (t != "i8" && t != "u8" && t != "i16" && t != "u16" && t != "i32" && t != "u32" && t != "i64" &&
+                t != "u64" && t != "i128" && t != "u128")
+            {
+                throw sequencing_error("Second argument of ptrarr! must be an integer, not " + toStr(&rhsSeq.type));
+            }
 
             out.info = atom;
             out.type = Type(lhsSeq.type, 1);
@@ -1479,431 +1349,6 @@ sequence __createSequence(list<string> &From)
     return out;
 } // __createSequence
 
-void toCInternal(const sequence &What, vector<string> &out)
-{
-    string temp;
-    int scopeReturnCount;
-
-    switch (What.info)
-    {
-    case code_line:
-        for (int i = 0; i < What.items.size(); i++)
-        {
-            toCInternal(What.items[i], out);
-
-            if (i + 1 != What.items.size())
-            {
-                out.push_back(" ");
-            }
-        }
-
-        break;
-
-    case code_scope:
-        out.push_back("{\n");
-
-        scopeReturnCount = 0;
-        for (int i = 0; i < What.items.size(); i++)
-        {
-            if (What.items[i].info == keyword)
-            {
-                toCInternal(What.items[i], out);
-            }
-            else if (What.items[i].type == nullType)
-            {
-                temp = toC(What.items[i]);
-
-                if (temp != "" && temp != ";")
-                {
-                    out.push_back(temp);
-
-                    if (!(temp.size() > 1 && temp.substr(0, 2) == "//"))
-                    {
-                        out.push_back(";");
-                    }
-
-                    out.push_back("\n");
-                }
-            }
-            else
-            {
-                if (scopeReturnCount == 0)
-                {
-                    out.push_back("return ");
-                    toCInternal(What.items[i], out);
-                    out.push_back(";\n");
-                    scopeReturnCount++;
-                }
-                else
-                {
-                    throw sequencing_error("A function definition must have exactly one return point.");
-                }
-            }
-        }
-
-        out.push_back("}\n");
-
-        break;
-
-    case atom:
-        out.push_back(What.raw);
-        break;
-
-    case keyword:
-        out.push_back(What.raw);
-        out.push_back(" ");
-
-        for (auto child : What.items)
-        {
-            toCInternal(child, out);
-            out.push_back(" ");
-        }
-
-        break;
-
-    case enum_keyword:
-        // These get special treatment because they are heavily C++-dependant.
-        if (What.raw == "match")
-        {
-            // VERY different!
-            // First item is object to capture.
-            // Remaining items are case or defaults.
-
-            Type type = What.items[0].type;
-            string typeStr = toStrC(&type);
-
-            if (typeStr.substr(0, 7) == "struct ")
-            {
-                typeStr = typeStr.substr(7);
-            }
-
-            sm_assert(enumData.count(typeStr) != 0, "'match' may only be used on enums, not '" + typeStr + "'");
-            vector<string> options = enumData[typeStr].order;
-
-            map<string, bool> usedOptions;
-            for (auto opt : enumData[typeStr].order)
-            {
-                usedOptions[opt] = false;
-            }
-
-            // Skips any vestigial "Del" statements
-            int max = What.items[1].items.size();
-            while (max >= 0 && What.items[1].items[max - 1].raw.substr(0, 3) == "Del")
-            {
-                max--;
-            }
-
-            for (int ind = 0; ind < max; ind++)
-            {
-                if (What.items[1].items[ind].raw == "case")
-                {
-                    auto &cur = What.items[1].items[ind];
-
-                    string optionName = cur.items[0].raw;
-
-                    sm_assert(enumData[typeStr].options.count(optionName) != 0,
-                              "'" + optionName + "' is not an option for enum '" + typeStr + "'");
-                    sm_assert(usedOptions.count(optionName) != 0,
-                              "Option '" + optionName + "' cannot be used multiple times in a match statement.");
-                    usedOptions.erase(optionName);
-
-                    string captureName = cur.items[1].raw;
-
-                    auto backupTable = table;
-
-                    if (ind != 0)
-                    {
-                        out.push_back("else ");
-                    }
-
-                    out.push_back("if (");
-
-                    toCInternal(What.items[0], out);
-                    string itemStr = out.back();
-
-                    out.push_back(".__info == ");
-                    out.push_back(typeStr);
-                    out.push_back("_OPT_");
-                    out.push_back(optionName);
-                    out.push_back(")\n{");
-
-                    if (captureName != "NULL")
-                    {
-                        int numPtrs = 0;
-
-                        Type clone = enumData[typeStr].options[optionName];
-                        while (clone.size() > 0 && clone[0].info == pointer)
-                        {
-                            numPtrs++;
-                            clone.pop_front();
-                        }
-
-                        string captureType = mangleType(clone);
-
-                        if (atomics.count(captureType) == 0)
-                        {
-                            out.push_back("struct ");
-                        }
-
-                        for (int l = 0; l < numPtrs; l++)
-                        {
-                            captureType += "*";
-                        }
-
-                        out.push_back(captureType);
-                        out.push_back(" *");
-                        out.push_back(captureName);
-                        out.push_back(" = &");
-                        out.push_back(itemStr);
-                        out.push_back(".__data.");
-                        out.push_back(optionName);
-                        out.push_back("_data;\n");
-                    }
-
-                    // Add capture group to Oak table if needed
-
-                    toCInternal(cur.items[2], out);
-                    out.push_back("\n}\n");
-                }
-                else if (What.items[1].items[ind].raw == "default")
-                {
-                    // Causes errors with destructor calls
-                    // debugPrint(What.items[1]);
-
-                    sm_assert(ind + 2 >= What.items[1].items.size(),
-                              "Default statement must be final branch of match statement.");
-                    usedOptions.clear();
-
-                    auto &cur = What.items[1].items[ind];
-
-                    if (ind == 0)
-                    {
-                        out.push_back("{\n");
-                        toCInternal(cur.items[0], out);
-                        out.push_back("\n}\n");
-                    }
-                    else
-                    {
-                        out.push_back("else\n{\n");
-                        toCInternal(cur.items[0], out);
-                        out.push_back("\n}\n");
-                    }
-                }
-                else if (What.items[1].items[ind].raw != "")
-                {
-                    sm_assert(false, "Invalid option '" + What.items[1].items[ind].raw + "' in match statement.");
-                }
-            }
-
-            if (usedOptions.size() != 0)
-            {
-                cout << tags::yellow_bold << "Warning! Match statement does not handle option(s) of enum '" << typeStr
-                     << "':\n";
-
-                for (auto opt : usedOptions)
-                {
-                    cout << '\t' << opt.first << '\n';
-                }
-
-                cout << tags::reset;
-            }
-        }
-        else
-        {
-            cout << tags::yellow_bold << "Warning! Unknown enum keyword '" << What.raw
-                 << "'. Treating as regular keyword.\n"
-                 << tags::reset;
-
-            out.push_back(What.raw);
-            out.push_back(" ");
-            for (auto child : What.items)
-            {
-                toCInternal(child, out);
-                out.push_back(" ");
-            }
-        }
-
-        break;
-    }
-}
-
-// Turn a .oak sequence into a .cpp one
-string toC(const sequence &What)
-{
-    vector<string> out;
-    toCInternal(What, out);
-
-    int size = 0;
-    for (const auto &what : out)
-    {
-        size += what.size();
-    }
-
-    string outStr;
-    outStr.reserve(size);
-    for (const auto &what : out)
-    {
-        outStr += what;
-    }
-
-    return outStr;
-}
-
-// Get the return type from a Type (of a function signature)
-Type getReturnType(const Type &T)
-{
-    static map<unsigned long long, Type> getReturnTypeCache;
-
-    if (getReturnTypeCache.count(T.ID) != 0)
-    {
-        return getReturnTypeCache[T.ID];
-    }
-
-    Type temp(T);
-
-    int count = 0;
-    for (int cur = 0; cur < temp.size(); cur++)
-    {
-        if (temp[cur].info == function)
-        {
-            count++;
-        }
-
-        if (temp[cur].info == maps)
-        {
-            count--;
-
-            if (count == 0)
-            {
-                Type out(temp, cur + 1);
-
-                getReturnTypeCache[T.ID] = out;
-
-                return out;
-            }
-        }
-    }
-
-    if (getReturnTypeCache.size() > 1000)
-    {
-        getReturnTypeCache.clear();
-    }
-
-    getReturnTypeCache[T.ID] = T;
-
-    return T;
-}
-
-vector<pair<string, Type>> getArgs(Type &type)
-{
-    static map<unsigned long long, vector<pair<string, Type>>> cache;
-
-    // Check cache for existing value
-    if (cache.count(type.ID) != 0)
-    {
-        return cache[type.ID];
-    }
-
-    // Get everything between final function and maps
-    // For the case of function pointers, all variable names will be the unit string
-    vector<pair<string, Type>> out;
-    string curName = "";
-    Type curType = nullType;
-    int count = 0;
-
-    int cur = 0;
-
-    // Dereference
-    while (cur < type.size() && type[cur].info == pointer)
-    {
-        cur++;
-    }
-
-    // Should now point to first 'function'
-
-    // Do iteration
-    while (cur < type.size())
-    {
-        if (type[cur].info == function)
-        {
-            count++;
-        }
-        else if (type[cur].info == maps)
-        {
-            count--;
-
-            if (count == 0)
-            {
-                // Final append
-                out.push_back(make_pair(curName, curType));
-                break;
-            }
-
-            // Skip to the end of the return type
-            int subCount = 1;
-            curType.append(type[cur].info);
-
-            cur++;
-
-            while (cur < type.size())
-            {
-                if (type[cur].info == function)
-                {
-                    subCount++;
-                }
-                else if (type[cur].info == maps)
-                {
-                    subCount--;
-                }
-
-                if (subCount == 0)
-                {
-                    if (type[cur].info == maps || type[cur].info == join)
-                    {
-                        break;
-                    }
-                }
-
-                curType.append(type[cur].info, type[cur].name);
-
-                cur++;
-            }
-
-            continue;
-        }
-
-        if (count == 1 && type[cur].info == var_name)
-        {
-            curName = type[cur].name;
-        }
-        else if (count == 1 && type[cur].info == join)
-        {
-            out.push_back(make_pair(curName, curType));
-            curName = "";
-            curType = nullType;
-        }
-        else if (count != 1 || type[cur].info != function)
-        {
-            // Append to curType
-            curType.append(type[cur].info, type[cur].name);
-        }
-
-        // Increment at end
-        cur++;
-    }
-
-    // Copy into cache
-    if (cache.size() > 1000)
-    {
-        cache.clear();
-    }
-
-    cache[type.ID] = out;
-
-    // Return
-    return out;
-}
-
 // This should only be called after method replacement
 // I know I wrote this, but it still feels like black magic and I don't really understand it
 Type resolveFunctionInternal(const vector<string> &What, int &start, vector<string> &c)
@@ -2013,47 +1458,32 @@ Type resolveFunctionInternal(const vector<string> &What, int &start, vector<stri
 
         return toReturn;
     }
-    else
+
+    // Template instantiation
+    bool didTemplate = false;
+    if (What.size() > start + 1 && What[start + 1] == "<")
     {
-        // Template instantiation
-        bool didTemplate = false;
-        if (What.size() > start + 1 && What[start + 1] == "<")
+        start++;
+
+        vector<string> curGen;
+        vector<vector<string>> generics;
+        int count = 0;
+        do
         {
-            start++;
-
-            vector<string> curGen;
-            vector<vector<string>> generics;
-            int count = 0;
-            do
+            if (What[start] == "<")
             {
-                if (What[start] == "<")
+                count++;
+
+                if (count > 1)
                 {
-                    count++;
-
-                    if (count > 1)
-                    {
-                        curGen.push_back(What[start]);
-                    }
+                    curGen.push_back(What[start]);
                 }
-                else if (What[start] == ">")
-                {
-                    count--;
+            }
+            else if (What[start] == ">")
+            {
+                count--;
 
-                    if (count == 0)
-                    {
-                        if (curGen.size() > 0)
-                        {
-                            generics.push_back(curGen);
-                        }
-
-                        curGen.clear();
-                    }
-                    else
-                    {
-                        curGen.push_back(What[start]);
-                    }
-                }
-                else if (What[start] == "," && count == 1)
+                if (count == 0)
                 {
                     if (curGen.size() > 0)
                     {
@@ -2066,591 +1496,492 @@ Type resolveFunctionInternal(const vector<string> &What, int &start, vector<stri
                 {
                     curGen.push_back(What[start]);
                 }
-
-                start++;
-            } while (start < What.size() && count != 0);
-            // start--;
-
-            // should leave w/ what[start] == ';'
-            vector<string> typeVec;
-
-            while (start < What.size() && What[start] != ";")
-            {
-                typeVec.push_back(What[start]);
-                start++;
             }
-
-            if (typeVec.empty())
+            else if (What[start] == "," && count == 1)
             {
-                typeVec.push_back("struct");
-            }
-
-            string result = instantiateGeneric(name, generics, typeVec);
-
-            start--;
-
-            didTemplate = true;
-        }
-
-        // Append literal C code, without interpretation from Oak
-        if (What[start] == "raw_c!")
-        {
-            // Scrape call to a vector
-            int count = 0;
-
-            start++;
-            do
-            {
-                if (What[start] == "(")
+                if (curGen.size() > 0)
                 {
-                    count++;
-                }
-                else if (What[start] == ")")
-                {
-                    count--;
+                    generics.push_back(curGen);
                 }
 
-                if (!((What[start] == "(" && count == 1) || (What[start] == ")" && count == 0)))
-                {
-                    // Append raw C code
-                    c.push_back(cleanMacroArgument(What[start]));
-                    c.push_back(" ");
-                }
-
-                start++;
-            } while (count != 0 && start < What.size());
-
-            return Type(atomic, "void");
-        }
-
-        else if (What[start] == "size!")
-        {
-            // Case for size!() macro
-
-            // Scrape entire size!(what) call to a vector
-            vector<string> toAnalyze;
-            int count = 0;
-
-            start++;
-            do
-            {
-                if (What[start] == "(")
-                {
-                    count++;
-                }
-                else if (What[start] == ")")
-                {
-                    count--;
-                }
-
-                if (!((What[start] == "(" && count == 1) || (What[start] == ")" && count == 0)))
-                {
-                    toAnalyze.push_back(What[start]);
-                }
-
-                start++;
-            } while (count != 0 && start < What.size());
-
-            // Garbage to feed to resolveFunction
-            string junk = "";
-            int pos = 0;
-
-            // Analyze type of collected
-            Type type = resolveFunction(toAnalyze, pos, junk);
-
-            // Append size
-            if (type[0].info == atomic)
-            {
-                if (atomics.count(type[0].name) != 0)
-                {
-                    c.push_back(to_string(atomics[type[0].name]));
-                }
-                else
-                {
-                    c.push_back(to_string(structData[type[0].name].size));
-                }
+                curGen.clear();
             }
             else
             {
-                c.push_back(to_string(sizeof(void *)));
+                curGen.push_back(What[start]);
             }
 
-            return Type(atomic, "u128");
+            start++;
+        } while (start < What.size() && count != 0);
+        // start--;
+
+        // should leave w/ what[start] == ';'
+        vector<string> typeVec;
+
+        while (start < What.size() && What[start] != ";")
+        {
+            typeVec.push_back(What[start]);
+            start++;
         }
 
-        else if (What[start].back() == '!')
+        if (typeVec.empty())
         {
-            // Otherwise unspecified macro
-
-            // Scrape entire size!(what) call to a vector
-            list<string> toAnalyze = {What[start], "("};
-            int count = 0;
-
-            start++;
-            do
-            {
-                if (What[start] == "(")
-                {
-                    count++;
-                }
-                else if (What[start] == ")")
-                {
-                    count--;
-                }
-
-                if (!((What[start] == "(" && count == 1) || (What[start] == ")" && count == 0)))
-                {
-                    toAnalyze.push_back(What[start]);
-                }
-
-                start++;
-            } while (count != 0 && start < What.size());
-            toAnalyze.push_back(")");
-
-            // Analyze type of collected
-            sequence s = __createSequence(toAnalyze);
-
-            c.push_back(toC(s));
-
-            return s.type;
+            typeVec.push_back("struct");
         }
 
-        // Function call
-        if (What.size() > start + 1 && What[start + 1] == "(")
+        string result = instantiateGeneric(name, generics, typeVec);
+
+        start--;
+
+        didTemplate = true;
+    }
+
+    // Append literal C code, without interpretation from Oak
+    if (What[start] == "raw_c!")
+    {
+        // Scrape call to a vector
+        int count = 0;
+
+        start++;
+        do
         {
-            // get args within parenthesis
-            vector<string> curArg;
-            vector<vector<string>> args;
-
-            int count = 0, templCount = 0;
-            start++;
-            do
+            if (What[start] == "(")
             {
-                if (What[start] == "(")
-                {
-                    count++;
-                }
-                else if (What[start] == ")")
-                {
-                    count--;
-                }
-                else if (What[start] == "<")
-                {
-                    templCount++;
-                }
-                else if (What[start] == ">")
-                {
-                    templCount--;
-                }
+                count++;
+            }
+            else if (What[start] == ")")
+            {
+                count--;
+            }
 
-                if (What[start] == "," && count == 1 && templCount == 0)
-                {
-                    args.push_back(curArg);
-                    curArg.clear();
-                }
+            if (!((What[start] == "(" && count == 1) || (What[start] == ")" && count == 0)))
+            {
+                // Append raw C code
+                c.push_back(cleanMacroArgument(What[start]));
+                c.push_back(" ");
+            }
 
-                curArg.push_back(What[start]);
+            start++;
+        } while (count != 0 && start < What.size());
 
-                start++;
-            } while (start < What.size() && count != 0);
+        return Type(atomic, "void");
+    }
 
-            if (!curArg.empty())
+    else if (What[start] == "size!")
+    {
+        // Case for size!() macro
+
+        // Scrape entire size!(what) call to a vector
+        vector<string> toAnalyze;
+        int count = 0;
+
+        start++;
+        do
+        {
+            if (What[start] == "(")
+            {
+                count++;
+            }
+            else if (What[start] == ")")
+            {
+                count--;
+            }
+
+            if (!((What[start] == "(" && count == 1) || (What[start] == ")" && count == 0)))
+            {
+                toAnalyze.push_back(What[start]);
+            }
+
+            start++;
+        } while (count != 0 && start < What.size());
+
+        // Garbage to feed to resolveFunction
+        string junk = "";
+        int pos = 0;
+
+        // Analyze type of collected
+        Type type = resolveFunction(toAnalyze, pos, junk);
+
+        // Append size
+        if (type[0].info == atomic)
+        {
+            if (atomics.count(type[0].name) != 0)
+            {
+                c.push_back(to_string(atomics[type[0].name]));
+            }
+            else
+            {
+                c.push_back(to_string(structData[type[0].name].size));
+            }
+        }
+        else
+        {
+            c.push_back(to_string(sizeof(void *)));
+        }
+
+        return Type(atomic, "u128");
+    }
+
+    else if (What[start].back() == '!')
+    {
+        // Otherwise unspecified macro
+
+        // Scrape entire size!(what) call to a vector
+        list<string> toAnalyze = {What[start], "("};
+        int count = 0;
+
+        start++;
+        do
+        {
+            if (What[start] == "(")
+            {
+                count++;
+            }
+            else if (What[start] == ")")
+            {
+                count--;
+            }
+
+            if (!((What[start] == "(" && count == 1) || (What[start] == ")" && count == 0)))
+            {
+                toAnalyze.push_back(What[start]);
+            }
+
+            start++;
+        } while (count != 0 && start < What.size());
+        toAnalyze.push_back(")");
+
+        // Analyze type of collected
+        sequence s = __createSequence(toAnalyze);
+
+        c.push_back(toC(s));
+
+        return s.type;
+    }
+
+    // Function call
+    if (What.size() > start + 1 && What[start + 1] == "(")
+    {
+        // get args within parenthesis
+        vector<string> curArg;
+        vector<vector<string>> args;
+
+        int count = 0, templCount = 0;
+        start++;
+        do
+        {
+            if (What[start] == "(")
+            {
+                count++;
+            }
+            else if (What[start] == ")")
+            {
+                count--;
+            }
+            else if (What[start] == "<")
+            {
+                templCount++;
+            }
+            else if (What[start] == ">")
+            {
+                templCount--;
+            }
+
+            if (What[start] == "," && count == 1 && templCount == 0)
             {
                 args.push_back(curArg);
+                curArg.clear();
             }
 
-            // Erase commas, open parenthesis on first one
-            for (int i = 0; i < args.size(); i++)
+            curArg.push_back(What[start]);
+
+            start++;
+        } while (start < What.size() && count != 0);
+
+        if (!curArg.empty())
+        {
+            args.push_back(curArg);
+        }
+
+        // Erase commas, open parenthesis on first one
+        for (int i = 0; i < args.size(); i++)
+        {
+            if (!args[i].empty())
             {
-                if (!args[i].empty())
+                args[i].erase(args[i].begin());
+            }
+        }
+
+        // Erase end parenthesis
+        if (!args.empty() && !args.back().empty())
+        {
+            args.back().pop_back();
+        }
+
+        for (int i = 0; i < args.size(); i++)
+        {
+            if (args[i].size() == 0)
+            {
+                args.erase(args.begin() + i);
+                i--;
+            }
+        }
+
+        vector<Type> argTypes;
+        vector<string> argStrs;
+        for (vector<string> arg : args)
+        {
+            int trash = 0;
+            string cur;
+
+            argTypes.push_back(resolveFunction(arg, trash, cur));
+            argStrs.push_back(cur);
+        }
+
+        // Search for candidates
+        sm_assert(table.count(name) != 0, "Function call '" + name + "' has no registered symbols.");
+        sm_assert(table[name].size() != 0, "Function call '" + name + "' has no registered symbols.");
+
+        vector<__multiTableSymbol> candidates = table[name];
+
+        // Construct candArgs
+        vector<vector<Type>> candArgs;
+        for (auto item : candidates)
+        {
+            Type curType = item.type;
+            while (curType != nullType && curType[0].info == pointer)
+            {
+                curType.pop_front();
+            }
+
+            auto args = getArgs(item.type);
+            candArgs.push_back(vector<Type>());
+
+            for (auto arg : args)
+            {
+                if (arg.second == nullType)
                 {
-                    args[i].erase(args[i].begin());
-                }
-            }
-
-            // Erase end parenthesis
-            if (!args.empty() && !args.back().empty())
-            {
-                args.back().pop_back();
-            }
-
-            for (int i = 0; i < args.size(); i++)
-            {
-                if (args[i].size() == 0)
-                {
-                    args.erase(args.begin() + i);
-                    i--;
-                }
-            }
-
-            vector<Type> argTypes;
-            vector<string> argStrs;
-            for (vector<string> arg : args)
-            {
-                int trash = 0;
-                string cur;
-
-                argTypes.push_back(resolveFunction(arg, trash, cur));
-                argStrs.push_back(cur);
-            }
-
-            // Special case; Pointer array access
-            if (name == "Get" && argTypes.size() == 2 && argTypes[0][0].info == pointer && argTypes[0].size() > 1 &&
-                argTypes[0][1].info == pointer)
-            {
-                c.push_back(argStrs[0]);
-                c.push_back("[");
-                c.push_back(argStrs[1]);
-                c.push_back("]");
-
-                return Type(argTypes[0], 1);
-            }
-
-            // Special case; Pointer copy
-            else if (name == "Copy" && argTypes.size() == 2 && argTypes[0].size() > 2 &&
-                     argTypes[0][0].info == pointer && argTypes[0][1].info == pointer &&
-                     argTypes[1][0].info == pointer && argTypes[1].size() > 1)
-            {
-                // Ensure equality; If not, throw error
-
-                int left, right;
-                left = 2;
-                right = 1;
-
-                // left = argTypes[0][0].next->next;
-                // right = argTypes[1][0].next;
-
-                bool isValid = true;
-                while (left < argTypes[0].size() && right < argTypes[1].size())
-                {
-                    while (argTypes[0][left].info == var_name)
-                    {
-                        left++;
-                    }
-
-                    while (argTypes[1][right].info == var_name)
-                    {
-                        right++;
-                    }
-
-                    if (argTypes[0][left].info != argTypes[1][right].info ||
-                        argTypes[0][left].name != argTypes[1][right].name)
-                    {
-                        isValid = false;
-                        break;
-                    }
-
-                    left++;
-                    right++;
-                }
-
-                sm_assert(isValid, "Cannot ptr copy '" + toStr(&argTypes[1]) + "' to '" + toStr(&argTypes[0]) + "'.");
-
-                // Turn to C
-                c.push_back("(*");
-                c.push_back(argStrs[0]);
-                c.push_back(")=");
-                c.push_back(argStrs[1]);
-
-                // Return nullType (Copy yields void)
-                return nullType;
-            }
-
-            // Search for candidates
-            sm_assert(table.count(name) != 0, "Function call '" + name + "' has no registered symbols.");
-            sm_assert(table[name].size() != 0, "Function call '" + name + "' has no registered symbols.");
-
-            auto candidates = table[name];
-            int indexOfExactMatch = -1;
-
-            // Weed out any candidates which do not have the correct argument types
-            for (int j = 0; j < candidates.size(); j++)
-            {
-                Type curType = candidates[j].type;
-                while (curType != nullType && curType[0].info == pointer)
-                {
-                    curType.pop_front();
-                }
-
-                auto candArgs = getArgs(curType);
-                for (int k = 0; k < candArgs.size(); k++)
-                {
-                    if (candArgs[k].second == nullType)
-                    {
-                        candArgs.erase(candArgs.begin() + k);
-                        k--;
-                    }
-                }
-
-                if (candArgs.size() != argTypes.size() || candidates[j].erased)
-                {
-                    candidates.erase(candidates.begin() + j);
-                    j--;
                     continue;
                 }
 
-                bool isExactMatch = (indexOfExactMatch == -1);
-                for (int k = 0; k < candArgs.size(); k++)
-                {
-                    // Check exactly
-                    if (isExactMatch)
-                    {
-                        isExactMatch &= typesAreSameExact(&candArgs[k].second, &argTypes[k]);
-                    }
-
-                    // check inexactly
-                    if (!typesAreSame(&candArgs[k].second, &argTypes[k]))
-                    {
-                        candidates.erase(candidates.begin() + j);
-                        j--;
-                        break;
-                    }
-                }
-
-                if (isExactMatch)
-                {
-                    indexOfExactMatch = j;
-                }
+                candArgs.back().push_back(arg.second);
             }
+        }
 
-            // If no candidates, throw error
-            if (candidates.size() == 0)
+        vector<int> validCandidates;
+
+        // Do stages of candidacy
+        validCandidates = getStageOneCandidates(candArgs, argTypes);
+
+        if (validCandidates.size() != 1)
+        {
+            validCandidates = getStageThreeCandidates(candArgs, argTypes);
+
+            if (validCandidates.size() != 1)
             {
-                // Get all theoretical candidates again
-                candidates = table[name];
-
-                cout << "\nCandidates:\n";
-                for (auto c : candidates)
-                {
-                    cout << name << " has type " << toStr(&c.type) << '\n' << "Candidate arguments (";
-                    auto candArgs = getArgs(c.type);
-                    cout << candArgs.size() << "):\n";
-
-                    for (auto arg : candArgs)
-                    {
-                        cout << "\t" << arg.first << "\t" << toStr(&arg.second) << '\n';
-                    }
-
-                    // Provide reason for elimination
-                    if (candArgs.size() != argTypes.size())
-                    {
-                        cout << "\t(Too " << ((candArgs.size() < argTypes.size()) ? "few" : "many") << " arguments)\n";
-                    }
-                    else if (c.erased)
-                    {
-                        cout << "\t(Erased / private symbol)\n";
-                    }
-                    else
-                    {
-                        cout << "\t(Incompatible argument type(s))\n";
-                    }
-                }
-
-                cout << "\nProvided arguments (" << argTypes.size() << "):\n(";
-                for (auto a : argTypes)
-                {
-                    cout << toStr(&a) << ", ";
-                }
-                cout << ")\n\n";
-
-                throw sequencing_error("Function call '" + name + "' has no viable candidates.");
+                validCandidates = getStageTwoCandidates(candArgs, argTypes);
             }
+        }
 
-            // If multiple candidates, ensure all return types are the same
-            else if (candidates.size() > 1)
+        // Remove any erased symbols
+        for (auto item = validCandidates.begin(); item != validCandidates.end(); item++)
+        {
+            if (candidates[*item].erased)
             {
-                type = getReturnType(candidates[0].type);
-
-                for (int j = 1; j < candidates.size(); j++)
-                {
-                    if (getReturnType(candidates[j].type) != type)
-                    {
-                        throw sequencing_error("In function call '" + name +
-                                               "': Cannot overload by return type alone.");
-                    }
-                }
-
-                // Check for exact match
-
-                if (indexOfExactMatch != -1)
-                {
-                    auto copy = candidates[indexOfExactMatch];
-
-                    candidates.clear();
-                    candidates.push_back(copy);
-                }
-                else
-                {
-                    sort(candidates.begin(), candidates.end(), sortCandidates);
-                }
-
-                // If has exact match, use it
-                // Otherwise, use match with fewest differences in reference status
+                item = validCandidates.erase(item);
             }
+        }
 
-            // Single candidate
-            type = getReturnType(candidates[0].type);
+        // Error checking
+        if (validCandidates.size() == 0)
+        {
+            // No viable candidates
 
-            if (candidates[0].type[0].info == pointer)
+            cout << tags::red_bold << "Error: No viable candidates for function call '" << name << "'.\n"
+                 << tags::reset;
+
+            printCandidateErrors(candidates, argTypes, name);
+
+            throw sequencing_error("No viable candidates for function call '" + name + "'");
+        }
+        else if (validCandidates.size() > 1)
+        {
+            // Ambiguous candidates
+
+            cout << tags::red_bold << "Error: Cannot override function call '" << name << "' on return type alone.\n"
+                 << tags::reset;
+
+            printCandidateErrors(candidates, argTypes, name);
+
+            throw sequencing_error("Cannot override function call '" + name + "' on return type alone");
+        }
+
+        // Use candidate at front; This is highest-priority one
+        type = getReturnType(candidates[validCandidates[0]].type);
+
+        if (candidates[validCandidates[0]].type[0].info == pointer)
+        {
+            c.push_back(name);
+            c.push_back("(");
+        }
+        else
+        {
+            c.push_back(mangleSymb(name, mangleType(candidates[validCandidates[0]].type)));
+            c.push_back("(");
+        }
+
+        for (int j = 0; j < argStrs.size(); j++)
+        {
+            if (j != 0)
             {
-                c.push_back(name);
-                c.push_back("(");
+                c.push_back(", ");
             }
-            else
+
+            // do referencing stuff here for each argument
+
+            int numDeref = 0;
+            // determine actual number here
+
+            auto candArgs = getArgs(candidates[validCandidates[0]].type);
+
+            // Type *candCursor = &candArgs[j].second;
+            // Type *argCursor = &argTypes[j];
+
+            int candCursor = 0, argCursor = 0;
+
+            while (argCursor < argTypes[j].size() && argTypes[j][argCursor].info == pointer)
             {
-                c.push_back(mangleSymb(name, mangleType(candidates[0].type)));
-                c.push_back("(");
+                argCursor++;
+                numDeref++;
             }
 
-            for (int j = 0; j < argStrs.size(); j++)
+            while (candCursor < candArgs[j].second.size() && candArgs[j].second[candCursor].info == pointer)
             {
-                if (j != 0)
-                {
-                    c.push_back(", ");
-                }
-
-                // do referencing stuff here for each argument
-
-                int numDeref = 0;
-                // determine actual number here
-
-                auto candArgs = getArgs(candidates[0].type);
-
-                // Type *candCursor = &candArgs[j].second;
-                // Type *argCursor = &argTypes[j];
-
-                int candCursor = 0, argCursor = 0;
-
-                while (argCursor < argTypes[j].size() && argTypes[j][argCursor].info == pointer)
-                {
-                    argCursor++;
-                    numDeref++;
-                }
-
-                while (candCursor < candArgs[j].second.size() && candArgs[j].second[candCursor].info == pointer)
-                {
-                    candCursor++;
-                    numDeref--;
-                }
-
-                if (numDeref > 0)
-                {
-                    for (int k = 0; k < numDeref; k++)
-                    {
-                        c.push_back("*");
-                    }
-                }
-                else if (numDeref == -1)
-                {
-                    for (int k = 0; k < -numDeref; k++)
-                    {
-                        c.push_back("&");
-                    }
-                }
-                else if (numDeref != 0)
-                {
-                    throw sequencing_error("Illegal multiple automatic referencing in function call '" + name +
-                                           "' (only auto-deref or single auto-ref is allowed).");
-                }
-
-                c.push_back("(");
-                c.push_back(argStrs[j]);
-                c.push_back(")");
+                candCursor++;
+                numDeref--;
             }
+
+            if (numDeref > 0)
+            {
+                for (int k = 0; k < numDeref; k++)
+                {
+                    c.push_back("*");
+                }
+            }
+            else if (numDeref == -1)
+            {
+                for (int k = 0; k < -numDeref; k++)
+                {
+                    c.push_back("&");
+                }
+            }
+            else if (numDeref != 0)
+            {
+                cout << "With candidates:\n";
+                for (auto item : candidates)
+                {
+                    cout << left << name << setw(40) << toStr(&item.type) << "from " << item.sourceFilePath << '\n';
+                }
+                cout << '\n';
+
+                throw sequencing_error("Illegal multiple automatic referencing in function call '" + name +
+                                       "' (only auto-deref or single auto-ref is allowed).");
+            }
+
+            c.push_back("(");
+            c.push_back(argStrs[j]);
             c.push_back(")");
-
-            start--;
         }
+        c.push_back(")");
 
-        else if (!didTemplate)
-        {
-            // Non-function-call
-
-            // Literal check
-            Type litType = checkLiteral(What[start]);
-            if (litType == nullType)
-            {
-                // Is not a literal
-                sm_assert(table.count(What[start]) != 0, "No definitions exist for symbol '" + What[start] + "'.");
-                auto candidates = table[What[start]];
-                sm_assert(candidates.size() != 0, "No definitions exist for symbol '" + What[start] + "'.");
-
-                type = candidates.back().type;
-            }
-            else
-            {
-                // Is a literal
-                type = litType;
-            }
-
-            c.push_back(What[start]);
-        }
-
-        // if member access, resolve that
-        while (start + 1 < What.size() && What[start + 1] == ".")
-        {
-            // Auto-dereference pointers (. to -> automatically)
-            if (type[0].info == pointer)
-            {
-                while (type[0].info == pointer)
-                {
-                    type.pop_front();
-
-                    c.front() = "*" + c.front();
-                }
-
-                c.front() = "(" + c.front();
-                c.push_back(")");
-            }
-
-            string structName;
-            try
-            {
-                sm_assert(type[0].info == atomic,
-                          "Error during type trimming for member access; Could not find struct name.");
-                structName = type[0].name;
-
-                sm_assert(structData.count(structName) != 0, "Struct type '" + structName + "' does not exist.");
-                sm_assert(!structData[structName].erased,
-                          "Struct '" + structName + "' exists, but is erased (private).");
-                sm_assert(structData[structName].members.count(What[start + 2]) != 0,
-                          "Struct '" + structName + "' has no member '" + What[start + 2] + "'.");
-            }
-            catch (sequencing_error &e)
-            {
-                cout << tags::yellow_bold << "In context: '";
-
-                int pos = start - 8;
-                if (pos < 0)
-                {
-                    pos = 0;
-                }
-
-                for (; pos < What.size() && pos < start + 8; pos++)
-                {
-                    cout << What[pos] << ' ';
-                }
-
-                cout << "'\n" << tags::reset;
-
-                throw e;
-            }
-
-            type = structData[structName].members[What[start + 2]];
-
-            c.push_back(".");
-            c.push_back(What[start + 2]);
-
-            start += 2;
-        }
-
-        start++;
-
-        // Return function return type
-        return type;
+        start--;
     }
 
-    // unreachable
+    else if (!didTemplate)
+    {
+        // Non-function-call
+
+        // Literal check
+        Type litType = checkLiteral(What[start]);
+        if (litType == nullType)
+        {
+            // Is not a literal
+            sm_assert(table.count(What[start]) != 0, "No definitions exist for symbol '" + What[start] + "'.");
+            auto candidates = table[What[start]];
+            sm_assert(candidates.size() != 0, "No definitions exist for symbol '" + What[start] + "'.");
+
+            type = candidates.back().type;
+        }
+        else
+        {
+            // Is a literal
+            type = litType;
+        }
+
+        c.push_back(What[start]);
+    }
+
+    // if member access, resolve that
+    while (start + 1 < What.size() && What[start + 1] == ".")
+    {
+        // Auto-dereference pointers (. to -> automatically)
+        if (type[0].info == pointer)
+        {
+            while (type[0].info == pointer)
+            {
+                type.pop_front();
+
+                c.front() = "*" + c.front();
+            }
+
+            c.front() = "(" + c.front();
+            c.push_back(")");
+        }
+
+        string structName;
+        try
+        {
+            sm_assert(type[0].info == atomic,
+                      "Error during type trimming for member access; Could not find struct name.");
+            structName = type[0].name;
+
+            sm_assert(structData.count(structName) != 0, "Struct type '" + structName + "' does not exist.");
+            sm_assert(!structData[structName].erased, "Struct '" + structName + "' exists, but is erased (private).");
+            sm_assert(structData[structName].members.count(What[start + 2]) != 0,
+                      "Struct '" + structName + "' has no member '" + What[start + 2] + "'.");
+        }
+        catch (sequencing_error &e)
+        {
+            cout << tags::yellow_bold << "In context: '";
+
+            int pos = start - 8;
+            if (pos < 0)
+            {
+                pos = 0;
+            }
+
+            for (; pos < What.size() && pos < start + 8; pos++)
+            {
+                cout << What[pos] << ' ';
+            }
+
+            cout << "'\n" << tags::reset;
+
+            throw e;
+        }
+
+        type = structData[structName].members[What[start + 2]];
+
+        c.push_back(".");
+        c.push_back(What[start + 2]);
+
+        start += 2;
+    }
+
+    start++;
+
+    // Return function return type
+    return type;
 }
 
 Type resolveFunction(const vector<string> &What, int &start, string &c)
@@ -2672,421 +2003,4 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
     }
 
     return out;
-}
-
-/////////////////////////////////////////
-
-// Can throw errors (IE malformed definitions)
-void addEnum(const vector<string> &FromIn)
-{
-    vector<string> From;
-
-    // Clean input of any special symbols
-    for (auto f : FromIn)
-    {
-        if (f.size() < 2 || f.substr(0, 2) != "//")
-        {
-            From.push_back(f);
-        }
-    }
-
-    // Assert the expression can be properly-formed
-    parse_assert(From.size() >= 4);
-
-    // Get name and check against malformations
-    int i = 0;
-
-    parse_assert(From[i] == "let");
-    i++;
-
-    string name = From[i];
-    i++;
-
-    parse_assert(i < From.size());
-
-    // Scrape generics here (and mangle)
-    vector<string> curGen;
-    vector<vector<string>> generics;
-
-    int count = 0;
-    while (i < From.size() && From[i] != ":" && From[i] != "{")
-    {
-        if (From[i] == "<")
-        {
-            count++;
-
-            if (count == 1)
-            {
-                i++;
-                continue;
-            }
-        }
-
-        else if (From[i] == ">")
-        {
-            count--;
-
-            if (count == 0)
-            {
-                generics.push_back(curGen);
-            }
-        }
-
-        else if (From[i] == "<")
-        {
-            count++;
-        }
-
-        curGen.push_back(From[i]);
-        i++;
-    }
-
-    if (generics.size() != 0)
-    {
-        name = mangleStruct(name, generics);
-    }
-
-    if (enumData.count(name) != 0 || structData.count(name) != 0)
-    {
-        cout << tags::yellow_bold << "Warning! Definition of enum '" << name << "' erases struct of the same name.\n"
-             << tags::reset;
-    }
-
-    // Ensure for unit enums
-    structOrder.push_back(name);
-
-    // Auto-create unit New and Del
-    Type t;
-    t.append(function);
-    t.append(var_name, "what");
-    t.append(pointer);
-    t.append(atomic, name);
-    t.append(maps);
-    t.append(atomic, "void");
-
-    sequence s;
-    s.info = code_scope;
-    s.type = Type(atomic, "void");
-    s.items.push_back(sequence{});
-    s.items.back().info = atom;
-    s.items.back().raw = "//AUTOGEN";
-
-    // Ensure these keys exist
-    table["New"];
-    table["Del"];
-
-    table["New"].push_back(__multiTableSymbol{s, t, false, curFile});
-    table["Del"].push_back(__multiTableSymbol{s, t, false, curFile});
-
-    parse_assert(From[i] == ":");
-    i++;
-    parse_assert(From[i] == "enum");
-    i++;
-
-    if (From[i] == "{")
-    {
-        i++;
-        for (; i < From.size() && From[i] != "}"; i++)
-        {
-            // name : type ,
-            // name , name2 , name3 : type < string , hi > , name4 : type2 ,
-            vector<string> names, lexedType;
-
-            while (i + 1 < From.size() && From[i + 1] == ",")
-            {
-                names.push_back(From[i]);
-
-                i += 2;
-            }
-
-            names.push_back(From[i]);
-
-            parse_assert(i + 1 < From.size());
-            parse_assert(From[i + 1] == ":");
-
-            i += 2;
-
-            // Get lexed type (can be multiple symbols due to templating)
-            int templCount = 0;
-            vector<string> genericHolder;
-
-            while (i < From.size() && !(templCount == 0 && From[i] == ","))
-            {
-                if (templCount == 0 && From[i] != "<")
-                {
-                    lexedType.push_back(From[i]);
-                }
-                else
-                {
-                    genericHolder.push_back(From[i]);
-                }
-
-                if (From[i] == "<")
-                {
-                    templCount++;
-                }
-                else if (From[i] == ">")
-                {
-                    templCount--;
-
-                    if (templCount == 0)
-                    {
-                        string toAdd = mangle(genericHolder);
-                        genericHolder.clear();
-
-                        if (toAdd != "")
-                        {
-                            lexedType.back().append("_" + toAdd);
-                        }
-                    }
-                }
-
-                i++;
-            }
-
-            Type toAdd = toType(lexedType);
-            for (string varName : names)
-            {
-                enumData[name].options[varName] = toAdd;
-                enumData[name].order.push_back(varName);
-            }
-        }
-    }
-    else if (From[4] != ";")
-    {
-        throw parse_error("Malformed enum definition; Expected ';' or '{'.");
-    }
-
-    enumData[name].size = 0;
-    __enumLookupData &cur = enumData[name];
-    string enumTypeStr = name;
-    unsigned long long curSize;
-    for (auto optionName : cur.order)
-    {
-        // Sizing
-        if (cur.options[optionName][0].info == atomic)
-        {
-            if (structData.count(cur.options[optionName][0].name) != 0)
-            {
-                curSize = structData[cur.options[optionName][0].name].size;
-            }
-            else
-            {
-                curSize = 1;
-            }
-        }
-        else
-        {
-            curSize = sizeof(void *);
-        }
-
-        if (curSize > cur.size)
-        {
-            cur.size = curSize;
-        }
-
-        if (cur.options[optionName][0].info == atomic && cur.options[optionName][0].name == "unit")
-        {
-            // Unit struct; Single argument constructor
-
-            // Insert Oak version
-            Type constructorType = nullType;
-            constructorType.reserve(6);
-
-            constructorType.append(function);
-            constructorType.append(var_name, "self");
-            constructorType.append(pointer);
-            constructorType.append(atomic, enumTypeStr);
-            constructorType.append(maps);
-            constructorType.append(atomic, "void");
-
-            table["wrap_" + optionName].push_back(__multiTableSymbol{sequence{}, constructorType, false, curFile});
-        }
-        else
-        {
-            // Double argument constructor
-
-            // Insert Oak version
-            Type constructorType = nullType;
-            constructorType.reserve(9);
-
-            constructorType.append(function);
-            constructorType.append(var_name, "self");
-            constructorType.append(pointer);
-            constructorType.append(atomic, enumTypeStr);
-            constructorType.append(join);
-            constructorType.append(var_name, "data");
-            constructorType.append(cur.options[optionName]);
-            constructorType.append(maps);
-            constructorType.append(atomic, "void");
-
-            table["wrap_" + optionName].push_back(__multiTableSymbol{sequence{}, constructorType, false, curFile});
-        }
-    }
-
-    cur.size += enumSize;
-
-    return;
-}
-
-// Dump data to file
-void dump(const vector<string> &Lexed, const string &Where, const string &FileName, const int &Line,
-          const sequence &FileSeq, const vector<string> LexedBackup)
-{
-    string sep = "";
-    for (int i = 0; i < 50; i++)
-    {
-        sep += '-';
-    }
-    sep += '\n';
-
-    ofstream file(Where);
-    if (!file.is_open())
-    {
-        throw runtime_error("Failed to open dump file '" + Where + "'; At this point, you should give up.");
-    }
-
-    auto curTime = time(NULL);
-
-    file << sep << "Dump file for " << FileName << " generated by Acorn at " << ctime(&curTime);
-
-    file << sep << "// Pre-everything lexed:\n";
-
-    for (auto s : LexedBackup)
-    {
-        if (s.size() >= 2 && s.substr(0, 2) == "//")
-        {
-            file << "\n" << s << "\t|\t";
-        }
-        else
-        {
-            file << s << ' ';
-        }
-    }
-    file << '\n';
-
-    file << sep << "// Post-substitution lexed:\n";
-
-    for (auto s : Lexed)
-    {
-        if (s.size() >= 2 && s.substr(0, 2) == "//")
-        {
-            file << "\n" << s << "\t|\t";
-        }
-        else
-        {
-            file << s << ' ';
-        }
-    }
-    file << '\n';
-
-    file << sep << "// Symbols and their types:\n";
-
-    for (auto p : table)
-    {
-        file << p.first << ":\n";
-
-        for (auto item : p.second)
-        {
-            file << '\t' << toStr(&item.type) << '\n';
-        }
-    }
-
-    file << sep << "// Structs:\n";
-
-    for (auto s : structData)
-    {
-        file << s.first << "\n";
-
-        for (auto m : s.second.members)
-        {
-            file << '\t' << m.first << '\t' << toStr(&m.second) << '\n';
-        }
-    }
-
-    file << sep << "// Enums:\n";
-
-    for (auto e : enumData)
-    {
-        file << e.first << "\n";
-
-        for (auto m : e.second.options)
-        {
-            file << '\t' << m.first << '\t' << toStr(&m.second) << '\n';
-        }
-    }
-
-    file << sep << "// Generics:\n";
-
-    printGenericDumpInfo(file);
-
-    file << sep << "// Full anatomy:\n";
-
-    debugPrint(FileSeq, 0, file);
-
-    file << sep << "// All rules:\n";
-
-    int i = 0;
-    for (auto s : dialectRules)
-    {
-        file << i << '\t' << s << '\n' << '\t';
-
-        for (auto t : rules[s].inputPattern)
-        {
-            file << t << ' ';
-        }
-
-        file << "\n\t";
-
-        for (auto t : rules[s].outputPattern)
-        {
-            file << t << ' ';
-        }
-
-        file << "\n";
-        i++;
-    }
-    for (auto s : activeRules)
-    {
-        file << i << '\t' << s << '\n' << '\t';
-
-        for (auto t : rules[s].inputPattern)
-        {
-            file << t << ' ';
-        }
-
-        file << "\n\t";
-
-        for (auto t : rules[s].outputPattern)
-        {
-            file << t << ' ';
-        }
-
-        file << "\n";
-        i++;
-    }
-
-    file << sep << "// All bundles:\n";
-
-    for (auto p : bundles)
-    {
-        file << p.first << "\n\t";
-
-        for (auto r : p.second)
-        {
-            file << r << ' ';
-        }
-
-        file << '\n';
-    }
-
-    file << sep << "// Active rules:\n";
-
-    for (auto s : activeRules)
-    {
-        file << s << '\n';
-    }
-
-    file.close();
-    return;
 }

@@ -532,9 +532,17 @@ vector<string> lex(const string &What)
                 out.push_back(cur);
             }
 
-            cur = c;
-            out.push_back(cur);
-            cur = "";
+            if (c == ']' && !out.empty() && out.back() == "[")
+            {
+                out.back().push_back(']');
+            }
+            else
+            {
+                cur = c;
+                out.push_back(cur);
+                cur = "";
+            }
+
             continue;
         }
 

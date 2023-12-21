@@ -9,7 +9,7 @@ let collatz(n: u128) -> u128
     let out: u128;
     out = n;
 
-    if (even(n))
+    if n % to_u128(2) == to_u128(0)
     {
         out /= to_u128(2);
     }
@@ -27,7 +27,7 @@ let print_collatz_sequence(n: u128) -> void
     print(n);
     print(" ");
 
-    if (n > to_u128(1))
+    if n > to_u128(1)
     {
         let next: u128;
         next = collatz(n);

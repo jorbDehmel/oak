@@ -34,7 +34,7 @@ let Copy(self: ^string, size: u128) -> void
 
     self.size = size;
     alloc!(self.data, (self.size + to_u128(1)));
-    Copy(Get(@self.data, self.size), 0);
+    Copy(ptrarr!(@self.data, self.size), 0);
 }
 
 let Copy(self: ^string, from: str) -> void
@@ -61,13 +61,17 @@ let Copy(self: ^string, from: str) -> void
     // Copy data (including null termination)
     while (size != to_u128(0))
     {
-        Copy(Get(@self.data, size), Get(@from, size));
+        Copy(ptrarr!(@self.data, size), Get(from, size));
 
         size -= to_u128(1);
     }
-    Copy(Get(@self.data, to_u128(0)), Get(@from, to_u128(0)));
 
-    Copy(Get(@self.data, self.size), 0);
+    Copy(
+        ptrarr!(@self.data, to_u128(0)),
+        Get(from, to_u128(0))
+    );
+
+    Copy(ptrarr!(@self.data, self.size), 0);
 }
 
 let Del(self: ^string) -> void
@@ -86,7 +90,7 @@ let clear(self: ^string) -> void
 
     while (i < self.size)
     {
-        Copy(Get(@self.data, i), to_i8(0));
+        Copy(ptrarr!(@self.data, i), to_i8(0));
 
         i += to_u128(1);
     }
@@ -108,7 +112,7 @@ let Eq(self: string, other: string) -> bool
 
         while (cur < self.size)
         {
-            if (^Get(@self.data, cur) != ^Get(@self.data, cur))
+            if (^ptrarr!(@self.data, cur) != ^ptrarr!(@self.data, cur))
             {
                 out = false;
                 cur = self.size;
@@ -138,7 +142,7 @@ let Neq(self: string, other: string) -> bool
 
 let Get(self: ^string, index: u128) -> ^i8
 {
-    Get(@self.data, index)
+    ptrarr!(@self.data, index)
 }
 
 let Copy(self: ^string, from: string) -> void
@@ -162,13 +166,16 @@ let Copy(self: ^string, from: string) -> void
         i = self.size;
         while (i != to_u128(0))
         {
-            Copy(Get(@self.data, i), ^Get(@from, i));
+            Copy(ptrarr!(@self.data, i), ^Get(@from, i));
 
             i -= to_u128(1);
         }
-        Copy(Get(@self.data, to_u128(0)), ^Get(@from, to_u128(0)));
+        Copy(
+            ptrarr!(@self.data, to_u128(0)),
+            ^Get(@from, to_u128(0))
+        );
 
-        Copy(Get(@self.data, self.size), 0);
+        Copy(ptrarr!(@self.data, self.size), 0);
     }
 }
 
@@ -187,7 +194,7 @@ let Add(a: string, b: string) -> string
 
     while (i < a.size)
     {
-        Copy(Get(@out.data, i), ^Get(@a.data, i));
+        Copy(ptrarr!(@out.data, i), ^ptrarr!(@a.data, i));
 
         i += to_u128(1);
     }
@@ -197,7 +204,7 @@ let Add(a: string, b: string) -> string
 
     while (b_pos < b.size)
     {
-        Copy(Get(@out.data, i), ^Get(@b.data, b_pos));
+        Copy(ptrarr!(@out.data, i), ^ptrarr!(@b.data, b_pos));
 
         b_pos += to_u128(1);
         i += to_u128(1);

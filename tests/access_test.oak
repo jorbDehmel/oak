@@ -22,7 +22,7 @@ let Del(self: ^wrapper) -> void
 
 let Get(self: ^wrapper, index: u128) -> ^i32
 {
-    Get(@self.data, index)
+    ptrarr!(@self.data, index)
 }
 
 let Get(self: ^wrapper, index: i32) -> ^i32

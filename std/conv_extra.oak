@@ -54,7 +54,7 @@ let Copy(self: ^u128, other: i32) -> void
     ^self = to_u128(other);
 }
 
-// Common incrementations
+// Common incrementation
 
 let AddEq(self: ^i8, other: i32) -> void
 {
