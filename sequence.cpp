@@ -343,7 +343,6 @@ sequence __createSequence(list<string> &From)
             Type tempType = temp.type;
             Type numType = numSeq.type;
 
-            sm_assert(tempType.size() > 0 && tempType[0].info == pointer, "'alloc!' returns a pointer.");
             sm_assert(tempType.size() > 0, "'alloc!' received a malformed first argument.");
 
             temp.type.pop_front();
@@ -353,6 +352,9 @@ sequence __createSequence(list<string> &From)
                 num = "1";
                 numType = typeNode{atomic, "u128"};
             }
+
+            sm_assert(tempType.size() > 0 && (tempType[0].info == arr || (tempType[0].info == pointer && num == "1")),
+                      "'alloc!' returns an unsized array, or pointer if no number was provided.");
 
             sm_assert(numType[0].info == atomic && numType[0].name == "u128",
                       "'alloc!' takes 'u128', not '" + toStr(&numType) + "'.");
@@ -394,7 +396,8 @@ sequence __createSequence(list<string> &From)
             string name = toC(temp);
 
             Type tempType = temp.type;
-            sm_assert(tempType[0].info == pointer, "'free!' takes a pointer.");
+            sm_assert(tempType[0].info == arr || tempType[0].info == pointer,
+                      "'free!' takes an unsized array or pointer.");
             temp.type.pop_front();
 
             out = getFreeSequence(name, false);
@@ -439,7 +442,8 @@ sequence __createSequence(list<string> &From)
             sequence rhsSeq = __createSequence(contents);
             string rhs = toC(rhsSeq);
 
-            sm_assert(lhsSeq.type[0].info == pointer, "First argument of ptrcpy! must be pointer.");
+            sm_assert(lhsSeq.type[0].info == pointer || lhsSeq.type[0].info == arr,
+                      "First argument of ptrcpy! must be pointer or unsized array.");
             sm_assert(rhsSeq.type[0].info == pointer || rhsSeq.raw == "0",
                       "Second argument of ptrcpy! must be a pointer or 0.");
 
@@ -489,7 +493,8 @@ sequence __createSequence(list<string> &From)
             sequence rhsSeq = __createSequence(contents);
             string rhs = toC(rhsSeq);
 
-            sm_assert(lhsSeq.type[0].info == pointer, "First argument of ptrarr! must be pointer.");
+            sm_assert(lhsSeq.type[0].info == pointer || lhsSeq.type[0].info == arr || lhsSeq.type[0].info == sarr,
+                      "First argument of ptrarr! must be pointer or arr.");
             sm_assert(rhsSeq.type.size() == 1 && rhsSeq.type[0].info == atomic,
                       "second argument of ptrarr! must be an atomic.");
 
@@ -985,6 +990,22 @@ sequence __createSequence(list<string> &From)
                     toAppend.info = atom;
                     toAppend.type = nullType;
                     toAppend.raw = name + " = 0";
+
+                    out.items.push_back(toAppend);
+                }
+                else
+                {
+                    // Initialize sized array
+                    // Set every byte inside to zero
+
+                    // Syntactically necessary
+                    out.items.push_back(sequence{nullType, vector<sequence>(), atom, ";"});
+
+                    sequence toAppend;
+                    toAppend.info = atom;
+                    toAppend.type = nullType;
+
+                    toAppend.raw = "for (i32 _i = 0; _i < sizeof(" + name + "); _i++) ((u8 *)(&" + name + "))[_i] = 0;";
 
                     out.items.push_back(toAppend);
                 }
@@ -1626,21 +1647,28 @@ Type resolveFunctionInternal(const vector<string> &What, int &start, vector<stri
         // Analyze type of collected
         Type type = resolveFunction(toAnalyze, pos, junk);
 
+        int multiplier = 1;
+        while (type[0].info == sarr)
+        {
+            multiplier *= stoi(type[0].name);
+            type.pop_front();
+        }
+
         // Append size
         if (type[0].info == atomic)
         {
             if (atomics.count(type[0].name) != 0)
             {
-                c.push_back(to_string(atomics[type[0].name]));
+                c.push_back(to_string(atomics[type[0].name] * multiplier));
             }
             else
             {
-                c.push_back(to_string(structData[type[0].name].size));
+                c.push_back(to_string(structData[type[0].name].size * multiplier));
             }
         }
         else
         {
-            c.push_back(to_string(sizeof(void *)));
+            c.push_back(to_string(sizeof(void *) * multiplier));
         }
 
         return Type(atomic, "u128");

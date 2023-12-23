@@ -67,6 +67,7 @@ int main(const int argc, const char *argv[])
 
     bool execute = false;
     bool test = false;
+    bool testFail = false;
 
     try
     {
@@ -151,7 +152,21 @@ int main(const int argc, const char *argv[])
                     }
                     else if (cur == "--test")
                     {
-                        test = !test;
+                        if (!test)
+                        {
+                            test = true;
+                        }
+                        else
+                        {
+                            if (!testFail)
+                            {
+                                testFail = true;
+                            }
+                            else
+                            {
+                                testFail = test = false;
+                            }
+                        }
                     }
                     else if (cur == "--execute")
                     {
@@ -415,7 +430,21 @@ int main(const int argc, const char *argv[])
                             noSave = compile = doLink = false;
                             break;
                         case 'T':
-                            test = !test;
+                            if (!test)
+                            {
+                                test = true;
+                            }
+                            else
+                            {
+                                if (!testFail)
+                                {
+                                    testFail = true;
+                                }
+                                else
+                                {
+                                    testFail = test = false;
+                                }
+                            }
                             break;
                         case 'u':
                             alwaysDump = !alwaysDump;
@@ -855,6 +884,11 @@ int main(const int argc, const char *argv[])
             {
                 failed.push_back(test);
                 bad++;
+
+                if (testFail)
+                {
+                    break;
+                }
             }
 
             i++;

@@ -4,6 +4,9 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.3.0           | 12/23/23 | Added arrays. Code written before
+                |          | this will likely not work.
+                |          |
 0.2.15          | 12/22/23 | Fixed return statements, added
                 |          | return keyword. Prepped for the
                 |          | addition of array types.

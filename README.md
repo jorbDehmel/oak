@@ -356,6 +356,100 @@ let main() -> i32
 
 ```
 
+## Arrays
+
+`Oak` has a unique syntax for arrays that may be unfamiliar to
+users of `C`, `C++` and `Rust`. In `Oak`, arrays prefix the type
+they refer to. For instance, an array of integers is `[]i32`
+instead of `i32[]`. `Oak` has two types of arrays: Sized and
+unsized. Unsized arrays are syntactically equivalent to pointers
+internally, and can point to an array of any size. These are the
+only kind of array which can be passed as parameters, and the
+kind that are assigned by `alloc!`. They are denoted with the
+`[]` operator. Sized arrays are **not** pointers- They are the
+actual arrays. These are denoted with the `[n]` operator, where
+`n` is a compile-time constant integer. This means that an
+integer variable **cannot** be used as the size of an array.
+
+`Oak` types are **always** read left-to-right. Arrays are not
+an exception (unlike in other languages). This makes it slightly
+easier to decode exactly what an `Oak` array is of.
+
+### Array Examples
+
+`C`:
+```c
+i32 a[12];
+i32 *b;
+i32 *c[10];
+i32 d[10][20];
+```
+
+`Oak`:
+```rust
+let a: [12]i32;
+let b: []i32;
+let c: [10]^i32;
+let d: [20][10]i32;
+```
+
+In `Oak`, a pointer to a sized array is an illegal type.
+However, a pointer to an unsized array is fine.
+
+```rust
+// Illegal!
+let a: ^[5]i32;
+
+// Fine
+let b: ^[]i32;
+```
+
+You can also have arrays of function pointers as shown below.
+
+```rust
+// Array of function pointers
+let l: []()->void;
+```
+
+Here are some more miscellaneous examples.
+
+```rust
+// Array of i32
+let i: []i32;
+
+// Array of i32 pointers
+let j: []^i32;
+
+// Pointer to array of i32 pointers
+let k: ^[]^i32;
+
+// Sized array of i32
+let l: [5]i32;
+
+// Sized array of i32 pointers
+let m: [10]^i32;
+
+// Pointer to a pointer to an array of pointers to arrays of
+// pointers to pointers to arrays of arrays of pointers to i32s
+let absurd: ^^[]^[]^^[][]^i32;
+
+// Array of 10 of the above
+let absurd_arr: [10]type!(absurd);
+```
+
+### Array Initialization
+
+`Oak` cannot have uninitialized variables. Thus, arrays (sized
+and unsized) have default values.
+
+Unsized arrays, since they are just pointers to contiguous
+arrays in memory somewhere, are initialized to the null pointer
+`0`. This is how all pointers in `Oak` are initialized.
+
+Sized arrays are **not** pointers- They are the actual
+contiguous memory positions which unsized arrays point to.
+**Their memory is initialized to all zeros.**
+
 ## Formatting
 
 This section lists guidelines / rules for writing `Oak` code.
@@ -685,22 +779,22 @@ let main() -> i32
 }
 ```
 
+If a number is provided as a second argument to `alloc!`, it
+returns an **unsized array** of the newly allocated values.
+Otherwise, it returns a **pointer** to the single newly
+allocated space.
+
 ## Interchangeability With C
 
-The Acorn compiler will have some automated `C`-to-`Oak`
-translation capabilities. For instance, using a `include!` macro
-statement on a `C`-based file will translate the function
-signatures within into `Oak` notation and add them to the symbol
-table. This allows the merging of the two languages to take
-place later, with object files. Since `Oak` is translated into
-`C`, this is exceedingly simple. You can also define only the
-function signatures in `Oak` and define them in `C`, as is
-done in the `Oak` `std` (standard) package. This is called
-**interfacing**. These pairs of dual-language files are
-**interfacial files**, and any package primarily porting one
-language's features to `Oak` is an **interfacial package**.
+You can declare only the function signatures in `Oak` and define
+them in `C`, as is done in the `Oak` `std` (standard) package.
+This is called **interfacing**. These pairs of dual-language
+files are **interfacial files**, and any package primarily
+porting one language's features to `Oak` is an
+**interfacial package**.
 
-**Note: You will have to follow the `Oak` mangling process.**
+**Note:** You will have to follow the `Oak` mangling process, as
+detailed below.
 
 ## Conforming to the Oak Mangler
 
@@ -829,16 +923,17 @@ double              | f64
 char *              | str
 bool                | bool
 T&                  | ^t
-T[]                 | ^t
+T[]                 | []t
+T[123]              | [123]t
 T*                  | ^t
 const T             | t
 template\<class T\> | \<t\>
 
 The last few entries show two things; That `Oak` does not have
-references or arrays (both are replaced with pointers), and that
-`Oak` has smart templating. Additionally note that there are no
-multi-word types (IE unsigned long long int) in `Oak`, and that
-pointers are moved to before the type they point to.
+references (they are replaced with pointers), and that `Oak` has
+smart templating. Additionally note that there are no multi-word
+types (IE unsigned long long int) in `Oak`, and that pointers
+and arrays are moved to before the type they point to.
 
 For instance,
 
@@ -850,7 +945,7 @@ unsigned long long int **doThing(T &a, T b[]);
 Becomes
 
 ```rust
-let do_thing<t, f>(a: ^t, b: ^f) -> ^^u128;
+let do_thing<t, f>(a: ^t, b: []f) -> ^^u128;
 ```
 
 ## Advanced Literals
@@ -2298,9 +2393,6 @@ their own section in this document:
     of them.
 - `Oak` was previously (0.1.*) translated to `C++`. As of 0.2.0,
     it is instead translated to `C`.
-- `Oak` does not have stack-stored arrays; Only heap-stored
-    ones. In fact, all heap-stored data in `Oak` is technically
-    array-based.
 - As of version `0.0.10`, the `New` and `Del` operator aliases
     are single-argument only. Just use `Copy` for anything else.
 - You can call a multi-argument `=` operator (`Copy`) like this:

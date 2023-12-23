@@ -50,7 +50,7 @@ reinstall:
 	$(MAKE) -C . uninstall clean install
 
 test:
-	$(TEST) -eT
+	$(TEST) -eTT
 
 README.pdf:	README.md
 	pandoc README.md -o README.pdf

@@ -107,7 +107,7 @@ void reconstruct(const string &Name, stringstream &header, stringstream &body)
 
             for (auto m : structData[name].order)
             {
-                header << toStrC(&structData[name].members[m]) << ' ' << m << ";\n";
+                header << toStrC(&structData[name].members[m], m) << ";\n";
             }
 
             header << "};\n";

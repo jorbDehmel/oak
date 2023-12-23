@@ -7,6 +7,8 @@ GPLv3 held by author
 */
 
 #include "symbol_table.hpp"
+#include "sequence_resources.hpp"
+#include <stdexcept>
 
 multiSymbolTable table;
 
@@ -128,6 +130,21 @@ Type toType(const vector<string> &WhatIn)
         }
         else if (cur == "[")
         {
+            if (i + 1 >= What.size())
+            {
+                throw sequencing_error("'[' must be followed by a number or ']'");
+            }
+
+            try
+            {
+                long long result = stoi(What[i + 1]);
+                sm_assert(result > 0, "");
+            }
+            catch (...)
+            {
+                throw sequencing_error("Array size must be a compile-time constant positive integer");
+            }
+
             out.append(Type(sarr, What[i + 1]));
             i++;
         }

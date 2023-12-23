@@ -10,7 +10,7 @@ include!("std/printf.oak");
 let arr<t>: struct
 {
     size: u128,
-    data: ^t,
+    data: []t,
 }
 needs
 {
@@ -51,7 +51,7 @@ let Get<t>(self: ^arr<t>, index: u128) -> opt<^t>
 
     if index < self.size
     {
-        out.wrap_some(ptrarr!(@self.data, index));
+        out.wrap_some(ptrarr!(self.data, index));
     }
     else
     {

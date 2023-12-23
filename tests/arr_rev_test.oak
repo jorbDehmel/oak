@@ -5,6 +5,8 @@ Jordan Dehmel, 2023
 jdehmel@outlook.com
 */
 
+package!("std");
+
 let main() -> i32
 {
     // Note: "[", "]", and "[]" are all considered distinct
@@ -20,7 +22,7 @@ let main() -> i32
     let k: ^[]^i32;
 
     // Array of function pointers
-    let l: [] () -> void;
+    let l: []()->void;
 
     // Sized array of i32
     let m: [5]i32;
@@ -28,8 +30,26 @@ let main() -> i32
     // Sized array of i32 pointers
     let n: [10]^i32;
 
+    print(size!(n));
+    print("\n");
+
+    print(size!(m));
+    print("\n");
+
     // Illegal:
     // let o: ^[10]i32;
+
+    // Illegal:
+    // let p: i32;
+    // let q: [p]i32;
+
+    // Pointer to a pointer to an array of pointers to arrays of
+    // pointers to pointers to arrays of arrays of pointers to
+    // i32s
+    let absurd: ^^[]^[]^^[][]^i32;
+
+    // Array of 10 of the above
+    let absurd_arr: [10]type!(absurd);
 
     0
 }

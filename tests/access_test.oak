@@ -7,7 +7,7 @@ use_rule!("std");
 
 let wrapper: struct
 {
-    data: ^i32,
+    data: []i32,
 }
 
 let New(self: ^wrapper) -> void

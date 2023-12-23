@@ -16,10 +16,11 @@ let Fn() -> void
     let a: ^i32;
     let b: ^i32;
 
-    alloc!(a, to_u128(16));
+    alloc!(a);
     
     ptrcpy!(b, a);
 
+    // Super unsafe call
     b = ptrarr!(a, to_u128(2));
 }
 

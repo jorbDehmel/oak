@@ -6,7 +6,7 @@ use_rule!("std");
 
 let test: struct
 {
-    data: ^i32,
+    data: []i32,
 }
 
 let New(self: ^test) -> void
