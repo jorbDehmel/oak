@@ -3,10 +3,13 @@ The `result` enum. Concept taken from Rust.
 Jordan Dehmel, 2023
 */
 
+include!("std/unit.oak");
+
 let result<g, b>: enum
 {
     ok: g,
     err: b,
+    none: unit,
 }
 needs
 {
@@ -16,6 +19,7 @@ needs
 
 let New<g, b>(self: ^result<g, b>) -> void
 {
+    wrap_none(self);
 }
 
 let Copy<g, b>(self: ^result<g, b>, other: result<g, b>) -> void
@@ -30,6 +34,11 @@ let Copy<g, b>(self: ^result<g, b>, other: result<g, b>) -> void
         case err(data)
         {
             wrap_err(self, ^data);
+        }
+
+        case none()
+        {
+            wrap_none(self);
         }
     }
 }

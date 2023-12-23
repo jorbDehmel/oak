@@ -506,7 +506,7 @@ sequence __createSequence(list<string> &From)
 
             return out;
         }
-    }
+    } // Macros
 
     // Misc key-characters
     else if (From.front() == ";")
@@ -521,7 +521,7 @@ sequence __createSequence(list<string> &From)
 
     // Keywords below
 
-    // Enums- VERY C++ dependant!
+    // Enums- VERY C dependant!
     else if (From.front() == "match")
     {
         // Takes an enum code line and a code scope / code line
@@ -668,6 +668,15 @@ sequence __createSequence(list<string> &From)
         // This is for the code chunk
         out.items.push_back(__createSequence(From));
 
+        if (out.items.back().info == atom)
+        {
+            out.items.back().raw.push_back(';');
+        }
+        else if (out.items.back().info == code_line)
+        {
+            out.items.back().items.push_back(sequence{nullType, vector<sequence>(), atom, ";"});
+        }
+
         return out;
     }
     else if (From.front() == "else")
@@ -676,6 +685,20 @@ sequence __createSequence(list<string> &From)
         out.info = keyword;
         out.raw = From.front();
         out.type = nullType;
+
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        From.pop_front();
+
+        out.items.push_back(__createSequence(From));
+
+        return out;
+    }
+    else if (From.front() == "return")
+    {
+        // Takes a code scope / code line
+        out.info = code_line;
+        out.type = nullType;
+        out.items.push_back(sequence{nullType, vector<sequence>(), atom, "return"});
 
         sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
         From.pop_front();
@@ -938,8 +961,8 @@ sequence __createSequence(list<string> &From)
                 table[name].push_back(
                     __multiTableSymbol{sequence{type, vector<sequence>(), atom, ""}, type, false, curFile});
 
-                // Call constructor (pointers, atomics and enums do not get constructors)
-                if (type[0].info != pointer && enumData.count(type[0].name) == 0 && atomics.count(type[0].name) == 0)
+                // Call constructor (pointers do not get constructors)
+                if (type[0].info != pointer && type[0].info != arr && type[0].info != sarr)
                 {
                     // Syntactically necessary
                     out.items.push_back(sequence{nullType, vector<sequence>(), atom, ";"});
@@ -953,7 +976,7 @@ sequence __createSequence(list<string> &From)
 
                     out.items.push_back(toAppend);
                 }
-                else if (type[0].info == pointer)
+                else if (type[0].info != sarr)
                 {
                     // Syntactically necessary
                     out.items.push_back(sequence{nullType, vector<sequence>(), atom, ";"});
@@ -1210,7 +1233,8 @@ sequence __createSequence(list<string> &From)
         }
 
         return out;
-    }
+    } // let
+
     else if (From.front() == "{")
     {
         sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
@@ -1301,7 +1325,7 @@ sequence __createSequence(list<string> &From)
         }
 
         return out;
-    }
+    } // scope
 
     // Non-special case; code line.
     // Function calls and template instantiation may occur within.
@@ -1773,7 +1797,7 @@ Type resolveFunctionInternal(const vector<string> &What, int &start, vector<stri
         // Do stages of candidacy
         validCandidates = getStageOneCandidates(candArgs, argTypes);
 
-        if (validCandidates.size() != 1)
+        if (validCandidates.size() == 0)
         {
             validCandidates = getStageThreeCandidates(candArgs, argTypes);
 
@@ -1986,7 +2010,13 @@ Type resolveFunctionInternal(const vector<string> &What, int &start, vector<stri
 
 Type resolveFunction(const vector<string> &What, int &start, string &c)
 {
-    vector<string> cVec = {c};
+    vector<string> cVec;
+
+    if (c != "")
+    {
+        cVec.push_back(c);
+    }
+
     Type out = resolveFunctionInternal(What, start, cVec);
 
     int size = 0;
@@ -1999,6 +2029,11 @@ Type resolveFunction(const vector<string> &What, int &start, string &c)
 
     for (const auto &item : cVec)
     {
+        if (item.size() == 0)
+        {
+            continue;
+        }
+
         c += item;
     }
 

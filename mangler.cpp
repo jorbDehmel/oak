@@ -59,6 +59,13 @@ string mangleType(Type &type)
     {
         switch (type[i].info)
         {
+        case sarr:
+            outputParts.push_back("SARR");
+            outputParts.push_back(type[i].name);
+            break;
+        case arr:
+            outputParts.push_back("ARR");
+            break;
         case pointer:
             outputParts.push_back("PTR");
             break;
@@ -72,7 +79,6 @@ string mangleType(Type &type)
             outputParts.push_back("MAPS");
             break;
         case var_name:
-            // outputParts.push_back("TYPE");
             break;
         default:
             outputParts.push_back(type[i].name);
@@ -120,6 +126,19 @@ string mangle(const vector<string> &what)
         if (s == "^")
         {
             outputParts.push_back("PTR");
+        }
+        else if (s == "[]")
+        {
+            outputParts.push_back("ARR");
+        }
+        else if (s == "[")
+        {
+            // Sized ARR- takes one arg after
+            outputParts.push_back("SARR");
+        }
+        else if (s == "]")
+        {
+            ;
         }
         else if (s == ",")
         {

@@ -26,7 +26,8 @@ enum TypeInfo
     function, // Function start (mostly fluff)
     maps,     // Syntactic fluff for functions
     var_name, // A variable name for functions
-    arr,      // An array. Equivalent to pointer. Experimental.
+    arr,      // Unsized array. Equivalent to pointer.
+    sarr,     // Sized array. like var_name, has size in `name`
 };
 
 struct typeNode

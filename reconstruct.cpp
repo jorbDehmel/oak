@@ -7,6 +7,8 @@ GPLv3 held by author
 */
 
 #include "reconstruct.hpp"
+#include "sequence_resources.hpp"
+#include <stdexcept>
 
 map<string, unsigned long long> atomics = {{"u8", 1},  {"i8", 1},  {"u16", 2},   {"i16", 2},   {"u32", 4},
                                            {"i32", 4}, {"u64", 8}, {"i64", 8},   {"u128", 16}, {"i128", 16},
@@ -113,7 +115,7 @@ void reconstruct(const string &Name, stringstream &header, stringstream &body)
     }
 
     // Step A4: Insert global definitions into header
-    // (Translate Oak syntax into C++ syntax)
+    // (Translate Oak syntax into C syntax)
     {
         header << "// Global function definitions\n";
 
@@ -121,33 +123,35 @@ void reconstruct(const string &Name, stringstream &header, stringstream &body)
         {
             string name = entry.first;
 
-            // Trim stuff for method definitions
-            if (name.find(".") != string::npos)
-            {
-                name = name.substr(name.find(".") + 1);
-            }
-
             for (__multiTableSymbol s : entry.second)
             {
-                if (s.type[0].info == function)
+                try
                 {
-                    string toAdd = toStrCFunction(&s.type, name);
-
-                    header << toAdd << ";\n";
-
-                    if (s.seq.items.size() != 0)
+                    if (s.type[0].info == function)
                     {
-                        string definition = toC(s.seq);
+                        string toAdd = toStrCFunction(&s.type, name);
 
-                        body << toAdd << "\n" << (definition == "" ? ";" : definition);
+                        header << toAdd << ";\n";
+
+                        if (s.seq.items.size() != 0)
+                        {
+                            string definition = toC(s.seq);
+
+                            body << toAdd << "\n" << (definition == "" ? ";" : definition);
+                        }
+                    }
+                    else
+                    {
+                        string toAdd = toStrC(&s.type);
+
+                        header << "extern " << toAdd << " " << name << ";\n";
+                        body << toAdd << " " << name << ";\n";
                     }
                 }
-                else
+                catch (runtime_error &e)
                 {
-                    string toAdd = toStrC(&s.type);
-
-                    header << "extern " << toAdd << " " << name << ";\n";
-                    body << toAdd << " " << name << ";\n";
+                    throw sequencing_error("During processing of symbol '" + name + "' w/ type '" + toStr(&s.type) +
+                                           "' from " + s.sourceFilePath + ": " + e.what());
                 }
             }
         }
@@ -416,6 +420,7 @@ string toStrC(Type *What, const string &Name, const unsigned int &pos)
     }
 
     string out = "";
+    string suffix = "";
 
     // Safety check
     if (What == nullptr || What->size() == 0 || pos >= What->size())
@@ -456,15 +461,23 @@ string toStrC(Type *What, const string &Name, const unsigned int &pos)
         out += ",";
         out += toStrC(What, "", pos + 1);
         break;
+    case arr:
     case pointer:
+        sm_assert(pos + 1 >= What->size() || (*What)[pos + 1].info != sarr,
+                  "Cannot point to a sized array [n]. Use a regular array [] instead.");
         out += toStrC(What, "", pos + 1);
         out += "*";
+        break;
+    case sarr:
+        // Sized array- goes after in C
+        out += toStrC(What, "", pos + 1);
+        suffix = "[" + (*What)[pos].name + "]" + suffix;
         break;
     case var_name:
         // Argument in function: Will be FOLLOWED by its type in Oak
         // hello: *map<string, int>;
         // map<string, int> *hello;
-        out += toStrC(What, "", pos + 1);
+        out += toStrC(What, Name, pos + 1);
         out += (*What)[pos].name;
         break;
 
@@ -480,6 +493,11 @@ string toStrC(Type *What, const string &Name, const unsigned int &pos)
     if (Name != "")
     {
         out += " " + Name;
+    }
+
+    if (suffix != "")
+    {
+        out += suffix;
     }
 
     if (toStrCTypeCache.size() > 1000)

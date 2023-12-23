@@ -33,7 +33,7 @@ GPLv3 held by author
 using namespace std;
 
 // Info
-#define VERSION "0.2.14"
+#define VERSION "0.2.15"
 #define LICENSE "GPLv3"
 #define INFO "jdehmel@outlook.com"
 

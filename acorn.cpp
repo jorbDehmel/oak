@@ -846,7 +846,7 @@ int main(const int argc, const char *argv[])
             totalMs += ms;
 
             cout << "[" << i << "/" << files.size() << "]\t[" << (result == 0 ? tags::green : tags::red) << result
-                 << tags::reset << "]\t" << ms << " ms\t" << test << "\n";
+                 << tags::reset << "]" << right << setw(8) << ms << " ms\t" << left << test << "\n";
             if (result == 0)
             {
                 good++;

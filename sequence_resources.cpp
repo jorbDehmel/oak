@@ -1,9 +1,10 @@
 #include "sequence_resources.hpp"
+#include "symbol_table.hpp"
+#include "type_builder.hpp"
 
 void toCInternal(const sequence &What, vector<string> &out)
 {
     string temp;
-    int scopeReturnCount;
 
     switch (What.info)
     {
@@ -23,7 +24,6 @@ void toCInternal(const sequence &What, vector<string> &out)
     case code_scope:
         out.push_back("{\n");
 
-        scopeReturnCount = 0;
         for (int i = 0; i < What.items.size(); i++)
         {
             if (What.items[i].info == keyword)
@@ -48,26 +48,22 @@ void toCInternal(const sequence &What, vector<string> &out)
             }
             else
             {
-                if (scopeReturnCount == 0)
-                {
-                    out.push_back("return ");
-                    toCInternal(What.items[i], out);
-                    out.push_back(";\n");
-                    scopeReturnCount++;
-                }
-                else
-                {
-                    throw sequencing_error("A function definition must have exactly one return point.");
-                }
+                // Janky return
+                out.push_back("return ");
+                toCInternal(What.items[i], out);
+                out.push_back(";\n");
             }
         }
 
-        out.push_back("}\n");
+        out.push_back("}");
 
         break;
 
     case atom:
-        out.push_back(What.raw);
+        if (What.raw.size() > 0)
+        {
+            out.push_back(What.raw);
+        }
         break;
 
     case keyword:
@@ -246,6 +242,8 @@ void toCInternal(const sequence &What, vector<string> &out)
 
         break;
     }
+
+    return;
 } // toCInternal
 
 // Turn a .oak sequence into a .cpp one

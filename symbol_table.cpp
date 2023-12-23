@@ -122,6 +122,19 @@ Type toType(const vector<string> &WhatIn)
         {
             out.append(maps);
         }
+        else if (cur == "[]")
+        {
+            out.append(arr);
+        }
+        else if (cur == "[")
+        {
+            out.append(Type(sarr, What[i + 1]));
+            i++;
+        }
+        else if (cur == "]")
+        {
+            ;
+        }
         else if (cur == ")" || cur == ":" || cur == ";")
         {
             ;
@@ -447,7 +460,8 @@ string restoreSymbolTable(multiSymbolTable &backup)
                            s.type[0].name == "u64" || s.type[0].name == "i64" || s.type[0].name == "u128" ||
                            s.type[0].name == "i128" || s.type[0].name == "f32" || s.type[0].name == "f64" ||
                            s.type[0].name == "f128" || s.type[0].name == "bool" || s.type[0].name == "str")) &&
-                        s.type[0].info != function && s.type[0].info != pointer && p.first != "")
+                        s.type[0].info != function && s.type[0].info != pointer && s.type[0].info != arr &&
+                        s.type[0].info != sarr && p.first != "")
                     {
                         // Del_FN_PTR_typename_MAPS_void
                         output += "Del_FN_PTR_" + s.type[0].name + "_MAPS_void(&" + p.first + ");\n";

@@ -654,7 +654,7 @@ i8 Rbs_FN_i8_JOIN_i8_MAPS_i8(i8 self, i8 other)
 {
     return self >> other;
 }
-void New_FN_PTR_ii8_MAPS_void(i8 *self)
+void New_FN_PTR_i8_MAPS_void(i8 *self)
 {
     (*self) = 0;
     return;

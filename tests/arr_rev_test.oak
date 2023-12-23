@@ -1,0 +1,35 @@
+/*
+Preliminary test of upcoming static array feature.
+
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+let main() -> i32
+{
+    // Note: "[", "]", and "[]" are all considered distinct
+    // tokens by the Oak lexer
+
+    // Array of i32
+    let i: []i32;
+
+    // Array of i32 pointers
+    let j: []^i32;
+
+    // Pointer to array of i32 pointers
+    let k: ^[]^i32;
+
+    // Array of function pointers
+    let l: [] () -> void;
+
+    // Sized array of i32
+    let m: [5]i32;
+
+    // Sized array of i32 pointers
+    let n: [10]^i32;
+
+    // Illegal:
+    // let o: ^[10]i32;
+
+    0
+}

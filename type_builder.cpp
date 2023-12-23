@@ -163,6 +163,12 @@ string toStr(const Type *const What, const unsigned int &pos)
 
     switch (What->internal[pos].info)
     {
+    case arr:
+        out += "[]";
+        break;
+    case sarr:
+        out += "[" + What->internal[pos].name + "]";
+        break;
     case pointer:
         out += "^";
         break;

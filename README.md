@@ -1,6 +1,6 @@
 
 # The Oak Programming Language
-## Version 0.2.14
+## Version 0.2.15
 
 ![](logo_trimmed.png)
 
@@ -124,8 +124,8 @@ let is_bigger_than_five(a: i32) -> bool
 ```
 
 Note that leaving off a semicolon is equivalent to `C++`'s
-`return` statement. `Oak` has no `return` keyword.
-**In `Oak`, a function should have exactly one return point.**
+`return` statement. Equivalently, you can use the `return`
+keyword.
 
 Pointers are `^` (IE a pointer to a bool is `^bool`). The "get
 address" operator is @.
@@ -186,7 +186,7 @@ let main(argc: i32, argv: ^str) -> i32
 {
     print("This program was started with the command: ");
 
-    print(argv.Get(0));
+    print(ptrarr!(argv, 0));
     print("\n");
 
     print("Hello, world!\n");
@@ -211,6 +211,63 @@ This program was started with the command: .oak_build/a.out
 Hello, world!
 <Process finished with exit code 0>
 ```
+
+## The `let` Keyword
+
+`let` is one of `Oak`'s few keywords. It represents the adding
+of something to the symbol table. This could be a variable, a
+function, a struct, or an enumeration. It can even be templated.
+`Oak`, unlike languages like `Rust` and `Python`, does not have
+separate keywords for these actions. The possible usecases of
+the `let` keyword are outlined below.
+
+```rust
+// Register `fn` as a function mapping nothing to nothing
+let fn() -> void
+{
+}
+
+// Register `var` as an instance of i32
+let var: i32;
+
+// Register `structure` as a struct
+let structure: struct
+{
+    ,
+}
+
+// Register `enumeration` as an enum
+let enumeration: enum
+{
+    ,
+}
+
+// Register `templated_fn` as a templated function
+let templated_fn<t>() -> void
+{
+}
+
+// Register `templated_structure` as a templated struct
+let templated_structure<t>: struct
+{
+    ,
+}
+
+// Register `templated_enumeration` as a templated enum
+let templated_enumeration<t>: enum
+{
+    ,
+}
+
+```
+
+**Note:** Variables represent instances of a given type.
+Instances, by nature, cannot be templated. Thus, there is no
+templated case for the variable declaration syntax of `let`. All
+other variants of `let` are considered abstract (they only tell
+the compiler how to add something), but variable declaration is
+considered concrete (it uses abstract information to create a
+non-abstract instance).
 
 ## Pointers
 
@@ -1934,6 +1991,8 @@ variables), every datatype in `Oak` has one and only one
 "default" constructor. The default constructors of all struct
 members are called upon instantiation. This default value is
 said to be the "canonical" or "unit" value of that datatype.
+
+As such, **`Oak` cannot have uninitialized variables.**
 
 ## Needs / Instantiation Blocks and Generic Data Structures
 
