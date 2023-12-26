@@ -79,7 +79,7 @@ void toCInternal(const sequence &What, vector<string> &out)
         break;
 
     case enum_keyword:
-        // These get special treatment because they are heavily C++-dependant.
+        // These get special treatment because they are heavily C-dependant.
         if (What.raw == "match")
         {
             // VERY different!
@@ -354,7 +354,11 @@ vector<pair<string, Type>> getArgs(Type &type)
             if (count == 0)
             {
                 // Final append
-                out.push_back(make_pair(curName, curType));
+                if (curType != nullType)
+                {
+                    out.push_back(make_pair(curName, curType));
+                }
+
                 break;
             }
 
@@ -397,7 +401,10 @@ vector<pair<string, Type>> getArgs(Type &type)
         }
         else if (count == 1 && type[cur].info == join)
         {
-            out.push_back(make_pair(curName, curType));
+            if (curType != nullType)
+            {
+                out.push_back(make_pair(curName, curType));
+            }
             curName = "";
             curType = nullType;
         }
@@ -1245,4 +1252,86 @@ void debugPrint(const sequence &What, int spaces, ostream &to)
     }
 
     return;
+}
+
+// Assumes self is NOT a pointer
+string getMemberNew(const string &selfName, const string &varName, const Type &varType)
+{
+    if (varType[0].info == atomic)
+    {
+        // Atomic
+
+        // Ensure function exists
+        bool isValid = false;
+        auto candidates = table["New"];
+        for (auto candidate : candidates)
+        {
+            if (candidate.type[0].info != function || candidate.type.size() < 4 || candidate.type[1].info != var_name ||
+                candidate.type[2].info != pointer || candidate.type[3].info != atomic ||
+                candidate.type[3].name != varType[0].name)
+            {
+                continue;
+            }
+
+            isValid = true;
+            break;
+        }
+
+        sm_assert(isValid, "Cannot call constructor on member variable '" + varName + "' of type '" + toStr(&varType) +
+                               "': No constructor exists.");
+
+        return "New_FN_PTR_" + mangleType(varType) + "_MAPS_void(&" + selfName + "." + varName + ")";
+    }
+    else if (varType[0].info == sarr)
+    {
+        // Sized array
+        return "for (i32 _i = 0; _i < " + varType[0].name + "; _i++) " +
+               getMemberNew(selfName, varName + "[_i]", Type(varType, 1)) + ";";
+    }
+    else
+    {
+        // Pointer or equivalent
+        return selfName + "." + varName + " = 0";
+    }
+}
+
+string getMemberDel(const string &selfName, const string &varName, const Type &varType)
+{
+    if (varType[0].info == atomic)
+    {
+        // Atomic
+
+        // Ensure function exists
+        bool isValid = false;
+        auto candidates = table["Del"];
+        for (auto candidate : candidates)
+        {
+            if (candidate.type[0].info != function || candidate.type.size() < 4 || candidate.type[1].info != var_name ||
+                candidate.type[2].info != pointer || candidate.type[3].info != atomic ||
+                candidate.type[3].name != varType[0].name)
+            {
+                continue;
+            }
+
+            isValid = true;
+            break;
+        }
+
+        sm_assert(isValid, "Cannot call destructor on member variable '" + varName + "' of type '" + toStr(&varType) +
+                               "': No denstructor exists.");
+
+        return "Del_FN_PTR_" + mangleType(varType) + "_MAPS_void(&" + selfName + "." + varName + ")";
+    }
+    else if (varType[0].info == sarr)
+    {
+        // Sized array
+        return "for (i32 _i = 0; _i < " + varType[0].name + "; _i++) " +
+               getMemberDel(selfName, varName + "[_i]", Type(varType, 1)) + ";";
+    }
+    else
+    {
+        // Pointer or equivalent
+        // This is where memory leaks come from
+        return selfName + "." + varName + " = 0";
+    }
 }

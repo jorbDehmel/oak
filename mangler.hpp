@@ -25,7 +25,7 @@ string mangleEnum(const string &name, const vector<vector<string>> &generics = v
 // Used for translation-time variable uniqueness in the face
 // of overloaded names. Not immediately useful, but necessary
 // for future lower-level (C or LLVM IR) translations.
-string mangleType(Type &type);
+string mangleType(const Type &type);
 string mangleSymb(const string &name, Type &type);
 string mangleSymb(const string &name, const string &typeStr);
 

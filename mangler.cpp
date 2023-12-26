@@ -51,7 +51,7 @@ string mangleEnum(const string &name, const vector<vector<string>> &generics)
     return mangleStruct(name, generics);
 }
 
-string mangleType(Type &type)
+string mangleType(const Type &type)
 {
     vector<string> outputParts;
 

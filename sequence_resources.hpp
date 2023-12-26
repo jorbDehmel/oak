@@ -81,6 +81,9 @@ void addEnum(const vector<string> &FromIn);
 void dump(const vector<string> &Lexed, const string &Where, const string &FileName, const int &Line,
           const sequence &FileSeq, const vector<string> LexedBackup);
 
+string getMemberNew(const string &selfName, const string &varName, const Type &varType);
+string getMemberDel(const string &selfName, const string &varName, const Type &varType);
+
 ////////////////////////////////////////////////////////////////
 
 // Internal function definition candidate matching functions.

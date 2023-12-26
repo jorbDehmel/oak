@@ -214,7 +214,7 @@ pair<string, string> save(const stringstream &header, const stringstream &body, 
 }
 
 // This is separate due to complexity
-string toStrCFunction(Type *What, const string &Name, const unsigned int &pos)
+string toStrCFunction(const Type *What, const string &Name, const unsigned int &pos)
 {
     parse_assert(What != nullptr && What->size() > 0 && (*What)[0].info == function);
 
@@ -312,7 +312,7 @@ string toStrCFunction(Type *What, const string &Name, const unsigned int &pos)
     return out;
 }
 
-string toStrCFunctionRef(Type *What, const string &Name, const unsigned int &pos)
+string toStrCFunctionRef(const Type *What, const string &Name, const unsigned int &pos)
 {
     // pointer -> function -> ARGS -> maps -> RETURN_TYPE
     // RETURN_TYPE (*Name)(ARGS);
@@ -410,7 +410,7 @@ string toStrCFunctionRef(Type *What, const string &Name, const unsigned int &pos
     return out;
 }
 
-string toStrC(Type *What, const string &Name, const unsigned int &pos)
+string toStrC(const Type *What, const string &Name, const unsigned int &pos)
 {
     static map<unsigned long long, string> toStrCTypeCache;
 

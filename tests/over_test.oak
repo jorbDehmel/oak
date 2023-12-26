@@ -3,6 +3,7 @@
 // jdehmel@outlook.com
 
 include!("std/io.oak");
+package!("std");
 
 let test: struct
 {

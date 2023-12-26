@@ -4,6 +4,9 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.3.1           | 12/26/23 | Bug fixes with member New and Del
+                |          | calls.
+                |          |
 0.3.0           | 12/23/23 | Added arrays. Code written before
                 |          | this will likely not work.
                 |          |

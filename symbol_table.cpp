@@ -360,30 +360,15 @@ void addStruct(const vector<string> &FromIn)
                 structData[name].members[varName] = toAdd;
                 structData[name].order.push_back(varName);
 
-                // Special pointer case
-                if (toAdd[0].info == pointer)
-                {
-                    sequence seq;
-                    seq.info = atom;
-                    seq.raw = "what->" + varName + " = 0";
-                    seq.type = nullType;
+                // Add semicolon
+                table["New"].back().seq.items.push_back(sequence{nullType, vector<sequence>(), atom, ";"});
 
-                    table["New"].back().seq.items.push_back(seq);
-                }
+                sequence toAppend;
+                toAppend.info = atom;
+                toAppend.type = nullType;
+                toAppend.raw = getMemberNew("(*what)", varName, toAdd);
 
-                // Avoid performing on atomics
-                else if (structData.count(varName) != 0)
-                {
-                    sequence seq;
-                    seq.info = atom;
-                    seq.type = nullType;
-
-                    seq.raw = "New(&what->" + varName + ");";
-                    table["New"].back().seq.items.push_back(seq);
-
-                    seq.raw = "Del(&what->" + varName + ");";
-                    table["Del"].back().seq.items.push_back(seq);
-                }
+                table["New"].back().seq.items.push_back(toAppend);
             }
         }
     }

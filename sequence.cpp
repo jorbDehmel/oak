@@ -7,6 +7,7 @@ GPLv3 held by author
 */
 
 #include "sequence.hpp"
+#include "sequence_resources.hpp"
 #include "symbol_table.hpp"
 #include "tags.hpp"
 
@@ -1057,9 +1058,16 @@ sequence __createSequence(list<string> &From)
                     }
                 }
 
+                Type returnType = getReturnType(type);
+
                 // Restrictions upon some types of methods
                 if (name == "New" || name == "Del")
                 {
+                    if (returnType != Type(atomic, "void"))
+                    {
+                        throw runtime_error("Illegal method definition! Method '" + name + "' must return void.");
+                    }
+
                     if (!isSingleArg)
                     {
                         throw runtime_error("Illegal method definition! Method '" + name +
@@ -1076,6 +1084,16 @@ sequence __createSequence(list<string> &From)
                     if (name == "main")
                     {
                         sm_assert(table[name].size() == 0, "Function 'main' cannot be overloaded.");
+                        sm_assert(returnType[0].info == atomic &&
+                                      (returnType[0].name == "i32" || returnType[0].name == "void"),
+                                  "Function 'main' must return i32.");
+
+                        if (argsWithType.size() != 0)
+                        {
+                            sm_assert(argsWithType.size() == 2, "'main' must have either 0 or 2 arguments.");
+                            sm_assert(argsWithType[0].second == Type(atomic, "i32"),
+                                      "First argument of 'main' must be i32.");
+                        }
                     }
 
                     destroyUnits(name, type, true);
@@ -1099,29 +1117,15 @@ sequence __createSequence(list<string> &From)
 
                         for (auto var : structData[structName].members)
                         {
-                            string varName = var.first;
+                            // Add semicolon
+                            table["New"].back().seq.items.push_back(sequence{nullType, vector<sequence>(), atom, ";"});
 
-                            // Special pointer case
-                            if (var.second[0].info == pointer)
-                            {
-                                sequence seq;
-                                seq.info = atom;
-                                seq.raw = argsWithType[0].first + "->" + varName + " = 0";
-                                seq.type = nullType;
+                            sequence toAppend;
+                            toAppend.info = atom;
+                            toAppend.type = nullType;
+                            toAppend.raw = getMemberNew("(*" + argsWithType[0].first + ")", var.first, var.second);
 
-                                table["New"].back().seq.items.push_back(seq);
-                            }
-
-                            // Avoid performing on atomics
-                            else if (structData.count(var.second[0].name) != 0)
-                            {
-                                sequence seq;
-                                seq.info = atom;
-                                seq.type = nullType;
-
-                                seq.raw = "New(&" + argsWithType[0].first + "->" + varName + ")";
-                                table["New"].back().seq.items.push_back(seq);
-                            }
+                            table["New"].back().seq.items.push_back(toAppend);
                         }
                     }
 
@@ -1146,30 +1150,15 @@ sequence __createSequence(list<string> &From)
 
                         for (auto var : structData[structName].members)
                         {
-                            string varName = var.first;
+                            // Add semicolon
+                            table["Del"].back().seq.items.push_back(sequence{nullType, vector<sequence>(), atom, ";"});
 
-                            // Special pointer case
-                            if (var.second[0].info == pointer)
-                            {
-                                sequence seq;
-                                seq.info = atom;
-                                seq.raw = argsWithType[0].first + "->" + varName + " = 0";
-                                seq.type = nullType;
+                            sequence toAppend;
+                            toAppend.info = atom;
+                            toAppend.type = nullType;
+                            toAppend.raw = getMemberDel("(*" + argsWithType[0].first + ")", var.first, var.second);
 
-                                table["Del"].back().seq.items.push_back(seq);
-                            }
-
-                            // Avoid performing on atomics
-                            else if (structData.count(var.second[0].name) != 0)
-                            {
-                                sequence seq;
-                                seq.info = atom;
-                                seq.type = nullType;
-
-                                seq.raw = "Del_FN_PTR_" + var.second[0].name + "_MAPS_void(&" + argsWithType[0].first +
-                                          "->" + varName + ")";
-                                table["Del"].back().seq.items.push_back(seq);
-                            }
+                            table["Del"].back().seq.items.push_back(toAppend);
                         }
                     }
                 }
@@ -1678,7 +1667,7 @@ Type resolveFunctionInternal(const vector<string> &What, int &start, vector<stri
     {
         // Otherwise unspecified macro
 
-        // Scrape entire size!(what) call to a vector
+        // Scrape entire call to a vector
         list<string> toAnalyze = {What[start], "("};
         int count = 0;
 
@@ -1790,161 +1779,178 @@ Type resolveFunctionInternal(const vector<string> &What, int &start, vector<stri
             argStrs.push_back(cur);
         }
 
-        // Search for candidates
-        sm_assert(table.count(name) != 0, "Function call '" + name + "' has no registered symbols.");
-        sm_assert(table[name].size() != 0, "Function call '" + name + "' has no registered symbols.");
-
-        vector<__multiTableSymbol> candidates = table[name];
-
-        // Construct candArgs
-        vector<vector<Type>> candArgs;
-        for (auto item : candidates)
+        // Special case: Array access
+        if (name == "Get" && (argTypes[0][0].info == sarr || argTypes[0][0].info == arr) && argStrs.size() == 2 &&
+            argTypes[1][0].info == atomic &&
+            (argTypes[1][0].name == "u8" || argTypes[1][0].name == "i8" || argTypes[1][0].name == "u16" ||
+             argTypes[1][0].name == "i16" || argTypes[1][0].name == "u32" || argTypes[1][0].name == "i32" ||
+             argTypes[1][0].name == "u64" || argTypes[1][0].name == "i64" || argTypes[1][0].name == "u128" ||
+             argTypes[1][0].name == "i128"))
         {
-            Type curType = item.type;
-            while (curType != nullType && curType[0].info == pointer)
-            {
-                curType.pop_front();
-            }
-
-            auto args = getArgs(item.type);
-            candArgs.push_back(vector<Type>());
-
-            for (auto arg : args)
-            {
-                if (arg.second == nullType)
-                {
-                    continue;
-                }
-
-                candArgs.back().push_back(arg.second);
-            }
-        }
-
-        vector<int> validCandidates;
-
-        // Do stages of candidacy
-        validCandidates = getStageOneCandidates(candArgs, argTypes);
-
-        if (validCandidates.size() == 0)
-        {
-            validCandidates = getStageThreeCandidates(candArgs, argTypes);
-
-            if (validCandidates.size() != 1)
-            {
-                validCandidates = getStageTwoCandidates(candArgs, argTypes);
-            }
-        }
-
-        // Remove any erased symbols
-        for (auto item = validCandidates.begin(); item != validCandidates.end(); item++)
-        {
-            if (candidates[*item].erased)
-            {
-                item = validCandidates.erase(item);
-            }
-        }
-
-        // Error checking
-        if (validCandidates.size() == 0)
-        {
-            // No viable candidates
-
-            cout << tags::red_bold << "Error: No viable candidates for function call '" << name << "'.\n"
-                 << tags::reset;
-
-            printCandidateErrors(candidates, argTypes, name);
-
-            throw sequencing_error("No viable candidates for function call '" + name + "'");
-        }
-        else if (validCandidates.size() > 1)
-        {
-            // Ambiguous candidates
-
-            cout << tags::red_bold << "Error: Cannot override function call '" << name << "' on return type alone.\n"
-                 << tags::reset;
-
-            printCandidateErrors(candidates, argTypes, name);
-
-            throw sequencing_error("Cannot override function call '" + name + "' on return type alone");
-        }
-
-        // Use candidate at front; This is highest-priority one
-        type = getReturnType(candidates[validCandidates[0]].type);
-
-        if (candidates[validCandidates[0]].type[0].info == pointer)
-        {
-            c.push_back(name);
-            c.push_back("(");
+            // Return type is pointer to the thing the array is of
+            type = argTypes[0];
+            type[0].info = pointer;
+            c.push_back("(" + argStrs[0] + "+" + argStrs[1] + ")");
         }
         else
         {
-            c.push_back(mangleSymb(name, mangleType(candidates[validCandidates[0]].type)));
-            c.push_back("(");
-        }
+            // Search for candidates
+            sm_assert(table.count(name) != 0, "Function call '" + name + "' has no registered symbols.");
+            sm_assert(table[name].size() != 0, "Function call '" + name + "' has no registered symbols.");
 
-        for (int j = 0; j < argStrs.size(); j++)
-        {
-            if (j != 0)
+            vector<__multiTableSymbol> candidates = table[name];
+
+            // Construct candArgs
+            vector<vector<Type>> candArgs;
+            for (auto item : candidates)
             {
-                c.push_back(", ");
-            }
-
-            // do referencing stuff here for each argument
-
-            int numDeref = 0;
-            // determine actual number here
-
-            auto candArgs = getArgs(candidates[validCandidates[0]].type);
-
-            // Type *candCursor = &candArgs[j].second;
-            // Type *argCursor = &argTypes[j];
-
-            int candCursor = 0, argCursor = 0;
-
-            while (argCursor < argTypes[j].size() && argTypes[j][argCursor].info == pointer)
-            {
-                argCursor++;
-                numDeref++;
-            }
-
-            while (candCursor < candArgs[j].second.size() && candArgs[j].second[candCursor].info == pointer)
-            {
-                candCursor++;
-                numDeref--;
-            }
-
-            if (numDeref > 0)
-            {
-                for (int k = 0; k < numDeref; k++)
+                Type curType = item.type;
+                while (curType != nullType && curType[0].info == pointer)
                 {
-                    c.push_back("*");
+                    curType.pop_front();
+                }
+
+                auto args = getArgs(item.type);
+                candArgs.push_back(vector<Type>());
+
+                for (auto arg : args)
+                {
+                    if (arg.second == nullType)
+                    {
+                        continue;
+                    }
+
+                    candArgs.back().push_back(arg.second);
                 }
             }
-            else if (numDeref == -1)
+
+            vector<int> validCandidates;
+
+            // Do stages of candidacy
+            validCandidates = getStageOneCandidates(candArgs, argTypes);
+
+            if (validCandidates.size() == 0)
             {
-                for (int k = 0; k < -numDeref; k++)
+                validCandidates = getStageThreeCandidates(candArgs, argTypes);
+
+                if (validCandidates.size() != 1)
                 {
-                    c.push_back("&");
+                    validCandidates = getStageTwoCandidates(candArgs, argTypes);
                 }
             }
-            else if (numDeref != 0)
-            {
-                cout << "With candidates:\n";
-                for (auto item : candidates)
-                {
-                    cout << left << name << setw(40) << toStr(&item.type) << "from " << item.sourceFilePath << '\n';
-                }
-                cout << '\n';
 
-                throw sequencing_error("Illegal multiple automatic referencing in function call '" + name +
-                                       "' (only auto-deref or single auto-ref is allowed).");
+            // Remove any erased symbols
+            for (auto item = validCandidates.begin(); item != validCandidates.end(); item++)
+            {
+                if (candidates[*item].erased)
+                {
+                    item = validCandidates.erase(item);
+                }
             }
 
-            c.push_back("(");
-            c.push_back(argStrs[j]);
+            // Error checking
+            if (validCandidates.size() == 0)
+            {
+                // No viable candidates
+
+                cout << tags::red_bold << "Error: No viable candidates for function call '" << name << "'.\n"
+                     << tags::reset;
+
+                printCandidateErrors(candidates, argTypes, name);
+
+                throw sequencing_error("No viable candidates for function call '" + name + "'");
+            }
+            else if (validCandidates.size() > 1)
+            {
+                // Ambiguous candidates
+
+                cout << tags::red_bold << "Error: Cannot override function call '" << name
+                     << "' on return type alone.\n"
+                     << tags::reset;
+
+                printCandidateErrors(candidates, argTypes, name);
+
+                throw sequencing_error("Cannot override function call '" + name + "' on return type alone");
+            }
+
+            // Use candidate at front; This is highest-priority one
+            type = getReturnType(candidates[validCandidates[0]].type);
+
+            if (candidates[validCandidates[0]].type[0].info == pointer)
+            {
+                c.push_back(name);
+                c.push_back("(");
+            }
+            else
+            {
+                c.push_back(mangleSymb(name, mangleType(candidates[validCandidates[0]].type)));
+                c.push_back("(");
+            }
+
+            for (int j = 0; j < argStrs.size(); j++)
+            {
+                if (j != 0)
+                {
+                    c.push_back(", ");
+                }
+
+                // do referencing stuff here for each argument
+
+                int numDeref = 0;
+                // determine actual number here
+
+                auto candArgs = getArgs(candidates[validCandidates[0]].type);
+
+                // Type *candCursor = &candArgs[j].second;
+                // Type *argCursor = &argTypes[j];
+
+                int candCursor = 0, argCursor = 0;
+
+                while (argCursor < argTypes[j].size() && argTypes[j][argCursor].info == pointer)
+                {
+                    argCursor++;
+                    numDeref++;
+                }
+
+                while (candCursor < candArgs[j].second.size() && candArgs[j].second[candCursor].info == pointer)
+                {
+                    candCursor++;
+                    numDeref--;
+                }
+
+                if (numDeref > 0)
+                {
+                    for (int k = 0; k < numDeref; k++)
+                    {
+                        c.push_back("*");
+                    }
+                }
+                else if (numDeref == -1)
+                {
+                    for (int k = 0; k < -numDeref; k++)
+                    {
+                        c.push_back("&");
+                    }
+                }
+                else if (numDeref != 0)
+                {
+                    cout << "With candidates:\n";
+                    for (auto item : candidates)
+                    {
+                        cout << left << name << setw(40) << toStr(&item.type) << "from " << item.sourceFilePath << '\n';
+                    }
+                    cout << '\n';
+
+                    throw sequencing_error("Illegal multiple automatic referencing in function call '" + name +
+                                           "' (only auto-deref or single auto-ref is allowed).");
+                }
+
+                c.push_back("(");
+                c.push_back(argStrs[j]);
+                c.push_back(")");
+            }
             c.push_back(")");
         }
-        c.push_back(")");
 
         start--;
     }

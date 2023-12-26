@@ -1,6 +1,6 @@
 #include "mem.hpp"
 
-extern string toStrC(Type *What, const string &Name = "", const unsigned int &pos = 0);
+extern string toStrC(const Type *What, const string &Name = "", const unsigned int &pos = 0);
 
 sequence getAllocSequence(Type &type, const string &name, const string &num)
 {
