@@ -72,6 +72,22 @@ To install, open a terminal in this folder and run
 the standard `Oak` package. To uninstall, call `acorn -A`. To
 update, call `acorn -a`.
 
+## Versions of `Oak`
+
+`Oak` versions follow the following format.
+
+`major release`.`minor release`.`patch`
+
+As of the time of this writing, `Oak` is still on major release
+`0`. During this phase of development, `Oak` is **not stable**.
+This means that code written in one minor release or patch is
+**not guaranteed to work in another**.
+
+Once `Oak` moves to major release `1`, code written in one patch
+version will be guaranteed to work in another. Code written in
+one minor release will most likely work in another. Code written
+in one major release will have no guarantees about any other.
+
 ## For More Help
 
 For examples on the concepts presented in this document, see the
@@ -80,6 +96,98 @@ therein are labeled `CONCEPT_test.oak`, where `CONCEPT` is the
 concept covered within. These files are both demos and unit
 tests for `Oak` and `acorn`. Consequently, you can compile all
 demos via `make test` or `acorn -T`.
+
+## Quirks of `Oak`
+
+This section outlines things which make `Oak` syntax unlike
+other common syntaxes. As mentioned above, this document
+requires a moderate understanding of `C`/`C++` syntax, and thus
+we will mostly focus on differences of this.
+
+### Array Order
+
+In `Oak`, types are read strictly left-to-right. This means that
+an array of integers is `[]i32`, not `i32 NAME[]` or `[i32]`.
+`Oak` arrays always come immediately before the thing they
+contain in `Oak` type syntax.
+
+### Modern Generics / Templates
+
+In `C++`, a template is verbosely defined as below.
+
+```c++
+template <class T>
+void foobar(T what)
+{
+    // ...
+}
+
+```
+
+In `Oak`, the template line `template <class T>` is replaced by
+simply `<t>` (generic names must be lowercase).
+
+```rust
+let foobar<t>(what: T) -> void
+{
+    // ... 
+}
+```
+
+### Explicit Template Instantiation calls
+
+Unlike `C++` and `Rust`, `Oak` does not have implied template
+instantiation calls. The template instantiator must be called
+explicitly. For instance, the `C++` code
+
+```c++
+// Create foobar<i32> and call it
+foobar<i32>(123);
+```
+
+would become the `Oak` code
+
+```rust
+// Ask the instantiator to create a function with this signature
+foobar<i32>(_: i32);
+
+// Call that function
+foobar(123);
+```
+
+### Classes and `public` / `private` / `protected`
+
+`Oak` does not have classes (only structs). Additionally, `Oak`
+does not have any form of member protection. This means that all
+struct member variables are always `public`.
+
+### Class Methods
+
+In `Oak`, class member functions (methods) can (and must) be
+defined outside of the class itself. This means that any coder
+can add a new method to a struct at any point. For instance, you
+could import the `string` library and add some new method to
+turn a given string blue when printed.
+
+`Oak` methods are shorthand in a way similar to `Python`.
+
+```rust
+let a: i32;
+
+// This call
+a.b();
+
+// Is shorthand for
+b(a);
+```
+
+### Mutability
+
+`Oak` does not have the `const` keyword. Instead, everything is
+`const` by default, and mutability is specified by passing the
+address of something. Thus, `^i32` in `Oak` is equivalent to
+`int` in `C`, and `Oak`'s `i32` is equivalent to `C`'s
+`const int`.
 
 ## Syntax Overview
 
@@ -650,14 +758,14 @@ run.
 
 ```rust
 let main() -> i32;
-let main(argc: i32, argv: ^str) -> i32;
-let main(argc: i32, argv: ^^i8) -> i32;
+let main(argc: i32, argv: []str) -> i32;
+let main(argc: i32, argv: [][]i8) -> i32;
 ```
 
 All macros will use this third form
-(`(argc: i32, argv: ^^i8) -> i32`). Note that these two
+(`(argc: i32, argv: [][]i8) -> i32`). Note that these two
 variables can be named anything. A common form is
-`(c: i32, v: ^^i8) -> i32`.
+`(c: i32, v: [][]i8) -> i32`.
 
 ## Object Oriented Programming
 
@@ -2282,13 +2390,14 @@ putting any number of `*.oak` files within it. After this
 structure has been imposed, `acorn -T` will compile the entire
 test suite and report on any failures it discovers. Similarly,
 `acorn -TE` will compile and execute each item in the test
-suite. A compilation is considered a success if and only if the
-`acorn` compile process returns no errors. An execution is
-considered a success if and only if its main function returns a
-$0$. Either of these cases occurring will be considered a
-failure and will count towards an internal failure counter. The
-results of running the test suite will be reported after the
-test's conclusion.
+suite. `acorn -TT` will test as usual, but stop going after the
+first failure. The same goes for `acorn -TTE`. A compilation is
+considered a success if and only if the `acorn` compile process
+returns no errors. An execution is considered a success if and
+only if its main function returns a `0`. Either failure case
+occurring will be considered a failure and will count towards an
+internal failure counter. The results of running the test suite
+will be reported after the test's conclusion.
 
 The `Oak` standard test suite is included in the installation
 `git` repo. Each item within this test suite must compile in
@@ -2639,10 +2748,17 @@ template has been identified, it will move on to part 3.
 
 ### Part 3 A- Needs Block
 
-A `needs` block is a block of code which can be attached to some
-forms of template. For instance, in a generic struct, the
-`needs` block tells the instantiator which functions to
-instantiate along with the struct, so that the user does not
+A `needs` block represents the things which must be true in
+order for a certain template to be viable. For instance, the
+choice of whether to use a tree or hash-table based lookup
+table will depend on whether the data is hashable or only
+comparable. A `needs` block can check for hashability, and
+reject a given template if it cannot be ensured.
+
+In practice, a `needs` block is a block of code which can be
+attached to some forms of template. For instance, in a generic
+struct, the `needs` block tells the instantiator which functions
+to instantiate along with the struct, so that the user does not
 have to explicitly instantiate each one themselves. If a `needs`
 block fails, it is not usually indicative of an error- This is
 simply an invalid choice for a template.

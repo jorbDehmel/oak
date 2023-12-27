@@ -162,8 +162,6 @@ string __instantiateGeneric(const string &what, genericInfo &info, const vector<
     // Needs block (pre, so no functions)
     if (info.needsBlock.size() != 0)
     {
-        copy.clear();
-
         // Create copy of needs block
         for (int i = 0; i < info.needsBlock.size(); i++)
         {
@@ -212,6 +210,7 @@ string __instantiateGeneric(const string &what, genericInfo &info, const vector<
     }
 
     // Make a copy of the template
+    copy.clear();
     for (auto item : info.symbols)
     {
         if (substitutions.count(item) != 0)
@@ -305,12 +304,17 @@ string instantiateGeneric(const string &what, const vector<vector<string>> &gene
     }
 
     // Get mangled version (only meaningful for struct instantiations)
+    string oldCurFile = curFile;
+    int oldCurLine = curLine;
+
     string mangleStr = mangleStruct(what, genericSubs);
     vector<string> errors;
 
     bool didInstantiate = false;
     for (auto &candidate : generics[what])
     {
+        curFile = candidate.originFile;
+
         if (checkTypeVec(typeVec, candidate.typeVec, candidate.genericNames, genericSubs))
         {
             bool hasInstance = false;
@@ -337,6 +341,10 @@ string instantiateGeneric(const string &what, const vector<vector<string>> &gene
                     didInstantiate = true;
                     break;
                 }
+                else
+                {
+                    errors.back().append(" (" + curFile + ":" + to_string(curLine) + ")");
+                }
 
                 // Else, failed with this template. Not an overall failure.
             }
@@ -348,9 +356,12 @@ string instantiateGeneric(const string &what, const vector<vector<string>> &gene
         }
         else
         {
-            errors.push_back("Did not match generic substitution.");
+            errors.push_back("Did not match generic substitution. (" + curFile + ":" + to_string(curLine) + ")");
         }
     }
+
+    curFile = oldCurFile;
+    curLine = oldCurLine;
 
     if (!didInstantiate)
     {
@@ -403,6 +414,7 @@ void addGeneric(const vector<string> &what, const string &name, const vector<str
                 const vector<string> &needsBlock, const vector<string> &typeVec)
 {
     genericInfo toAdd;
+    toAdd.originFile = curFile;
 
     for (auto a : genericsList)
     {

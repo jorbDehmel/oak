@@ -10,6 +10,8 @@ link!("std/conv_inter.o");
 
 // String to int
 let s_to_i(what: str) -> i32;
+let s_to_i(what: ^i8) -> i32;
+let s_to_i(what: []i8) -> i32;
 
 // String to bool
 let s_to_b(what: str) -> bool;

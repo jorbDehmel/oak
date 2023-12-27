@@ -752,9 +752,16 @@ void dump(const vector<string> &Lexed, const string &Where, const string &FileNa
     {
         file << s.first << "\n";
 
-        for (auto m : s.second.members)
+        if (s.second.members.size() == 0)
         {
-            file << '\t' << m.first << '\t' << toStr(&m.second) << '\n';
+            file << "\t<no members>\n";
+        }
+        else
+        {
+            for (auto m : s.second.members)
+            {
+                file << '\t' << m.first << '\t' << toStr(&m.second) << '\n';
+            }
         }
     }
 

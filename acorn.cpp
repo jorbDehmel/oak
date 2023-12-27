@@ -923,7 +923,8 @@ int main(const int argc, const char *argv[])
 
     if (prettify)
     {
-        sm_assert(system(PRETTIFIER " .oak_build/*") == 0, "Failed to prettify output files.");
+        sm_assert(system(PRETTIFIER " .oak_build/*.c") == 0, "Failed to prettify output files.");
+        sm_assert(system(PRETTIFIER " .oak_build/*.h") == 0, "Failed to prettify output files.");
     }
 
     return 0;

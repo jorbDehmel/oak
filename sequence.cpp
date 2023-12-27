@@ -792,10 +792,7 @@ sequence __createSequence(list<string> &From)
                     From.pop_front();
                 }
 
-                if (From.front().size() < 2 || From.front().substr(0, 2) != "//")
-                {
-                    toAdd.push_back(From.front());
-                }
+                toAdd.push_back(From.front());
 
                 sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
                 From.pop_front();
@@ -803,9 +800,9 @@ sequence __createSequence(list<string> &From)
                 bool exempt = false;
                 for (auto s : generics)
                 {
-                    if (structData.count(s) != 0 || s == "u8" || s == "i8" || s == "u16" || s == "i16" || s == "u32" ||
-                        s == "i32" || s == "u64" || s == "i64" || s == "u128" || s == "i128" || s == "str" ||
-                        s == "bool")
+                    if (structData.count(s) != 0 || checkLiteral(s) != nullType || s == "u8" || s == "i8" ||
+                        s == "u16" || s == "i16" || s == "u32" || s == "i32" || s == "u64" || s == "i64" ||
+                        s == "u128" || s == "i128" || s == "str" || s == "bool")
                     {
                         exempt = true;
                         break;
@@ -1228,17 +1225,61 @@ sequence __createSequence(list<string> &From)
                         count--;
                     }
 
-                    if (From.front().size() < 2 || From.front().substr(0, 2) != "//")
-                    {
-                        toAdd.push_back(From.front());
-                    }
+                    toAdd.push_back(From.front());
 
                     From.pop_front();
                 } while (count != 0);
 
+                // Check for needs / inst block here
+                vector<string> instBlock;
+
+                while (!From.empty() && From.front().size() > 1 && From.front().substr(0, 2) == "//")
+                {
+                    From.pop_front();
+                }
+
+                if (!From.empty() && From.front() == "needs")
+                {
+                    // pop needs
+                    From.pop_front();
+
+                    while (!From.empty() && From.front().size() > 1 && From.front().substr(0, 2) == "//")
+                    {
+                        From.pop_front();
+                    }
+
+                    // pop {
+                    sm_assert(!From.empty() && From.front() == "{", "'needs' block must be followed by scope.");
+                    From.pop_front();
+
+                    int count = 1;
+                    while (!From.empty())
+                    {
+                        if (From.front() == "{")
+                        {
+                            count++;
+                        }
+                        else if (From.front() == "}")
+                        {
+                            count--;
+                        }
+
+                        if (count == 0)
+                        {
+                            From.pop_front();
+                            break;
+                        }
+                        else
+                        {
+                            instBlock.push_back(From.front());
+                            From.pop_front();
+                        }
+                    }
+                }
+
                 // Insert templated function
                 // For now, cannot have needs block here
-                addGeneric(toAdd, name, generics, vector<string>(), typeVec);
+                addGeneric(toAdd, name, generics, instBlock, typeVec);
             }
         }
 
@@ -1636,29 +1677,8 @@ Type resolveFunctionInternal(const vector<string> &What, int &start, vector<stri
         // Analyze type of collected
         Type type = resolveFunction(toAnalyze, pos, junk);
 
-        int multiplier = 1;
-        while (type[0].info == sarr)
-        {
-            multiplier *= stoi(type[0].name);
-            type.pop_front();
-        }
-
         // Append size
-        if (type[0].info == atomic)
-        {
-            if (atomics.count(type[0].name) != 0)
-            {
-                c.push_back(to_string(atomics[type[0].name] * multiplier));
-            }
-            else
-            {
-                c.push_back(to_string(structData[type[0].name].size * multiplier));
-            }
-        }
-        else
-        {
-            c.push_back(to_string(sizeof(void *) * multiplier));
-        }
+        c.push_back(to_string(typeSize(type)));
 
         return Type(atomic, "u128");
     }
@@ -1838,6 +1858,18 @@ Type resolveFunctionInternal(const vector<string> &What, int &start, vector<stri
                     validCandidates = getStageTwoCandidates(candArgs, argTypes);
                 }
             }
+            else if (validCandidates.size() > 1)
+            {
+                // Ambiguous candidates
+
+                cout << tags::red_bold << "Error: Cannot override function call '" << name
+                     << "' on return type alone.\n"
+                     << tags::reset;
+
+                printCandidateErrors(candidates, argTypes, name);
+
+                throw sequencing_error("Cannot override function call '" + name + "' on return type alone");
+            }
 
             // Remove any erased symbols
             for (auto item = validCandidates.begin(); item != validCandidates.end(); item++)
@@ -1859,18 +1891,6 @@ Type resolveFunctionInternal(const vector<string> &What, int &start, vector<stri
                 printCandidateErrors(candidates, argTypes, name);
 
                 throw sequencing_error("No viable candidates for function call '" + name + "'");
-            }
-            else if (validCandidates.size() > 1)
-            {
-                // Ambiguous candidates
-
-                cout << tags::red_bold << "Error: Cannot override function call '" << name
-                     << "' on return type alone.\n"
-                     << tags::reset;
-
-                printCandidateErrors(candidates, argTypes, name);
-
-                throw sequencing_error("Cannot override function call '" + name + "' on return type alone");
             }
 
             // Use candidate at front; This is highest-priority one

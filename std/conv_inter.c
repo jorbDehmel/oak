@@ -63,6 +63,16 @@ i32 s_to_i_FN_str_MAPS_i32(str what)
     }
 }
 
+i32 s_to_i_FN_PTR_i8_MAPS_i32(i8 *what)
+{
+    return s_to_i_FN_str_MAPS_i32(what);
+}
+
+i32 s_to_i_FN_ARR_i8_MAPS_i32(i8 *what)
+{
+    return s_to_i_FN_str_MAPS_i32(what);
+}
+
 // Cheater's way out tbh
 bool s_to_b_FN_str_MAPS_bool(str what)
 {

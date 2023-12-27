@@ -381,20 +381,7 @@ void addStruct(const vector<string> &FromIn)
     structData[name].size = 0;
     for (const string &memberName : structData[name].order)
     {
-        if (structData[name].members[memberName][0].info == atomic)
-        {
-            if (structData.count(structData[name].members[memberName][0].name) != 0)
-            {
-                structData[name].size += structData[structData[name].members[memberName][0].name].size;
-            }
-
-            // Otherwise, cannot determine member size
-        }
-        else
-        {
-            // Treat as pointer
-            structData[name].size += sizeof(void *);
-        }
+        structData[name].size += typeSize(structData[name].members[memberName]);
     }
 
     if (structData[name].size == 0)

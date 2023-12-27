@@ -72,3 +72,8 @@ let println<t>(what: t) -> void
     print(what);
     print("\n");
 }
+
+let endl() -> void
+{
+    print("\n");
+}

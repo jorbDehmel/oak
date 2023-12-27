@@ -1,71 +1,104 @@
 /*
 A bitset for Oak
+Revised for Oak 0.3.0, which added arrays.
+
+Jordan Dehmel, 2023
+jdehmel@outlook.com
 */
 
 package!("std");
+include!("std/opt.oak");
+include!("extra/bit_print.oak");
 use_rule!("std");
 
 /*
-Creates a bitset with the same size as same_size. For instance,
-if you instantiated bitset<i8>, it would have 8 bits. If you
-instead used i64, it would have 64 bits. "Latches on" to
-whatever you copy into it, and performs all bitwise
-modifications upon that object. Requires the &, |, <<, !, and
-i32-copy operators to be implemented for same_size.
+A bitset for Oak. Size is a positive integer representing the
+number of BYTES, not bits.
 */
-let bitset<same_size>: struct
+let bitset<size>: struct
 {
-    data: ^same_size,
+    data: [size]u8,
 }
 needs
 {
-    // Requirements on template type
-    same_size.Copy(_: i32);
-    same_size.Or();
-    same_size.And();
-    same_size.Not();
-    same_size.Lbs();
+    opt<bool>;
 
-    // Requirements on this type
-    bitset<same_size>.Copy<same_size>(what: ^same_size);
-    bitset<same_size>.Get<same_size>(index: i32);
-    bitset<same_size>.set<same_size>(index: i32);
-    bitset<same_size>.clear<same_size>(index: i32);
+    Get<size>(_: ^bitset<size>, _: u128);
 
+    set<size>(_: ^bitset<size>, _: u128);
+    clear<size>(_: ^bitset<size>, _: u128);
+    flip<size>(_: ^bitset<size>, _: u128);
+
+    print<size>(_: ^bitset<size>);
 }
 
 ////////////////////////////////////////////////////////////////
 // Implementations
 ////////////////////////////////////////////////////////////////
 
-let bitset<same_size>.Copy<same_size>(what: ^same_size) -> void
+let Get<size>(self: ^bitset<size>, i: u128) -> opt<bool>
 {
-    self.data = what;
-}
+    let out: opt<bool>;
+    out.wrap_none();
 
-let bitset<same_size>.Get<same_size>(index: i32) -> bool
-{
-    let mask: same_size = 1;
-    mask = mask << index;
-
-    let result: same_size = data & mask;
-    let out: bool = false;
-
-    if result != 0
+    if i > to_u128(size * 8)
     {
-        out = true;   
+        return out;
+    }
+
+    let byte_i: u128 = i / to_u128(8);
+    let bit_i: u8 = to_u8(i % to_u128(8));
+    let got: u8 = Get(self.data, byte_i);
+    let mask: u8 = 1 << bit_i;
+    got &= mask;
+
+    if got != 0
+    {
+        out.wrap_some(true);
+    }
+    else
+    {
+        out.wrap_some(false);
     }
 
     out
 }
 
-let bitset<same_size>.set<same_size>(index: i32) -> void
+let set<size>(self: ^bitset<size>, i: u128) -> void
 {
+    let byte_i: u128 = i / to_u128(8);
+    let bit_i: u8 = to_u8(i % to_u128(8));
+    let mask: u8 = 1 << bit_i;
 
+    ^Get(self.data, byte_i) |= mask;
 }
 
-let bitset<same_size>.clear<same_size>(index: i32) -> void
+let clear<size>(self: ^bitset<size>, i: u128) -> void
 {
+    let byte_i: u128 = i / to_u128(8);
+    let bit_i: u8 = to_u8(i % to_u128(8));
+    let mask: u8 = 1 << bit_i;
+    mask = 255 - mask;
 
+    ^Get(self.data, byte_i) &= mask;
 }
 
+let flip<size>(self: ^bitset<size>, i: u128) -> void
+{
+    let res = self.Get(i);
+
+    if unwrap(res)
+    {
+        self.clear(i);  
+    }
+    else
+    {
+        self.set(i);
+    }
+}
+
+let print<size>(what: ^bitset<size>) -> void
+{
+    bit_print<bitset<size>>(_: ^bitset<size>);
+    bit_print(what);
+}

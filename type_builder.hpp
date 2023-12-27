@@ -93,9 +93,10 @@ extern vector<string> structOrder;
 // Return the standard C / C++ representation of this type
 string toStr(const Type *const What, const unsigned int &pos = 0);
 
-// Ignores all var_names
-// As of 0.0.21, can also do automatic referencing
-// of arguments
+// Get size of type
+unsigned long long typeSize(const Type &what, const unsigned int &startingAt = 0);
+
+// Ignores all var_names, plus auto-ref/deref
 bool typesAreSame(const Type *const A, const Type *const B, int &changes);
 
 // Like the above, but does not do auto-referencing or dereferencing

@@ -15,9 +15,12 @@ jdehmel@outlook.com
 
 #include "enums.hpp"
 #include "mangler.hpp"
+#include "rules.hpp"
 #include "symbol_table.hpp"
 
 using namespace std;
+
+extern unsigned long long int curLine;
 
 /*
 There are two types of generics present in code: Templates
@@ -48,6 +51,7 @@ class generic_error : public runtime_error
 struct genericInfo
 {
     vector<string> typeVec;
+    string originFile;
 
     vector<string> symbols;
     vector<string> needsBlock;
