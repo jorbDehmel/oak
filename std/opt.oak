@@ -5,7 +5,7 @@ let opt<t>: enum
     some: t,
     none: unit,
 }
-needs
+post
 {
     New<t>(self: ^opt<t>);
     Copy<t>(self: ^opt<t>, other: opt<t>);

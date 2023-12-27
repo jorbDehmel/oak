@@ -54,7 +54,7 @@ struct genericInfo
     string originFile;
 
     vector<string> symbols;
-    vector<string> needsBlock;
+    vector<string> preBlock, postBlock;
 
     vector<string> genericNames;
 
@@ -71,7 +71,7 @@ string instantiateGeneric(const string &what, const vector<vector<string>> &gene
 
 // Also holds the skeleton of the inst block system, although gathering of these happens elsewhere.
 void addGeneric(const vector<string> &what, const string &name, const vector<string> &genericsList,
-                const vector<string> &instBlock, const vector<string> &typeVec);
+                const vector<string> &typeVec, const vector<string> &preBlock, const vector<string> &postBlock);
 
 // Print the info of all existing generics to a file stream
 void printGenericDumpInfo(ostream &to);

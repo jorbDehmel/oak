@@ -160,29 +160,13 @@ string __instantiateGeneric(const string &what, genericInfo &info, const vector<
     vector<string> copy;
 
     // Needs block (pre, so no functions)
-    if (info.needsBlock.size() != 0)
+    if (info.preBlock.size() != 0)
     {
-        // Create copy of needs block
-        for (int i = 0; i < info.needsBlock.size(); i++)
-        {
-            copy.push_back(info.needsBlock[i]);
+        // Create copy of pre block
+        copy.reserve(info.preBlock.size());
+        copy.assign(info.preBlock.begin(), info.preBlock.end());
 
-            // Avoid functions; Only include struct instances
-            if (info.needsBlock[i] == "(")
-            {
-                while (i >= 0 && !copy.empty() && copy.back() != ";")
-                {
-                    copy.pop_back();
-                    i--;
-                }
-                do
-                {
-                    i++;
-                } while (i < info.needsBlock.size() && info.needsBlock[i] != ";");
-            }
-        }
-
-        // Iterate and mangle needs block
+        // Iterate and mangle pre block
         for (int i = 0; i < copy.size(); i++)
         {
             if (substitutions.count(copy[i]) != 0)
@@ -199,7 +183,7 @@ string __instantiateGeneric(const string &what, genericInfo &info, const vector<
 
         try
         {
-            // Call on substituted needs block
+            // Call on substituted pre block
             createSequence(copy);
         }
         catch (exception &e)
@@ -229,30 +213,16 @@ string __instantiateGeneric(const string &what, genericInfo &info, const vector<
     // Call on substituted results
     createSequence(copy);
 
-    // Needs block (post, so no structs)
-    if (info.needsBlock.size() != 0)
+    // Post block
+    if (info.postBlock.size() != 0)
     {
         copy.clear();
 
-        // Create copy of needs block
-        for (int i = 0; i < info.needsBlock.size(); i++)
-        {
-            // Avoid structs; Only include function instances
-            if (info.needsBlock[i] == "(")
-            {
-                while (i >= 0 && info.needsBlock[i] != ";")
-                {
-                    i--;
-                }
-                do
-                {
-                    i++;
-                    copy.push_back(info.needsBlock[i]);
-                } while (i < info.needsBlock.size() && info.needsBlock[i] != ";");
-            }
-        }
+        // Create copy of post block
+        copy.reserve(info.postBlock.size());
+        copy.assign(info.postBlock.begin(), info.postBlock.end());
 
-        // Iterate and mangle needs block
+        // Iterate and mangle post block
         for (int i = 0; i < copy.size(); i++)
         {
             if (substitutions.count(copy[i]) != 0)
@@ -269,7 +239,7 @@ string __instantiateGeneric(const string &what, genericInfo &info, const vector<
 
         try
         {
-            // Call on substituted needs block
+            // Call on substituted post block
             createSequence(copy);
         }
         catch (exception &e)
@@ -411,7 +381,7 @@ string instantiateGeneric(const string &what, const vector<vector<string>> &gene
 }
 
 void addGeneric(const vector<string> &what, const string &name, const vector<string> &genericsList,
-                const vector<string> &needsBlock, const vector<string> &typeVec)
+                const vector<string> &typeVec, const vector<string> &preBlock, const vector<string> &postBlock)
 {
     genericInfo toAdd;
     toAdd.originFile = curFile;
@@ -426,20 +396,17 @@ void addGeneric(const vector<string> &what, const string &name, const vector<str
         toAdd.genericNames.push_back(a);
     }
 
-    for (auto a : what)
-    {
-        toAdd.symbols.push_back(a);
-    }
+    toAdd.symbols.reserve(what.size());
+    toAdd.symbols.assign(what.begin(), what.end());
 
-    for (auto a : needsBlock)
-    {
-        toAdd.needsBlock.push_back(a);
-    }
+    toAdd.preBlock.reserve(preBlock.size());
+    toAdd.preBlock.assign(preBlock.begin(), preBlock.end());
 
-    for (auto a : typeVec)
-    {
-        toAdd.typeVec.push_back(a);
-    }
+    toAdd.postBlock.reserve(postBlock.size());
+    toAdd.postBlock.assign(postBlock.begin(), postBlock.end());
+
+    toAdd.typeVec.reserve(typeVec.size());
+    toAdd.typeVec.assign(typeVec.begin(), typeVec.end());
 
     // ENSURE IT DOESN'T ALREADY EXIST HERE; If it does, return w/o error
     bool doesExist = false;
@@ -516,15 +483,26 @@ void printGenericDumpInfo(ostream &file)
                 file << cand.symbols[i] << ' ';
             }
 
-            file << '\n' << "\t\tNeeds block:";
-            for (int i = 0; i < cand.needsBlock.size(); i++)
+            file << '\n' << "\t\tPre block:";
+            for (int i = 0; i < cand.preBlock.size(); i++)
             {
                 if (i % 10 == 0)
                 {
                     file << "\n\t\t\t";
                 }
 
-                file << cand.needsBlock[i] << ' ';
+                file << cand.preBlock[i] << ' ';
+            }
+
+            file << '\n' << "\t\tPost block:";
+            for (int i = 0; i < cand.postBlock.size(); i++)
+            {
+                if (i % 10 == 0)
+                {
+                    file << "\n\t\t\t";
+                }
+
+                file << cand.postBlock[i] << ' ';
             }
 
             file << '\n' << "\t\tInstances:\n";
@@ -555,31 +533,3 @@ void printGenericDumpInfo(ostream &file)
         }
     }
 }
-
-/*
-// Future of generics:
-
-let example<t>: struct
-{
-    data: t,
-    next: ^example<t>,
-}
-needs
-{
-    // Rather than New<t>;, we ensure a type to the instance
-    // When entering the instantiator, only the first generic
-    // is replaced. Those in the type are skipped.
-
-    // Nested generic types as members should automatically be
-    // instantiated.
-
-    New<t>(self: ^example<t>);
-    Copy<t>(self: ^example<t>);
-
-    // Instantiation blocks should be filtered by argument type(s)
-    // and should be strictly unique because of this.
-}
-
-let New<t>(self: ^example<t>) -> void {}
-let Copy<t>(self: ^example<t>) -> void {}
-*/

@@ -12,9 +12,12 @@ let arr<t>: struct
     size: u128,
     data: []t,
 }
-needs
+pre
 {
     opt<^t>;
+}
+post
+{
     New<t>(self: ^arr<t>);
     Del<t>(self: ^arr<t>);
     Copy<t>(self: ^arr<t>, size: u128);

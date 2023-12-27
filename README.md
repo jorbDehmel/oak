@@ -1,6 +1,6 @@
 
 # The Oak Programming Language
-## Version 0.3.1
+## Version 0.4.0
 
 ![](logo_trimmed.png)
 
@@ -680,7 +680,7 @@ Tabbing should follow standard `C++` rules. Tabs and
 quadruple-spaces are both acceptable, but double-spaces are not.
 Not using tabbing is not acceptable.
 
-No line of `Oak` should be longer than 64 standard-width chars
+No line of `Oak` should be longer than 96 standard-width chars
 wide. Since newlines are erased by the lexer, one can be
 inserted at any point without disturbing syntax.
 
@@ -1177,8 +1177,7 @@ let main() -> i32
 
 Generic enumerations are defined exactly like structs (see later
 for more information on enumerations). See later in this
-document for more about instantiating generic structs and the
-`needs` block.
+document for more about instantiating generic structs.
 
 ## Acorn
 
@@ -2197,16 +2196,19 @@ said to be the "canonical" or "unit" value of that datatype.
 
 As such, **`Oak` cannot have uninitialized variables.**
 
-## Needs / Instantiation Blocks and Generic Data Structures
+## Instantiation Blocks and Generic Data Structures
 
 As should be obvious to anyone who has worked with a templated
 data structure library, it is necessary for structures to
 generically have not only members, but methods. However, `Oak`
 as discussed thus far has no way to instantiate a group of
 generic methods when a generic data structure is instantiated.
-This is where the instantiation block, or **'needs' block**
-comes in. This utilizes another of the few keywords in
-`Oak`- `needs`. Consider the following source code.
+This is where the `pre` and `post` keywords come in. A `pre`
+keyword means that the following code block will need to be run
+before a template is instantiated. `post` is the same, but it is
+run after the instantiation. Failure in either of these code
+blocks means that the template is invalid, but is not treated as
+a compiler error.
 
 ```rust
 let list<t>: struct
@@ -2233,7 +2235,7 @@ let main() -> i32
 `Oak` as discussed so far necessitates lines 7 and 8. These tell
 the compiler to instantiate the generic functions `New` and
 `Del` for use with `t = i32`. However, this is obviously
-cumbersome to an end user. Thus, we introduce the `needs` block.
+cumbersome to an end user. Thus, we introduce the `post` block.
 
 ```rust
 let list<t>: struct
@@ -2241,13 +2243,15 @@ let list<t>: struct
     data: t,
     next: ^list<t>,
 }
-needs
+post
 {
     New<t>(self: ^list<t>);
     Del<t>(_: ^list<t>);
 }
+
 let New<t>(self: ^list<t>) -> void;
 let Del<t>(self: ^list<t>) -> void;
+
 let main() -> i32
 {
     let node: list<i32>;
@@ -2259,9 +2263,9 @@ let main() -> i32
 The above code tells the compiler to instantiate `New` and `Del`
 with the `t` generic anytime the `node<t>` template is
 instantiated. Thus, these are automatically instantiated by the
-compiler in line 17. Also notice that the argument name in line
-9 doesn't matter, so long as the rest of the instantiator call
-matches the candidate.
+compiler when the struct is. Also notice that the argument name
+in the `post` block doesn't matter, so long as the rest of the
+instantiator call matches the candidate.
 
 This system is in response to the fact that, in `Oak`, a struct
 does not inherently "come" with any methods, and thus the exact
@@ -2446,7 +2450,8 @@ minimalism.
 - match
 - case
 - default
-- needs
+- pre
+- post
 
 **Note:** There is nothing stopping a rule or dialect from
 adding more keywords. For instance, the `bool` rules add the
@@ -2746,38 +2751,22 @@ specific template / generic combination has already been
 instantiated, it will simply return. Otherwise, once the correct
 template has been identified, it will move on to part 3.
 
-### Part 3 A- Needs Block
+### Part 3 A- Pre and Post Blocks
 
-A `needs` block represents the things which must be true in
+A `pre` block represents the things which must be true in
 order for a certain template to be viable. For instance, the
 choice of whether to use a tree or hash-table based lookup
 table will depend on whether the data is hashable or only
-comparable. A `needs` block can check for hashability, and
+comparable. A `pre` block can check for hashability, and
 reject a given template if it cannot be ensured.
 
-In practice, a `needs` block is a block of code which can be
-attached to some forms of template. For instance, in a generic
-struct, the `needs` block tells the instantiator which functions
-to instantiate along with the struct, so that the user does not
-have to explicitly instantiate each one themselves. If a `needs`
-block fails, it is not usually indicative of an error- This is
-simply an invalid choice for a template.
+A `post` block represents things that should logically be
+instantiated along with a given template. For instance, if we
+are instantiating a struct, we would logically also want to
+instantiate its constructor and destructor.
 
-`needs` block instantiation technically occurs both before and
-after the regular code block's instantiation. All struct-type
-instantiator calls within the `needs` block will be executed
-first, followed by the main code block, followed by all
-function-type instantiator calls. This is because struct-type
-calls are usually templated structs which need to exist before
-the main code block is compilable, while function-type calls are
-usually functions which need to be instantiated after the main
-block- like a constructor for a struct.
-
-If more direct control over instantiation ordering is needed,
-instantiator calls can be used throughout the template as usual.
-
-`needs` blocks are instantiated just like regular code blocks,
-whose process is detailed below.
+`pre` blocks are executed before the main template during an
+instantiation call, and `post` blocks are executed after.
 
 ### Part 3 B- Template Substitution
 
@@ -2913,7 +2902,7 @@ let node<t>: struct
     data: t,
     next: ^node<t>,
 }
-needs
+post
 {
     New<t>(_: ^node<t>);
 }
@@ -4205,7 +4194,7 @@ let regex_match(text: ^string, pattern: ^regex, into: ^smatch)
 
 ```
 
-Note that `Oak` allows at most 64 non-whitespace characters per
+Note that `Oak` allows at most 96 non-whitespace characters per
 line. However, its complete disregard for all whitespace after
 lexing means that all code can be split across any number of
 lines.

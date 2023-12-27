@@ -968,7 +968,7 @@ void printSyntaxError(const string &what, const vector<char> &curLineVec, const 
 void ensureSyntax(const string &text, const bool &fatal)
 {
     vector<char> curLineVec;
-    curLineVec.reserve(64);
+    curLineVec.reserve(96);
     curLine = 1;
 
     int parenthesisDepth = 0;
@@ -1150,9 +1150,9 @@ void ensureSyntax(const string &text, const bool &fatal)
                 curLineVec.push_back(text[i]);
             }
 
-            if (curLineVec.size() == 65 && !(curLineVec.front() == '\'' || curLineVec.front() == '"'))
+            if (curLineVec.size() == 97 && !(curLineVec.front() == '\'' || curLineVec.front() == '"'))
             {
-                printSyntaxError("Lines should not exceed 64 characters", curLineVec, curLine);
+                printSyntaxError("Lines should not exceed 96 characters", curLineVec, curLine);
                 errorCount++;
             }
         }

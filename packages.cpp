@@ -369,29 +369,25 @@ void downloadPackage(const string &URLArg, const bool &Reinstall, const string &
     try
     {
         string path = Path;
-
         if (path == "")
         {
-            cout << tags::yellow_bold
+            path = ".";
+        }
+
+        while (system(("[ -f " + tempFolderName + "/" + path + "/" + INFO_FILE " ]").c_str()) != 0)
+        {
+            cout << tags::yellow_bold << "Failed to locate info file.\n"
                  << "Enter the path within the folder to install from [default .]: " << tags::reset;
             getline(cin, path);
             if (path == "")
             {
                 path = ".";
             }
+
+            pm_assert(path.find("..") == string::npos, "Illegal path: May not contain '..'");
         }
 
-        pm_assert(path.find("..") == string::npos, "Illegal path: May not contain '..'.");
-
-        // Ensure proper format
-        if (system(("[ -f " + tempFolderName + "/" + path + "/" + INFO_FILE " ]").c_str()) != 0)
-        {
-            cout << tags::red_bold << "\nPackage '" << URLArg << "' "
-                 << "exists, but is ill-formed. PATH is likely incorrect.\n"
-                 << tags::reset;
-
-            throw package_error("Malformed package; Info file is not present.");
-        }
+        // At this point, info file must exist
 
         bool needsMake = false;
         needsMake = (system(("[ -f " + tempFolderName + "/" + path + "/Makefile ]").c_str()) == 0 ||
@@ -430,8 +426,11 @@ void downloadPackage(const string &URLArg, const bool &Reinstall, const string &
         }
 
         // Copy files
-        sm_system("sudo rm -rf " + tempFolderName + "/" + path + "/*.cpp", "Failed to clean folder");
-        sm_system("sudo cp -r " + tempFolderName + "/" + path + "/* " + destFolderName, "Failed to copy folder");
+        system(("sudo cp " + tempFolderName + "/" + path + "/*.c " + destFolderName).c_str());
+        system(("sudo cp " + tempFolderName + "/" + path + "/*.h " + destFolderName).c_str());
+        system(("sudo cp " + tempFolderName + "/" + path + "/*.o " + destFolderName).c_str());
+        system(("sudo cp " + tempFolderName + "/" + path + "/*.oak " + destFolderName).c_str());
+        system(("sudo cp " + tempFolderName + "/" + path + "/*.txt " + destFolderName).c_str());
 
         // Clean up garbage; Doesn't really matter if this fails
         cout << "sudo rm -rf " PACKAGE_TEMP_LOCATION << '\n';

@@ -10,7 +10,7 @@ let node<t>: struct
 {
     data: t,
 }
-needs
+post
 {
     New<t>(_: ^node<t>);
 }

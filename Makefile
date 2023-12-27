@@ -1,6 +1,8 @@
+################################################################
 # Jordan Dehmel, 2023
 # jdehmel@outlook.com
 # github.com/jorbDehmel/oak
+################################################################
 
 CC := clang++
 
@@ -23,7 +25,7 @@ FLAGS := -pedantic -Wall -O3
 
 TEST := acorn
 
-all: bin/acorn.out
+################################################################
 
 install: bin/acorn.out std_oak_header.h
 	sudo mkdir -p /usr/include/oak
@@ -44,7 +46,8 @@ packages:
 	acorn -S sdl -S experimental/extra
 
 uninstall:
-	sudo rm -rf /usr/bin/acorn /usr/include/oak /usr/include/std_oak_header.hpp
+	sudo rm -rf /usr/bin/acorn /usr/include/oak \
+		/usr/include/std_oak_header.hpp
 
 reinstall:
 	$(MAKE) -C . uninstall clean install
@@ -52,21 +55,10 @@ reinstall:
 test:
 	$(TEST) -eTT
 
+################################################################
+
 README.pdf:	README.md
 	pandoc README.md -o README.pdf
-
-sdltest:
-	$(TEST) oak_demos/sdl_test.oak -o sdl_test.out
-	$(TEST) oak_demos/sdl_test_2.oak -o sdl_test_2.out
-	$(TEST) oak_demos/sdl_test_3.oak -o sdl_test_3.out
-
-gentest:
-	$(TEST) oak_demos/arr_test.oak -o arr_test.out
-	$(TEST) oak_demos/generic_test.oak -o generic_test.out
-	$(TEST) oak_demos/gen_enum_test.oak -o gen_enum_test.out
-	$(TEST) oak_demos/gen_struct_test.oak -o gen_struct_test.out
-	$(TEST) oak_demos/gen_test_2.oak -o gen_test_2.out
-	$(TEST) oak_demos/nested_gen_test.oak -o nested_gen_test.out
 
 build/%.o:	%.cpp $(HEADS)
 	mkdir -p build
@@ -80,8 +72,12 @@ bin/acorn.out:	build/acorn.o $(OBJS) $(HEADS)
 	mkdir -p bin
 	$(CC) $(FLAGS) -o $@ $< $(OBJS)
 
+################################################################
+
 tclean:
 	rm -rf *.out
 
 clean:
 	rm -rf bin/* build/* *.o *.out *.log
+
+################################################################

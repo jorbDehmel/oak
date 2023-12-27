@@ -825,53 +825,99 @@ sequence __createSequence(list<string> &From)
                 else
                 {
                     // Check for needs / inst block here
-                    vector<string> instBlock;
+                    vector<string> preBlock, postBlock;
 
                     while (!From.empty() && From.front().size() > 1 && From.front().substr(0, 2) == "//")
                     {
                         From.pop_front();
                     }
 
-                    if (!From.empty() && From.front() == "needs")
+                    while (!From.empty() && (From.front() == "pre" || From.front() == "post"))
                     {
-                        // pop needs
-                        From.pop_front();
+                        if (!From.empty() && From.front() == "pre")
+                        {
+                            // pop needs
+                            From.pop_front();
+
+                            while (!From.empty() && From.front().size() > 1 && From.front().substr(0, 2) == "//")
+                            {
+                                From.pop_front();
+                            }
+
+                            // pop {
+                            sm_assert(!From.empty() && From.front() == "{", "'pre' block must be followed by scope.");
+                            From.pop_front();
+
+                            int count = 1;
+                            while (!From.empty())
+                            {
+                                if (From.front() == "{")
+                                {
+                                    count++;
+                                }
+                                else if (From.front() == "}")
+                                {
+                                    count--;
+                                }
+
+                                if (count == 0)
+                                {
+                                    From.pop_front();
+                                    break;
+                                }
+                                else
+                                {
+                                    preBlock.push_back(From.front());
+                                    From.pop_front();
+                                }
+                            }
+                        }
+                        else if (!From.empty() && From.front() == "post")
+                        {
+                            // pop needs
+                            From.pop_front();
+
+                            while (!From.empty() && From.front().size() > 1 && From.front().substr(0, 2) == "//")
+                            {
+                                From.pop_front();
+                            }
+
+                            // pop {
+                            sm_assert(!From.empty() && From.front() == "{", "'post' block must be followed by scope.");
+                            From.pop_front();
+
+                            int count = 1;
+                            while (!From.empty())
+                            {
+                                if (From.front() == "{")
+                                {
+                                    count++;
+                                }
+                                else if (From.front() == "}")
+                                {
+                                    count--;
+                                }
+
+                                if (count == 0)
+                                {
+                                    From.pop_front();
+                                    break;
+                                }
+                                else
+                                {
+                                    postBlock.push_back(From.front());
+                                    From.pop_front();
+                                }
+                            }
+                        }
 
                         while (!From.empty() && From.front().size() > 1 && From.front().substr(0, 2) == "//")
                         {
                             From.pop_front();
                         }
-
-                        // pop {
-                        sm_assert(!From.empty() && From.front() == "{", "'needs' block must be followed by scope.");
-                        From.pop_front();
-
-                        int count = 1;
-                        while (!From.empty())
-                        {
-                            if (From.front() == "{")
-                            {
-                                count++;
-                            }
-                            else if (From.front() == "}")
-                            {
-                                count--;
-                            }
-
-                            if (count == 0)
-                            {
-                                From.pop_front();
-                                break;
-                            }
-                            else
-                            {
-                                instBlock.push_back(From.front());
-                                From.pop_front();
-                            }
-                        }
                     }
 
-                    addGeneric(toAdd, name, generics, instBlock, {front});
+                    addGeneric(toAdd, name, generics, {front}, preBlock, postBlock);
                 }
 
                 // This should be left out of toC, as it should only be used
@@ -1231,55 +1277,101 @@ sequence __createSequence(list<string> &From)
                 } while (count != 0);
 
                 // Check for needs / inst block here
-                vector<string> instBlock;
+                vector<string> preBlock, postBlock;
 
                 while (!From.empty() && From.front().size() > 1 && From.front().substr(0, 2) == "//")
                 {
                     From.pop_front();
                 }
 
-                if (!From.empty() && From.front() == "needs")
+                while (!From.empty() && (From.front() == "pre" || From.front() == "post"))
                 {
-                    // pop needs
-                    From.pop_front();
+                    if (!From.empty() && From.front() == "pre")
+                    {
+                        // pop needs
+                        From.pop_front();
+
+                        while (!From.empty() && From.front().size() > 1 && From.front().substr(0, 2) == "//")
+                        {
+                            From.pop_front();
+                        }
+
+                        // pop {
+                        sm_assert(!From.empty() && From.front() == "{", "'pre' block must be followed by scope.");
+                        From.pop_front();
+
+                        int count = 1;
+                        while (!From.empty())
+                        {
+                            if (From.front() == "{")
+                            {
+                                count++;
+                            }
+                            else if (From.front() == "}")
+                            {
+                                count--;
+                            }
+
+                            if (count == 0)
+                            {
+                                From.pop_front();
+                                break;
+                            }
+                            else
+                            {
+                                preBlock.push_back(From.front());
+                                From.pop_front();
+                            }
+                        }
+                    }
+                    else if (!From.empty() && From.front() == "post")
+                    {
+                        // pop needs
+                        From.pop_front();
+
+                        while (!From.empty() && From.front().size() > 1 && From.front().substr(0, 2) == "//")
+                        {
+                            From.pop_front();
+                        }
+
+                        // pop {
+                        sm_assert(!From.empty() && From.front() == "{", "'post' block must be followed by scope.");
+                        From.pop_front();
+
+                        int count = 1;
+                        while (!From.empty())
+                        {
+                            if (From.front() == "{")
+                            {
+                                count++;
+                            }
+                            else if (From.front() == "}")
+                            {
+                                count--;
+                            }
+
+                            if (count == 0)
+                            {
+                                From.pop_front();
+                                break;
+                            }
+                            else
+                            {
+                                postBlock.push_back(From.front());
+                                From.pop_front();
+                            }
+                        }
+                    }
 
                     while (!From.empty() && From.front().size() > 1 && From.front().substr(0, 2) == "//")
                     {
                         From.pop_front();
                     }
-
-                    // pop {
-                    sm_assert(!From.empty() && From.front() == "{", "'needs' block must be followed by scope.");
-                    From.pop_front();
-
-                    int count = 1;
-                    while (!From.empty())
-                    {
-                        if (From.front() == "{")
-                        {
-                            count++;
-                        }
-                        else if (From.front() == "}")
-                        {
-                            count--;
-                        }
-
-                        if (count == 0)
-                        {
-                            From.pop_front();
-                            break;
-                        }
-                        else
-                        {
-                            instBlock.push_back(From.front());
-                            From.pop_front();
-                        }
-                    }
                 }
 
                 // Insert templated function
                 // For now, cannot have needs block here
-                addGeneric(toAdd, name, generics, instBlock, typeVec);
+                addGeneric(toAdd, name, generics, typeVec, preBlock, postBlock);
             }
         }
 

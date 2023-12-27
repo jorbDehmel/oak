@@ -9,7 +9,7 @@ let pair<l, r>: struct
     first: l,
     second: r,
 }
-needs
+post
 {
     New<l, r>(self: ^pair<l, r>);
     Copy<l, r>(self: ^pair<l, r>, first: l, second: r);

@@ -19,10 +19,12 @@ let bitset<size>: struct
 {
     data: [size]u8,
 }
-needs
+pre
 {
     opt<bool>;
-
+}
+post
+{
     Get<size>(_: ^bitset<size>, _: u128);
 
     set<size>(_: ^bitset<size>, _: u128);

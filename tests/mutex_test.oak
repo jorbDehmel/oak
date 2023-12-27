@@ -1,0 +1,29 @@
+/*
+Test of experimental mutex struct from threading std file
+
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+package!("std");
+include!("std/thread.oak");
+use_rule!("std");
+
+let main() -> i32
+{
+    println<i32>(_: i32);
+
+    let m: mutex<i32>;
+    let d: ^i32;
+    let r: bool = false;
+
+    while Not(r)
+    {
+        r = m.get_data(d);
+    }
+
+    d = 5;
+    println(d);
+
+    0
+}

@@ -17,8 +17,11 @@ let mutex<t>: struct
     in_use: bool,
     data: t,
 }
-needs
+post
 {
+    wait_for_lock<t>(_: ^mutex<t>);
+    get_data<t>(_: ^mutex<t>, _: ^^t);
+    return_data<t>(_: ^mutex<t>, _: ^^t);
 }
 
 let wait_for_lock<t>(self: ^mutex<t>) -> void
@@ -31,25 +34,22 @@ let wait_for_lock<t>(self: ^mutex<t>) -> void
 
 let get_data<t>(self: ^mutex<t>, into: ^^t) -> bool
 {
-    let out: bool;
     if (self.in_use)
     {
-        out = false;
+        return false;
     }
     else
     {
-        out = true;
-
         self.in_use = true;
-        ^into = @data;
-    }
+        ptrcpy!(^into, @self.data);
 
-    out
+        return true;
+    }
 }
 
-let return_data<t>(self: ^mutex<t>, into: opt<^t>) -> void
+let return_data<t>(self: ^mutex<t>, into: ^^t) -> void
 {
-    ^into = 0;
+    ptrcpy!(^into, 0);
     self.in_use = false;
 }
 

@@ -11,7 +11,7 @@ let result<g, b>: enum
     err: b,
     none: unit,
 }
-needs
+post
 {
     New<g, b>(self: ^result<g, b>);
     Copy<g, b>(self: ^result<g, b>, other: result<g, b>);

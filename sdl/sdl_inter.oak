@@ -80,8 +80,7 @@ let New(self: ^sdl_rect) -> void
     self.h = to_u64(0);
 }
 
-let Copy(self: ^sdl_rect, x: u64, y: u64, w: u64, h: u64)
-    -> void
+let Copy(self: ^sdl_rect, x: u64, y: u64, w: u64, h: u64) -> void
 {
     self.x = x;
     self.y = y;

@@ -4,6 +4,11 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.4.0           | 12/27/23 | Replaced needs blocks with pre and
+                |          | post blocks. Generic code written
+                |          | before this will not work. Also bug
+                |          | fixes with packages.
+                |          |
 0.3.1           | 12/26/23 | Bug fixes with member New and Del
                 |          | calls.
                 |          |
