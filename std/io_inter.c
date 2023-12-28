@@ -41,12 +41,6 @@ void print_FN_i8_MAPS_void(i8 what)
     return;
 }
 
-void print_FN_PTR_i8_MAPS_void(i8 *what)
-{
-    printf("%s", what);
-    return;
-}
-
 void flush_FN_MAPS_void(void)
 {
     fflush(stdout);

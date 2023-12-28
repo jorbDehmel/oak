@@ -17,10 +17,9 @@ language and compiler design (see the later section on
 dialects). `Oak` also aims to have an integrated build system,
 necessitating only one call to the compiler per executable.
 
-`Oak` uses `Rust`-like typing, without `Rust`'s lifetime
-system. It is similar to `C` with stronger macro support, modern
-typing, generics, compile-time syntax modification and
-integrated package management.
+`Oak` is most closely related to `C`, but also has stronger
+macro support, modern typing, generics, compile-time syntax
+modification and integrated package management.
 
 This document outlines the basics of `Oak`, as well as the
 canonical formatting of `Oak` code. Deviation from this
@@ -721,6 +720,17 @@ let long_function_name(long_argument_name_one: i32,
     0
 }
 
+// Also fine:
+let long_function_name(
+    long_argument_name_one: i32,
+    long_argument_name_two: i32,
+    long_argument_name_three: i32,
+    long_argument_name_four: i32
+    ) -> i32
+{
+    0
+}
+
 ```
 
 `Oak` code can technically be written using unicode encoding,
@@ -736,7 +746,7 @@ example, an `Oak` program written in Hindi would experience a
 translation process as follows:
 
 `oak_hindi_dialect.oak -> oak_canonical_dialect.oak`
-` -> cpp_version.cpp -> executable.exe`
+` -> c_version.cpp -> executable.exe`
 
 ## Unicode
 
@@ -840,28 +850,16 @@ dependencies, eliminating any analogy to `pragma once`.
 The `alloc!` and `free!` functions are akin to `C++`'s `new` and
 `delete` keywords, respectively. Alloc requests a memory
 position on the heap with the size of `t`, and free
-correspondingly releases that memory. These two functions are
-only legal in operator alias methods (see below) for memory
-safety. This means that any data allocated on the heap must be
-wrapped in a struct. This allows the "parent" variable to fall
-out of scope, thereby calling its destructor and ensuring some
-memory safety.
-
-`Oak` is not very memory safe. It is more so than `C++`, but
-less than `Rust`. It is the author's opinion that `Rust`'s
-lifetime and ownership policies create countless issues and
-programming "walls" that are only worth it in some scenarios. I
-believe that programmers should hold the responsibility for
-their own memory safety, rather than a compiler, and that belief
-is reflected in `Oak`.
+correspondingly releases that memory. `Oak` is not memory safe,
+in that it does not automatically clean up `alloc!`-ed memory
+like `Java` or `Rust`. In this way it is more similar to `C++`
+or `C`.
 
 Example of `alloc!` and `free!`:
 
 ```rust
 let New<t>(self: ^node<t>) -> void
 {
-    // Legal call to alloc!
-
     // Allocate a single instance on the heap
     alloc!(self.data);
     free!(self.data);
@@ -880,8 +878,6 @@ let Del<t>(self: ^node<t>) -> void
 
 let main() -> i32
 {
-    // ILLEGAL CALL to alloc!
-    
     let i: ^bool;
     alloc!(i);
 }
@@ -1879,7 +1875,7 @@ other side of the interface would have its data destroyed and
 made nonsensical.
 
 ```rust
-// sdl/sdl_interface.cpp
+// sdl/sdl_interface.c
 
 struct sdl_window
 {
@@ -2526,6 +2522,16 @@ are represented by `C++` objects in code).
 The following sections represent a tangled nest of calls, and
 thus it should not be assumed that they are presented in the
 strict order in which they occur.
+
+## Intermediate Language Choice
+
+`acorn` uses `C` as an intermediate representation. This is done
+for the sake of portability, since `C` is very close to a
+universal machine language and `C` compilers have been heavily
+optimized. In early development, `acorn` instead used `C++`, but
+this proved too costly and largely unnecessary. It is plausible
+that `acorn` one day switches to `LLVM IR` instead of `C`, but
+this is not immediately probable and should not be expected.
 
 ## Compiler Frontend and `acorn`
 
@@ -4893,8 +4899,11 @@ be reported as such. Errors without reasons are unacceptable.
 ## Disclaimer
 
 The `Oak` programming language outlined here bears no relation
-nor resemblance to the Java prototype of the same name; I was
-not aware of it until significantly into development.
+nor resemblance to any other programming languages, frameworks
+or prototypes of the same name. Unique names are increasingly
+difficult to find for programming languages. The `Oak`
+referenced here was developed independently from any
+similarly-names items.
 
 ## License
 

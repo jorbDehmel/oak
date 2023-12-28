@@ -43,7 +43,7 @@ install: bin/acorn.out std_oak_header.h
 	sudo mv /usr/include/oak/std/*.sh /usr/include/oak
 
 packages:
-	acorn -S sdl -S experimental/extra
+	acorn -S sdl -S extra
 
 uninstall:
 	sudo rm -rf /usr/bin/acorn /usr/include/oak \

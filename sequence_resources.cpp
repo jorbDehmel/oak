@@ -611,34 +611,10 @@ void addEnum(const vector<string> &FromIn)
         throw parse_error("Malformed enum definition; Expected ';' or '{'.");
     }
 
-    enumData[name].size = 0;
     __enumLookupData &cur = enumData[name];
     string enumTypeStr = name;
-    unsigned long long curSize;
     for (auto optionName : cur.order)
     {
-        // Sizing
-        if (cur.options[optionName][0].info == atomic)
-        {
-            if (structData.count(cur.options[optionName][0].name) != 0)
-            {
-                curSize = structData[cur.options[optionName][0].name].size;
-            }
-            else
-            {
-                curSize = 1;
-            }
-        }
-        else
-        {
-            curSize = sizeof(void *);
-        }
-
-        if (curSize > cur.size)
-        {
-            cur.size = curSize;
-        }
-
         if (cur.options[optionName][0].info == atomic && cur.options[optionName][0].name == "unit")
         {
             // Unit struct; Single argument constructor
@@ -677,8 +653,6 @@ void addEnum(const vector<string> &FromIn)
             table["wrap_" + optionName].push_back(__multiTableSymbol{sequence{}, constructorType, false, curFile});
         }
     }
-
-    cur.size += enumSize;
 
     return;
 }
@@ -855,7 +829,7 @@ void dump(const vector<string> &Lexed, const string &Where, const string &FileNa
 ////////////////////////////////////////////////////////////////
 
 // Get all candidates which match exactly.
-vector<int> getStageOneCandidates(const vector<vector<Type>> &candArgs, const vector<Type> &argTypes)
+vector<int> getExactCandidates(const vector<vector<Type>> &candArgs, const vector<Type> &argTypes)
 {
     vector<int> out;
     bool isMatch;
@@ -891,7 +865,7 @@ vector<int> getStageOneCandidates(const vector<vector<Type>> &candArgs, const ve
 }
 
 // Get all candidates which match with implicit casting.
-vector<int> getStageTwoCandidates(const vector<vector<Type>> &candArgs, const vector<Type> &argTypes)
+vector<int> getCastingCandidates(const vector<vector<Type>> &candArgs, const vector<Type> &argTypes)
 {
     vector<int> out;
     bool isMatch;
@@ -913,43 +887,47 @@ vector<int> getStageTwoCandidates(const vector<vector<Type>> &candArgs, const ve
         isMatch = true;
 
         // Iterate over argument types
+        cur = 0;
         for (int k = 0; k < candArgs[j].size(); k++)
         {
-            cur = 0;
-
-            // Inexact match, rather than exact in the last one
-            // Special case; Internal implicit casting
-            if (candArgs[j][k].size() == 1 && argTypes[k].size() == 1)
+            if (!typesAreSame(&candArgs[j][k], &argTypes[k], cur))
             {
-                string a, b;
-                a = candArgs[j][k][0].name;
-                b = argTypes[k][0].name;
-
-                // Special case 1: Implicit int casting
-                if (a == "u8" || a == "i8" || a == "u16" || a == "i16" || a == "u32" || a == "i32" || a == "u64" ||
-                    a == "i64" || a == "u128" || a == "i128")
+                // Inexact match, rather than exact in the last one
+                // Special case; Internal implicit casting
+                if (candArgs[j][k].size() == 1 && argTypes[k].size() == 1)
                 {
-                    if (b == "u8" || b == "i8" || b == "u16" || b == "i16" || b == "u32" || b == "i32" || b == "u64" ||
-                        b == "i64" || b == "u128" || b == "i128")
+                    string a, b;
+                    a = candArgs[j][k][0].name;
+                    b = argTypes[k][0].name;
+
+                    // Special case 1: Implicit int casting
+                    if (a == "u8" || a == "i8" || a == "u16" || a == "i16" || a == "u32" || a == "i32" || a == "u64" ||
+                        a == "i64" || a == "u128" || a == "i128")
                     {
-                        cur++;
-                        continue;
+                        if (b == "u8" || b == "i8" || b == "u16" || b == "i16" || b == "u32" || b == "i32" ||
+                            b == "u64" || b == "i64" || b == "u128" || b == "i128")
+                        {
+                            cur++;
+                            continue;
+                        }
+                    }
+
+                    // Special case 2: Implicit float casting
+                    else if (a == "f32" || a == "f64" || a == "f128")
+                    {
+                        if (b == "f32" || b == "f64" || b == "f128")
+                        {
+                            cur++;
+                            continue;
+                        }
                     }
                 }
-
-                // Special case 2: Implicit float casting
-                else if (a == "f32" || a == "f64" || a == "f128")
+                else
                 {
-                    if (b == "f32" || b == "f64" || b == "f128")
-                    {
-                        cur++;
-                        continue;
-                    }
+                    isMatch = false;
+                    break;
                 }
             }
-
-            isMatch = false;
-            break;
         }
 
         if (isMatch)
@@ -984,7 +962,7 @@ vector<int> getStageTwoCandidates(const vector<vector<Type>> &candArgs, const ve
 
 // Get all candidates which match with auto referencing and/or
 // dereferencing.
-vector<int> getStageThreeCandidates(const vector<vector<Type>> &candArgs, const vector<Type> &argTypes)
+vector<int> getReferenceCandidates(const vector<vector<Type>> &candArgs, const vector<Type> &argTypes)
 {
     vector<int> out;
     bool isMatch;
@@ -1043,6 +1021,8 @@ vector<int> getStageThreeCandidates(const vector<vector<Type>> &candArgs, const 
     return out;
 }
 
+////////////////////////////////////////////////////////////////
+
 // Prints the reason why each candidate was rejected
 void printCandidateErrors(const vector<__multiTableSymbol> &candidates, const vector<Type> &argTypes,
                           const string &name)
@@ -1072,9 +1052,9 @@ void printCandidateErrors(const vector<__multiTableSymbol> &candidates, const ve
         }
     }
 
-    auto s1 = getStageOneCandidates(candArgs, argTypes);
-    auto s2 = getStageTwoCandidates(candArgs, argTypes);
-    auto s3 = getStageThreeCandidates(candArgs, argTypes);
+    auto s1 = getExactCandidates(candArgs, argTypes);
+    auto s2 = getCastingCandidates(candArgs, argTypes);
+    auto s3 = getReferenceCandidates(candArgs, argTypes);
 
     cout << "Passed s1: " << s1.size() << '\n'
          << "Passed s2: " << s2.size() << '\n'

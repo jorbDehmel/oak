@@ -223,47 +223,6 @@ void Type::pop_back()
     return;
 }
 
-unsigned long long typeSize(const Type &what, const unsigned int &startingAt)
-{
-    unsigned long long multiplier = 1;
-    unsigned long long out = 0;
-
-    for (int i = startingAt; i < what.size(); i++)
-    {
-        if (what[i].info == sarr)
-        {
-            // Change multiplier
-            multiplier *= stoi(what[i].name);
-        }
-        else if (what[i].info == atomic)
-        {
-            // Known size
-            if (atomics.count(what[i].name) != 0)
-            {
-                out = atomics[what[i].name];
-            }
-            else if (structData.count(what[i].name) != 0)
-            {
-                out = structData[what[i].name].size;
-            }
-            else
-            {
-                throw sequencing_error("Atomic '" + what[i].name + "' cannot be sized.");
-            }
-
-            break;
-        }
-        else
-        {
-            // Treat as pointer
-            out = sizeof(void *);
-            break;
-        }
-    }
-
-    return multiplier * out;
-}
-
 // Ignores all var_names
 // As of 0.0.21, can also do automatic referencing
 // of arguments

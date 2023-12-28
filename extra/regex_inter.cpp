@@ -1,8 +1,6 @@
-#include <boost/regex.hpp>
-#include <string>
-
 #include "oak/std/string.c"
 #include "oak/std_oak_header.h"
+#include <boost/regex.hpp>
 
 struct regex
 {

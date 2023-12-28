@@ -8,7 +8,7 @@ link!("std/panic_inter.o");
 
 let internal_panic() -> void;
 
-let panic!(argc: i32, argv: ^^i8) -> i32
+let panic!(argc: i32, argv: [][]i8) -> i32
 {
     include!(
         "std/io_inter.oak",
@@ -40,7 +40,7 @@ let panic!(argc: i32, argv: ^^i8) -> i32
     0
 }
 
-let assert!(argc: i32, argv: ^^i8) -> i32
+let assert!(argc: i32, argv: [][]i8) -> i32
 {
     include!(
         "std/io_inter.oak",

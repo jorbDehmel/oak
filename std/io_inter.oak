@@ -11,10 +11,10 @@ link!("std/io_inter.o");
 
 // Print to cout
 let print(what: str) -> void;
+let print(what: []i8) -> void;
+
 let print(what: i32) -> void;
 let print(what: f64) -> void;
-let print(what: ^i8) -> void;
-let print(what: []i8) -> void;
 
 // Print a char to cout
 let print(what: i8) -> void;

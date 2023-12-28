@@ -82,7 +82,6 @@ struct __structLookupData
 {
     map<string, Type> members;
     vector<string> order;
-    unsigned long long size;
 
     bool erased = false;
 };
@@ -92,9 +91,6 @@ extern vector<string> structOrder;
 
 // Return the standard C / C++ representation of this type
 string toStr(const Type *const What, const unsigned int &pos = 0);
-
-// Get size of type
-unsigned long long typeSize(const Type &what, const unsigned int &startingAt = 0);
 
 // Ignores all var_names, plus auto-ref/deref
 bool typesAreSame(const Type *const A, const Type *const B, int &changes);

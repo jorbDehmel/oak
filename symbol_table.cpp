@@ -377,18 +377,6 @@ void addStruct(const vector<string> &FromIn)
         throw parse_error("Malformed struct definition; Expected ';' or '{'.");
     }
 
-    // Determine struct size
-    structData[name].size = 0;
-    for (const string &memberName : structData[name].order)
-    {
-        structData[name].size += typeSize(structData[name].members[memberName]);
-    }
-
-    if (structData[name].size == 0)
-    {
-        structData[name].size = 1;
-    }
-
     return;
 }
 

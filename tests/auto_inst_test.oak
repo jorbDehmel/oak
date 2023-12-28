@@ -1,0 +1,38 @@
+/*
+Attempts to test auto-template-instantiation in Oak.
+
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+package!("std");
+include!("extra/bit_print.oak");
+include!("std/opt.oak");
+use_rule!("std");
+
+let test<t>: struct
+{
+    data: [8]t,
+}
+
+let main() -> i32
+{
+    // Auto-instantiation for structs (works fine)
+    let t: test<i32>;
+
+    // Auto-instantiation for enums (works fine)
+    let o: opt<i32>;
+    
+    // Auto-instantiation for functions (does not work)
+
+    // We want to make lines like these unnecessary:
+    hex_dump<opt<i32>>(_: ^opt<i32>);
+
+    o.wrap_none();
+    hex_dump(o);
+
+    o.wrap_some(255 << 8);
+    hex_dump(o);
+
+    0
+}

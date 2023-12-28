@@ -95,15 +95,15 @@ string getMemberDel(const string &selfName, const string &varName, const Type &v
 // list of lists of argument Types. the 0th item in candArgs is
 // a vector of the types of the arguments of the 0th candidate.
 // argTypes is a vector of the types provided
-vector<int> getStageOneCandidates(const vector<vector<Type>> &candArgs, const vector<Type> &argTypes);
+vector<int> getExactCandidates(const vector<vector<Type>> &candArgs, const vector<Type> &argTypes);
 
 // Get all candidates which match with implicit casting. Works
 // as above.
-vector<int> getStageTwoCandidates(const vector<vector<Type>> &candArgs, const vector<Type> &argTypes);
+vector<int> getCastingCandidates(const vector<vector<Type>> &candArgs, const vector<Type> &argTypes);
 
 // Get all candidates which match with auto referencing and/or
 // dereferencing. Works as above.
-vector<int> getStageThreeCandidates(const vector<vector<Type>> &candArgs, const vector<Type> &argTypes);
+vector<int> getReferenceCandidates(const vector<vector<Type>> &candArgs, const vector<Type> &argTypes);
 
 // Prints the reason why each candidate was rejected
 void printCandidateErrors(const vector<__multiTableSymbol> &candidates, const vector<Type> &argTypes,

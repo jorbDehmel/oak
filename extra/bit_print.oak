@@ -1,9 +1,45 @@
+/*
+Bit print resources for Oak. Includes bit print, hex print,
+ascii char print, and hex dump (and corresponding ln versions of
+the first two).
+
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+include!("std/io.oak");
 link!("extra/bit_print.o");
+
+////////////////////////////////////////////////////////////////
 
 let bit_print_internal(what: ^void, size: u128) -> void;
 let hex_print_internal(what: ^void, size: u128) -> void;
 let char_print_internal(what: ^void, size: u128) -> void;
 let hex_dump_internal(what: ^void, size: u128) -> void;
+
+////////////////////////////////////////////////////////////////
+
+let bit_println<t>(what: ^t) -> void
+{
+    bit_print(what);
+    endl();
+}
+pre
+{
+    bit_print<t>(_: ^t);
+}
+
+let hex_println<t>(what: ^t) -> void
+{
+    hex_print(what);
+    endl();
+}
+pre
+{
+    hex_print<t>(_: ^t);
+}
+
+////////////////////////////////////////////////////////////////
 
 let bit_print<t>(what: ^t) -> void
 {
@@ -36,6 +72,7 @@ let char_print<t>(what: ^t) -> void
     size = size!(^what);
 
     char_print_internal(ptr, size);
+    endl();
 }
 
 let hex_dump<t>(what: ^t) -> void
@@ -47,5 +84,7 @@ let hex_dump<t>(what: ^t) -> void
     size = size!(^what);
 
     hex_dump_internal(ptr, size);
+    endl();
 }
 
+////////////////////////////////////////////////////////////////

@@ -11,9 +11,6 @@ GPLv3 held by author
 #include "symbol_table.hpp"
 #include "tags.hpp"
 
-// Activates "dirty" mode, where mem alloc and free are allowed
-bool insideMethod = false;
-
 vector<string> curLineSymbols;
 
 unsigned long long int curLine = 1;
@@ -301,8 +298,6 @@ sequence __createSequence(list<string> &From)
         // Memory Keywords
         else if (From.front() == "alloc!")
         {
-            sm_assert(insideMethod, "Memory cannot be allocated outside of an operator-alias method.");
-
             int count = 0;
             sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
             From.pop_front();
@@ -366,8 +361,6 @@ sequence __createSequence(list<string> &From)
         }
         else if (From.front() == "free!")
         {
-            sm_assert(insideMethod, "Memory cannot be deleted outside of an operator-alias method.");
-
             int count = 0;
             sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
             From.pop_front();
@@ -1081,16 +1074,6 @@ sequence __createSequence(list<string> &From)
                     table[p.first].push_back(__multiTableSymbol{sequence(), p.second, false, curFile});
                 }
 
-                bool isMethod = false;
-                for (char c : name)
-                {
-                    if ('A' <= c && c <= 'Z')
-                    {
-                        isMethod = true;
-                        break;
-                    }
-                }
-
                 bool isSingleArg = true;
                 for (int ptr = 0; ptr < type.size(); ptr++)
                 {
@@ -1117,9 +1100,6 @@ sequence __createSequence(list<string> &From)
                                             "' must have exactly one argument.");
                     }
                 }
-
-                bool oldSafeness = insideMethod;
-                insideMethod = isMethod;
 
                 // Insert explicit symbol
                 if (From.size() > 0 && From.front() == "{")
@@ -1217,8 +1197,6 @@ sequence __createSequence(list<string> &From)
                     // Ensure exactly one unit declaration
                     table[name].push_back(__multiTableSymbol{sequence{}, type, false, curFile});
                 }
-
-                insideMethod = oldSafeness;
 
                 restoreSymbolTable(oldTable);
             }
@@ -1770,7 +1748,9 @@ Type resolveFunctionInternal(const vector<string> &What, int &start, vector<stri
         Type type = resolveFunction(toAnalyze, pos, junk);
 
         // Append size
-        c.push_back(to_string(typeSize(type)));
+        c.push_back("sizeof(");
+        c.push_back(toStrC(&type));
+        c.push_back(")");
 
         return Type(atomic, "u128");
     }
@@ -1939,15 +1919,16 @@ Type resolveFunctionInternal(const vector<string> &What, int &start, vector<stri
             vector<int> validCandidates;
 
             // Do stages of candidacy
-            validCandidates = getStageOneCandidates(candArgs, argTypes);
+            validCandidates = getExactCandidates(candArgs, argTypes);
 
             if (validCandidates.size() == 0)
             {
-                validCandidates = getStageThreeCandidates(candArgs, argTypes);
+                validCandidates = getReferenceCandidates(candArgs, argTypes);
 
                 if (validCandidates.size() != 1)
                 {
-                    validCandidates = getStageTwoCandidates(candArgs, argTypes);
+                    // This also does references
+                    validCandidates = getCastingCandidates(candArgs, argTypes);
                 }
             }
             else if (validCandidates.size() > 1)
@@ -2030,6 +2011,24 @@ Type resolveFunctionInternal(const vector<string> &What, int &start, vector<stri
                     numDeref--;
                 }
 
+                // If arg is str and cand is i8
+                if (argCursor < argTypes[j].size() && argTypes[j][argCursor].info == atomic &&
+                    argTypes[j][argCursor].name == "str" && candCursor < candArgs[j].second.size() &&
+                    candArgs[j].second[candCursor].info == atomic && candArgs[j].second[candCursor].name == "i8")
+                {
+                    argCursor++;
+                    numDeref++;
+                }
+
+                // Else if arg is i8 and cand is str
+                else if (argCursor < argTypes[j].size() && argTypes[j][argCursor].info == atomic &&
+                         argTypes[j][argCursor].name == "i8" && candCursor < candArgs[j].second.size() &&
+                         candArgs[j].second[candCursor].info == atomic && candArgs[j].second[candCursor].name == "str")
+                {
+                    candCursor++;
+                    numDeref--;
+                }
+
                 if (numDeref > 0)
                 {
                     for (int k = 0; k < numDeref; k++)
@@ -2039,10 +2038,7 @@ Type resolveFunctionInternal(const vector<string> &What, int &start, vector<stri
                 }
                 else if (numDeref == -1)
                 {
-                    for (int k = 0; k < -numDeref; k++)
-                    {
-                        c.push_back("&");
-                    }
+                    c.push_back("&");
                 }
                 else if (numDeref != 0)
                 {

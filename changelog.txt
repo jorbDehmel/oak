@@ -4,6 +4,12 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.4.2           | 12/28/23 | Fixed bugs with sizing due to C
+                |          | compiler's unknowable member
+                |          | padding. Removed redundant print
+                |          | candidates in io.oak. Various other
+                |          | bug fixes.
+                |          |
 0.4.1           | 12/28/23 | Added some extra functions to extra
                 |          | bit print file.
                 |          |

@@ -14,7 +14,7 @@ include!("extra/bit_print.oak");
 
 let secret: struct
 {
-    id: u128,
+    id: u8,
     name: [16]i8,
 }
 
@@ -26,10 +26,8 @@ let main() -> i32
     hex_dump<secret>(_: ^secret);
 
     let s: secret;
-    strcpy(s.name, "Hi!");
-
-    print(s.name);
-    endl();
+    strcpy(s.name, "Hi! How are you?");
+    s.id = 0x12
 
     erase!("secret");
 

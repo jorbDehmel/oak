@@ -234,10 +234,12 @@ void doFile(const string &From)
 
         for (int i = 1; i + 1 < lexed.size(); i++)
         {
-            if (lexed[i] != "!" && lexed[i].back() == '!' && lexed[i - 1] == "let")
+            if (lexed[i].back() == '!' && lexed[i] != "!" && lexed[i - 1] == "let")
             {
                 if (lexed[i + 1] != "=")
                 {
+                    // Full macro
+
                     string name, contents;
                     name = lexed[i];
 
@@ -251,7 +253,7 @@ void doFile(const string &From)
                         throw sequencing_error("Macro '" + name + "' cannot be overridden.");
                     }
 
-                    contents = "let main(argc: i32, argv: ^^i8) -> i32 ";
+                    contents = "let main";
 
                     i--;
                     lexed.erase(lexed.begin() + i); // Let
@@ -259,41 +261,35 @@ void doFile(const string &From)
 
                     while (lexed.size() >= i && lexed[i] != "{" && lexed[i] != ";")
                     {
+                        contents += " " + lexed[i];
                         lexed.erase(lexed.begin() + i);
                     }
 
-                    if (lexed[i] == ";")
-                    {
-                        contents += "{ 0 }";
-                    }
-                    else
-                    {
-                        int count = 1;
-                        lexed.erase(lexed.begin() + i);
-                        contents += "\n{";
+                    int count = 1;
+                    lexed.erase(lexed.begin() + i);
+                    contents += "\n{";
 
-                        while (count != 0)
+                    while (count != 0)
+                    {
+                        if (lexed[i] == "{")
                         {
-                            if (lexed[i] == "{")
-                            {
-                                count++;
-                            }
-                            else if (lexed[i] == "}")
-                            {
-                                count--;
-                            }
-
-                            if (lexed[i].size() < 2 || lexed[i].substr(0, 2) != "//")
-                            {
-                                contents += " " + lexed[i];
-                            }
-                            else
-                            {
-                                contents += "\n";
-                            }
-
-                            lexed.erase(lexed.begin() + i);
+                            count++;
                         }
+                        else if (lexed[i] == "}")
+                        {
+                            count--;
+                        }
+
+                        if (lexed[i].size() < 2 || lexed[i].substr(0, 2) != "//")
+                        {
+                            contents += " " + lexed[i];
+                        }
+                        else
+                        {
+                            contents += "\n";
+                        }
+
+                        lexed.erase(lexed.begin() + i);
                     }
 
                     macros[name] = contents;
