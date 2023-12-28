@@ -1,0 +1,37 @@
+package!("std");
+use_rule!("std");
+include!("std/cmp.oak");
+
+let compare(l: i32, r: i32) -> cmp
+{
+    let out: cmp;
+    out = to_i8(l - r);
+    out
+}
+
+let print(what: cmp) -> void
+{
+    if (what.less())
+    {
+        print("less");
+    }
+    else if (what.eq())
+    {
+        print("eq");
+    }
+    else
+    {
+        print("great")
+    }
+}
+
+let main() -> i32
+{
+    let result: cmp;
+    result = compare(0, 1);
+
+    print(result);
+    endl();
+
+    0
+}

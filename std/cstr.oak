@@ -1,0 +1,30 @@
+link!("std/cstr.o");
+
+////////////////////////////////////////////////////////////////
+
+let strlen(what: []i8) -> u128;
+let strlen(what: str) -> u128;
+
+////////////////////////////////////////////////////////////////
+
+let strcpy(to: []i8, from: []i8) -> void;
+let strncpy(to: []i8, from: []i8, n: u128) -> void;
+
+let strcpy(to: []i8, from: str) -> void;
+let strncpy(to: []i8, from: str, n: u128) -> void;
+
+////////////////////////////////////////////////////////////////
+
+let strcmp(l: []i8, r: []i8) -> i32;
+let strncmp(l: []i8, r: []i8, n: u128) -> i32;
+
+let strcmp(l: []i8, r: str) -> i32;
+let strncmp(l: []i8, r: str, n: u128) -> i32;
+
+let strcmp(l: str, r: []i8) -> i32;
+let strncmp(l: str, r: []i8, n: u128) -> i32;
+
+let strcmp(l: str, r: str) -> i32;
+let strncmp(l: str, r: str, n: u128) -> i32;
+
+////////////////////////////////////////////////////////////////

@@ -1,0 +1,64 @@
+/*
+Analogous to the result of strcmp.
+
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+include!("std/unit.oak");
+
+let cmp: struct
+{
+    data: i8,
+}
+
+let Copy(self: ^cmp, from: i8) -> void
+{
+    if (from == 0)
+    {
+        self.data = 0;
+    }
+    else if (from < 0)
+    {
+        self.data = -1;
+    }
+    else
+    {
+        self.data = 1;
+    }
+}
+
+let Copy(self: ^cmp, other: cmp) -> void
+{
+    self.data = other.data;
+}
+
+let eq(self: ^cmp) -> bool
+{
+    return self.data == 0;
+}
+
+let neq(self: ^cmp) -> bool
+{
+    return self.data != 0;
+}
+
+let less(self: ^cmp) -> bool
+{
+    return self.data == -1;
+}
+
+let leq(self: ^cmp) -> bool
+{
+    return self.data <= 0;
+}
+
+let great(self: ^cmp) -> bool
+{
+    return self.data == 1;
+}
+
+let greq(self: ^cmp) -> bool
+{
+    return self.data >= 0;
+}

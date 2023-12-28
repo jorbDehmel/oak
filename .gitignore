@@ -7,7 +7,7 @@ old/
 *.out
 *.o
 *.log
-a.md
+a.*
 hi.txt
 vgcore.*
 *.pdf

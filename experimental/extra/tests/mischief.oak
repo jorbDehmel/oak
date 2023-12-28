@@ -1,0 +1,61 @@
+/*
+Abusing pointer casting to demonstrate that private members are
+dumb. This is why Oak has only a weak erasure system.
+
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+package!("std");
+use_rule!("std");
+
+include!("std/cstr.oak");
+include!("extra/bit_print.oak");
+
+let secret: struct
+{
+    id: u128,
+    name: [16]i8,
+}
+
+let main() -> i32
+{
+    bit_print<secret>(_: ^secret);
+    hex_print<secret>(_: ^secret);
+    char_print<secret>(_: ^secret);
+    hex_dump<secret>(_: ^secret);
+
+    let s: secret;
+    strcpy(s.name, "Hi!");
+
+    print(s.name);
+    endl();
+
+    erase!("secret");
+
+    // This is now illegal (uncomment it and see):
+    // print(s.name);
+    // endl();
+
+    // But these aren't!
+    bit_print(s);
+    endl();
+    hex_print(s);
+    endl();
+
+    char_print(s);
+    endl();
+    hex_dump(s);
+    endl();
+
+    /*
+    Even if it were illegal to call ptrcpy! on erased types,
+    you could embed one as a member in another struct and
+    ptrcpy! that. One solution would be to make all structs
+    with erased members inaccessible, but that would lead to
+    more issues than it would solve. Thus, Oak has only weak
+    erasure.
+    */
+
+    0
+}

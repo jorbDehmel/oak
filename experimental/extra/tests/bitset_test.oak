@@ -25,19 +25,18 @@ let println(what: bool) -> void
 
 let main() -> i32
 {
-    bitset<64>;
-
     let b: bitset<64>;
+    println<bitset<64>>(_: bitset<64>);
 
     let c = b.Get(to_u128(0));
     let res = c.unwrap();
-    println(res);
+    println(b);
 
     b.flip(to_u128(0));
 
     c = b.Get(to_u128(0));
     res = c.unwrap();
-    println(res);
+    println(b);
 
     b.clear(to_u128(0));
 

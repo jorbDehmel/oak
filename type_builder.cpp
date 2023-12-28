@@ -300,7 +300,9 @@ bool typesAreSame(const Type *const A, const Type *const B, int &changes)
             break;
         }
 
-        if (A->internal[left].info != B->internal[right].info)
+        if (A->internal[left].info != B->internal[right].info &&
+            !(A->internal[left].info == sarr && B->internal[right].info == arr) &&
+            !(A->internal[left].info == arr && B->internal[right].info == sarr))
         {
             // Failure
             return false;
@@ -345,7 +347,9 @@ bool typesAreSameExact(const Type *const A, const Type *const B)
             break;
         }
 
-        if (A->internal[left].info != B->internal[right].info)
+        if (A->internal[left].info != B->internal[right].info &&
+            !(A->internal[left].info == sarr && B->internal[right].info == arr) &&
+            !(A->internal[left].info == arr && B->internal[right].info == sarr))
         {
             // Failure
             return false;

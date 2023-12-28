@@ -17,6 +17,12 @@ void print_FN_str_MAPS_void(str what)
     return;
 }
 
+void print_FN_ARR_i8_MAPS_void(i8 what[])
+{
+    printf("%s", what);
+    return;
+}
+
 void print_FN_i32_MAPS_void(i32 what)
 {
     printf("%d", what);
