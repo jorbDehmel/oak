@@ -56,7 +56,7 @@ Remaining options:
 
 const string helpText = "Acorn - Oak Standard Translator\n"
                         "For the Oak programming language\n"
-                        "Translates .oak files to .cpp.\n\n"
+                        "Translates and compiles .oak files\n\n"
                         "Option | Verbose     | Purpose\n"
                         "-------|-------------|-------------------------------\n"
                         " -a    |             | Update acorn\n"

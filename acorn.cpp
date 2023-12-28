@@ -89,6 +89,7 @@ int main(const int argc, const char *argv[])
                     if (cur == "--help")
                     {
                         cout << helpText << '\n'
+                             << "All Oak data can be found at: " << OAK_DIR_PATH << '\n'
                              << "Version: " << VERSION << '\n'
                              << "License: " << LICENSE << '\n'
                              << INFO << '\n';
@@ -332,6 +333,7 @@ int main(const int argc, const char *argv[])
                             break;
                         case 'h':
                             cout << helpText << '\n'
+                                 << "All Oak data can be found at: " << OAK_DIR_PATH << '\n'
                                  << "Version: " << VERSION << '\n'
                                  << "License: " << LICENSE << '\n'
                                  << INFO << '\n';
