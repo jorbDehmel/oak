@@ -50,9 +50,7 @@ class sequencing_error : public runtime_error
 
 // Sequence message assert
 #define sm_assert(expression, message)                                                                                 \
-    ((bool)(expression) ? true                                                                                         \
-                        : throw sequencing_error(string(message) + " (Failed assertion: '" #expression "') " +         \
-                                                 string(strrchr("/" __FILE__, '/') + 1) + " " + to_string(__LINE__)))
+    ((bool)(expression) ? true : throw sequencing_error(string(message) + " (Failed assertion: '" #expression "')"))
 
 // Turn a .oak sequence into a .cpp one
 string toC(const sequence &What);

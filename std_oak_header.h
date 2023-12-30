@@ -7,7 +7,6 @@ This header protected by the GPLv3.
 #ifndef OAK_HEAD
 #define OAK_HEAD
 
-#include <assert.h>
 #include <memory.h>
 #include <stdbool.h>
 #include <stdint.h>

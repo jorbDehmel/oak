@@ -22,10 +22,7 @@ Lexes files into tokens to be handled by the compiler.
 using namespace std;
 
 // An assertion which throws a runtime error instead of breaking everything
-#define throw_assert(expression)                                                                                       \
-    ((bool)(expression)                                                                                                \
-         ? true                                                                                                        \
-         : throw runtime_error(__FILE__ ": " + to_string(__LINE__) + " Assertion " #expression " failed."))
+#define throw_assert(expression) ((bool)(expression) ? true : throw runtime_error("Assertion " #expression " failed."))
 
 // If an empty symbol is printed, it is a newline literal
 vector<string> lex(const string &What);

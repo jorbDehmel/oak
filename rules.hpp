@@ -33,9 +33,7 @@ class rule_error : public runtime_error
 
 // Rule message assert
 #define rm_assert(expression, message)                                                                                 \
-    ((bool)(expression) ? true                                                                                         \
-                        : throw rule_error(message " (Failed assertion: '" #expression "') " +                         \
-                                           string(strrchr("/" __FILE__, '/') + 1) + " " + to_string(__LINE__)))
+    ((bool)(expression) ? true : throw rule_error(message " (Failed assertion: '" #expression "')"))
 
 struct rule
 {

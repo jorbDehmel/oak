@@ -61,9 +61,7 @@ class package_error : public runtime_error
 };
 
 #define pm_assert(expression, message)                                                                                 \
-    ((bool)(expression) ? true                                                                                         \
-                        : throw package_error(message " (Failed assertion: '" #expression "') " +                      \
-                                              string(strrchr("/" __FILE__, '/') + 1) + " " + to_string(__LINE__)))
+    ((bool)(expression) ? true : throw package_error(message " (Failed assertion: '" #expression "')"))
 
 extern map<string, packageInfo> packages;
 
