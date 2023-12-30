@@ -916,7 +916,7 @@ Will, upon translation to `C`, become
 // Note how the new "mangled" function name contains the entire type
 // Argument types are separated by JOIN, and the argument section ends
 // with MAPS, followed by the return type.
-data_structure foo_bar_FN_PTR_data_structure_JOIN_data_JOIN_PTR_PTR_data_MAPS_data_structure(data_struct *self, data what, data **hello);
+struct data_structure foo_bar_FN_PTR_data_structure_JOIN_data_JOIN_PTR_PTR_data_MAPS_data_structure(struct data_structure *self, struct data what, struct data **hello);
 
 void hello_world_FN_MAPS_void(void);
 

@@ -6,7 +6,7 @@ github.com/jorbDehmel
 GPLv3 held by author
 
 Heap operations for Oak
-To be called by sequencing when in dirty mode
+To be called by sequencing
 */
 
 #ifndef MEM_HPP

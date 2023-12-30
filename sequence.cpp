@@ -438,8 +438,8 @@ sequence __createSequence(list<string> &From)
 
             sm_assert(lhsSeq.type[0].info == pointer || lhsSeq.type[0].info == arr,
                       "First argument of ptrcpy! must be pointer or unsized array.");
-            sm_assert(rhsSeq.type[0].info == pointer || rhsSeq.raw == "0",
-                      "Second argument of ptrcpy! must be a pointer or 0.");
+            sm_assert(rhsSeq.type[0].info == pointer || rhsSeq.type[0].info == arr || rhsSeq.raw == "0",
+                      "Second argument of ptrcpy! must be a pointer, unsized array, or 0.");
 
             out.info = code_line;
             out.type = nullType;
