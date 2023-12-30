@@ -321,8 +321,9 @@ string instantiateGeneric(const string &what, const vector<vector<string>> &gene
         didInstantiate = true;
     }
 
-    // Existing function check
-    else if (typeIsPrefixOfAny(toType(typeVec), table[what]))
+    // Existing function check (ignores New and Del because they
+    // are usually autogen)
+    else if (what != "New" && what != "Del" && typeIsPrefixOfAny(toType(typeVec), table[what]))
     {
         didInstantiate = true;
     }
