@@ -8,7 +8,7 @@ provided during linking for cross-language
 compilation.
 */
 
-#include "oak/std_oak_header.h"
+#include "/usr/include/oak/std_oak_header.h"
 #include <stdio.h>
 
 void print_FN_str_MAPS_void(str what)

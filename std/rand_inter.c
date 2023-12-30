@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "oak/std_oak_header.h"
+#include "/usr/include/oak/std_oak_header.h"
 
 i32 rand_FN_i32_JOIN_i32_MAPS_i32(i32 low, i32 high)
 {

@@ -7,7 +7,7 @@ For .o linking w/ Acorn STD package
 Abandon all hope, ye who enter here
 */
 
-#include "oak/std_oak_header.h"
+#include "/usr/include/oak/std_oak_header.h"
 
 // u8
 u8 Add_FN_u8_JOIN_u8_MAPS_u8(u8 self, u8 other)

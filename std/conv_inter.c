@@ -5,7 +5,7 @@ jdehmel@outlook.com
 For .o linking w/ Acorn STD package
 */
 
-#include "oak/std_oak_header.h"
+#include "/usr/include/oak/std_oak_header.h"
 
 i32 s_to_i_FN_str_MAPS_i32(str what)
 {

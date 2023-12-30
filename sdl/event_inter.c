@@ -1,4 +1,4 @@
-#include "oak/std_oak_header.h"
+#include "/usr/include/oak/std_oak_header.h"
 #include "keys.h"
 #include <SDL2/SDL.h>
 

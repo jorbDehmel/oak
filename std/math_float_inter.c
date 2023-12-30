@@ -5,7 +5,7 @@ jdehmel@outlook.com
 For .o linking w/ Acorn STD package
 */
 
-#include "oak/std_oak_header.h"
+#include "/usr/include/oak/std_oak_header.h"
 
 // Floats
 f32 Add_FN_f32_JOIN_f32_MAPS_f32(f32 self, f32 other)

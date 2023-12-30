@@ -5,7 +5,7 @@ jdehmel@outlook.com
 For .o linking w/ Acorn STD package
 */
 
-#include "oak/std_oak_header.h"
+#include "/usr/include/oak/std_oak_header.h"
 
 void New_FN_PTR_bool_MAPS_void(bool *self)
 {

@@ -1,4 +1,4 @@
-#include "oak/std_oak_header.h"
+#include "/usr/include/oak/std_oak_header.h"
 #include <pthread.h>
 
 struct thread

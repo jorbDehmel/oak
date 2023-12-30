@@ -6,7 +6,7 @@ Interfacial file for Oak communication with C++'s
 fstream library.
 */
 
-#include "oak/std_oak_header.h"
+#include "/usr/include/oak/std_oak_header.h"
 #include <stdio.h>
 
 struct string

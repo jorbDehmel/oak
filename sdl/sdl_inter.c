@@ -1,4 +1,4 @@
-#include "oak/std_oak_header.h"
+#include "/usr/include/oak/std_oak_header.h"
 #include <SDL2/SDL.h>
 
 struct sdl_window

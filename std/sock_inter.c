@@ -12,7 +12,7 @@ jdehmel@outlook.com
 
 #include <stdio.h>
 
-#include "oak/std_oak_header.h"
+#include "/usr/include/oak/std_oak_header.h"
 
 struct string
 {

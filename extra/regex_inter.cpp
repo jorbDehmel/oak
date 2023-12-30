@@ -1,5 +1,5 @@
-#include "oak/std/string.c"
-#include "oak/std_oak_header.h"
+#include "/usr/include/oak/std/string.c"
+#include "/usr/include/oak/std_oak_header.h"
 #include <boost/regex.hpp>
 
 struct regex
