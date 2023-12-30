@@ -53,19 +53,17 @@ ostream &operator<<(ostream &strm, const packageInfo &info)
 void install(const string &What)
 {
     static string installCommand = "";
+    string line;
 
     if (installCommand == "")
     {
         // Get os-release info
-        system("cat /etc/os-release | grep ^ID= > temp.txt");
-        string line;
+        system("cat /etc/os-release | grep ^ID= > .oak_build/temp.txt");
 
-        ifstream osName("temp.txt");
+        ifstream osName(".oak_build/temp.txt");
         pm_assert(osName.is_open(), "Failed to poll OS name");
         getline(osName, line);
         osName.close();
-
-        system("rm temp.txt");
 
         if (line.substr(0, 3) == "ID=")
         {
@@ -89,15 +87,47 @@ void install(const string &What)
         {
             installCommand = "sudo dnf install ";
         }
-
-        pm_assert(installCommand != "", "Could not determine package manager. Unknown distro '" + line + "'.");
     }
 
-    string command = installCommand + What;
-    cout << command << '\n';
+    int result = -1;
+    while (result != 0)
+    {
+        if (installCommand == "")
+        {
+            cout << tags::yellow_bold
+                 << "Local Linux installation command could not be automatically detected\n"
+                    "for distribution '"
+                 << line << "' during installation of packages '" << What
+                 << "'\n"
+                    "Please enter a command prefix which will install all packages\n"
+                    "which follow it (for example, in Ubuntu: `sudo apt-get install`).\n"
+                    "To manually install these instead, enter 'MANUAL'.\n"
+                 << "Command: " << tags::reset;
 
-    int result = system(command.c_str());
-    pm_assert(result == 0, "Failed to install dep package(s).");
+            getline(cin, installCommand);
+            if (installCommand == "MANUAL")
+            {
+                cout << tags::yellow_bold << "Skipping automatic installation. Be sure to manually install\n"
+                     << "package(s) '" << What << "' or things may break!\n"
+                     << tags::reset << flush;
+                break;
+            }
+        }
+
+        string command = installCommand + " " + What;
+        cout << command << '\n';
+
+        result = system(command.c_str());
+
+        if (result != 0)
+        {
+            cout << tags::red_bold << "Command `" << command << "` failed. Please check your install command.\n"
+                 << "Note: If this is persistant, enter 'MANUAL' to skip this step. However, be\n"
+                 << "sure to install the requested package(s) ('" << What << "') manually.\n"
+                 << tags::reset;
+            installCommand = "";
+        }
+    }
 
     return;
 }

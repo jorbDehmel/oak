@@ -1,0 +1,31 @@
+/*
+A test of generic overrides in Oak. Helps with template
+viability checks in pre blocks greatly.
+
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+package!("std");
+use_rule!("std");
+
+let foobar<t>(what: t) -> void
+{
+    print("Hello from template!\n");
+}
+
+let foobar(what: i32) -> void
+{
+    print("Hello from NOT template.\n");
+}
+
+let main() -> i32
+{
+    foobar<i32>(_: i32);
+    foobar<bool>(_: bool);
+
+    foobar(5);
+    foobar(true);
+
+    0
+}

@@ -6,6 +6,8 @@ Jordan Dehmel, 2023
 */
 
 #include "generics.hpp"
+#include "symbol_table.hpp"
+#include "type_builder.hpp"
 
 // External definition of createSequence, defined in sequence.cpp
 // This avoids circular dependencies
@@ -117,6 +119,52 @@ bool checkTypeVec(const vector<string> &candidateTypeVec, const vector<string> &
     }
 
     return true;
+}
+
+/*
+Takes a type and a vector of candidates. Returns true if the
+type is a prefix of any of the candidates.
+*/
+bool typeIsPrefixOfAny(const Type &t, const vector<__multiTableSymbol> &candidates)
+{
+    vector<bool> isViable;
+    for (int i = 0; i < candidates.size(); i++)
+    {
+        isViable.push_back(true);
+    }
+
+    // Iterate over items in passed type
+    for (int i = 0; i < t.size(); i++)
+    {
+        // Iterate over candidates
+        for (int candIndex = 0; candIndex < isViable.size(); candIndex++)
+        {
+            if (!isViable[candIndex])
+            {
+                continue;
+            }
+
+            // Do checking here
+            if (candidates[candIndex].type[i].info != var_name && t[i].info != var_name &&
+                !(candidates[candIndex].type[i].info == t[i].info && candidates[candIndex].type[i].name == t[i].name))
+            {
+                isViable[candIndex] = false;
+            }
+        }
+    }
+
+    // Return result
+    // int i = 0;
+    for (const auto candidate : isViable)
+    {
+        if (candidate)
+        {
+            // cout << toStr(&t) << " is a prefix of " << toStr(&candidates[i].type) << '\n';
+            return true;
+        }
+        // i++;
+    }
+    return false;
 }
 
 // Returns true if two instances are the same
@@ -254,25 +302,6 @@ string __instantiateGeneric(const string &what, genericInfo &info, const vector<
 
 string instantiateGeneric(const string &what, const vector<vector<string>> &genericSubs, const vector<string> &typeVec)
 {
-    // Ensure it exists
-    if (generics.count(what) == 0)
-    {
-        cout << tags::red_bold << "During attempt to instantiate template '" << what << "' w/ generics:\n";
-
-        for (auto s : genericSubs)
-        {
-            cout << '\t';
-            for (auto t : s)
-            {
-                cout << t << ' ';
-            }
-            cout << '\n';
-        }
-        cout << tags::reset << '\n';
-
-        throw generic_error("Error! No template exists with which to instantiate template '" + what + "'.");
-    }
-
     // Get mangled version (only meaningful for struct instantiations)
     string oldCurFile = curFile;
     int oldCurLine = curLine;
@@ -281,52 +310,91 @@ string instantiateGeneric(const string &what, const vector<vector<string>> &gene
     vector<string> errors;
 
     bool didInstantiate = false;
-    for (auto &candidate : generics[what])
+
+    // Check for existing symbol that would satisfy this
+    // If such a symbol exists, set didInstantiate to true and
+    // skip candidate checking
+
+    // Existing struct / enum check
+    if (structData.count(mangleStr) != 0)
     {
-        curFile = candidate.originFile;
+        didInstantiate = true;
+    }
 
-        if (checkTypeVec(typeVec, candidate.typeVec, candidate.genericNames, genericSubs))
+    // Existing function check
+    else if (typeIsPrefixOfAny(toType(typeVec), table[what]))
+    {
+        didInstantiate = true;
+    }
+
+    if (!didInstantiate)
+    {
+        // Ensure it exists
+        if (generics.count(what) == 0)
         {
-            bool hasInstance = false;
+            cout << tags::red_bold << "During attempt to instantiate template '" << what << "' w/ generics:\n";
 
-            // Search for existing instance here
-            for (auto instance : candidate.instances)
+            for (auto s : genericSubs)
             {
-                if (checkInstances(instance, genericSubs))
+                cout << '\t';
+                for (auto t : s)
                 {
-                    hasInstance = true;
-                    break;
+                    cout << t << ' ';
                 }
+                cout << '\n';
             }
+            cout << tags::reset << '\n';
 
-            if (!hasInstance)
+            throw generic_error("Error! No template exists with which to instantiate template '" + what + "'.");
+        }
+
+        for (auto &candidate : generics[what])
+        {
+            curFile = candidate.originFile;
+
+            if (checkTypeVec(typeVec, candidate.typeVec, candidate.genericNames, genericSubs))
             {
-                candidate.instances.push_back(genericSubs);
-                string result = __instantiateGeneric(what, candidate, genericSubs);
-                errors.push_back(result);
+                bool hasInstance = false;
 
-                if (result == "")
+                // Search for existing instance here
+                for (auto instance : candidate.instances)
                 {
-                    // Instantiated
-                    didInstantiate = true;
-                    break;
+                    if (checkInstances(instance, genericSubs))
+                    {
+                        hasInstance = true;
+                        break;
+                    }
+                }
+
+                if (!hasInstance)
+                {
+                    candidate.instances.push_back(genericSubs);
+                    string result = __instantiateGeneric(what, candidate, genericSubs);
+                    errors.push_back(result);
+
+                    if (result == "")
+                    {
+                        // Instantiated
+                        didInstantiate = true;
+                        break;
+                    }
+                    else
+                    {
+                        errors.back().append(" (" + curFile + ":" + to_string(curLine) + ")");
+                    }
+
+                    // Else, failed with this template. Not an overall failure.
                 }
                 else
                 {
-                    errors.back().append(" (" + curFile + ":" + to_string(curLine) + ")");
+                    didInstantiate = true;
+                    break;
                 }
-
-                // Else, failed with this template. Not an overall failure.
             }
             else
             {
-                didInstantiate = true;
-                break;
+                errors.push_back("Did not match generic substitution. (" + curFile + ":" + to_string(curLine) + ")");
             }
-        }
-        else
-        {
-            errors.push_back("Did not match generic substitution. (" + curFile + ":" + to_string(curLine) + ")");
         }
     }
 
