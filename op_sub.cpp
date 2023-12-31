@@ -14,8 +14,9 @@ and the ternary must be added via rules, if at all.
 #include "tags.hpp"
 #include "type_builder.hpp"
 
-const static set<string> operators = {"+",  "-",  "/",  "*",  "%", "=", "-=", "+=", "/=", "*=", "%=", "&=", "|=",
-                                      "<<", ">>", "&&", "||", "<", ">", "==", "!=", "<=", ">=", "&",  "|",  ","};
+const static set<string> operators = {
+    "+",  "-",  "/", "*", "%",  "=",  "-=", "+=", "/=", "*=", "%=", "&=", "|=", "<<", ">>",
+    "&&", "||", "<", ">", "==", "!=", "<=", ">=", "&",  "|",  ",",  "(",  ")",  ";"};
 
 // Moves pre and post to include the operands to a binary
 // operator
@@ -43,7 +44,7 @@ void getOperands(vector<string> &from, int &pre, int &post, const bool &useLine 
 
             if (count == 0 && pre != 0 && operators.count(from[pre - 1]) == 0)
             {
-                if (operators.count(from[pre - 1]) == 0)
+                if (pre != 0 && operators.count(from[pre - 1]) == 0)
                 {
                     // Is function call
                     pre--;
@@ -129,6 +130,7 @@ void getOperands(vector<string> &from, int &pre, int &post, const bool &useLine 
 
             if (count == 0)
             {
+                // Function call
                 if (operators.count(from[post]) == 0 && from[post + 1] == "(")
                 {
                     post++;
