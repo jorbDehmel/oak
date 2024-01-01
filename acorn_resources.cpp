@@ -7,6 +7,7 @@ GPLv3 held by author
 */
 
 #include "acorn_resources.hpp"
+#include "packages.hpp"
 #include "rules.hpp"
 #include "sequence.hpp"
 #include "sequence_resources.hpp"
@@ -15,8 +16,9 @@ GPLv3 held by author
 #include <chrono>
 #include <filesystem>
 #include <ratio>
+#include <stdexcept>
 
-// Settings
+// std::settings
 bool debug = false;
 bool compile = true;
 bool doLink = true;
@@ -26,39 +28,39 @@ bool ignoreSyntaxErrors = false;
 bool timeAnalysis = false;
 bool isMacroCall = false;
 
-set<string> visitedFiles;
-set<string> cppSources;
-set<string> objects;
-set<string> cflags;
+std::set<std::string> visitedFiles;
+std::set<std::string> cppSources;
+std::set<std::string> objects;
+std::set<std::string> cflags;
 
-map<string, string> preprocDefines;
-vector<unsigned long long> phaseTimes;
+std::map<std::string, std::string> preprocDefines;
+std::vector<unsigned long long> phaseTimes;
 
-string debugTreePrefix = "";
+std::string debugTreePrefix = "";
 
 // Prints the cumulative disk usage of Oak (in human-readable)
 void getDiskUsage()
 {
-    const vector<string> filesToCheck = {"/usr/bin/acorn", "/usr/include/oak"};
+    const std::vector<std::string> filesToCheck = {"/usr/bin/acorn", "/usr/include/oak"};
     unsigned long long int totalKB = 0;
 
-    for (string s : filesToCheck)
+    for (std::string s : filesToCheck)
     {
         unsigned long long int currentSize = getSize(s);
         totalKB += currentSize;
 
-        cout << s << ": " << humanReadable(currentSize) << '\n';
+        std::cout << s << ": " << humanReadable(currentSize) << '\n';
     }
 
-    cout << "\nTotal: " << humanReadable(totalKB) << '\n';
+    std::cout << "\nTotal: " << humanReadable(totalKB) << '\n';
     return;
 }
 
-void doFile(const string &From)
+void doFile(const std::string &From)
 {
-    // chrono::high_resolution_clock::time_point global_start, global_end;
+    // std::chrono::high_resolution_clock::time_point global_start, global_end;
     // unsigned long long elapsedms = 0;
-    // global_start = chrono::high_resolution_clock::now();
+    // global_start = std::chrono::high_resolution_clock::now();
 
     if (debug)
     {
@@ -72,24 +74,24 @@ void doFile(const string &From)
 
     int curPhase = 0;
 
-    const static set<string> compilerMacros = {"include!", "package!", "link!", "flag!"};
+    const static std::set<std::string> compilerMacros = {"include!", "package!", "link!", "flag!"};
 
-    chrono::_V2::system_clock::time_point start, end;
+    std::chrono::_V2::system_clock::time_point start, end;
 
     // Clear active rules
     activeRules.clear();
 
     unsigned long long oldLineNum = curLine;
-    string oldFile = curFile;
+    std::string oldFile = curFile;
 
     curLine = 1;
     curFile = From;
 
-    vector<string> lexed, lexedCopy;
+    std::vector<std::string> lexed, lexedCopy;
 
     preprocDefines["prev_file!"] = (oldFile == "" ? "\"NULL\"" : ("\"" + oldFile + "\""));
     preprocDefines["file!"] = '"' + From + '"';
-    preprocDefines["comp_time!"] = to_string(time(NULL));
+    preprocDefines["comp_time!"] = std::to_string(time(NULL));
 
     // System defines
     /*
@@ -116,11 +118,11 @@ void doFile(const string &From)
     {
         if (From.size() < 4 || From.substr(From.size() - 4) != ".oak")
         {
-            cout << tags::yellow_bold << "Warning! File '" << From << "' is not a .oak file.\n" << tags::reset;
+            std::cout << tags::yellow_bold << "Warning! File '" << From << "' is not a .oak file.\n" << tags::reset;
         }
 
-        string realName;
-        if (From.find("/") == string::npos)
+        std::string realName;
+        if (From.find("/") == std::string::npos)
         {
             realName = From;
         }
@@ -133,9 +135,9 @@ void doFile(const string &From)
         {
             if ('A' <= c && c <= 'Z')
             {
-                cout << tags::yellow_bold << "Warning! File '" << From << "' has illegal name.\n"
-                     << "Oak files use underscore formatting (ie /path/to/file_to_use.oak).\n"
-                     << tags::reset;
+                std::cout << tags::yellow_bold << "Warning! File '" << From << "' has illegal name.\n"
+                          << "Oak files use underscore formatting (ie /path/to/file_to_use.oak).\n"
+                          << tags::reset;
                 break;
             }
         }
@@ -144,7 +146,7 @@ void doFile(const string &From)
         {
             if (debug)
             {
-                cout << debugTreePrefix << "Skipping repeated file '" << From << "'\n";
+                std::cout << debugTreePrefix << "Skipping repeated file '" << From << "'\n";
             }
             curFile = oldFile;
             curLine = oldLineNum;
@@ -155,27 +157,27 @@ void doFile(const string &From)
 
         if (debug)
         {
-            cout << debugTreePrefix << "Loading file '" << From << "'\n";
+            std::cout << debugTreePrefix << "Loading file '" << From << "'\n";
             debugTreePrefix.append("|");
         }
 
         // A: Load file
-        ifstream file(From, ios::in | ios::ate);
+        std::ifstream file(From, std::ios::in | std::ios::ate);
         if (!file.is_open())
         {
             curFile = oldFile;
             curLine = oldLineNum;
-            throw runtime_error("Could not open source file '" + From + "'");
+            throw std::runtime_error("Could not open source file '" + From + "'");
         }
 
         long long size = file.tellg();
 
         file.clear();
-        file.seekg(0, ios::beg);
+        file.seekg(0, std::ios::beg);
 
         size -= file.tellg();
 
-        string text, line;
+        std::string text, line;
 
         text.reserve(size);
         line.reserve(64);
@@ -192,8 +194,8 @@ void doFile(const string &From)
 
         if (debug)
         {
-            cout << debugTreePrefix << "Syntax check\n";
-            start = chrono::high_resolution_clock::now();
+            std::cout << debugTreePrefix << "Syntax check\n";
+            start = std::chrono::high_resolution_clock::now();
         }
 
         if (!(ignoreSyntaxErrors || isMacroCall))
@@ -203,17 +205,17 @@ void doFile(const string &From)
 
         if (debug)
         {
-            end = chrono::high_resolution_clock::now();
+            end = std::chrono::high_resolution_clock::now();
             // Log at 0
-            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+            phaseTimes[curPhase] += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
             curPhase++;
         }
 
         // C: Lex
         if (debug)
         {
-            cout << debugTreePrefix << "Lexing\n";
-            start = chrono::high_resolution_clock::now();
+            std::cout << debugTreePrefix << "Lexing\n";
+            start = std::chrono::high_resolution_clock::now();
         }
 
         lexed = lex(text);
@@ -221,9 +223,9 @@ void doFile(const string &From)
 
         if (debug)
         {
-            end = chrono::high_resolution_clock::now();
+            end = std::chrono::high_resolution_clock::now();
             // Log at 1
-            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+            phaseTimes[curPhase] += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
             curPhase++;
         }
 
@@ -231,8 +233,8 @@ void doFile(const string &From)
         // This erases them from lexed
         if (debug)
         {
-            cout << debugTreePrefix << "Macro definitions\n";
-            start = chrono::high_resolution_clock::now();
+            std::cout << debugTreePrefix << "Macro definitions\n";
+            start = std::chrono::high_resolution_clock::now();
         }
 
         for (int i = 1; i + 1 < lexed.size(); i++)
@@ -243,7 +245,7 @@ void doFile(const string &From)
                 {
                     // Full macro
 
-                    string name, contents;
+                    std::string name, contents;
                     name = lexed[i];
 
                     // Safety checks
@@ -313,7 +315,7 @@ void doFile(const string &From)
                                                "' cannot overwrite macro of same name.");
                     }
 
-                    string name = lexed[i];
+                    std::string name = lexed[i];
 
                     // Erase as needed
                     i--;
@@ -322,7 +324,7 @@ void doFile(const string &From)
                     lexed.erase(lexed.begin() + i); // =
 
                     // Scrape until next semicolon
-                    string contents = "";
+                    std::string contents = "";
                     while (lexed[i] != ";")
                     {
                         contents.append(lexed[i]);
@@ -339,8 +341,8 @@ void doFile(const string &From)
 
         if (debug)
         {
-            end = chrono::high_resolution_clock::now();
-            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+            end = std::chrono::high_resolution_clock::now();
+            phaseTimes[curPhase] += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
             curPhase++;
         }
 
@@ -353,8 +355,8 @@ void doFile(const string &From)
             if (debug)
             {
                 curPhase = compilerMacroPos;
-                cout << debugTreePrefix << "Compiler macro\n";
-                start = chrono::high_resolution_clock::now();
+                std::cout << debugTreePrefix << "Compiler macro\n";
+                start = std::chrono::high_resolution_clock::now();
             }
 
             for (int i = 0; i < lexed.size(); i++)
@@ -364,7 +366,7 @@ void doFile(const string &From)
                     // File handling / translation unit macros
                     if (lexed[i] == "include!")
                     {
-                        vector<string> args = getMacroArgs(lexed, i);
+                        std::vector<std::string> args = getMacroArgs(lexed, i);
 
                         // Clean arguments
                         for (int j = 0; j < args.size(); j++)
@@ -379,19 +381,21 @@ void doFile(const string &From)
                             }
                         }
 
-                        // global_end = chrono::high_resolution_clock::now();
-                        // elapsedms += chrono::duration_cast<chrono::milliseconds>(global_end - global_start).count();
+                        // global_end = std::chrono::high_resolution_clock::now();
+                        // elapsedms += std::chrono::duration_cast<std::chrono::milliseconds>(global_end -
+                        // global_start).count();
 
-                        for (string a : args)
+                        for (std::string a : args)
                         {
                             // If local, do that
-                            if (filesystem::exists(a))
+                            if (std::filesystem::exists(a))
                             {
-                                if (filesystem::exists(OAK_DIR_PATH + a))
+                                if (std::filesystem::exists(OAK_DIR_PATH + a))
                                 {
-                                    cout << tags::yellow_bold << "Warning: Including local file '" << a
-                                         << "' over package file of same name.\nThis may not be what you intended.\n"
-                                         << tags::reset;
+                                    std::cout
+                                        << tags::yellow_bold << "Warning: Including local file '" << a
+                                        << "' over package file of same name.\nThis may not be what you intended.\n"
+                                        << tags::reset;
                                 }
 
                                 doFile(a);
@@ -404,13 +408,13 @@ void doFile(const string &From)
                             }
                         }
 
-                        // global_start = chrono::high_resolution_clock::now();
+                        // global_start = std::chrono::high_resolution_clock::now();
 
                         i--;
                     }
                     else if (lexed[i] == "link!")
                     {
-                        vector<string> args = getMacroArgs(lexed, i);
+                        std::vector<std::string> args = getMacroArgs(lexed, i);
 
                         // Clean arguments
                         for (int j = 0; j < args.size(); j++)
@@ -418,20 +422,20 @@ void doFile(const string &From)
                             args[j] = cleanMacroArgument(args[j]);
                         }
 
-                        for (string a : args)
+                        for (std::string a : args)
                         {
                             if (debug)
                             {
-                                cout << debugTreePrefix << "Inserting object " << a << '\n';
+                                std::cout << debugTreePrefix << "Inserting object " << a << '\n';
                             }
 
-                            if (filesystem::exists(a) || a[0] == '-')
+                            if (std::filesystem::exists(a) || a[0] == '-')
                             {
-                                if (filesystem::exists(OAK_DIR_PATH + a))
+                                if (std::filesystem::exists(OAK_DIR_PATH + a))
                                 {
-                                    cout << tags::yellow_bold << "Warning: Including local file '" << a
-                                         << "' over package file of same name.\n"
-                                         << tags::reset;
+                                    std::cout << tags::yellow_bold << "Warning: Including local file '" << a
+                                              << "' over package file of same name.\n"
+                                              << tags::reset;
                                 }
 
                                 objects.insert(a);
@@ -445,7 +449,7 @@ void doFile(const string &From)
                     }
                     else if (lexed[i] == "flag!")
                     {
-                        vector<string> args = getMacroArgs(lexed, i);
+                        std::vector<std::string> args = getMacroArgs(lexed, i);
 
                         // Clean arguments
                         for (int j = 0; j < args.size(); j++)
@@ -460,11 +464,11 @@ void doFile(const string &From)
                             }
                         }
 
-                        for (string a : args)
+                        for (std::string a : args)
                         {
                             if (debug)
                             {
-                                cout << debugTreePrefix << "Appending flag " << a << '\n';
+                                std::cout << debugTreePrefix << "Appending flag " << a << '\n';
                             }
 
                             cflags.insert(a);
@@ -473,8 +477,8 @@ void doFile(const string &From)
                     }
                     else if (lexed[i] == "package!")
                     {
-                        vector<string> args = getMacroArgs(lexed, i);
-                        vector<string> files;
+                        std::vector<std::string> args = getMacroArgs(lexed, i);
+                        std::vector<std::string> files;
 
                         // Clean arguments
                         for (int j = 0; j < args.size(); j++)
@@ -490,31 +494,32 @@ void doFile(const string &From)
                         }
 
                         // Backup dialect rules; These do NOT
-                        vector<string> backupDialectRules = dialectRules;
+                        std::vector<std::string> backupDialectRules = dialectRules;
                         dialectRules.clear();
 
-                        for (string a : args)
+                        for (std::string a : args)
                         {
                             files = getPackageFiles(a);
 
-                            for (string f : files)
+                            for (std::string f : files)
                             {
                                 if (debug)
                                 {
-                                    cout << debugTreePrefix << "Loading package file '" << f << "'...\n";
+                                    std::cout << debugTreePrefix << "Loading package file '" << f << "'...\n";
                                 }
 
                                 // Backup dialect rules; These do NOT
-                                vector<string> backupDialectRules = dialectRules;
+                                std::vector<std::string> backupDialectRules = dialectRules;
                                 dialectRules.clear();
 
-                                // global_end = chrono::high_resolution_clock::now();
+                                // global_end = std::chrono::high_resolution_clock::now();
                                 // elapsedms +=
-                                //     chrono::duration_cast<chrono::milliseconds>(global_end - global_start).count();
+                                //     std::chrono::duration_cast<std::chrono::milliseconds>(global_end -
+                                //     global_start).count();
 
                                 doFile(f);
 
-                                // global_start = chrono::high_resolution_clock::now();
+                                // global_start = std::chrono::high_resolution_clock::now();
 
                                 dialectRules = backupDialectRules;
                             }
@@ -564,26 +569,26 @@ void doFile(const string &From)
 
             if (debug)
             {
-                end = chrono::high_resolution_clock::now();
-                phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-                cout << debugTreePrefix << "Compiler macro finished in "
-                     << chrono::duration_cast<chrono::nanoseconds>(end - start).count() << " ns\n";
+                end = std::chrono::high_resolution_clock::now();
+                phaseTimes[curPhase] += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+                std::cout << debugTreePrefix << "Compiler macro finished in "
+                          << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns\n";
                 curPhase = compilerMacroPos + 1;
             }
 
             // E: Rules
             if (debug)
             {
-                cout << debugTreePrefix << "Rules\n";
-                start = chrono::high_resolution_clock::now();
+                std::cout << debugTreePrefix << "Rules\n";
+                start = std::chrono::high_resolution_clock::now();
             }
 
             doRules(lexed);
 
             if (debug)
             {
-                end = chrono::high_resolution_clock::now();
-                phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+                end = std::chrono::high_resolution_clock::now();
+                phaseTimes[curPhase] += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
             }
 
             // Update compilerMacrosLeft
@@ -602,8 +607,8 @@ void doFile(const string &From)
         // G: Scan for macro calls and handle them
         if (debug)
         {
-            cout << debugTreePrefix << "Macro calls\n";
-            start = chrono::high_resolution_clock::now();
+            std::cout << debugTreePrefix << "Macro calls\n";
+            start = std::chrono::high_resolution_clock::now();
         }
 
         for (int i = 0; i < lexed.size(); i++)
@@ -662,15 +667,15 @@ void doFile(const string &From)
                     continue;
                 }
 
-                string name = lexed[i];
+                std::string name = lexed[i];
 
                 // Erases all trace of the call in the process
-                vector<string> args = getMacroArgs(lexed, i);
+                std::vector<std::string> args = getMacroArgs(lexed, i);
 
-                string output = callMacro(name, args, debug);
-                vector<string> lexedOutput = lex(output);
+                std::string output = callMacro(name, args, debug);
+                std::vector<std::string> lexedOutput = lex(output);
 
-                // Reset preproc defs, as they tend to break w/ macros
+                // Restd::set preproc defs, as they tend to break w/ macros
                 preprocDefines["prev_file!"] = (oldFile == "" ? "\"NULL\"" : ("\"" + oldFile + "\""));
                 preprocDefines["file!"] = '"' + From + '"';
 
@@ -690,7 +695,7 @@ void doFile(const string &From)
                     // Preproc defines subs
                     else if (preprocDefines.count(lexedOutput[ind]) != 0)
                     {
-                        vector<string> lexedDef = lex(preprocDefines[lexedOutput[ind]]);
+                        std::vector<std::string> lexedDef = lex(preprocDefines[lexedOutput[ind]]);
                         lexedOutput.erase(lexedOutput.begin() + ind);
 
                         for (int j = lexedDef.size() - 1; j >= 0; j--)
@@ -714,16 +719,16 @@ void doFile(const string &From)
 
         if (debug)
         {
-            end = chrono::high_resolution_clock::now();
-            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+            end = std::chrono::high_resolution_clock::now();
+            phaseTimes[curPhase] += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
             curPhase++;
         }
 
         // H: Preproc definitions
         if (debug)
         {
-            cout << debugTreePrefix << "Preproc definitions\n";
-            start = chrono::high_resolution_clock::now();
+            std::cout << debugTreePrefix << "Preproc definitions\n";
+            start = std::chrono::high_resolution_clock::now();
         }
 
         preprocDefines["line!"] = "1";
@@ -732,12 +737,12 @@ void doFile(const string &From)
             if (lexed[i].size() >= 2 && lexed[i].substr(0, 2) == "//")
             {
                 // Line update special symbol
-                string newLineNum = lexed[i].substr(11);
+                std::string newLineNum = lexed[i].substr(11);
                 preprocDefines["line!"] = newLineNum;
             }
             else if (preprocDefines.count(lexed[i]) != 0)
             {
-                vector<string> lexedDef = lex(preprocDefines[lexed[i]]);
+                std::vector<std::string> lexedDef = lex(preprocDefines[lexed[i]]);
                 lexed.erase(lexed.begin() + i);
 
                 for (int j = lexedDef.size() - 1; j >= 0; j--)
@@ -751,57 +756,57 @@ void doFile(const string &From)
 
         if (debug)
         {
-            end = chrono::high_resolution_clock::now();
-            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+            end = std::chrono::high_resolution_clock::now();
+            phaseTimes[curPhase] += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
             curPhase++;
         }
 
         // I: Operator substitution (within parenthesis and between commas)
         if (debug)
         {
-            cout << debugTreePrefix << "Operator substitution\n";
-            start = chrono::high_resolution_clock::now();
+            std::cout << debugTreePrefix << "Operator substitution\n";
+            start = std::chrono::high_resolution_clock::now();
         }
 
         operatorSub(lexed);
 
         if (debug)
         {
-            end = chrono::high_resolution_clock::now();
-            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+            end = std::chrono::high_resolution_clock::now();
+            phaseTimes[curPhase] += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
             curPhase++;
         }
 
         // J: Sequencing
         if (debug)
         {
-            cout << debugTreePrefix << "Sequencing (AST & translation)\n";
-            start = chrono::high_resolution_clock::now();
+            std::cout << debugTreePrefix << "Sequencing (AST & translation)\n";
+            start = std::chrono::high_resolution_clock::now();
         }
 
         sequence fileSeq = createSequence(lexed);
 
         if (debug)
         {
-            end = chrono::high_resolution_clock::now();
-            phaseTimes[curPhase] += chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+            end = std::chrono::high_resolution_clock::now();
+            phaseTimes[curPhase] += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
             curPhase++;
         }
 
         if (fileSeq.type != nullType)
         {
-            cout << tags::yellow_bold << "Warning! File '" << From << "' has hanging type '" << toStr(&fileSeq.type)
-                 << "'\n"
-                 << tags::reset;
+            std::cout << tags::yellow_bold << "Warning! File '" << From << "' has hanging type '"
+                      << toStr(&fileSeq.type) << "'\n"
+                      << tags::reset;
         }
 
         if (alwaysDump)
         {
-            string name = "oak_dump_" + purifyStr(From) + ".log";
+            std::string name = "oak_dump_" + purifyStr(From) + ".log";
 
             if (debug)
             {
-                cout << debugTreePrefix << "Saving dump file '" << name << "'\n";
+                std::cout << debugTreePrefix << "Saving dump file '" << name << "'\n";
             }
 
             dump(lexed, name, From, curLine, fileSeq, lexedCopy);
@@ -810,91 +815,91 @@ void doFile(const string &From)
         if (debug)
         {
             debugTreePrefix.pop_back();
-            cout << debugTreePrefix << "Finished file '" << From << "'\n";
+            std::cout << debugTreePrefix << "Finished file '" << From << "'\n";
         }
     }
     catch (rule_error &e)
     {
-        cout << tags::red_bold << "Caught rule error '" << e.what() << "'\n" << tags::reset;
+        std::cout << tags::red_bold << "Caught rule error '" << e.what() << "'\n" << tags::reset;
 
-        string name = "oak_dump_" + purifyStr(From) + ".log";
-        cout << "Dump saved in " << name << "\n";
+        std::string name = "oak_dump_" + purifyStr(From) + ".log";
+        std::cout << "Dump saved in " << name << "\n";
         dump(lexed, name, From, curLine, sequence(), lexedCopy);
 
-        throw runtime_error("Failure in file '" + From + "': " + e.what());
+        throw std::runtime_error("Failure in file '" + From + "': " + e.what());
     }
     catch (sequencing_error &e)
     {
-        cout << tags::red_bold << "Caught sequencing error '" << e.what() << "'\n" << tags::reset;
+        std::cout << tags::red_bold << "Caught sequencing error '" << e.what() << "'\n" << tags::reset;
 
-        string name = "oak_dump_" + purifyStr(From) + ".log";
-        cout << "Dump saved in " << name << "\n";
+        std::string name = "oak_dump_" + purifyStr(From) + ".log";
+        std::cout << "Dump saved in " << name << "\n";
         dump(lexed, name, From, curLine, sequence(), lexedCopy);
 
-        throw runtime_error("Failure in file '" + From + "': " + e.what());
+        throw std::runtime_error("Failure in file '" + From + "': " + e.what());
     }
     catch (parse_error &e)
     {
-        cout << tags::red_bold << "Caught parse error '" << e.what() << "'\n" << tags::reset;
+        std::cout << tags::red_bold << "Caught parse error '" << e.what() << "'\n" << tags::reset;
 
-        string name = "oak_dump_" + purifyStr(From) + ".log";
-        cout << "Dump saved in " << name << "\n";
+        std::string name = "oak_dump_" + purifyStr(From) + ".log";
+        std::cout << "Dump saved in " << name << "\n";
         dump(lexed, name, From, curLine, sequence(), lexedCopy);
 
-        throw runtime_error("Failure in file '" + From + "': " + e.what());
+        throw std::runtime_error("Failure in file '" + From + "': " + e.what());
     }
     catch (package_error &e)
     {
-        cout << tags::red_bold << "Caught package error '" << e.what() << "'\n" << tags::reset;
+        std::cout << tags::red_bold << "Caught package error '" << e.what() << "'\n" << tags::reset;
 
-        string name = "oak_dump_" + purifyStr(From) + ".log";
-        cout << "Dump saved in " << name << "\n";
+        std::string name = "oak_dump_" + purifyStr(From) + ".log";
+        std::cout << "Dump saved in " << name << "\n";
         dump(lexed, name, From, curLine, sequence(), lexedCopy);
 
-        throw runtime_error("Failure in file '" + From + "': " + e.what());
+        throw std::runtime_error("Failure in file '" + From + "': " + e.what());
     }
     catch (generic_error &e)
     {
-        cout << tags::red_bold << "Caught generic error '" << e.what() << "'\n" << tags::reset;
+        std::cout << tags::red_bold << "Caught generic error '" << e.what() << "'\n" << tags::reset;
 
-        string name = "oak_dump_" + purifyStr(From) + ".log";
-        cout << "Dump saved in " << name << "\n";
+        std::string name = "oak_dump_" + purifyStr(From) + ".log";
+        std::cout << "Dump saved in " << name << "\n";
         dump(lexed, name, From, curLine, sequence(), lexedCopy);
 
-        throw runtime_error("Failure in file '" + From + "': " + e.what());
+        throw std::runtime_error("Failure in file '" + From + "': " + e.what());
     }
-    catch (runtime_error &e)
+    catch (std::runtime_error &e)
     {
-        cout << tags::red_bold << "Caught runtime error '" << e.what() << "'\n" << tags::reset;
+        std::cout << tags::red_bold << "Caught runtime error '" << e.what() << "'\n" << tags::reset;
 
-        string name = "oak_dump_" + purifyStr(From) + ".log";
-        cout << "Dump saved in " << name << "\n";
+        std::string name = "oak_dump_" + purifyStr(From) + ".log";
+        std::cout << "Dump saved in " << name << "\n";
         dump(lexed, name, From, curLine, sequence(), lexedCopy);
 
-        throw runtime_error("Failure in file '" + From + "': " + e.what());
+        throw std::runtime_error("Failure in file '" + From + "': " + e.what());
     }
-    catch (exception &e)
+    catch (std::exception &e)
     {
-        cout << tags::red_bold << "Caught exception '" << e.what() << "'\n" << tags::reset;
+        std::cout << tags::red_bold << "Caught exception '" << e.what() << "'\n" << tags::reset;
 
-        string name = "oak_dump_" + purifyStr(From) + ".log";
-        cout << "Dump saved in " << name << "\n";
+        std::string name = "oak_dump_" + purifyStr(From) + ".log";
+        std::cout << "Dump saved in " << name << "\n";
         dump(lexed, name, From, curLine, sequence(), lexedCopy);
 
-        throw runtime_error("Failure in file '" + From + "': " + e.what());
+        throw std::runtime_error("Failure in file '" + From + "': " + e.what());
     }
     catch (...)
     {
-        string name = "oak_dump_" + purifyStr(From) + ".log";
-        cout << "Dump saved in " << name << "\n";
+        std::string name = "oak_dump_" + purifyStr(From) + ".log";
+        std::cout << "Dump saved in " << name << "\n";
         dump(lexed, name, From, curLine, sequence(), lexedCopy);
 
-        throw runtime_error("Unknown failure in file '" + From + "'");
+        throw std::runtime_error("Unknown failure in file '" + From + "'");
     }
 
-    // global_end = chrono::high_resolution_clock::now();
-    // elapsedms += chrono::duration_cast<chrono::milliseconds>(global_end - global_start).count();
-    // cout << DB_INFO << curFile << "\t" << elapsedms << " ms\n";
+    // global_end = std::chrono::high_resolution_clock::now();
+    // elapsedms += std::chrono::duration_cast<std::chrono::milliseconds>(global_end - global_start).count();
+    // std::cout << DB_INFO << curFile << "\t" << elapsedms << " ms\n";
 
     curLine = oldLineNum;
     curFile = oldFile;
@@ -902,9 +907,9 @@ void doFile(const string &From)
     return;
 }
 
-void makePackage(const string &RawName)
+void makePackage(const std::string &RawName)
 {
-    string name = purifyStr(RawName);
+    std::string name = purifyStr(RawName);
     for (int i = 0; i < name.size(); i++)
     {
         name[i] = tolower(name[i]);
@@ -914,11 +919,14 @@ void makePackage(const string &RawName)
     smartSystem("mkdir -p " + name);
 
     // touch NAME/oak_package_info.txt
-    ofstream info(name + "/oak_package_info.txt");
-    pm_assert(info.is_open(), "Could not open oak_package_info.txt in newly created package folder.");
+    std::ofstream info(name + "/oak_package_info.txt");
+    if (!info.is_open())
+    {
+        throw package_error("Could not open oak_package_info.txt in newly created package folder.");
+    }
 
     auto now = time(NULL);
-    string time = ctime(&now);
+    std::string time = ctime(&now);
     time.pop_back();
 
     /*
@@ -945,42 +953,51 @@ void makePackage(const string &RawName)
     info.close();
 
     // touch NAME/NAME.oak
-    ofstream include(name + "/" + name + ".oak");
-    pm_assert(include.is_open(), "Could not open main include file in newly created package folder.");
+    std::ofstream include(name + "/" + name + ".oak");
+    if (!include.is_open())
+    {
+        throw package_error("Could not open main include file in newly created package folder.");
+    }
     include.close();
 
-    ofstream ignore(name + "/.gitignore");
-    pm_assert(ignore.is_open(), "Could not open git ignore file in newly created package folder.");
+    std::ofstream ignore(name + "/.gitignore");
+    if (!ignore.is_open())
+    {
+        throw package_error("Could not open git ignore file in newly created package folder.");
+    }
     ignore.close();
 
     // git init
-    throw_assert(system(("git init " + name + " > /dev/null").c_str()) == 0);
+    if (system(("git init " + name + " > /dev/null").c_str()) != 0)
+    {
+        throw package_error("Failed to initialize git repo.");
+    }
 
     return;
 }
 
-void printSyntaxError(const string &what, const vector<char> &curLineVec, const int &curLine)
+void printSyntaxError(const std::string &what, const std::vector<char> &curLineVec, const int &curLine)
 {
-    cout << tags::yellow_bold << '\n' << "In line '";
+    std::cout << tags::yellow_bold << '\n' << "In line '";
 
     for (const auto &c : curLineVec)
     {
-        cout << c;
+        std::cout << c;
     }
 
-    cout << "'\n" << tags::reset;
+    std::cout << "'\n" << tags::reset;
 
-    cout << '\n'
-         << tags::red_bold << "Syntax error at " << curFile << ':' << curLine << '\n'
-         << what << '\n'
-         << "(Use -x to make syntax errors nonfatal)" << tags::reset << "\n\n";
+    std::cout << '\n'
+              << tags::red_bold << "Syntax error at " << curFile << ':' << curLine << '\n'
+              << what << '\n'
+              << "(Use -x to make syntax errors nonfatal)" << tags::reset << "\n\n";
 
     return;
 }
 
-void ensureSyntax(const string &text, const bool &fatal)
+void ensureSyntax(const std::string &text, const bool &fatal)
 {
-    vector<char> curLineVec;
+    std::vector<char> curLineVec;
     curLineVec.reserve(96);
     curLine = 1;
 
@@ -1039,7 +1056,7 @@ void ensureSyntax(const string &text, const bool &fatal)
                 for (int j = 0; j < curLineVec.size(); j++)
                 {
                     const char c = curLineVec[j];
-                    // cout << DB_INFO << c << '\t' << j << '\t' << curLineVec[j] << '\n';
+                    // std::cout << DB_INFO << c << '\t' << j << '\t' << curLineVec[j] << '\n';
 
                     if (c == '\\')
                     {
@@ -1064,8 +1081,9 @@ void ensureSyntax(const string &text, const bool &fatal)
                         }
                         else if (globalStringChoice == '\'')
                         {
-                            printSyntaxError("Precedent has been set for single-quotes, but double-quotes were used.",
-                                             curLineVec, curLine);
+                            printSyntaxError(
+                                "Precedent has been std::set for single-quotes, but double-quotes were used.",
+                                curLineVec, curLine);
                             errorCount++;
                         }
                     }
@@ -1086,8 +1104,9 @@ void ensureSyntax(const string &text, const bool &fatal)
                         }
                         else if (globalStringChoice == '"' && stringMarker == ' ')
                         {
-                            printSyntaxError("Precedent has been set for double-quotes, but single-quotes were used.",
-                                             curLineVec, curLine);
+                            printSyntaxError(
+                                "Precedent has been std::set for double-quotes, but single-quotes were used.",
+                                curLineVec, curLine);
                             errorCount++;
                         }
                     }
@@ -1146,12 +1165,12 @@ void ensureSyntax(const string &text, const bool &fatal)
 
                 if (stringMarker != ' ')
                 {
-                    printSyntaxError("Unclosed string", curLineVec, curLine);
+                    printSyntaxError("Unclosed std::string", curLineVec, curLine);
                     errorCount++;
                 }
             }
 
-            // Reset line
+            // Restd::set line
             curLineVec.clear();
             curLine++;
         }
@@ -1191,7 +1210,7 @@ void ensureSyntax(const string &text, const bool &fatal)
 
     if (fatal && errorCount > 0)
     {
-        throw runtime_error(to_string(errorCount) + " syntax errors.");
+        throw std::runtime_error(std::to_string(errorCount) + " syntax errors.");
     }
 
     return;

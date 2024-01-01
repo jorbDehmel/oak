@@ -8,6 +8,7 @@ GPLv3 held by author
 
 #include "packages.hpp"
 #include "tags.hpp"
+#include <stdexcept>
 
 /*
 File oak_package_info.txt:
@@ -25,16 +26,12 @@ INCLUDE = "main_include.oak"
 SYS_DEPS = ""
 */
 
-// Macros that may conflict with other files; Thus, included only in the body
-#define sm_system(command, message)                                                                                    \
-    {                                                                                                                  \
-        printf("%s\n", string(command).c_str());                                                                       \
-        system(string(command).c_str()) == 0 ? 0 : throw package_error(message " (System call " #command " failed.)"); \
-    }
+#define pm_assert(expression, message)                                                                                 \
+    ((bool)(expression) ? true : throw package_error(message " (Failed assertion: '" #expression "')"))
 
-map<string, packageInfo> packages;
+std::map<std::string, packageInfo> packages;
 
-ostream &operator<<(ostream &strm, const packageInfo &info)
+std::ostream &operator<<(std::ostream &strm, const packageInfo &info)
 {
     strm << "Package '" << info.name << "'\n"
          << "Version '" << info.version << "'\n"
@@ -50,17 +47,17 @@ ostream &operator<<(ostream &strm, const packageInfo &info)
     return strm;
 }
 
-void install(const string &What)
+void install(const std::string &What)
 {
-    static string installCommand = "";
-    string line;
+    static std::string installCommand = "";
+    std::string line;
 
     if (installCommand == "")
     {
         // Get os-release info
         system("cat /etc/os-release | grep ^ID= > .oak_build/temp.txt");
 
-        ifstream osName(".oak_build/temp.txt");
+        std::ifstream osName(".oak_build/temp.txt");
         pm_assert(osName.is_open(), "Failed to poll OS name");
         getline(osName, line);
         osName.close();
@@ -94,37 +91,37 @@ void install(const string &What)
     {
         if (installCommand == "")
         {
-            cout << tags::yellow_bold
-                 << "Local Linux installation command could not be automatically detected\n"
-                    "for distribution '"
-                 << line << "' during installation of packages '" << What
-                 << "'\n"
-                    "Please enter a command prefix which will install all packages\n"
-                    "which follow it (for example, in Ubuntu: `sudo apt-get install`).\n"
-                    "To manually install these instead, enter 'MANUAL'.\n"
-                 << "Command: " << tags::reset;
+            std::cout << tags::yellow_bold
+                      << "Local Linux installation command could not be automatically detected\n"
+                         "for distribution '"
+                      << line << "' during installation of packages '" << What
+                      << "'\n"
+                         "Please enter a command prefix which will install all packages\n"
+                         "which follow it (for example, in Ubuntu: `sudo apt-get install`).\n"
+                         "To manually install these instead, enter 'MANUAL'.\n"
+                      << "Command: " << tags::reset;
 
-            getline(cin, installCommand);
+            getline(std::cin, installCommand);
             if (installCommand == "MANUAL")
             {
-                cout << tags::yellow_bold << "Skipping automatic installation. Be sure to manually install\n"
-                     << "package(s) '" << What << "' or things may break!\n"
-                     << tags::reset << flush;
+                std::cout << tags::yellow_bold << "Skipping automatic installation. Be sure to manually install\n"
+                          << "package(s) '" << What << "' or things may break!\n"
+                          << tags::reset << std::flush;
                 break;
             }
         }
 
-        string command = installCommand + " " + What;
-        cout << command << '\n';
+        std::string command = installCommand + " " + What;
+        std::cout << command << '\n';
 
         result = system(command.c_str());
 
         if (result != 0)
         {
-            cout << tags::red_bold << "Command `" << command << "` failed. Please check your install command.\n"
-                 << "Note: If this is persistant, enter 'MANUAL' to skip this step. However, be\n"
-                 << "sure to install the requested package(s) ('" << What << "') manually.\n"
-                 << tags::reset;
+            std::cout << tags::red_bold << "Command `" << command << "` failed. Please check your install command.\n"
+                      << "Note: If this is persistant, enter 'MANUAL' to skip this step. However, be\n"
+                      << "sure to install the requested package(s) ('" << What << "') manually.\n"
+                      << tags::reset;
             installCommand = "";
         }
     }
@@ -133,7 +130,7 @@ void install(const string &What)
 }
 
 // Remove any leading or trailing quotes
-void cleanString(string &What)
+void cleanString(std::string &What)
 {
     while (What.front() == '"' || What.front() == '\'')
     {
@@ -148,14 +145,14 @@ void cleanString(string &What)
     return;
 }
 
-packageInfo loadPackageInfo(const string &Filepath)
+packageInfo loadPackageInfo(const std::string &Filepath)
 {
-    ifstream inp(Filepath);
+    std::ifstream inp(Filepath);
     pm_assert(inp.is_open(), "Failed to load file '" + Filepath + "'");
 
     packageInfo toAdd;
 
-    string name, content, garbage;
+    std::string name, content, garbage;
     while (!inp.eof())
     {
         inp >> name;
@@ -260,9 +257,9 @@ packageInfo loadPackageInfo(const string &Filepath)
     return toAdd;
 }
 
-void savePackageInfo(const packageInfo &Info, const string &Filepath)
+void savePackageInfo(const packageInfo &Info, const std::string &Filepath)
 {
-    ofstream out(Filepath);
+    std::ofstream out(Filepath);
     pm_assert(out.is_open(), "Failed to open file '" + Filepath + "'");
 
     out << "NAME = '" << Info.name << "'\n"
@@ -284,9 +281,9 @@ void savePackageInfo(const packageInfo &Info, const string &Filepath)
 /*
 Imagine using a compiled language for scripting; Couldn't be me
 */
-void downloadPackage(const string &URLArg, const bool &Reinstall, const string &Path)
+void downloadPackage(const std::string &URLArg, const bool &Reinstall, const std::string &Path)
 {
-    string URL = URLArg;
+    std::string URL = URLArg;
 
     // Check if package is already installed
     for (auto p : packages)
@@ -299,48 +296,51 @@ void downloadPackage(const string &URLArg, const bool &Reinstall, const string &
             }
             else
             {
-                cout << tags::yellow_bold << "Package '" << p.first << "' was already installed.\n" << tags::reset;
+                std::cout << tags::yellow_bold << "Package '" << p.first << "' was already installed.\n" << tags::reset;
                 return;
             }
         }
     }
 
     // Create temp location
-    string tempFolderName = PACKAGE_TEMP_LOCATION "oak_tmp_" + to_string(time(NULL));
+    std::string tempFolderName = PACKAGE_TEMP_LOCATION + "oak_tmp_" + std::to_string(time(NULL));
 
-    sm_system("mkdir -p " PACKAGE_TEMP_LOCATION,
-              "Failed to create packages directory. Ensure you have sufficient privileges.");
+    if (system(("mkdir -p " + PACKAGE_TEMP_LOCATION).c_str()) != 0)
+        throw std::runtime_error("Failed to create packages directory. Ensure you have sufficient privileges.");
 
     // Clone package using git
     try
     {
         // URL
-        if (system((string(CLONE_COMMAND) + URL + " " + tempFolderName + " > /dev/null").c_str()) != 0)
+        if (system((std::string(CLONE_COMMAND) + URL + " " + tempFolderName + " > /dev/null").c_str()) != 0)
         {
             throw package_error("Git resolution failure; Likely an invalid source.");
         }
     }
     catch (package_error &e)
     {
-        cout << tags::yellow_bold << e.what() << '\n' << "Attempting git-less copy...\n" << tags::reset;
+        std::cout << tags::yellow_bold << e.what() << '\n' << "Attempting git-less copy...\n" << tags::reset;
 
         try
         {
             // Local file
-            sm_system("cp -r " + URL + " " + tempFolderName, "Local copy failed; Is neither URL nor filepath.");
+            if (system(("cp -r " + URL + " " + tempFolderName).c_str()) != 0)
+            {
+                throw std::runtime_error("Local copy failed; Is neither URL nor filepath.");
+            }
         }
         catch (package_error &e)
         {
             // Package from packages_list.txt
 
-            cout << "Checking /usr/include/oak/packages_list.txt...\n";
+            std::cout << "Checking /usr/include/oak/packages_list.txt...\n";
 
             // Load packages_list.txt
-            ifstream packagesList(PACKAGES_LIST_PATH);
+            std::ifstream packagesList(PACKAGES_LIST_PATH);
             pm_assert(packagesList.is_open(),
                       URL + " is not a valid package URL or name and failed to load packages list.");
 
-            string line;
+            std::string line;
             while (getline(packagesList, line))
             {
                 if (line.size() >= 2 && line.substr(0, 2) == "//")
@@ -349,32 +349,33 @@ void downloadPackage(const string &URLArg, const bool &Reinstall, const string &
                 }
                 else
                 {
-                    pm_assert(line.find(' ') != string::npos, "Malformed packages_list.txt");
+                    pm_assert(line.find(' ') != std::string::npos, "Malformed packages_list.txt");
 
-                    cout << 330 << '\t' << line << '\n';
+                    std::cout << 330 << '\t' << line << '\n';
 
                     // name source path
-                    string name, source, path;
+                    std::string name, source, path;
 
                     auto breakPoint = line.find(' ');
 
                     name = line.substr(0, breakPoint);
                     source = line.substr(breakPoint + 1);
 
-                    cout << 340 << '\t' << name << '\t' << source << '\n';
+                    std::cout << 340 << '\t' << name << '\t' << source << '\n';
 
-                    pm_assert(source.find(' ') != string::npos, "Malformed packages_list.txt");
+                    pm_assert(source.find(' ') != std::string::npos, "Malformed packages_list.txt");
                     breakPoint = source.find(' ');
 
                     path = source.substr(breakPoint + 1);
                     source = source.substr(0, breakPoint);
 
-                    cout << 347 << '\t' << name << '\t' << source << '\t' << path << '\n';
+                    std::cout << 347 << '\t' << name << '\t' << source << '\t' << path << '\n';
 
                     if (name == URL)
                     {
-                        cout << "Package '" << name << "' found in /usr/include/oak/packages_list.txt w/ repo URL of '"
-                             << source << "'\n";
+                        std::cout << "Package '" << name
+                                  << "' found in /usr/include/oak/packages_list.txt w/ repo URL of '" << source
+                                  << "'\n";
 
                         downloadPackage(source, Reinstall, path);
                         return;
@@ -388,33 +389,33 @@ void downloadPackage(const string &URLArg, const bool &Reinstall, const string &
             // - It is not a valid local file
             // So it should error rather than proceed.
 
-            cout << tags::red_bold << "\nPackage '" << URLArg << "'\n"
-                 << "does not exist locally, is not a valid Git repo, and\n"
-                 << "does not have an installation URL known by acorn.\n"
-                 << tags::reset;
+            std::cout << tags::red_bold << "\nPackage '" << URLArg << "'\n"
+                      << "does not exist locally, is not a valid Git repo, and\n"
+                      << "does not have an installation URL known by acorn.\n"
+                      << tags::reset;
             throw package_error("Package '" + URLArg + "' does not exist in any form.");
         }
     }
 
     try
     {
-        string path = Path;
+        std::string path = Path;
         if (path == "")
         {
             path = ".";
         }
 
-        while (system(("[ -f " + tempFolderName + "/" + path + "/" + INFO_FILE " ]").c_str()) != 0)
+        while (system(("[ -f " + tempFolderName + "/" + path + "/" + INFO_FILE + " ]").c_str()) != 0)
         {
-            cout << tags::yellow_bold << "Failed to locate info file.\n"
-                 << "Enter the path within the folder to install from [default .]: " << tags::reset;
-            getline(cin, path);
+            std::cout << tags::yellow_bold << "Failed to locate info file.\n"
+                      << "Enter the path within the folder to install from [default .]: " << tags::reset;
+            getline(std::cin, path);
             if (path == "")
             {
                 path = ".";
             }
 
-            pm_assert(path.find("..") == string::npos, "Illegal path: May not contain '..'");
+            pm_assert(path.find("..") == std::string::npos, "Illegal path: May not contain '..'");
         }
 
         // At this point, info file must exist
@@ -426,7 +427,7 @@ void downloadPackage(const string &URLArg, const bool &Reinstall, const string &
         // Read info file
         packageInfo info = loadPackageInfo(tempFolderName + "/" + path + "/" + INFO_FILE);
 
-        cout << tags::green << "Loaded package from " << URL << "\n" << info << '\n' << tags::reset;
+        std::cout << tags::green << "Loaded package from " << URL << "\n" << info << '\n' << tags::reset;
 
         // Ensure valid formatting
         for (char c : info.name)
@@ -435,10 +436,17 @@ void downloadPackage(const string &URLArg, const bool &Reinstall, const string &
         }
 
         // Prepare destination
-        string destFolderName = PACKAGE_INCLUDE_PATH + info.name;
-        sm_system("sudo rm -rf " + destFolderName, "Failed to clear old package files.");
-        sm_system("sudo mkdir -p " + destFolderName,
-                  "Failed to create package folder in /usr/include/oak; Check user permissions.");
+        std::string destFolderName = PACKAGE_INCLUDE_PATH + info.name;
+
+        if (system(("sudo rm -rf " + destFolderName).c_str()) != 0)
+        {
+            throw std::runtime_error("Failed to clear old package files.");
+        }
+
+        if (system(("sudo mkdir -p " + destFolderName).c_str()) == 0)
+        {
+            throw std::runtime_error("Failed to create package folder in /usr/include/oak; Check user permissions.");
+        }
 
         // Install system deps
         if (info.sysDeps != "")
@@ -463,23 +471,25 @@ void downloadPackage(const string &URLArg, const bool &Reinstall, const string &
         system(("sudo cp " + tempFolderName + "/" + path + "/*.txt " + destFolderName).c_str());
 
         // Clean up garbage; Doesn't really matter if this fails
-        cout << "sudo rm -rf " PACKAGE_TEMP_LOCATION << '\n';
-        if (system("sudo rm -rf " PACKAGE_TEMP_LOCATION) != 0)
+        std::cout << "sudo rm -rf " << PACKAGE_TEMP_LOCATION << '\n';
+        if (system(("sudo rm -rf " + PACKAGE_TEMP_LOCATION).c_str()) != 0)
         {
-            cout << tags::yellow_bold << "Warning: Failed to erase trash folder '" << PACKAGE_TEMP_LOCATION << "'.\n"
-                 << "If left unfixed, this could cause issues.\n"
-                 << tags::reset;
+            std::cout << tags::yellow_bold << "Warning: Failed to erase trash folder '" << PACKAGE_TEMP_LOCATION
+                      << "'.\n"
+                      << "If left unfixed, this could cause issues.\n"
+                      << tags::reset;
         }
     }
-    catch (runtime_error &e)
+    catch (std::runtime_error &e)
     {
         // Clean up garbage
 
-        if (system("sudo rm -rf " PACKAGE_TEMP_LOCATION) != 0)
+        if (system(("sudo rm -rf " + PACKAGE_TEMP_LOCATION).c_str()) != 0)
         {
-            cout << tags::yellow_bold << "Warning: Failed to erase trash folder '" << PACKAGE_TEMP_LOCATION << "'.\n"
-                 << "If left unfixed, this could cause issues.\n"
-                 << tags::reset;
+            std::cout << tags::yellow_bold << "Warning: Failed to erase trash folder '" << PACKAGE_TEMP_LOCATION
+                      << "'.\n"
+                      << "If left unfixed, this could cause issues.\n"
+                      << tags::reset;
         }
 
         throw package_error(e.what());
@@ -488,7 +498,7 @@ void downloadPackage(const string &URLArg, const bool &Reinstall, const string &
     return;
 }
 
-vector<string> getPackageFiles(const string &Name)
+std::vector<std::string> getPackageFiles(const std::string &Name)
 {
     // If package is not already loaded
     if (packages.count(Name) == 0)
@@ -507,8 +517,8 @@ vector<string> getPackageFiles(const string &Name)
 
     // Loaded and installed
     packageInfo info = packages[Name];
-    vector<string> out;
-    string cur, toSplit = info.toInclude;
+    std::vector<std::string> out;
+    std::string cur, toSplit = info.toInclude;
 
     for (int i = 0; i < toSplit.size(); i++)
     {
@@ -533,3 +543,6 @@ vector<string> getPackageFiles(const string &Name)
 
     return out;
 }
+
+// Remove macro
+#undef pm_assert

@@ -1,10 +1,16 @@
+/*
+Jordan Dehmel
+2023 - present
+jdehmel@outlook.com
+*/
+
 #include "sequence_resources.hpp"
 #include "symbol_table.hpp"
 #include "type_builder.hpp"
 
-void toCInternal(const sequence &What, vector<string> &out)
+void toCInternal(const sequence &What, std::vector<std::string> &out)
 {
-    string temp;
+    std::string temp;
 
     switch (What.info)
     {
@@ -87,7 +93,7 @@ void toCInternal(const sequence &What, vector<string> &out)
             // Remaining items are case or defaults.
 
             Type type = What.items[0].type;
-            string typeStr = toStrC(&type);
+            std::string typeStr = toStrC(&type);
 
             if (typeStr.substr(0, 7) == "struct ")
             {
@@ -95,9 +101,9 @@ void toCInternal(const sequence &What, vector<string> &out)
             }
 
             sm_assert(enumData.count(typeStr) != 0, "'match' may only be used on enums, not '" + typeStr + "'");
-            vector<string> options = enumData[typeStr].order;
+            std::vector<std::string> options = enumData[typeStr].order;
 
-            map<string, bool> usedOptions;
+            std::map<std::string, bool> usedOptions;
             for (auto opt : enumData[typeStr].order)
             {
                 usedOptions[opt] = false;
@@ -116,7 +122,7 @@ void toCInternal(const sequence &What, vector<string> &out)
                 {
                     auto &cur = What.items[1].items[ind];
 
-                    string optionName = cur.items[0].raw;
+                    std::string optionName = cur.items[0].raw;
 
                     sm_assert(enumData[typeStr].options.count(optionName) != 0,
                               "'" + optionName + "' is not an option for enum '" + typeStr + "'");
@@ -124,7 +130,7 @@ void toCInternal(const sequence &What, vector<string> &out)
                               "Option '" + optionName + "' cannot be used multiple times in a match statement.");
                     usedOptions.erase(optionName);
 
-                    string captureName = cur.items[1].raw;
+                    std::string captureName = cur.items[1].raw;
 
                     auto backupTable = table;
 
@@ -136,7 +142,7 @@ void toCInternal(const sequence &What, vector<string> &out)
                     out.push_back("if (");
 
                     toCInternal(What.items[0], out);
-                    string itemStr = out.back();
+                    std::string itemStr = out.back();
 
                     out.push_back(".__info == ");
                     out.push_back(typeStr);
@@ -155,7 +161,7 @@ void toCInternal(const sequence &What, vector<string> &out)
                             clone.pop_front();
                         }
 
-                        string captureType = mangleType(clone);
+                        std::string captureType = mangleType(clone);
 
                         if (atomics.count(captureType) == 0)
                         {
@@ -214,22 +220,22 @@ void toCInternal(const sequence &What, vector<string> &out)
 
             if (usedOptions.size() != 0)
             {
-                cout << tags::yellow_bold << "Warning! Match statement does not handle option(s) of enum '" << typeStr
-                     << "':\n";
+                std::cout << tags::yellow_bold << "Warning! Match statement does not handle option(s) of enum '"
+                          << typeStr << "':\n";
 
                 for (auto opt : usedOptions)
                 {
-                    cout << '\t' << opt.first << '\n';
+                    std::cout << '\t' << opt.first << '\n';
                 }
 
-                cout << tags::reset;
+                std::cout << tags::reset;
             }
         }
         else
         {
-            cout << tags::yellow_bold << "Warning! Unknown enum keyword '" << What.raw
-                 << "'. Treating as regular keyword.\n"
-                 << tags::reset;
+            std::cout << tags::yellow_bold << "Warning! Unknown enum keyword '" << What.raw
+                      << "'. Treating as regular keyword.\n"
+                      << tags::reset;
 
             out.push_back(What.raw);
             out.push_back(" ");
@@ -247,9 +253,9 @@ void toCInternal(const sequence &What, vector<string> &out)
 } // toCInternal
 
 // Turn a .oak sequence into a .cpp one
-string toC(const sequence &What)
+std::string toC(const sequence &What)
 {
-    vector<string> out;
+    std::vector<std::string> out;
     toCInternal(What, out);
 
     int size = 0;
@@ -258,7 +264,7 @@ string toC(const sequence &What)
         size += what.size();
     }
 
-    string outStr;
+    std::string outStr;
     outStr.reserve(size);
     for (const auto &what : out)
     {
@@ -271,7 +277,7 @@ string toC(const sequence &What)
 // Get the return type from a Type (of a function signature)
 Type getReturnType(const Type &T)
 {
-    static map<unsigned long long, Type> getReturnTypeCache;
+    static std::map<unsigned long long, Type> getReturnTypeCache;
 
     if (getReturnTypeCache.count(T.ID) != 0)
     {
@@ -313,9 +319,9 @@ Type getReturnType(const Type &T)
     return T;
 }
 
-vector<pair<string, Type>> getArgs(Type &type)
+std::vector<std::pair<std::string, Type>> getArgs(Type &type)
 {
-    static map<unsigned long long, vector<pair<string, Type>>> cache;
+    static std::map<unsigned long long, std::vector<std::pair<std::string, Type>>> cache;
 
     // Check cache for existing value
     if (cache.count(type.ID) != 0)
@@ -325,8 +331,8 @@ vector<pair<string, Type>> getArgs(Type &type)
 
     // Get everything between final function and maps
     // For the case of function pointers, all variable names will be the unit string
-    vector<pair<string, Type>> out;
-    string curName = "";
+    std::vector<std::pair<std::string, Type>> out;
+    std::string curName = "";
     Type curType = nullType;
     int count = 0;
 
@@ -431,9 +437,9 @@ vector<pair<string, Type>> getArgs(Type &type)
 }
 
 // Can throw errors (IE malformed definitions)
-void addEnum(const vector<string> &FromIn)
+void addEnum(const std::vector<std::string> &FromIn)
 {
-    vector<string> From;
+    std::vector<std::string> From;
 
     // Clean input of any special symbols
     for (auto f : FromIn)
@@ -453,14 +459,14 @@ void addEnum(const vector<string> &FromIn)
     parse_assert(From[i] == "let");
     i++;
 
-    string name = From[i];
+    std::string name = From[i];
     i++;
 
     parse_assert(i < From.size());
 
     // Scrape generics here (and mangle)
-    vector<string> curGen;
-    vector<vector<string>> generics;
+    std::vector<std::string> curGen;
+    std::vector<std::vector<std::string>> generics;
 
     int count = 0;
     while (i < From.size() && From[i] != ":" && From[i] != "{")
@@ -502,8 +508,9 @@ void addEnum(const vector<string> &FromIn)
 
     if (enumData.count(name) != 0 || structData.count(name) != 0)
     {
-        cout << tags::yellow_bold << "Warning! Definition of enum '" << name << "' erases struct of the same name.\n"
-             << tags::reset;
+        std::cout << tags::yellow_bold << "Warning! Definition of enum '" << name
+                  << "' erases struct of the same name.\n"
+                  << tags::reset;
     }
 
     // Ensure for unit enums
@@ -544,7 +551,7 @@ void addEnum(const vector<string> &FromIn)
         {
             // name : type ,
             // name , name2 , name3 : type < string , hi > , name4 : type2 ,
-            vector<string> names, lexedType;
+            std::vector<std::string> names, lexedType;
 
             while (i + 1 < From.size() && From[i + 1] == ",")
             {
@@ -562,7 +569,7 @@ void addEnum(const vector<string> &FromIn)
 
             // Get lexed type (can be multiple symbols due to templating)
             int templCount = 0;
-            vector<string> genericHolder;
+            std::vector<std::string> genericHolder;
 
             while (i < From.size() && !(templCount == 0 && From[i] == ","))
             {
@@ -585,7 +592,7 @@ void addEnum(const vector<string> &FromIn)
 
                     if (templCount == 0)
                     {
-                        string toAdd = mangle(genericHolder);
+                        std::string toAdd = mangle(genericHolder);
                         genericHolder.clear();
 
                         if (toAdd != "")
@@ -599,7 +606,7 @@ void addEnum(const vector<string> &FromIn)
             }
 
             Type toAdd = toType(lexedType);
-            for (string varName : names)
+            for (std::string varName : names)
             {
                 enumData[name].options[varName] = toAdd;
                 enumData[name].order.push_back(varName);
@@ -612,7 +619,7 @@ void addEnum(const vector<string> &FromIn)
     }
 
     __enumLookupData &cur = enumData[name];
-    string enumTypeStr = name;
+    std::string enumTypeStr = name;
     for (auto optionName : cur.order)
     {
         if (cur.options[optionName][0].info == atomic && cur.options[optionName][0].name == "unit")
@@ -658,20 +665,20 @@ void addEnum(const vector<string> &FromIn)
 }
 
 // Dump data to file
-void dump(const vector<string> &Lexed, const string &Where, const string &FileName, const int &Line,
-          const sequence &FileSeq, const vector<string> LexedBackup)
+void dump(const std::vector<std::string> &Lexed, const std::string &Where, const std::string &FileName, const int &Line,
+          const sequence &FileSeq, const std::vector<std::string> LexedBackup)
 {
-    string sep = "";
+    std::string sep = "";
     for (int i = 0; i < 50; i++)
     {
         sep += '-';
     }
     sep += '\n';
 
-    ofstream file(Where);
+    std::ofstream file(Where);
     if (!file.is_open())
     {
-        throw runtime_error("Failed to open dump file '" + Where + "'; At this point, you should give up.");
+        throw std::runtime_error("Failed to open dump file '" + Where + "'; At this point, you should give up.");
     }
 
     auto curTime = time(NULL);
@@ -829,9 +836,9 @@ void dump(const vector<string> &Lexed, const string &Where, const string &FileNa
 ////////////////////////////////////////////////////////////////
 
 // Get all candidates which match exactly.
-vector<int> getExactCandidates(const vector<vector<Type>> &candArgs, const vector<Type> &argTypes)
+std::vector<int> getExactCandidates(const std::vector<std::vector<Type>> &candArgs, const std::vector<Type> &argTypes)
 {
-    vector<int> out;
+    std::vector<int> out;
     bool isMatch;
 
     // Check for exact match for each candidate
@@ -865,9 +872,9 @@ vector<int> getExactCandidates(const vector<vector<Type>> &candArgs, const vecto
 }
 
 // Get all candidates which match with implicit casting.
-vector<int> getCastingCandidates(const vector<vector<Type>> &candArgs, const vector<Type> &argTypes)
+std::vector<int> getCastingCandidates(const std::vector<std::vector<Type>> &candArgs, const std::vector<Type> &argTypes)
 {
-    vector<int> out;
+    std::vector<int> out;
     bool isMatch;
 
     // Min number of conversions
@@ -896,7 +903,7 @@ vector<int> getCastingCandidates(const vector<vector<Type>> &candArgs, const vec
                 // Special case; Internal implicit casting
                 if (candArgs[j][k].size() == 1 && argTypes[k].size() == 1)
                 {
-                    string a, b;
+                    std::string a, b;
                     a = candArgs[j][k][0].name;
                     b = argTypes[k][0].name;
 
@@ -962,9 +969,10 @@ vector<int> getCastingCandidates(const vector<vector<Type>> &candArgs, const vec
 
 // Get all candidates which match with auto referencing and/or
 // dereferencing.
-vector<int> getReferenceCandidates(const vector<vector<Type>> &candArgs, const vector<Type> &argTypes)
+std::vector<int> getReferenceCandidates(const std::vector<std::vector<Type>> &candArgs,
+                                        const std::vector<Type> &argTypes)
 {
-    vector<int> out;
+    std::vector<int> out;
     bool isMatch;
     int min = 999, iOfMin = 0, cur;
 
@@ -1024,12 +1032,12 @@ vector<int> getReferenceCandidates(const vector<vector<Type>> &candArgs, const v
 ////////////////////////////////////////////////////////////////
 
 // Prints the reason why each candidate was rejected
-void printCandidateErrors(const vector<__multiTableSymbol> &candidates, const vector<Type> &argTypes,
-                          const string &name)
+void printCandidateErrors(const std::vector<__multiTableSymbol> &candidates, const std::vector<Type> &argTypes,
+                          const std::string &name)
 {
-    cout << "--------------------------------------------------\n";
+    std::cout << "--------------------------------------------------\n";
 
-    vector<vector<Type>> candArgs;
+    std::vector<std::vector<Type>> candArgs;
     for (auto item : candidates)
     {
         Type curType = item.type;
@@ -1039,7 +1047,7 @@ void printCandidateErrors(const vector<__multiTableSymbol> &candidates, const ve
         }
 
         auto args = getArgs(item.type);
-        candArgs.push_back(vector<Type>());
+        candArgs.push_back(std::vector<Type>());
 
         for (auto arg : args)
         {
@@ -1056,80 +1064,80 @@ void printCandidateErrors(const vector<__multiTableSymbol> &candidates, const ve
     auto s2 = getCastingCandidates(candArgs, argTypes);
     auto s3 = getReferenceCandidates(candArgs, argTypes);
 
-    cout << "Passed s1: " << s1.size() << '\n'
-         << "Passed s2: " << s2.size() << '\n'
-         << "Passed s3: " << s3.size() << "\n\n";
+    std::cout << "Passed s1: " << s1.size() << '\n'
+              << "Passed s2: " << s2.size() << '\n'
+              << "Passed s3: " << s3.size() << "\n\n";
 
     for (int i = 0; i < candidates.size(); i++)
     {
-        cout << left << name << setw(30) << toStr(&candidates[i].type) << "\tFrom " << candidates[i].sourceFilePath
-             << '\n';
+        std::cout << std::left << name << std::setw(30) << toStr(&candidates[i].type) << "\tFrom "
+                  << candidates[i].sourceFilePath << '\n';
 
         if (candidates[i].erased)
         {
             // Was erased
-            cout << "\tWas erased.\n";
+            std::cout << "\tWas erased.\n";
         }
         else
         {
             // Stage 1
             if (find(s1.begin(), s1.end(), i) == s1.end())
             {
-                cout << "\tFailed exact match.\n";
+                std::cout << "\tFailed exact match.\n";
             }
             else
             {
-                cout << tags::green << "\tPassed exact match.\n" << tags::reset;
+                std::cout << tags::green << "\tPassed exact match.\n" << tags::reset;
             }
 
             // Stage 2
             if (find(s2.begin(), s2.end(), i) == s2.end())
             {
-                cout << "\tFailed casting match.\n";
+                std::cout << "\tFailed casting match.\n";
             }
             else
             {
-                cout << tags::green << "\tPassed casting match.\n" << tags::reset;
+                std::cout << tags::green << "\tPassed casting match.\n" << tags::reset;
             }
 
             // Stage 3
             if (find(s3.begin(), s3.end(), i) == s3.end())
             {
-                cout << "\tFailed ref/deref match.\n";
+                std::cout << "\tFailed ref/deref match.\n";
             }
             else
             {
-                cout << tags::green << "\tPassed ref/deref match.\n" << tags::reset;
+                std::cout << tags::green << "\tPassed ref/deref match.\n" << tags::reset;
             }
         }
 
-        cout << "\tArgs:\n";
+        std::cout << "\tArgs:\n";
         for (auto arg : candArgs[i])
         {
-            cout << "\t\t" << toStr(&arg) << '\n';
+            std::cout << "\t\t" << toStr(&arg) << '\n';
         }
     }
 
-    cout << "--------------------------------------------------\n"
-         << "Provided argument types:\n";
+    std::cout << "--------------------------------------------------\n"
+              << "Provided argument types:\n";
 
     for (auto arg : argTypes)
     {
-        cout << '\t' << toStr(&arg) << '\n';
+        std::cout << '\t' << toStr(&arg) << '\n';
     }
 
-    cout << "--------------------------------------------------\n\n";
+    std::cout << "--------------------------------------------------\n\n";
 
     return;
 }
 
-string cleanMacroArgument(const string &from)
+std::string cleanMacroArgument(const std::string &from)
 {
     sm_assert(from.size() > 1 && (from.front() == '"' && from.back() == '"') ||
                   (from.front() == '\'' && from.back() == '\''),
               "Internal macro arguments must be string-enclosed.");
 
-    string out;
+    std::string out;
     out.reserve(from.size() - 2);
     bool force = false;
     for (int l = 1; l + 1 < from.size(); l++)
@@ -1173,7 +1181,7 @@ string cleanMacroArgument(const string &from)
 // Destroy all unit, temp, or autogen definitions matching a given type.
 // Can throw errors if doThrow is true.
 // Mostly used for New and Del, Oak ~0.0.14
-void destroyUnits(const string &name, const Type &type, const bool &doThrow)
+void destroyUnits(const std::string &name, const Type &type, const bool &doThrow)
 {
     // Safety check
     if (table.count(name) != 0 && table[name].size() != 0)
@@ -1206,7 +1214,7 @@ void destroyUnits(const string &name, const Type &type, const bool &doThrow)
 }
 
 // Actually used in dump files, not just for debugging.
-void debugPrint(const sequence &What, int spaces, ostream &to)
+void debugPrint(const sequence &What, int spaces, std::ostream &to)
 {
     for (int i = 0; i < spaces; i++)
     {
@@ -1242,7 +1250,7 @@ void debugPrint(const sequence &What, int spaces, ostream &to)
 }
 
 // Assumes self is NOT a pointer
-string getMemberNew(const string &selfName, const string &varName, const Type &varType)
+std::string getMemberNew(const std::string &selfName, const std::string &varName, const Type &varType)
 {
     if (varType[0].info == atomic)
     {
@@ -1282,7 +1290,7 @@ string getMemberNew(const string &selfName, const string &varName, const Type &v
     }
 }
 
-string getMemberDel(const string &selfName, const string &varName, const Type &varType)
+std::string getMemberDel(const std::string &selfName, const std::string &varName, const Type &varType)
 {
     if (varType[0].info == atomic)
     {

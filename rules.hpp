@@ -21,57 +21,51 @@ Defines preprocessor rules for Oak
 
 #include "lexer.hpp"
 
-using namespace std;
-
-class rule_error : public runtime_error
+class rule_error : public std::runtime_error
 {
   public:
-    rule_error(const string &What) : runtime_error(What)
+    rule_error(const std::string &What) : std::runtime_error(What)
     {
     }
 };
 
-// Rule message assert
-#define rm_assert(expression, message)                                                                                 \
-    ((bool)(expression) ? true : throw rule_error(message " (Failed assertion: '" #expression "')"))
-
 struct rule
 {
-    vector<string> inputPattern;
-    vector<string> outputPattern;
+    std::vector<std::string> inputPattern;
+    std::vector<std::string> outputPattern;
 
     // The function to call
-    void (*doRule)(vector<string> &, int &, rule &);
+    void (*doRule)(std::vector<std::string> &, int &, rule &);
 };
 
 // Maps a string engine ID to its corresponding engine function.
-extern map<string, void (*)(vector<string> &, int &, rule &)> engines;
+extern std::map<std::string, void (*)(std::vector<std::string> &, int &, rule &)> engines;
 
 // Add a new engine
-void addEngine(const string &name, void (*hook)(vector<string> &, int &, rule &));
+void addEngine(const std::string &name, void (*hook)(std::vector<std::string> &, int &, rule &));
 
 extern bool doRuleLogFile;
-extern map<string, rule> rules;
+extern std::map<std::string, rule> rules;
 
-extern string curFile;
+extern std::string curFile;
 
-extern vector<string> activeRules;
-extern vector<string> dialectRules;
+extern std::vector<std::string> activeRules;
+extern std::vector<std::string> dialectRules;
 extern bool dialectLock;
 
-extern map<string, vector<string>> bundles;
+extern std::map<std::string, std::vector<std::string>> bundles;
 
 // I is the point in Lexed at which a macro name was found
 // CONSUMPTIVE!
-vector<string> getMacroArgs(vector<string> &lexed, const int &i);
+std::vector<std::string> getMacroArgs(std::vector<std::string> &lexed, const int &i);
 
 // Active rules should already be present in their vector
-void doRules(vector<string> &From);
+void doRules(std::vector<std::string> &From);
 
 // Load a dialect file
-void loadDialectFile(const string &File);
+void loadDialectFile(const std::string &File);
 
 // Internal pass-through for Sapling rule engine
-void doRuleAcorn(vector<string> &tokens, int &i, rule &toDo);
+void doRuleAcorn(std::vector<std::string> &tokens, int &i, rule &toDo);
 
 #endif

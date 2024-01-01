@@ -1,7 +1,7 @@
 /*
 Handles generics and templates in Oak source code.
 
-Jordan Dehmel, 2023
+Jordan Dehmel, 2023 - present
 jdehmel@outlook.com
 */
 
@@ -17,8 +17,6 @@ jdehmel@outlook.com
 #include "mangler.hpp"
 #include "rules.hpp"
 #include "symbol_table.hpp"
-
-using namespace std;
 
 extern unsigned long long int curLine;
 
@@ -39,10 +37,10 @@ should be handled at sequence-time. They will no be
 addressed herein.
 */
 
-class generic_error : public runtime_error
+class generic_error : public std::runtime_error
 {
   public:
-    generic_error(const string &what) : runtime_error(what)
+    generic_error(const std::string &what) : runtime_error(what)
     {
     }
 };
@@ -50,30 +48,32 @@ class generic_error : public runtime_error
 // Internal struct for info
 struct genericInfo
 {
-    vector<string> typeVec;
-    string originFile;
+    std::vector<std::string> typeVec;
+    std::string originFile;
 
-    vector<string> symbols;
-    vector<string> preBlock, postBlock;
+    std::vector<std::string> symbols;
+    std::vector<std::string> preBlock, postBlock;
 
-    vector<string> genericNames;
+    std::vector<std::string> genericNames;
 
-    vector<vector<vector<string>>> instances;
+    std::vector<std::vector<std::vector<std::string>>> instances;
 };
 
 // Avoid using this unless you absolutely must
-extern map<string, vector<genericInfo>> generics;
+extern std::map<std::string, std::vector<genericInfo>> generics;
 
 // Can throw generic_error's if no viable options exist.
 // Ensure all items in genericSubs have been pre-mangled.
 // Returns the mangled version.
-string instantiateGeneric(const string &what, const vector<vector<string>> &genericSubs, const vector<string> &typeVec);
+std::string instantiateGeneric(const std::string &what, const std::vector<std::vector<std::string>> &genericSubs,
+                               const std::vector<std::string> &typeVec);
 
 // Also holds the skeleton of the inst block system, although gathering of these happens elsewhere.
-void addGeneric(const vector<string> &what, const string &name, const vector<string> &genericsList,
-                const vector<string> &typeVec, const vector<string> &preBlock, const vector<string> &postBlock);
+void addGeneric(const std::vector<std::string> &what, const std::string &name,
+                const std::vector<std::string> &genericsList, const std::vector<std::string> &typeVec,
+                const std::vector<std::string> &preBlock, const std::vector<std::string> &postBlock);
 
 // Print the info of all existing generics to a file stream
-void printGenericDumpInfo(ostream &to);
+void printGenericDumpInfo(std::ostream &to);
 
 #endif

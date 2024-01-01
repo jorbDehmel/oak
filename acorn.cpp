@@ -10,13 +10,15 @@ GPLv3 held by author
 #include "macros.hpp"
 #include "packages.hpp"
 #include "sequence.hpp"
+#include "sequence_resources.hpp"
 #include "tags.hpp"
 #include <bits/chrono.h>
 #include <chrono>
 #include <cstdlib>
+#include <filesystem>
 #include <iomanip>
 #include <ratio>
-using namespace std;
+#include <stdexcept>
 
 // Dummy wrapper function for updating
 void update()
@@ -32,9 +34,9 @@ void uninstall()
     system("sudo bash /tmp/uninstall.sh &");
 }
 
-void queryPackage(const string &name)
+void queryPackage(const std::string &name)
 {
-    string filepath = "/usr/include/oak/" + name + "/oak_package_info.txt";
+    std::string filepath = "/usr/include/oak/" + name + "/oak_package_info.txt";
 
     // loadPackageInfo
     try
@@ -42,12 +44,12 @@ void queryPackage(const string &name)
         packageInfo info = loadPackageInfo(filepath);
 
         // Print output
-        cout << tags::green << info << '\n' << tags::reset;
+        std::cout << tags::green << info << '\n' << tags::reset;
     }
     catch (...)
     {
-        cout << tags::red_bold << "Failed to query package " << name << ": It is most likely not installed.\n"
-             << tags::reset;
+        std::cout << tags::red_bold << "Failed to query package " << name << ": It is most likely not installed.\n"
+                  << tags::reset;
         throw package_error("Failed to query package");
     }
 
@@ -56,11 +58,16 @@ void queryPackage(const string &name)
 
 int main(const int argc, const char *argv[])
 {
-    auto start = chrono::high_resolution_clock::now(), end = start, compStart = start, compEnd = start;
+    auto start = std::chrono::high_resolution_clock::now(), end = start, compStart = start, compEnd = start;
     unsigned long long int oakElapsed = 0, reconstructionElapsed = 0;
 
-    vector<string> files;
-    string out = "a.out";
+    if (!std::filesystem::exists(".oak_build"))
+    {
+        system("mkdir -p .oak_build");
+    }
+
+    std::vector<std::string> files;
+    std::string out = "a.out";
     bool noSave = false;
     bool eraseTemp = false;
     bool prettify = false;
@@ -72,10 +79,10 @@ int main(const int argc, const char *argv[])
     try
     {
         // Argument parsing
-        vector<string> filesToAdd;
+        std::vector<std::string> filesToAdd;
         for (int i = 1; i < argc; i++)
         {
-            string cur = argv[i];
+            std::string cur = argv[i];
             if (cur == "")
             {
                 continue;
@@ -88,18 +95,18 @@ int main(const int argc, const char *argv[])
                     // Verbose options
                     if (cur == "--help")
                     {
-                        cout << helpText << '\n'
-                             << "All Oak data can be found at: " << OAK_DIR_PATH << '\n'
-                             << "Version: " << VERSION << '\n'
-                             << "License: " << LICENSE << '\n'
-                             << INFO << '\n';
+                        std::cout << helpText << '\n'
+                                  << "All Oak data can be found at: " << OAK_DIR_PATH << '\n'
+                                  << "Version: " << VERSION << '\n'
+                                  << "License: " << LICENSE << '\n'
+                                  << INFO << '\n';
                     }
                     else if (cur == "--query")
                     {
                         // Construct filepath
                         if (i + 1 >= argc)
                         {
-                            throw runtime_error("--install must be followed by a package name");
+                            throw std::runtime_error("--install must be followed by a package name");
                         }
 
                         queryPackage(argv[i + 1]);
@@ -108,12 +115,12 @@ int main(const int argc, const char *argv[])
                     }
                     else if (cur == "--version")
                     {
-                        cout << "Version: " << VERSION << '\n' << "License: " << LICENSE << '\n' << INFO << '\n';
+                        std::cout << "Version: " << VERSION << '\n' << "License: " << LICENSE << '\n' << INFO << '\n';
                     }
                     else if (cur == "--debug")
                     {
                         debug = !debug;
-                        cout << "Set debug to " << (debug ? "true" : "false") << '\n';
+                        std::cout << "Set debug to " << (debug ? "true" : "false") << '\n';
                     }
                     else if (cur == "--no_save")
                     {
@@ -177,7 +184,7 @@ int main(const int argc, const char *argv[])
                     {
                         if (i + 1 >= argc)
                         {
-                            throw runtime_error("--output must be followed by a filename");
+                            throw std::runtime_error("--output must be followed by a filename");
                         }
 
                         out = argv[i + 1];
@@ -191,7 +198,7 @@ int main(const int argc, const char *argv[])
                     {
                         if (i + 1 >= argc)
                         {
-                            throw runtime_error("--install must be followed by a package name");
+                            throw std::runtime_error("--install must be followed by a package name");
                         }
 
                         downloadPackage(argv[1 + 1]);
@@ -202,7 +209,7 @@ int main(const int argc, const char *argv[])
                     {
                         if (i + 1 >= argc)
                         {
-                            throw runtime_error("--reinstall must be followed by a package name");
+                            throw std::runtime_error("--reinstall must be followed by a package name");
                         }
 
                         downloadPackage(argv[1 + 1], true);
@@ -239,7 +246,7 @@ int main(const int argc, const char *argv[])
                     {
                         if (i + 1 >= argc)
                         {
-                            throw runtime_error("--new must be followed by a package name");
+                            throw std::runtime_error("--new must be followed by a package name");
                         }
 
                         makePackage(argv[i + 1]);
@@ -251,7 +258,7 @@ int main(const int argc, const char *argv[])
                     }
                     else
                     {
-                        throw runtime_error(string("Invalid verbose option '") + cur + "'");
+                        throw std::runtime_error(std::string("Invalid verbose option '") + cur + "'");
                     }
                 }
                 else
@@ -259,34 +266,34 @@ int main(const int argc, const char *argv[])
                     // Compact options
 
                     // Iterate through single-letter options
-                    string remainder = cur.substr(1);
+                    std::string remainder = cur.substr(1);
                     for (char c : remainder)
                     {
                         switch (c)
                         {
                         case 'a':
-                            cout << tags::green_bold << "Are you sure you want to update Acorn [y/N]? " << tags::reset
-                                 << flush;
+                            std::cout << tags::green_bold << "Are you sure you want to update Acorn [y/N]? "
+                                      << tags::reset << std::flush;
 
-                            if (cin.peek() != 'y')
+                            if (std::cin.peek() != 'y')
                             {
-                                cout << tags::red_bold << "Update aborted.\n" << tags::reset;
+                                std::cout << tags::red_bold << "Update aborted.\n" << tags::reset;
                                 return 10;
                             }
 
-                            cout << tags::green_bold << "Updating...\n" << tags::reset << flush;
+                            std::cout << tags::green_bold << "Updating...\n" << tags::reset << std::flush;
 
                             std::atexit(update);
                             exit(0);
 
                             break;
                         case 'A':
-                            cout << tags::red_bold << "Are you sure you want to uninstall Acorn [y/N]? " << tags::reset
-                                 << flush;
+                            std::cout << tags::red_bold << "Are you sure you want to uninstall Acorn [y/N]? "
+                                      << tags::reset << std::flush;
 
-                            if (cin.peek() != 'y')
+                            if (std::cin.peek() != 'y')
                             {
-                                cout << tags::red_bold << "Uninstall aborted.\n" << tags::reset;
+                                std::cout << tags::red_bold << "Uninstall aborted.\n" << tags::reset;
                                 return 10;
                             }
 
@@ -300,12 +307,12 @@ int main(const int argc, const char *argv[])
                             break;
                         case 'd':
                             debug = !debug;
-                            cout << "Set debug to " << (debug ? "true" : "false") << '\n';
+                            std::cout << "Set debug to " << (debug ? "true" : "false") << '\n';
                             break;
                         case 'D':
                             if (i + 1 >= argc)
                             {
-                                throw runtime_error("-D must be followed by a dialect file");
+                                throw std::runtime_error("-D must be followed by a dialect file");
                             }
 
                             loadDialectFile(argv[i + 1]);
@@ -332,11 +339,11 @@ int main(const int argc, const char *argv[])
 
                             break;
                         case 'h':
-                            cout << helpText << '\n'
-                                 << "All Oak data can be found at: " << OAK_DIR_PATH << '\n'
-                                 << "Version: " << VERSION << '\n'
-                                 << "License: " << LICENSE << '\n'
-                                 << INFO << '\n';
+                            std::cout << helpText << '\n'
+                                      << "All Oak data can be found at: " << OAK_DIR_PATH << '\n'
+                                      << "Version: " << VERSION << '\n'
+                                      << "License: " << LICENSE << '\n'
+                                      << INFO << '\n';
 
                             break;
                         case 'l':
@@ -360,7 +367,7 @@ int main(const int argc, const char *argv[])
                         case 'o':
                             if (i + 1 >= argc)
                             {
-                                throw runtime_error("-o must be followed by a filename");
+                                throw std::runtime_error("-o must be followed by a filename");
                             }
 
                             out = argv[i + 1];
@@ -382,7 +389,7 @@ int main(const int argc, const char *argv[])
                         case 'Q':
                             if (i + 1 >= argc)
                             {
-                                throw runtime_error("--install must be followed by a package name");
+                                throw std::runtime_error("--install must be followed by a package name");
                             }
 
                             queryPackage(argv[i + 1]);
@@ -392,7 +399,7 @@ int main(const int argc, const char *argv[])
                         case 'r':
                             if (i + 1 >= argc)
                             {
-                                throw runtime_error("-r must be followed by a package name");
+                                throw std::runtime_error("-r must be followed by a package name");
                             }
 
                             downloadPackage(argv[i + 1], true);
@@ -403,13 +410,14 @@ int main(const int argc, const char *argv[])
                             // Remove
                             if (i + 1 >= argc)
                             {
-                                throw runtime_error("-R must be followed by a package name");
+                                throw std::runtime_error("-R must be followed by a package name");
                             }
 
-                            if (system((string("sudo rm -rf /usr/include/oak/") + argv[i + 1]).c_str()) != 0)
+                            if (system((std::string("sudo rm -rf /usr/include/oak/") + argv[i + 1]).c_str()) != 0)
                             {
-                                cout << tags::red_bold << "Warning! Failed to remove package '" << argv[i + 1] << "'\n"
-                                     << tags::reset;
+                                std::cout << tags::red_bold << "Warning! Failed to remove package '" << argv[i + 1]
+                                          << "'\n"
+                                          << tags::reset;
                             }
 
                             i++;
@@ -421,7 +429,7 @@ int main(const int argc, const char *argv[])
                         case 'S':
                             if (i + 1 >= argc)
                             {
-                                throw runtime_error("-S must be followed by a package name");
+                                throw std::runtime_error("-S must be followed by a package name");
                             }
 
                             downloadPackage(argv[i + 1]);
@@ -455,12 +463,14 @@ int main(const int argc, const char *argv[])
                             doRuleLogFile = !doRuleLogFile;
                             break;
                         case 'v':
-                            cout << "Version: " << VERSION << '\n' << "License: " << LICENSE << '\n' << INFO << '\n';
+                            std::cout << "Version: " << VERSION << '\n'
+                                      << "License: " << LICENSE << '\n'
+                                      << INFO << '\n';
                             break;
                         case 'w':
                             if (i + 1 >= argc)
                             {
-                                throw runtime_error("-w must be followed by a package name");
+                                throw std::runtime_error("-w must be followed by a package name");
                             }
 
                             makePackage(argv[i + 1]);
@@ -472,7 +482,7 @@ int main(const int argc, const char *argv[])
                             break;
 
                         default:
-                            throw runtime_error(string("Invalid option '") + c + "'");
+                            throw std::runtime_error(std::string("Invalid option '") + c + "'");
                             break;
                         }
                     }
@@ -487,18 +497,19 @@ int main(const int argc, const char *argv[])
         // Clean cache if not macro
         if (!isMacroCall && getSize(COMPILED_PATH) > MAX_CACHE_KB)
         {
-            cout << tags::yellow_bold << DB_INFO << "Performing partial cache purge\n" << tags::reset;
+            std::cout << tags::yellow_bold << DB_INFO << "Performing partial cache purge\n" << tags::reset;
 
             // Purge source .cpp, .hpp, and temp files
-            system("rm -rf " COMPILED_PATH "/*.c " COMPILED_PATH "/*.h " COMPILED_PATH "/*.txt " COMPILED_PATH
-                   "/*.oak");
+            system(("rm -rf " + COMPILED_PATH + "/*.c " + COMPILED_PATH + "/*.h " + COMPILED_PATH + "/*.txt " +
+                    COMPILED_PATH + "/*.oak")
+                       .c_str());
 
             if (getSize(COMPILED_PATH) > MAX_CACHE_KB)
             {
-                cout << tags::yellow_bold << DB_INFO << "Performing full cache purge\n" << tags::reset;
+                std::cout << tags::yellow_bold << DB_INFO << "Performing full cache purge\n" << tags::reset;
 
                 // Purge all cache files
-                system("rm -rf " COMPILED_PATH "/*");
+                system(("rm -rf " + COMPILED_PATH + "/*").c_str());
             }
         }
 
@@ -508,7 +519,7 @@ int main(const int argc, const char *argv[])
             // Actual calls
             if (debug)
             {
-                cout << tags::green_bold << "\nPhase 1: File analysis\n" << tags::reset;
+                std::cout << tags::green_bold << "\nPhase 1: File analysis\n" << tags::reset;
             }
 
             for (auto f : files)
@@ -519,52 +530,53 @@ int main(const int argc, const char *argv[])
             // Reconstruct and save
             if (debug)
             {
-                cout << tags::green_bold << "\nLoaded all " << files.size() << " initial files.\n"
-                     << visitedFiles.size() - files.size() << " more files were included,\n"
-                     << "For " << visitedFiles.size() << " total files.\n"
-                     << tags::reset;
+                std::cout << tags::green_bold << "\nLoaded all " << files.size() << " initial files.\n"
+                          << visitedFiles.size() - files.size() << " more files were included,\n"
+                          << "For " << visitedFiles.size() << " total files.\n"
+                          << tags::reset;
 
-                cout << tags::green_bold << "\nPhase 2: Reconstruction.\n" << tags::reset;
+                std::cout << tags::green_bold << "\nPhase 2: Reconstruction.\n" << tags::reset;
             }
 
             if (table.count("main") == 0 && compile)
             {
-                cout << tags::red_bold << "Error! No main function detected while in compilation mode!\n"
-                     << tags::reset;
+                std::cout << tags::red_bold << "Error! No main function detected while in compilation mode!\n"
+                          << tags::reset;
                 throw sequencing_error("A compilation unit must contain a main function.");
             }
 
-            auto reconstructionStart = chrono::high_resolution_clock::now();
+            auto reconstructionStart = std::chrono::high_resolution_clock::now();
 
-            pair<string, string> names = reconstructAndSave(out);
+            std::pair<std::string, std::string> names = reconstructAndSave(out);
             cppSources.insert(names.second);
 
-            end = chrono::high_resolution_clock::now();
-            oakElapsed = chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-            reconstructionElapsed = chrono::duration_cast<chrono::nanoseconds>(end - reconstructionStart).count();
+            end = std::chrono::high_resolution_clock::now();
+            oakElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+            reconstructionElapsed =
+                std::chrono::duration_cast<std::chrono::nanoseconds>(end - reconstructionStart).count();
 
             if (debug)
             {
-                cout << "Output header: '" << names.first << "'\n"
-                     << "Output body:   '" << names.second << "'\n";
+                std::cout << "Output header: '" << names.first << "'\n"
+                          << "Output body:   '" << names.second << "'\n";
             }
 
             if (noSave)
             {
-                int result = system((string("rm ") + names.first + " " + names.second).c_str());
+                int result = system((std::string("rm ") + names.first + " " + names.second).c_str());
 
                 if (result != 0)
                 {
-                    cout << tags::yellow_bold << "Warning: Could not erase generated files.\n" << tags::reset;
+                    std::cout << tags::yellow_bold << "Warning: Could not erase generated files.\n" << tags::reset;
                 }
                 else if (debug)
                 {
-                    cout << "Erased output files.\n";
+                    std::cout << "Erased output files.\n";
                 }
             }
             else
             {
-                compStart = chrono::high_resolution_clock::now();
+                compStart = std::chrono::high_resolution_clock::now();
 
                 if (compile)
                 {
@@ -572,28 +584,32 @@ int main(const int argc, const char *argv[])
 
                     if (debug)
                     {
-                        cout << tags::green_bold << "\nPhase 3: Compilation.\n"
-                             << "(via Clang)\n"
-                             << tags::reset;
+                        std::cout << tags::green_bold << "\nPhase 3: Compilation.\n"
+                                  << "(via Clang)\n"
+                                  << tags::reset;
                     }
 
-                    string rootCommand = C_COMPILER " -c ";
+                    std::string rootCommand = C_COMPILER + " -c ";
 
-                    for (string flag : cflags)
+                    for (std::string flag : cflags)
                     {
                         rootCommand += flag + " ";
                     }
 
-                    for (string source : cppSources)
+                    for (std::string source : cppSources)
                     {
-                        string command = rootCommand + source + " -o " + source + ".o";
+                        std::string command = rootCommand + source + " -o " + source + ".o";
 
                         if (debug)
                         {
-                            cout << "System call `" << command << "`\n";
+                            std::cout << "System call `" << command << "`\n";
                         }
 
-                        throw_assert(system(command.c_str()) == 0);
+                        if (system(command.c_str()) != 0)
+                        {
+                            throw std::runtime_error("Failed to compile translated C files");
+                        }
+
                         objects.insert(source + ".o");
                     }
 
@@ -601,28 +617,31 @@ int main(const int argc, const char *argv[])
                     {
                         if (debug)
                         {
-                            cout << tags::green_bold << "\nPhase 4: Linking.\n"
-                                 << "(via Clang)\n"
-                                 << tags::reset;
+                            std::cout << tags::green_bold << "\nPhase 4: Linking.\n"
+                                      << "(via Clang)\n"
+                                      << tags::reset;
                         }
 
-                        string command = LINKER " -o " + out + " ";
-                        for (string object : objects)
+                        std::string command = LINKER + " -o " + out + " ";
+                        for (std::string object : objects)
                         {
                             command += object + " ";
                         }
 
-                        for (string flag : cflags)
+                        for (std::string flag : cflags)
                         {
                             command += flag + " ";
                         }
 
                         if (debug)
                         {
-                            cout << "System call `" << command << "`\n";
+                            std::cout << "System call `" << command << "`\n";
                         }
 
-                        throw_assert(system(command.c_str()) == 0);
+                        if (system(command.c_str()) != 0)
+                        {
+                            throw std::runtime_error("Failed to link object files.");
+                        }
                     }
                 }
 
@@ -633,26 +652,26 @@ int main(const int argc, const char *argv[])
                 }
                 */
 
-                compEnd = chrono::high_resolution_clock::now();
+                compEnd = std::chrono::high_resolution_clock::now();
             }
 
             if (eraseTemp)
             {
                 if (system("rm -rf .oak_build") != 0)
                 {
-                    cout << "rm -rf .oak_build\n";
+                    std::cout << "rm -rf .oak_build\n";
 
-                    cout << tags::yellow_bold << "Warning! Failed to erase './.oak_build/'.\n"
-                         << "If left unfixed, this could cause problems.\n"
-                         << tags::reset;
+                    std::cout << tags::yellow_bold << "Warning! Failed to erase './.oak_build/'.\n"
+                              << "If left unfixed, this could cause problems.\n"
+                              << tags::reset;
                 }
             }
 
             // Manual generation if requested
             if (manual)
             {
-                string manualPath = out;
-                if (manualPath.find(".") != string::npos)
+                std::string manualPath = out;
+                if (manualPath.find(".") != std::string::npos)
                 {
                     manualPath = manualPath.substr(0, manualPath.find("."));
                 }
@@ -661,34 +680,34 @@ int main(const int argc, const char *argv[])
 
                 if (debug)
                 {
-                    cout << tags::green_bold << "Generating manual '" << manualPath << "'.\n" << tags::reset;
+                    std::cout << tags::green_bold << "Generating manual '" << manualPath << "'.\n" << tags::reset;
                 }
 
                 generate(files, manualPath);
             }
         }
     }
-    catch (runtime_error &e)
+    catch (std::runtime_error &e)
     {
         if (oakElapsed != 0)
         {
-            cout << "Elapsed Oak ns: " << oakElapsed;
+            std::cout << "Elapsed Oak ns: " << oakElapsed;
         }
 
-        cout << tags::red_bold << "\n" << curFile << ":" << curLine << "\n";
+        std::cout << tags::red_bold << "\n" << curFile << ":" << curLine << "\n";
 
         if (curLineSymbols.size() != 0)
         {
-            cout << tags::violet_bold << "In code line: `";
+            std::cout << tags::violet_bold << "In code line: `";
 
             for (auto s : curLineSymbols)
             {
-                cout << s << ' ';
+                std::cout << s << ' ';
             }
-            cout << "`\n";
+            std::cout << "`\n";
         }
 
-        cout << tags::red_bold << "\nAn error occurred with message:\n" << e.what() << "\n" << tags::reset;
+        std::cout << tags::red_bold << "\nAn error occurred with message:\n" << e.what() << "\n" << tags::reset;
 
         return 2;
     }
@@ -696,14 +715,14 @@ int main(const int argc, const char *argv[])
     {
         if (oakElapsed != 0)
         {
-            cout << "Elapsed Oak ns: " << oakElapsed;
+            std::cout << "Elapsed Oak ns: " << oakElapsed;
         }
 
-        cout << tags::red_bold << "\n"
-             << curFile << " " << curLine << '\n'
-             << "\nAn unknown error ocurred.\n"
-             << "This is an issue with acorn, please report this bug!\n"
-             << tags::reset;
+        std::cout << tags::red_bold << "\n"
+                  << curFile << " " << curLine << '\n'
+                  << "\nAn unknown error ocurred.\n"
+                  << "This is an issue with acorn, please report this bug!\n"
+                  << tags::reset;
 
         return 3;
     }
@@ -714,64 +733,66 @@ int main(const int argc, const char *argv[])
 
         if (size != 0)
         {
-            cout << tags::green_bold << "\nThe build process took up " << humanReadable(size) << " of local storage.\n"
-                 << "(This is stored in './.oak_build/', which is now safe to delete.)\n"
-                 << tags::reset;
+            std::cout << tags::green_bold << "\nThe build process took up " << humanReadable(size)
+                      << " of local storage.\n"
+                      << "(This is stored in './.oak_build/', which is now safe to delete.)\n"
+                      << tags::reset;
         }
     }
 
     if (debug)
     {
-        end = chrono::high_resolution_clock::now();
-        unsigned long long totalElapsed = chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-        unsigned long long compElapsed = chrono::duration_cast<chrono::nanoseconds>(compEnd - compStart).count();
+        end = std::chrono::high_resolution_clock::now();
+        unsigned long long totalElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+        unsigned long long compElapsed =
+            std::chrono::duration_cast<std::chrono::nanoseconds>(compEnd - compStart).count();
 
         float percentAcornTime = oakElapsed / (float)totalElapsed;
         percentAcornTime *= 100;
 
         if (debug)
         {
-            cout << tags::green_bold << "\nProcess finished with no errors.\n\n"
-                 << tags::violet_bold << "Acorn-attributable time:\n"
-                 << "Nanoseconds:  " << oakElapsed << '\n'
-                 << "Microseconds: " << oakElapsed / 1'000.0 << '\n'
-                 << "Milliseconds: " << oakElapsed / 1'000'000.0 << '\n'
-                 << "Seconds:      " << oakElapsed / 1'000'000'000.0 << "\n\n"
-                 << "Clang-attributable time:\n"
-                 << "Nanoseconds:  " << compElapsed << '\n'
-                 << "Microseconds: " << compElapsed / 1'000.0 << '\n'
-                 << "Milliseconds: " << compElapsed / 1'000'000.0 << '\n'
-                 << "Seconds:      " << compElapsed / 1'000'000'000.0 << "\n\n"
-                 << "Total time:\n"
-                 << "Nanoseconds:  " << totalElapsed << '\n'
-                 << "Microseconds: " << totalElapsed / 1'000.0 << '\n'
-                 << "Milliseconds: " << totalElapsed / 1'000'000.0 << '\n'
-                 << "Seconds:      " << totalElapsed / 1'000'000'000.0 << "\n\n"
-                 << "Acorn Milliseconds per file: " << (oakElapsed / 1'000'000.0) / visitedFiles.size() << "\n\n";
+            std::cout << tags::green_bold << "\nProcess finished with no errors.\n\n"
+                      << tags::violet_bold << "Acorn-attributable time:\n"
+                      << "Nanoseconds:  " << oakElapsed << '\n'
+                      << "Microseconds: " << oakElapsed / 1'000.0 << '\n'
+                      << "Milliseconds: " << oakElapsed / 1'000'000.0 << '\n'
+                      << "Seconds:      " << oakElapsed / 1'000'000'000.0 << "\n\n"
+                      << "Clang-attributable time:\n"
+                      << "Nanoseconds:  " << compElapsed << '\n'
+                      << "Microseconds: " << compElapsed / 1'000.0 << '\n'
+                      << "Milliseconds: " << compElapsed / 1'000'000.0 << '\n'
+                      << "Seconds:      " << compElapsed / 1'000'000'000.0 << "\n\n"
+                      << "Total time:\n"
+                      << "Nanoseconds:  " << totalElapsed << '\n'
+                      << "Microseconds: " << totalElapsed / 1'000.0 << '\n'
+                      << "Milliseconds: " << totalElapsed / 1'000'000.0 << '\n'
+                      << "Seconds:      " << totalElapsed / 1'000'000'000.0 << "\n\n"
+                      << "Acorn Milliseconds per file: " << (oakElapsed / 1'000'000.0) / visitedFiles.size() << "\n\n";
         }
 
-        cout << tags::reset << "Note: This data is only accurate to one recursion.\n";
+        std::cout << tags::reset << "Note: This data is only accurate to one recursion.\n";
 
         if (percentAcornTime < 25)
         {
-            cout << tags::green_bold;
+            std::cout << tags::green_bold;
         }
         else if (percentAcornTime < 50)
         {
-            cout << tags::violet_bold;
+            std::cout << tags::violet_bold;
         }
         else if (percentAcornTime < 75)
         {
-            cout << tags::yellow_bold;
+            std::cout << tags::yellow_bold;
         }
         else
         {
-            cout << tags::red_bold;
+            std::cout << tags::red_bold;
         }
 
-        cout << "Percent of time which was Acorn-attributable: " << percentAcornTime << "%\n\n" << tags::reset;
+        std::cout << "Percent of time which was Acorn-attributable: " << percentAcornTime << "%\n\n" << tags::reset;
 
-        vector<string> passNames = {
+        std::vector<std::string> passNames = {
             "syntax check       ", "lexing             ", "macro defs         ",
             "compiler macros    ", "macro calls        ", "rules / dialect    ",
             "preproc defs       ", "op subs            ", "sequencing         ",
@@ -786,24 +807,25 @@ int main(const int argc, const char *argv[])
 
         unsigned long long int totalPlusCompilation = total + reconstructionElapsed + compElapsed;
 
-        cout << "Total logged by compiler: " << total << '\n' << "By compiler pass (ns):\n";
-        cout.precision(3);
+        std::cout << "Total logged by compiler: " << total << '\n' << "By compiler pass (ns):\n";
+        std::cout.precision(3);
 
         for (int j = 0; j < passNames.size(); j++)
         {
-            cout << left << "\t" << j + 1 << "\t" << setw(20) << passNames[j] << right << setw(15) << phaseTimes[j]
-                 << setw(10) << (100 * (double)phaseTimes[j] / total) << "%\t" << setw(10)
-                 << (100 * (double)phaseTimes[j] / totalPlusCompilation) << "%\n";
+            std::cout << std::left << "\t" << j + 1 << "\t" << std::setw(20) << passNames[j] << std::right
+                      << std::setw(15) << phaseTimes[j] << std::setw(10) << (100 * (double)phaseTimes[j] / total)
+                      << "%\t" << std::setw(10) << (100 * (double)phaseTimes[j] / totalPlusCompilation) << "%\n";
         }
 
-        cout << left << "\t" << passNames.size() + 1 << "\t" << setw(20) << "reconstruction" << right << setw(15)
-             << reconstructionElapsed << setw(23) << (100 * (double)reconstructionElapsed / totalPlusCompilation)
-             << "%\n";
+        std::cout << std::left << "\t" << passNames.size() + 1 << "\t" << std::setw(20) << "reconstruction"
+                  << std::right << std::setw(15) << reconstructionElapsed << std::setw(23)
+                  << (100 * (double)reconstructionElapsed / totalPlusCompilation) << "%\n";
 
-        cout << left << "\t" << passNames.size() + 2 << "\t" << setw(20) << "C via " C_COMPILER << right << setw(15)
-             << compElapsed << setw(23) << (100 * (double)compElapsed / totalPlusCompilation) << "%\n";
+        std::cout << std::left << "\t" << passNames.size() + 2 << "\t" << std::setw(20) << "C via " << C_COMPILER
+                  << std::right << std::setw(15) << compElapsed << std::setw(23)
+                  << (100 * (double)compElapsed / totalPlusCompilation) << "%\n";
 
-        cout << "Output file: " << out << '\n';
+        std::cout << "Output file: " << out << '\n';
     }
 
     if (execute)
@@ -825,18 +847,18 @@ int main(const int argc, const char *argv[])
     {
         int good = 0, bad = 0, result;
         unsigned long long ms, totalMs = 0;
-        chrono::_V2::high_resolution_clock::time_point start, end;
-        ifstream file;
-        string line;
-        vector<string> files;
-        vector<string> failed;
+        std::chrono::_V2::high_resolution_clock::time_point start, end;
+        std::ifstream file;
+        std::string line;
+        std::vector<std::string> files;
+        std::vector<std::string> failed;
 
         // Get all files to run
         result = system("mkdir -p .oak_build && ls ./tests/*.oak > .oak_build/test_suite_temp.txt");
         file.open(".oak_build/test_suite_temp.txt");
         if (result != 0 || !file.is_open())
         {
-            cout << tags::red_bold << "Error: Failed to find test suite `./tests/`.\n" << tags::reset;
+            std::cout << tags::red_bold << "Error: Failed to find test suite `./tests/`.\n" << tags::reset;
 
             return 7;
         }
@@ -854,15 +876,15 @@ int main(const int argc, const char *argv[])
         file.close();
 
         system("rm test_suite.log");
-        cout << tags::violet_bold << "Running " << files.size() << " tests...\n" << tags::reset;
+        std::cout << tags::violet_bold << "Running " << files.size() << " tests...\n" << tags::reset;
 
-        cout << "[compiling " << (execute ? "and" : "but not") << " executing]\n";
+        std::cout << "[compiling " << (execute ? "and" : "but not") << " executing]\n";
 
         // Iterate through files
         int i = 1;
         for (auto test : files)
         {
-            start = chrono::high_resolution_clock::now();
+            start = std::chrono::high_resolution_clock::now();
             if (execute)
             {
                 result = system(("acorn --execute " + test + " >> test_suite.log 2>&1").c_str());
@@ -871,13 +893,13 @@ int main(const int argc, const char *argv[])
             {
                 result = system(("acorn -o /dev/null " + test + " >> test_suite.log 2>&1").c_str());
             }
-            end = chrono::high_resolution_clock::now();
+            end = std::chrono::high_resolution_clock::now();
 
-            ms = chrono::duration_cast<chrono::milliseconds>(end - start).count();
+            ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
             totalMs += ms;
 
-            cout << "[" << i << "/" << files.size() << "]\t[" << (result == 0 ? tags::green : tags::red) << result
-                 << tags::reset << "]" << right << setw(8) << ms << " ms\t" << left << test << "\n";
+            std::cout << "[" << i << "/" << files.size() << "]\t[" << (result == 0 ? tags::green : tags::red) << result
+                      << tags::reset << "]" << std::right << std::setw(8) << ms << " ms\t" << std::left << test << "\n";
             if (result == 0)
             {
                 good++;
@@ -898,35 +920,43 @@ int main(const int argc, const char *argv[])
 
         if (good != 0)
         {
-            cout << tags::green_bold << "Passed:\t\t" << good << "\t(" << 100 * (double)good / (good + bad) << "%)"
-                 << '\n';
+            std::cout << tags::green_bold << "Passed:\t\t" << good << "\t(" << 100 * (double)good / (good + bad) << "%)"
+                      << '\n';
         }
         if (bad != 0)
         {
-            cout << tags::red_bold << "Failed:\t\t" << bad << "\t(" << 100 * (double)bad / (good + bad) << "%)" << '\n';
+            std::cout << tags::red_bold << "Failed:\t\t" << bad << "\t(" << 100 * (double)bad / (good + bad) << "%)"
+                      << '\n';
         }
 
-        cout << tags::reset << "Total:\t\t" << good + bad << '\n'
-             << "ms:\t\t" << totalMs << '\n'
-             << "ms per test:\t" << (totalMs) / (double)(good + bad) << '\n';
+        std::cout << tags::reset << "Total:\t\t" << good + bad << '\n'
+                  << "ms:\t\t" << totalMs << '\n'
+                  << "ms per test:\t" << (totalMs) / (double)(good + bad) << '\n';
 
         if (bad != 0)
         {
-            cout << tags::red_bold << "\nFailed files:\n";
+            std::cout << tags::red_bold << "\nFailed files:\n";
             for (auto item : failed)
             {
-                cout << " - " << item << '\n';
+                std::cout << " - " << item << '\n';
             }
-            cout << tags::reset;
+            std::cout << tags::reset;
         }
 
-        cout << "\nAny compiler is in ./test_suite.log.\n";
+        std::cout << "\nAny compiler is in ./test_suite.log.\n";
     }
 
     if (prettify)
     {
-        sm_assert(system(PRETTIFIER " .oak_build/*.c") == 0, "Failed to prettify output files.");
-        sm_assert(system(PRETTIFIER " .oak_build/*.h") == 0, "Failed to prettify output files.");
+        if (system((PRETTIFIER + " .oak_build/*.c").c_str()) != 0)
+        {
+            throw sequencing_error("Failed to prettify output source files.");
+        }
+
+        if (system((PRETTIFIER + " .oak_build/*.h").c_str()) != 0)
+        {
+            throw sequencing_error("Failed to prettify output header files.");
+        }
     }
 
     return 0;

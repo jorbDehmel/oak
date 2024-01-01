@@ -1,3 +1,11 @@
+/*
+Jordan Dehmel
+jdehmel@outlook.com
+github.com/jorbDehmel
+2023 - present
+GPLv3 held by author
+*/
+
 #include "enums.hpp"
 
-map<string, __enumLookupData> enumData;
+std::map<std::string, __enumLookupData> enumData;

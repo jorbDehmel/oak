@@ -1,10 +1,16 @@
+/*
+Jordan Dehmel
+2023 - present
+jdehmel@outlook.com
+*/
+
 #include "type_builder.hpp"
 #include "sequence.hpp"
 #include "sequence_resources.hpp"
 
-set<string> deps;
-map<string, __structLookupData> structData;
-vector<string> structOrder;
+std::set<std::string> deps;
+std::map<std::string, __structLookupData> structData;
+std::vector<std::string> structOrder;
 
 unsigned long long currentID = 1;
 
@@ -33,7 +39,7 @@ bool typeNode::operator==(const typeNode &other) const
 
 const Type nullType(atomic, "NULL");
 
-Type::Type(const TypeInfo &Info, const string &Name)
+Type::Type(const TypeInfo &Info, const std::string &Name)
 {
     internal.clear();
     internal.push_back({Info, Name});
@@ -78,14 +84,14 @@ Type::Type()
     return;
 }
 
-void Type::prepend(const TypeInfo &Info, const string &Name)
+void Type::prepend(const TypeInfo &Info, const std::string &Name)
 {
     internal.insert(internal.begin(), {Info, Name});
     ID = currentID++;
     return;
 }
 
-void Type::append(const TypeInfo &Info, const string &Name)
+void Type::append(const TypeInfo &Info, const std::string &Name)
 {
     if (internal.size() == 1 && internal[0].info == atomic && internal[0].name == "NULL")
     {
@@ -153,14 +159,14 @@ Type &Type::operator=(const typeNode &Other)
     return *this;
 }
 
-string toStr(const Type *const What, const unsigned int &pos)
+std::string toStr(const Type *const What, const unsigned int &pos)
 {
     if (What == nullptr || pos >= What->internal.size())
     {
         return "";
     }
 
-    string out = "";
+    std::string out = "";
 
     switch (What->internal[pos].info)
     {
@@ -330,7 +336,7 @@ bool typesAreSameExact(const Type *const A, const Type *const B)
     return true;
 }
 
-Type checkLiteral(const string &From)
+Type checkLiteral(const std::string &From)
 {
     // Check as bool
     if (From == "true" || From == "false")
@@ -338,7 +344,7 @@ Type checkLiteral(const string &From)
         return Type(atomic, "bool");
     }
 
-    // Check as string
+    // Check as std::string
     else if ((From.front() == '"' && From.back() == '"') || (From.front() == '\'' && From.back() == '\''))
     {
         // Char (do not use)
@@ -407,7 +413,7 @@ Type checkLiteral(const string &From)
             if (!(('0' <= From[i] && From[i] <= '9') || ('a' <= From[i] && From[i] <= 'f') ||
                   ('A' <= From[i] && From[i] <= 'F')))
             {
-                cout << "Due to char " << From[i] << '\n';
+                std::cout << "Due to char " << From[i] << '\n';
                 throw sequencing_error("Invalid hex literal '" + From + "'");
             }
         }
@@ -462,18 +468,18 @@ Type checkLiteral(const string &From)
 
     if (canBeNumber)
     {
-        if (From.find(".") == string::npos)
+        if (From.find(".") == std::string::npos)
         {
             // Int
 
             // Check size
             long long val = stoll(From);
 
-            if (abs(val) <= __INT_MAX__)
+            if (std::abs(val) <= __INT_MAX__)
             {
                 return Type(atomic, "i32");
             }
-            else if (abs(val) <= __LONG_MAX__)
+            else if (std::abs(val) <= __LONG_MAX__)
             {
                 return Type(atomic, "i64");
             }

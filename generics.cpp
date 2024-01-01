@@ -11,14 +11,15 @@ Jordan Dehmel, 2023
 
 // External definition of createSequence, defined in sequence.cpp
 // This avoids circular dependencies
-extern sequence createSequence(const vector<string> &From);
+extern sequence createSequence(const std::vector<std::string> &From);
 
 // A pair of <name, number_of_generics> maps to a vector of symbols within
-map<string, vector<genericInfo>> generics;
+std::map<std::string, std::vector<genericInfo>> generics;
 
 // Returns true if template substitution would make the two typeVecs the same
-bool checkTypeVec(const vector<string> &candidateTypeVec, const vector<string> &genericTypeVec,
-                  const vector<string> &genericNames, const vector<vector<string>> &substitutions)
+bool checkTypeVec(const std::vector<std::string> &candidateTypeVec, const std::vector<std::string> &genericTypeVec,
+                  const std::vector<std::string> &genericNames,
+                  const std::vector<std::vector<std::string>> &substitutions)
 {
     if (genericNames.size() != substitutions.size())
     {
@@ -38,10 +39,10 @@ bool checkTypeVec(const vector<string> &candidateTypeVec, const vector<string> &
     }
 
     // Build substitution table
-    map<string, vector<string>> subMap;
+    std::map<std::string, std::vector<std::string>> subMap;
     for (int i = 0; i < genericNames.size(); i++)
     {
-        subMap[genericNames[i]] = vector<string>();
+        subMap[genericNames[i]] = std::vector<std::string>();
         for (auto item : substitutions[i])
         {
             subMap[genericNames[i]].push_back(item);
@@ -52,7 +53,7 @@ bool checkTypeVec(const vector<string> &candidateTypeVec, const vector<string> &
     // vector<string> afterSub;
     int i = 0;
 
-    for (string symb : genericTypeVec)
+    for (std::string symb : genericTypeVec)
     {
         if (subMap.count(symb) == 0)
         {
@@ -88,7 +89,7 @@ bool checkTypeVec(const vector<string> &candidateTypeVec, const vector<string> &
                 j++;
             }
 
-            vector<string> remaining;
+            std::vector<std::string> remaining;
             for (int k = j; k < subMap[symb].size(); k++)
             {
                 remaining.push_back(subMap[symb][k]);
@@ -125,9 +126,9 @@ bool checkTypeVec(const vector<string> &candidateTypeVec, const vector<string> &
 Takes a type and a vector of candidates. Returns true if the
 type is a prefix of any of the candidates.
 */
-bool typeIsPrefixOfAny(const Type &t, const vector<__multiTableSymbol> &candidates)
+bool typeIsPrefixOfAny(const Type &t, const std::vector<__multiTableSymbol> &candidates)
 {
-    vector<bool> isViable;
+    std::vector<bool> isViable;
     for (int i = 0; i < candidates.size(); i++)
     {
         isViable.push_back(true);
@@ -168,7 +169,7 @@ bool typeIsPrefixOfAny(const Type &t, const vector<__multiTableSymbol> &candidat
 }
 
 // Returns true if two instances are the same
-bool checkInstances(const vector<vector<string>> &a, const vector<vector<string>> &b)
+bool checkInstances(const std::vector<std::vector<std::string>> &a, const std::vector<std::vector<std::string>> &b)
 {
     if (a.size() != b.size())
     {
@@ -196,16 +197,17 @@ bool checkInstances(const vector<vector<string>> &a, const vector<vector<string>
 
 // Skips all error checking; DO NOT FEED THIS THINGS THAT MAY ALREADY HAVE INSTANCES
 // Returns true if it was successful
-string __instantiateGeneric(const string &what, genericInfo &info, const vector<vector<string>> &genericSubs)
+std::string __instantiateGeneric(const std::string &what, genericInfo &info,
+                                 const std::vector<std::vector<std::string>> &genericSubs)
 {
     // Build substitution table
-    map<string, vector<string>> substitutions;
+    std::map<std::string, std::vector<std::string>> substitutions;
     for (int i = 0; i < genericSubs.size(); i++)
     {
         substitutions[info.genericNames[i]] = genericSubs[i];
     }
 
-    vector<string> copy;
+    std::vector<std::string> copy;
 
     // Needs block (pre, so no functions)
     if (info.preBlock.size() != 0)
@@ -219,7 +221,7 @@ string __instantiateGeneric(const string &what, genericInfo &info, const vector<
         {
             if (substitutions.count(copy[i]) != 0)
             {
-                string temp = copy[i];
+                std::string temp = copy[i];
                 copy.erase(copy.begin() + i);
                 for (auto s : substitutions[temp])
                 {
@@ -234,7 +236,7 @@ string __instantiateGeneric(const string &what, genericInfo &info, const vector<
             // Call on substituted pre block
             createSequence(copy);
         }
-        catch (exception &e)
+        catch (std::exception &e)
         {
             // This is only a failure case for this template
             return e.what();
@@ -275,7 +277,7 @@ string __instantiateGeneric(const string &what, genericInfo &info, const vector<
         {
             if (substitutions.count(copy[i]) != 0)
             {
-                string temp = copy[i];
+                std::string temp = copy[i];
                 copy.erase(copy.begin() + i);
                 for (auto s : substitutions[temp])
                 {
@@ -290,7 +292,7 @@ string __instantiateGeneric(const string &what, genericInfo &info, const vector<
             // Call on substituted post block
             createSequence(copy);
         }
-        catch (exception &e)
+        catch (std::exception &e)
         {
             // This is only a failure case for this template
             return e.what();
@@ -300,14 +302,15 @@ string __instantiateGeneric(const string &what, genericInfo &info, const vector<
     return "";
 }
 
-string instantiateGeneric(const string &what, const vector<vector<string>> &genericSubs, const vector<string> &typeVec)
+std::string instantiateGeneric(const std::string &what, const std::vector<std::vector<std::string>> &genericSubs,
+                               const std::vector<std::string> &typeVec)
 {
     // Get mangled version (only meaningful for struct instantiations)
-    string oldCurFile = curFile;
+    std::string oldCurFile = curFile;
     int oldCurLine = curLine;
 
-    string mangleStr = mangleStruct(what, genericSubs);
-    vector<string> errors;
+    std::string mangleStr = mangleStruct(what, genericSubs);
+    std::vector<std::string> errors;
 
     bool didInstantiate = false;
 
@@ -333,18 +336,18 @@ string instantiateGeneric(const string &what, const vector<vector<string>> &gene
         // Ensure it exists
         if (generics.count(what) == 0)
         {
-            cout << tags::red_bold << "During attempt to instantiate template '" << what << "' w/ generics:\n";
+            std::cout << tags::red_bold << "During attempt to instantiate template '" << what << "' w/ generics:\n";
 
             for (auto s : genericSubs)
             {
-                cout << '\t';
+                std::cout << '\t';
                 for (auto t : s)
                 {
-                    cout << t << ' ';
+                    std::cout << t << ' ';
                 }
-                cout << '\n';
+                std::cout << '\n';
             }
-            cout << tags::reset << '\n';
+            std::cout << tags::reset << '\n';
 
             throw generic_error("Error! No template exists with which to instantiate template '" + what + "'.");
         }
@@ -370,7 +373,7 @@ string instantiateGeneric(const string &what, const vector<vector<string>> &gene
                 if (!hasInstance)
                 {
                     candidate.instances.push_back(genericSubs);
-                    string result = __instantiateGeneric(what, candidate, genericSubs);
+                    std::string result = __instantiateGeneric(what, candidate, genericSubs);
                     errors.push_back(result);
 
                     if (result == "")
@@ -381,7 +384,7 @@ string instantiateGeneric(const string &what, const vector<vector<string>> &gene
                     }
                     else
                     {
-                        errors.back().append(" (" + curFile + ":" + to_string(curLine) + ")");
+                        errors.back().append(" (" + curFile + ":" + std::to_string(curLine) + ")");
                     }
 
                     // Else, failed with this template. Not an overall failure.
@@ -394,7 +397,8 @@ string instantiateGeneric(const string &what, const vector<vector<string>> &gene
             }
             else
             {
-                errors.push_back("Did not match generic substitution. (" + curFile + ":" + to_string(curLine) + ")");
+                errors.push_back("Did not match generic substitution. (" + curFile + ":" + std::to_string(curLine) +
+                                 ")");
             }
         }
     }
@@ -404,43 +408,43 @@ string instantiateGeneric(const string &what, const vector<vector<string>> &gene
 
     if (!didInstantiate)
     {
-        cout << tags::yellow_bold << "Desired:\n\t" << what << " w/ type ";
+        std::cout << tags::yellow_bold << "Desired:\n\t" << what << " w/ type ";
 
         for (auto item : typeVec)
         {
-            cout << item << ' ';
+            std::cout << item << ' ';
         }
 
-        cout << "\nWith generics substitutions:\n";
+        std::cout << "\nWith generics substitutions:\n";
 
         for (auto item : genericSubs)
         {
-            cout << "\t'";
+            std::cout << "\t'";
 
             for (auto b : item)
             {
-                cout << b << ' ';
+                std::cout << b << ' ';
             }
 
-            cout << "' (mangle: " << mangle(item) << ")" << '\n';
+            std::cout << "' (mangle: " << mangle(item) << ")" << '\n';
         }
 
-        cout << "Against:\n";
+        std::cout << "Against:\n";
 
         int i = 0;
         for (auto item : generics[what])
         {
-            cout << '\t' << what << " w/ type ";
+            std::cout << '\t' << what << " w/ type ";
             for (auto b : item.typeVec)
             {
-                cout << b << ' ';
+                std::cout << b << ' ';
             }
-            cout << '\n' << "Failed with error:\n\t" << (i < errors.size() ? errors[i] : "Unknown error") << '\n';
+            std::cout << '\n' << "Failed with error:\n\t" << (i < errors.size() ? errors[i] : "Unknown error") << '\n';
 
             i++;
         }
 
-        cout << tags::reset;
+        std::cout << tags::reset;
 
         throw generic_error("Error! Candidates exist for template '" + what + "', but none are viable.");
     }
@@ -449,8 +453,9 @@ string instantiateGeneric(const string &what, const vector<vector<string>> &gene
     return mangleStr;
 }
 
-void addGeneric(const vector<string> &what, const string &name, const vector<string> &genericsList,
-                const vector<string> &typeVec, const vector<string> &preBlock, const vector<string> &postBlock)
+void addGeneric(const std::vector<std::string> &what, const std::string &name,
+                const std::vector<std::string> &genericsList, const std::vector<std::string> &typeVec,
+                const std::vector<std::string> &preBlock, const std::vector<std::string> &postBlock)
 {
     genericInfo toAdd;
     toAdd.originFile = curFile;
@@ -509,7 +514,7 @@ void addGeneric(const vector<string> &what, const string &name, const vector<str
     return;
 }
 
-void printGenericDumpInfo(ostream &file)
+void printGenericDumpInfo(std::ostream &file)
 {
     for (auto p : generics)
     {

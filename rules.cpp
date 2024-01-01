@@ -1,18 +1,26 @@
-#include "rules.hpp"
-using namespace std;
+/*
+Jordan Dehmel
+2023 - present
+jdehmel@outlook.com
+*/
 
-map<string, rule> rules;
-vector<string> activeRules, dialectRules;
-map<string, vector<string>> bundles;
-map<string, void (*)(vector<string> &, int &, rule &)> engines;
+#include "rules.hpp"
+
+#define rm_assert(expression, message)                                                                                 \
+    ((bool)(expression) ? true : throw rule_error(message " (Failed assertion: '" #expression "')"))
+
+std::map<std::string, rule> rules;
+std::vector<std::string> activeRules, dialectRules;
+std::map<std::string, std::vector<std::string>> bundles;
+std::map<std::string, void (*)(std::vector<std::string> &, int &, rule &)> engines;
 
 bool doRuleLogFile = false;
 
 // I is the point in Lexed at which a macro name was found
 // CONSUMPTIVE!
-vector<string> getMacroArgs(vector<string> &lexed, const int &i)
+std::vector<std::string> getMacroArgs(std::vector<std::string> &lexed, const int &i)
 {
-    vector<string> out;
+    std::vector<std::string> out;
 
     lexed.erase(lexed.begin() + i);
 
@@ -23,7 +31,7 @@ vector<string> getMacroArgs(vector<string> &lexed, const int &i)
 
     if (lexed[i] != "(")
     {
-        throw runtime_error("Internal error; Malformed call to getMacroArgs.");
+        throw std::runtime_error("Internal error; Malformed call to getMacroArgs.");
     }
 
     // Erase opening parenthesis
@@ -34,7 +42,7 @@ vector<string> getMacroArgs(vector<string> &lexed, const int &i)
         lexed.erase(lexed.begin() + i);
     }
 
-    string cur = "";
+    std::string cur = "";
     int count = 1;
 
     while (!lexed.empty() && lexed[i] != ";")
@@ -69,12 +77,12 @@ vector<string> getMacroArgs(vector<string> &lexed, const int &i)
     return out;
 }
 
-void doRules(vector<string> &From)
+void doRules(std::vector<std::string> &From)
 {
-    ofstream ruleLogFile;
+    std::ofstream ruleLogFile;
     if (doRuleLogFile)
     {
-        ruleLogFile.open(".oak_build/__rule_log.log", ios::out | ios::app);
+        ruleLogFile.open(".oak_build/__rule_log.log", std::ios::out | std::ios::app);
         if (!ruleLogFile.is_open())
         {
             throw rule_error("Failed to open rule log file '.oak_build/__rule_log.log'");
@@ -108,7 +116,7 @@ void doRules(vector<string> &From)
 
             rm_assert(args.size() == 3 || args.size() == 4, "new_rule! requires three or four arguments.");
 
-            string name = args[0];
+            std::string name = args[0];
             rule toAdd;
 
             if (args.size() == 3)
@@ -224,7 +232,7 @@ void doRules(vector<string> &From)
 
             rm_assert(args.size() > 1, "bundle_rule! requires at least two arguments.");
 
-            string name = args[0];
+            std::string name = args[0];
             for (int j = 1; j < args.size(); j++)
             {
                 bundles[name].push_back(args[j]);
@@ -275,7 +283,7 @@ void doRules(vector<string> &From)
 }
 
 bool dialectLock = false;
-void loadDialectFile(const string &File)
+void loadDialectFile(const std::string &File)
 {
     if (dialectLock)
     {
@@ -291,15 +299,15 @@ void loadDialectFile(const string &File)
     */
 
     // Open dialect file
-    ifstream inp(File);
+    std::ifstream inp(File);
     if (!inp.is_open())
     {
         throw rule_error("Failed to open dialect file '" + File + "'");
     }
 
-    string engine = "sapling";
+    std::string engine = "sapling";
 
-    string line;
+    std::string line;
     int lineNum = 0;
     while (getline(inp, line))
     {
@@ -328,19 +336,19 @@ void loadDialectFile(const string &File)
             continue;
         }
 
-        stringstream lineStream(line);
-        string cur;
+        std::stringstream lineStream(line);
+        std::string cur;
 
         lineStream >> cur;
         if (cur.size() != 0 && (cur.front() == '"' || cur.front() == '\''))
         {
             // Remember that all args must be strings, even here
 
-            string name;
-            string inputStr, outputStr;
+            std::string name;
+            std::string inputStr, outputStr;
             rule toAdd;
 
-            name = "dialect_rule_" + to_string(dialectRules.size());
+            name = "dialect_rule_" + std::to_string(dialectRules.size());
 
             // Insert into dialectRules list
             dialectRules.push_back(name);
@@ -400,7 +408,7 @@ void loadDialectFile(const string &File)
         }
         else
         {
-            throw rule_error(File + ":" + to_string(lineNum) + " Invalid line '" + line + "'");
+            throw rule_error(File + ":" + std::to_string(lineNum) + " Invalid line '" + line + "'");
         }
     }
 
@@ -409,15 +417,15 @@ void loadDialectFile(const string &File)
     return;
 }
 
-void doRuleAcorn(vector<string> &From, int &i, rule &curRule)
+void doRuleAcorn(std::vector<std::string> &From, int &i, rule &curRule)
 {
     int posInFrom = i;
-    vector<string> memory;
-    map<string, string> ruleVars;
+    std::vector<std::string> memory;
+    std::map<std::string, std::string> ruleVars;
     bool isMatch = true;
     for (int k = 0; posInFrom < From.size() && k < curRule.inputPattern.size(); k++)
     {
-        string match = curRule.inputPattern[k];
+        std::string match = curRule.inputPattern[k];
 
         while (From[posInFrom].size() >= 2 && From[posInFrom].substr(0, 2) == "//")
         {
@@ -455,8 +463,8 @@ void doRuleAcorn(vector<string> &From, int &i, rule &curRule)
         // Globs; Un-stored multi-symbol matches
         else if (match == "$*")
         {
-            throw_assert(k + 1 < curRule.inputPattern.size());
-            string nextSymb = curRule.inputPattern[k + 1];
+            rm_assert(k + 1 < curRule.inputPattern.size(), "Glob card '$*' must not be end of rule.");
+            std::string nextSymb = curRule.inputPattern[k + 1];
 
             while (From[posInFrom] != nextSymb)
             {
@@ -484,8 +492,8 @@ void doRuleAcorn(vector<string> &From, int &i, rule &curRule)
         }
         else if (match == "$+")
         {
-            throw_assert(k + 1 < curRule.inputPattern.size());
-            string nextSymb = curRule.inputPattern[k + 1];
+            rm_assert(k + 1 < curRule.inputPattern.size(), "Glob card '$+' must not be end of rule.");
+            std::string nextSymb = curRule.inputPattern[k + 1];
 
             if (From[posInFrom] == nextSymb)
             {
@@ -527,10 +535,10 @@ void doRuleAcorn(vector<string> &From, int &i, rule &curRule)
         // Pipe memory onto end of variable
         else if (match.size() == 3 && match.substr(0, 2) == "$>")
         {
-            string name = match.substr(0, 1) + match.substr(2, 1);
+            std::string name = match.substr(0, 1) + match.substr(2, 1);
 
-            string concatenatedMemory = "";
-            for (const string &item : memory)
+            std::string concatenatedMemory = "";
+            for (const std::string &item : memory)
             {
                 concatenatedMemory.append(item);
                 concatenatedMemory.append(" ");
@@ -673,8 +681,8 @@ void doRuleAcorn(vector<string> &From, int &i, rule &curRule)
                 endOfCloser++;
             }
 
-            string opener = match.substr(3, endOfOpener - 3),
-                   closer = match.substr(endOfOpener + 1, endOfCloser - endOfOpener - 1);
+            std::string opener = match.substr(3, endOfOpener - 3),
+                        closer = match.substr(endOfOpener + 1, endOfCloser - endOfOpener - 1);
             long long count = 0;
 
             int beginningPosition = posInFrom;
@@ -716,10 +724,10 @@ void doRuleAcorn(vector<string> &From, int &i, rule &curRule)
         // Variable glob; Stored multi-symbol match
         else if (match.size() == 3 && match.substr(0, 2) == "$*")
         {
-            string name = match.substr(0, 1) + match.substr(2, 1);
+            std::string name = match.substr(0, 1) + match.substr(2, 1);
 
-            throw_assert(k + 1 < curRule.inputPattern.size());
-            string nextSymb = curRule.inputPattern[k + 1];
+            rm_assert(k + 1 < curRule.inputPattern.size(), "Glob card '$*' must not be end of rule.");
+            std::string nextSymb = curRule.inputPattern[k + 1];
 
             while (posInFrom < From.size() && From[posInFrom] != nextSymb)
             {
@@ -795,16 +803,16 @@ void doRuleAcorn(vector<string> &From, int &i, rule &curRule)
         // Variable table is already built at this point
 
         // Get new contents
-        vector<string> newContents;
+        std::vector<std::string> newContents;
         for (int sIndex = 0; sIndex < curRule.outputPattern.size(); sIndex++)
         {
-            string s = curRule.outputPattern[sIndex];
+            std::string s = curRule.outputPattern[sIndex];
 
             if (ruleVars.count(s) != 0)
             {
-                string raw = ruleVars[s];
+                std::string raw = ruleVars[s];
 
-                vector<string> lexed = lex(raw);
+                std::vector<std::string> lexed = lex(raw);
                 for (auto s : lexed)
                 {
                     newContents.push_back(s);
@@ -813,15 +821,15 @@ void doRuleAcorn(vector<string> &From, int &i, rule &curRule)
             else if (s == "$<")
             {
                 // Merge operator
-                throw_assert(!newContents.empty());
-                throw_assert(sIndex + 1 < curRule.outputPattern.size());
+                rm_assert(!newContents.empty(), "Cannot use merge card '$<' on empty output.");
+                rm_assert(sIndex + 1 < curRule.outputPattern.size(), "Merge card '$<' must not be end of rule.");
 
-                string toInsert = curRule.outputPattern[sIndex + 1];
+                std::string toInsert = curRule.outputPattern[sIndex + 1];
 
                 if (ruleVars.count(toInsert) != 0)
                 {
-                    string raw = ruleVars[toInsert];
-                    vector<string> lexed = lex(raw);
+                    std::string raw = ruleVars[toInsert];
+                    std::vector<std::string> lexed = lex(raw);
 
                     toInsert = "";
                     for (auto str : lexed)
@@ -904,8 +912,10 @@ void doRuleAcorn(vector<string> &From, int &i, rule &curRule)
     ruleVars.clear();
 }
 
-void addEngine(const string &name, void (*hook)(vector<string> &, int &, rule &))
+void addEngine(const std::string &name, void (*hook)(std::vector<std::string> &, int &, rule &))
 {
     engines[name] = hook;
     return;
 }
+
+#undef rm_assert

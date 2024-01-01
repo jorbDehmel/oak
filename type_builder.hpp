@@ -1,5 +1,6 @@
 /*
-Jordan Dehmel, 2023
+Jordan Dehmel
+2023 - present
 jdehmel@outlook.com
 
 Underlying class for representing types in Oak source code.
@@ -14,7 +15,6 @@ Underlying class for representing types in Oak source code.
 #include <set>
 #include <string>
 #include <vector>
-using namespace std;
 
 #define DB_INFO __FILE__ << ':' << __LINE__ << ' '
 
@@ -36,19 +36,19 @@ struct typeNode
     bool operator==(const typeNode &other) const;
 
     TypeInfo info;
-    string name;
+    std::string name;
 };
 
 class Type
 {
   public:
-    Type(const TypeInfo &Info, const string &Name = "");
+    Type(const TypeInfo &Info, const std::string &Name = "");
     Type(const Type &What);
     Type(const Type &What, const int &startingAt);
     Type();
 
-    void prepend(const TypeInfo &Info, const string &Name = "");
-    void append(const TypeInfo &Info, const string &Name = "");
+    void prepend(const TypeInfo &Info, const std::string &Name = "");
+    void append(const TypeInfo &Info, const std::string &Name = "");
     void append(const Type &Other);
 
     void pop_front();
@@ -69,28 +69,28 @@ class Type
 
     unsigned long long ID;
 
-    vector<typeNode> internal;
+    std::vector<typeNode> internal;
 };
 
 ////////////////////////////////////////////////////////////////
 
-extern set<string> deps;
+extern std::set<std::string> deps;
 
 extern const Type nullType;
 
 struct __structLookupData
 {
-    map<string, Type> members;
-    vector<string> order;
+    std::map<std::string, Type> members;
+    std::vector<std::string> order;
 
     bool erased = false;
 };
 
-extern map<string, __structLookupData> structData;
-extern vector<string> structOrder;
+extern std::map<std::string, __structLookupData> structData;
+extern std::vector<std::string> structOrder;
 
 // Return the standard C / C++ representation of this type
-string toStr(const Type *const What, const unsigned int &pos = 0);
+std::string toStr(const Type *const What, const unsigned int &pos = 0);
 
 // Ignores all var_names, plus auto-ref/deref
 bool typesAreSame(const Type *const A, const Type *const B, int &changes);

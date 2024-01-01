@@ -7,26 +7,25 @@ GPLv3 held by author
 */
 
 #include "document.hpp"
-using namespace std;
 
-const string rule = "------------------------------";
-const string headerStart = "# ";
-const string fileStart = "## ";
-const string fnStart = "### ";
+const std::string rule = "------------------------------";
+const std::string headerStart = "# ";
+const std::string fileStart = "## ";
+const std::string fnStart = "### ";
 
-void generate(const vector<string> &Files, const string &Output)
+void generate(const std::vector<std::string> &Files, const std::string &Output)
 {
     if (Files.size() == 0)
     {
         return;
     }
 
-    auto start = chrono::high_resolution_clock::now();
+    auto start = std::chrono::high_resolution_clock::now();
 
-    ofstream out(Output);
+    std::ofstream out(Output);
     if (!out.is_open())
     {
-        throw runtime_error("Failed to open file '" + Output + "'");
+        throw std::runtime_error("Failed to open file '" + Output + "'");
     }
 
     // File header
@@ -45,18 +44,17 @@ void generate(const vector<string> &Files, const string &Output)
     for (auto fileName : Files)
     {
         // Insert header
-        out << rule << '\n'
-            << fileStart << fileName << "\n\n";
+        out << rule << '\n' << fileStart << fileName << "\n\n";
 
-        map<string, string> data;
-        vector<string> lines;
-        string line;
+        std::map<std::string, std::string> data;
+        std::vector<std::string> lines;
+        std::string line;
 
         // Load file
-        ifstream file(fileName);
+        std::ifstream file(fileName);
         if (!file.is_open())
         {
-            throw runtime_error("Failed to open file '" + fileName + "'");
+            throw std::runtime_error("Failed to open file '" + fileName + "'");
         }
 
         while (getline(file, line))
@@ -67,7 +65,7 @@ void generate(const vector<string> &Files, const string &Output)
         file.close();
 
         // Scan and build data
-        string mostRecentComment = "";
+        std::string mostRecentComment = "";
         for (int i = 0; i < lines.size(); i++)
         {
             if (lines[i].size() >= 2 && lines[i].substr(0, 2) == "//")
@@ -115,7 +113,7 @@ void generate(const vector<string> &Files, const string &Output)
             }
             else
             {
-                if (lines[i].find("!") == string::npos)
+                if (lines[i].find("!") == std::string::npos)
                 {
                     // Add to data
                     data[lines[i]] = mostRecentComment;
@@ -127,14 +125,13 @@ void generate(const vector<string> &Files, const string &Output)
         }
 
         // Reconstruct into output document
-        for (pair<string, string> cur : data)
+        for (std::pair<std::string, std::string> cur : data)
         {
-            out << fnStart
-                << cur.first << "\n\n";
+            out << fnStart << cur.first << "\n\n";
 
             if (cur.second == "")
             {
-                cout << "(No documentation was provided)\n\n";
+                std::cout << "(No documentation was provided)\n\n";
             }
             else
             {
@@ -143,12 +140,11 @@ void generate(const vector<string> &Files, const string &Output)
         }
     }
 
-    auto end = chrono::high_resolution_clock::now();
-    unsigned long long elapsedNS = chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+    auto end = std::chrono::high_resolution_clock::now();
+    unsigned long long elapsedNS = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 
     out << rule << "\n\n"
-        << "Generation took " << elapsedNS << " ns, about " << ((double)elapsedNS / Files.size())
-        << " ns / file.\n";
+        << "Generation took " << elapsedNS << " ns, about " << ((double)elapsedNS / Files.size()) << " ns / file.\n";
 
     out.close();
 

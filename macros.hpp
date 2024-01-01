@@ -22,26 +22,24 @@ source code.
 #include "reconstruct.hpp"
 #include "symbol_table.hpp"
 
-using namespace std;
+const static std::string COMPILED_PATH = ".oak_build/";
+const static std::string COMPILER_COMMAND = "acorn";
 
-#define COMPILED_PATH ".oak_build/"
-#define COMPILER_COMMAND "acorn"
-
-extern set<string> compiled;
-extern map<string, string> macros;
-extern map<string, string> macroSourceFiles;
+extern std::set<std::string> compiled;
+extern std::map<std::string, std::string> macros;
+extern std::map<std::string, std::string> macroSourceFiles;
 
 // USES SYSTEM CALLS
-string callMacro(const string &Name, const vector<string> &Args, bool debug);
-void compileMacro(const string &Name, bool debug);
+std::string callMacro(const std::string &Name, const std::vector<std::string> &Args, bool debug);
+void compileMacro(const std::string &Name, bool debug);
 
 // Misnomer: This returns the create time in seconds after epoch
 // Is costly the first time, but uses caching
-long long getAgeOfFile(const string &filepath);
+long long getAgeOfFile(const std::string &filepath);
 
 // Returns true if the source file is newer than the destination one
 // OR if either file is nonexistant
 // Is costly the first time, but uses caching
-bool isSourceNewer(const string &source, const string &dest);
+bool isSourceNewer(const std::string &source, const std::string &dest);
 
 #endif

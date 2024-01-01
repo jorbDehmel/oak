@@ -16,12 +16,11 @@ compiler frontend.
 
 #include <fstream>
 #include <string>
-using namespace std;
 
 // Use system calls to get the size in kilobytes of a given filepath
-unsigned long long int getSize(const string &FilePath);
+unsigned long long int getSize(const std::string &FilePath);
 
 // Turn the output of getSize into a human-readable string
-string humanReadable(const unsigned long long int &Size);
+std::string humanReadable(const unsigned long long int &Size);
 
 #endif

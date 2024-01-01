@@ -7,15 +7,14 @@ GPLv3 held by author
 */
 
 #include "lexer.hpp"
-using namespace std;
 
-const string alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-const string numbers = "0123456789";
+const static std::string alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const static std::string numbers = "0123456789";
 
-vector<string> lex(const string &What)
+std::vector<std::string> lex(const std::string &What)
 {
-    vector<string> out;
-    string cur = "";
+    std::vector<std::string> out;
+    std::string cur = "";
     unsigned long long line = 1;
 
     char c;
@@ -38,7 +37,7 @@ vector<string> lex(const string &What)
             {
                 // Newline. Increment line count and insert line special symbol
                 line++;
-                out.push_back("//__LINE__=" + to_string(line));
+                out.push_back("//__LINE__=" + std::to_string(line));
             }
 
             continue;
@@ -79,7 +78,7 @@ vector<string> lex(const string &What)
             }
 
             line++;
-            out.push_back("//__LINE__=" + to_string(line));
+            out.push_back("//__LINE__=" + std::to_string(line));
 
             continue;
         }
@@ -113,7 +112,7 @@ vector<string> lex(const string &What)
                     if (What[i] == '\n')
                     {
                         line++;
-                        out.push_back("//__LINE__=" + to_string(line));
+                        out.push_back("//__LINE__=" + std::to_string(line));
                     }
 
                     i++;
@@ -610,7 +609,7 @@ vector<string> lex(const string &What)
     }
 
     // Coagulation pass
-    string prev, next;
+    std::string prev, next;
     for (int i = 0; i < out.size(); i++)
     {
         prev = i == 0 ? "" : out[i - 1];
@@ -708,13 +707,13 @@ vector<string> lex(const string &What)
     return out;
 }
 
-void smartSystem(const string &What)
+void smartSystem(const std::string &What)
 {
     int result = system(What.c_str());
 
     if (result != 0)
     {
-        throw runtime_error("System call `" + What + "` failed with code " + to_string(result));
+        throw std::runtime_error("System call `" + What + "` failed with code " + std::to_string(result));
     }
 
     return;

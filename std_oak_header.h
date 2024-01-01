@@ -1,6 +1,8 @@
 /*
 Oak translated document heading
-Jordan Dehmel, jdehmel@outlook.com, 2023
+Jordan Dehmel
+jdehmel@outlook.com
+2023 - present
 This header protected by the GPLv3.
 */
 

@@ -19,8 +19,6 @@ of an Oak source file
 #include <string>
 #include <vector>
 
-using namespace std;
-
-void generate(const vector<string> &Files, const string &Output);
+void generate(const std::vector<std::string> &Files, const std::string &Output);
 
 #endif

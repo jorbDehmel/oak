@@ -37,9 +37,9 @@ non-sequential parser.
 // Creates a sequence from a lexed string.
 // Return type is deduced naturally from the contents.
 // Can throw sequencing errors.
-sequence createSequence(const vector<string> &From);
+sequence createSequence(const std::vector<std::string> &From);
 
 // Get the return type; Set as a global
-Type resolveFunction(const vector<string> &What, int &start, string &c);
+Type resolveFunction(const std::vector<std::string> &What, int &start, std::string &c);
 
 #endif

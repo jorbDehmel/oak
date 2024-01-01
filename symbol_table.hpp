@@ -20,12 +20,10 @@ Handles the Oak symbol table.
 #include "lexer.hpp"
 #include "type_builder.hpp"
 
-using namespace std;
-
-class parse_error : public runtime_error
+class parse_error : public std::runtime_error
 {
   public:
-    parse_error(const string &What) : runtime_error(What)
+    parse_error(const std::string &What) : std::runtime_error(What)
     {
     }
 };
@@ -33,7 +31,7 @@ class parse_error : public runtime_error
 #define parse_assert(what) ((bool)(what)) ? true : (throw parse_error("Assertion '" #what "' failed."))
 
 // External definition
-string mangle(const vector<string> &what);
+std::string mangle(const std::vector<std::string> &what);
 
 enum sequenceInfo
 {
@@ -47,9 +45,9 @@ enum sequenceInfo
 struct sequence
 {
     Type type;
-    vector<sequence> items;
+    std::vector<sequence> items;
     sequenceInfo info = code_line;
-    string raw; // If needed
+    std::string raw; // If needed
 };
 
 // For internal use
@@ -59,38 +57,39 @@ struct __multiTableSymbol
     Type type;
 
     bool erased = false;
-    string sourceFilePath = "";
+    std::string sourceFilePath = "";
 };
 
 // For later instantiation
 struct __template_info
 {
-    vector<string> generics;
-    vector<string> guts;
-    vector<string> returnType;
+    std::vector<std::string> generics;
+    std::vector<std::string> guts;
+    std::vector<std::string> returnType;
 };
 
-typedef map<string, vector<__multiTableSymbol>> multiSymbolTable;
+typedef std::map<std::string, std::vector<__multiTableSymbol>> multiSymbolTable;
 
 // typedef map<string, vector<__template_info>> multiTemplTable;
 
 extern multiSymbolTable table;
 
 // Returns the C version of a sequence
-string toC(const sequence &What);
+std::string toC(const sequence &What);
 
 // Converts lexed symbols into a type
-Type toType(const vector<string> &What);
+Type toType(const std::vector<std::string> &What);
 
 // Can throw errors (IE malformed definitions)
 // Takes in the whole definition, starting at let
 // and ending after }. (Oak has no trailing semicolon)
 // Can also handle templating
-void addStruct(const vector<string> &From);
+void addStruct(const std::vector<std::string> &From);
 
 // Extern defs
-string mangleStruct(const string &name, const vector<vector<string>> &generics);
-string instantiateGeneric(const string &what, const vector<vector<string>> &genericSubs, const vector<string> &typeVec);
+std::string mangleStruct(const std::string &name, const std::vector<std::vector<std::string>> &generics);
+std::string instantiateGeneric(const std::string &what, const std::vector<std::vector<std::string>> &genericSubs,
+                               const std::vector<std::string> &typeVec);
 
 /*
 Erases any non-function symbols which were not present
@@ -98,6 +97,6 @@ in the original table. However, skips all functions.
 If not contradicted by the above rules, bases off of
 the current table (not backup).
 */
-string restoreSymbolTable(multiSymbolTable &backup);
+std::string restoreSymbolTable(multiSymbolTable &backup);
 
 #endif

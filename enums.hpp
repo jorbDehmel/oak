@@ -1,5 +1,5 @@
 /*
-Jordan Dehmel, 2023
+Jordan Dehmel, 2023 - present
 jdehmel@outlook.com
 
 Handles enumerations in Oak Enumerations
@@ -20,19 +20,17 @@ is whether it says 'struct' or 'enum'.
 
 #include "type_builder.hpp"
 
-using namespace std;
-
 // Used in type sizing later
 const static char enumTypeStr[] = "i32";
 
 struct __enumLookupData
 {
-    map<string, Type> options;
-    vector<string> order;
+    std::map<std::string, Type> options;
+    std::vector<std::string> order;
 
     bool erased = false;
 };
 
-extern map<string, __enumLookupData> enumData;
+extern std::map<std::string, __enumLookupData> enumData;
 
 #endif

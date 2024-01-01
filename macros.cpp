@@ -7,17 +7,18 @@ GPLv3 held by author
 */
 
 #include "macros.hpp"
+#include <stdexcept>
 
 // The pre-inserted ones are used by the compiler- Not literal macros
-set<string> compiled = {"include!",  "link!",     "package!",  "alloc!",       "free!",   "free_arr!",
-                        "new_rule!", "use_rule!", "rem_rule!", "bundle_rule!", "erase!",  "c_print!",
-                        "c_panic!",  "type!",     "size!",     "ptrcpy!",      "ptrarr!", "raw_c!"};
-map<string, string> macros;
-map<string, string> macroSourceFiles;
+std::set<std::string> compiled = {"include!",  "link!",     "package!",  "alloc!",       "free!",   "free_arr!",
+                                  "new_rule!", "use_rule!", "rem_rule!", "bundle_rule!", "erase!",  "c_print!",
+                                  "c_panic!",  "type!",     "size!",     "ptrcpy!",      "ptrarr!", "raw_c!"};
+std::map<std::string, std::string> macros;
+std::map<std::string, std::string> macroSourceFiles;
 
-long long getAgeOfFile(const string &filepath)
+long long getAgeOfFile(const std::string &filepath)
 {
-    static map<string, long long> ageCache;
+    static std::map<std::string, long long> ageCache;
 
     if (ageCache.count(filepath) != 0)
     {
@@ -30,7 +31,7 @@ long long getAgeOfFile(const string &filepath)
         return -1;
     }
 
-    ifstream file(".oak_build/age_temp.txt");
+    std::ifstream file(".oak_build/age_temp.txt");
     if (!file.is_open())
     {
         return -1;
@@ -52,7 +53,7 @@ long long getAgeOfFile(const string &filepath)
 
 // Returns true if the source file is newer than the destination one
 // OR if either file is nonexistant
-bool isSourceNewer(const string &source, const string &dest)
+bool isSourceNewer(const std::string &source, const std::string &dest)
 {
     long long sourceAge = getAgeOfFile(source);
     long long destAge = getAgeOfFile(dest);
@@ -65,15 +66,15 @@ bool isSourceNewer(const string &source, const string &dest)
     return (sourceAge > destAge);
 }
 
-void compileMacro(const string &Name, bool debug)
+void compileMacro(const std::string &Name, bool debug)
 {
     if (macros.count(Name) == 0)
     {
-        throw runtime_error("Cannot compile macro `" + Name + "`; No source code present");
+        throw std::runtime_error("Cannot compile macro `" + Name + "`; No source code present");
     }
     else if (Name.back() != '!')
     {
-        throw runtime_error("'" + Name + "' is an illegal macro name; This is an error of the compiler");
+        throw std::runtime_error("'" + Name + "' is an illegal macro name; This is an error of the compiler");
     }
     else if (compiled.count(Name) != 0)
     {
@@ -81,11 +82,11 @@ void compileMacro(const string &Name, bool debug)
         return;
     }
 
-    string rootName = purifyStr(Name.substr(0, Name.size() - 1));
+    std::string rootName = purifyStr(Name.substr(0, Name.size() - 1));
 
     // Write file to be compiled
-    string srcPath = COMPILED_PATH + rootName + ".oak";
-    string binPath = COMPILED_PATH + rootName + ".out";
+    std::string srcPath = COMPILED_PATH + rootName + ".oak";
+    std::string binPath = COMPILED_PATH + rootName + ".out";
 
     // Check ages, makefile-style
     if (!isSourceNewer(macroSourceFiles[Name], binPath))
@@ -93,12 +94,15 @@ void compileMacro(const string &Name, bool debug)
         return;
     }
 
-    throw_assert(system("mkdir -p " COMPILED_PATH) == 0);
+    if (system(("mkdir -p " + COMPILED_PATH).c_str()) != 0)
+    {
+        throw std::runtime_error("Failed to create temp folder " + COMPILED_PATH);
+    }
 
-    ofstream macroFile(srcPath);
+    std::ofstream macroFile(srcPath);
     if (!macroFile.is_open())
     {
-        throw runtime_error("Could not open file `" + srcPath + "`");
+        throw std::runtime_error("Could not open file `" + srcPath + "`");
     }
 
     macroFile << macros[Name] << '\n';
@@ -106,44 +110,48 @@ void compileMacro(const string &Name, bool debug)
     macroFile.close();
 
     // Call compiler
-    string command = COMPILER_COMMAND + (debug ? string(" -d") : string("")) + " -Mo " + binPath + " " + srcPath;
+    std::string command =
+        COMPILER_COMMAND + (debug ? std::string(" -d") : std::string("")) + " -Mo " + binPath + " " + srcPath;
 
     if (debug)
     {
-        cout << "Compiling via command '" << command << "'\n";
+        std::cout << "Compiling via command '" << command << "'\n";
 
-        cout << tags::yellow_bold << "\n-----------------------------\n"
-             << "Entering sub-file '" << srcPath << "'\n"
-             << "-----------------------------\n"
-             << "\\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/\n\n"
-             << tags::reset << flush;
+        std::cout << tags::yellow_bold << "\n-----------------------------\n"
+                  << "Entering sub-file '" << srcPath << "'\n"
+                  << "-----------------------------\n"
+                  << "\\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/\n\n"
+                  << tags::reset << std::flush;
     }
 
     try
     {
-        throw_assert(system(command.c_str()) == 0);
+        if (system(command.c_str()) != 0)
+        {
+            throw std::runtime_error("System call '" + command + "' failed.");
+        }
     }
-    catch (runtime_error &e)
+    catch (std::runtime_error &e)
     {
         if (debug)
         {
-            cout << tags::yellow_bold << "\n/\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\\n"
-                 << "-----------------------------\n"
-                 << "Exiting sub-file '" << srcPath << "'\n"
-                 << "-----------------------------\n\n"
-                 << tags::reset << flush;
+            std::cout << tags::yellow_bold << "\n/\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\\n"
+                      << "-----------------------------\n"
+                      << "Exiting sub-file '" << srcPath << "'\n"
+                      << "-----------------------------\n\n"
+                      << tags::reset << std::flush;
         }
 
-        throw runtime_error(string("Macro failure: ") + e.what());
+        throw std::runtime_error(std::string("Macro failure: ") + e.what());
     }
 
     if (debug)
     {
-        cout << tags::yellow_bold << "/\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\\n"
-             << "-----------------------------\n"
-             << "Exiting sub-file '" << srcPath << "'\n"
-             << "-----------------------------\n\n"
-             << tags::reset << flush;
+        std::cout << tags::yellow_bold << "/\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\\n"
+                  << "-----------------------------\n"
+                  << "Exiting sub-file '" << srcPath << "'\n"
+                  << "-----------------------------\n\n"
+                  << tags::reset << std::flush;
     }
 
     compiled.insert(Name);
@@ -151,19 +159,19 @@ void compileMacro(const string &Name, bool debug)
     return;
 }
 
-string callMacro(const string &Name, const vector<string> &Args, bool debug)
+std::string callMacro(const std::string &Name, const std::vector<std::string> &Args, bool debug)
 {
     if (compiled.count(Name) == 0)
     {
         compileMacro(Name, debug);
     }
 
-    string outputName = COMPILED_PATH + string("__oak_macro_out") + ".txt";
+    std::string outputName = COMPILED_PATH + std::string("__oak_macro_out") + ".txt";
 
-    string command = COMPILED_PATH + purifyStr(Name.substr(0, Name.size() - 1)) + ".out ";
+    std::string command = COMPILED_PATH + purifyStr(Name.substr(0, Name.size() - 1)) + ".out ";
 
     // args here
-    for (string s : Args)
+    for (std::string s : Args)
     {
         if (s.size() == 0)
         {
@@ -180,7 +188,7 @@ string callMacro(const string &Name, const vector<string> &Args, bool debug)
         {
             if (c == '"' && pos != 0 && pos + 1 != s.size())
             {
-                command += string("\\") + c;
+                command += std::string("\\") + c;
             }
             else
             {
@@ -202,31 +210,31 @@ string callMacro(const string &Name, const vector<string> &Args, bool debug)
 
     if (debug)
     {
-        cout << "Macro call `" << command << "`\n";
+        std::cout << "Macro call `" << command << "`\n";
     }
 
     try
     {
         if (system(command.c_str()) != 0)
         {
-            throw runtime_error(string("Self-reported macro failure with command '" + command + "'"));
+            throw std::runtime_error(std::string("Self-reported macro failure with command '" + command + "'"));
         }
     }
     catch (...)
     {
-        throw runtime_error(string("Macro system failure with command '" + command + "'"));
+        throw std::runtime_error(std::string("Macro system failure with command '" + command + "'"));
     }
 
     // Load from output file
-    string out = "";
-    ifstream file(outputName);
+    std::string out = "";
+    std::ifstream file(outputName);
 
     if (!file.is_open())
     {
-        throw runtime_error(string("Failed to open macro output file ") + outputName);
+        throw std::runtime_error(std::string("Failed to open macro output file ") + outputName);
     }
 
-    string line;
+    std::string line;
     while (getline(file, line))
     {
         out += line + '\n';
@@ -236,7 +244,7 @@ string callMacro(const string &Name, const vector<string> &Args, bool debug)
 
     if (debug)
     {
-        cout << "Macro returned\n```\n" << out << "\n```\n";
+        std::cout << "Macro returned\n```\n" << out << "\n```\n";
     }
 
     return out;

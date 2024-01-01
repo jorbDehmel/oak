@@ -4,6 +4,9 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.4.5           | 1/1/24   | Reformatted code to remove 'using'
+                |          | statements, #define statements.
+                |          |
 0.4.4           | 12/31/23 | Fixed bug w/ complex nested
                 |          | parenthesis. Also include macros.
                 |          |

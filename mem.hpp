@@ -13,12 +13,11 @@ To be called by sequencing
 #define MEM_HPP
 
 #include "symbol_table.hpp"
-using namespace std;
 
 // Returns the sequence which allocates an array of size num and type type.
-sequence getAllocSequence(Type &type, const string &name, const string &num = "1");
+sequence getAllocSequence(Type &type, const std::string &name, const std::string &num = "1");
 
 // Returns the sequence which frees the referenced memory
-sequence getFreeSequence(const string &name, const bool &isArr = false);
+sequence getFreeSequence(const std::string &name, const bool &isArr = false);
 
 #endif

@@ -19,15 +19,10 @@ Lexes files into tokens to be handled by the compiler.
 
 #include "tags.hpp"
 
-using namespace std;
-
-// An assertion which throws a runtime error instead of breaking everything
-#define throw_assert(expression) ((bool)(expression) ? true : throw runtime_error("Assertion " #expression " failed."))
-
 // If an empty symbol is printed, it is a newline literal
-vector<string> lex(const string &What);
+std::vector<std::string> lex(const std::string &What);
 
 // Throws an error upon failure
-void smartSystem(const string &What);
+void smartSystem(const std::string &What);
 
 #endif

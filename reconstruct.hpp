@@ -26,36 +26,35 @@ agnostic with respect to input (as much as possible).
 #include "symbol_table.hpp"
 #include "type_builder.hpp"
 
-using namespace std;
-
-#define OAK_HEADER_PATH "/usr/include/oak/std_oak_header.h"
+const static std::string OAK_HEADER_PATH = "/usr/include/oak/std_oak_header.h";
 
 // Removes illegal characters
-string purifyStr(const string &What);
+std::string purifyStr(const std::string &What);
 
 // Reconstruct the existing symbol table into C++
-void reconstruct(const string &Name, stringstream &header, stringstream &body);
+void reconstruct(const std::string &Name, std::stringstream &header, std::stringstream &body);
 
 // Contains all the atomic types (ints, floats, bools, etc)
-extern map<string, unsigned long long> atomics;
+extern std::map<std::string, unsigned long long> atomics;
 
 // Save reconstructed files and return compilation command
 // Return pair<sstream, sstream>{header, body};
-pair<string, string> save(const stringstream &header, const stringstream &body, const string &Name);
+std::pair<std::string, std::string> save(const std::stringstream &header, const std::stringstream &body,
+                                         const std::string &Name);
 
 // Call reconstruct and save, without fiddling with stringstreams
 // returns headerName, bodyName
-pair<string, string> reconstructAndSave(const string &Name);
+std::pair<std::string, std::string> reconstructAndSave(const std::string &Name);
 
 // Return the C++ format-version of a type, to be followed by symbol name
-string toStrC(const Type *What, const string &Name = "", const unsigned int &pos = 0);
+std::string toStrC(const Type *What, const std::string &Name = "", const unsigned int &pos = 0);
 
 // Return the C++ format-version of a function, INCLUDING symbol name
-string toStrCFunction(const Type *What, const string &Name, const unsigned int &pos = 0);
+std::string toStrCFunction(const Type *What, const std::string &Name, const unsigned int &pos = 0);
 
 // Other type of C++ function; IE bool (*what)(const bool &What);
-string toStrCFunctionRef(const Type *What, const string &Name, const unsigned int &pos = 0);
+std::string toStrCFunctionRef(const Type *What, const std::string &Name, const unsigned int &pos = 0);
 
-string enumToC(const string &name);
+std::string enumToC(const std::string &name);
 
 #endif

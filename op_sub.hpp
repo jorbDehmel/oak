@@ -16,12 +16,11 @@ Should be done after macros
 #include <iostream>
 #include <string>
 #include <vector>
-using namespace std;
 
 /*
 Takes entire lexed token stream. After call, no operators
 should remain.
 */
-void operatorSub(vector<string> &From);
+void operatorSub(std::vector<std::string> &From);
 
 #endif

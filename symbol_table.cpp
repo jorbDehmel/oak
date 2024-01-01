@@ -13,15 +13,15 @@ GPLv3 held by author
 multiSymbolTable table;
 
 // Converts lexed symbols into a type
-Type toType(const vector<string> &WhatIn)
+Type toType(const std::vector<std::string> &WhatIn)
 {
     if (WhatIn.size() == 0)
     {
         return Type(atomic, "NULL");
     }
 
-    vector<string> What;
-    for (string s : WhatIn)
+    std::vector<std::string> What;
+    for (std::string s : WhatIn)
     {
         if (s.size() < 2 || s.substr(0, 2) != "//")
         {
@@ -47,7 +47,7 @@ Type toType(const vector<string> &WhatIn)
     Type out;
     for (; i < What.size(); i++)
     {
-        string cur = What[i];
+        std::string cur = What[i];
 
         if (cur == "^" || cur == "@")
         {
@@ -55,13 +55,16 @@ Type toType(const vector<string> &WhatIn)
         }
         else if (cur == "<")
         {
-            throw_assert(out != nullType);
+            if (out == nullType)
+            {
+                throw std::runtime_error("Malformed generic statement.");
+            }
 
             // Append to back
 
             // Collect generics
-            vector<string> curGen;
-            vector<vector<string>> generics;
+            std::vector<std::string> curGen;
+            std::vector<std::vector<std::string>> generics;
             int count = 0;
             do
             {
@@ -111,7 +114,7 @@ Type toType(const vector<string> &WhatIn)
             i--;
 
             // At this point, will only ever be a struct
-            vector<string> temp;
+            std::vector<std::string> temp;
             temp.push_back("struct");
 
             out[out.size() - 1].name = instantiateGeneric(out[out.size() - 1].name, generics, temp);
@@ -189,9 +192,9 @@ Type toType(const vector<string> &WhatIn)
 }
 
 // Can throw errors (IE malformed definitions)
-void addStruct(const vector<string> &FromIn)
+void addStruct(const std::vector<std::string> &FromIn)
 {
-    vector<string> From;
+    std::vector<std::string> From;
 
     // Clean input of any special symbols
     for (auto f : FromIn)
@@ -211,11 +214,11 @@ void addStruct(const vector<string> &FromIn)
     parse_assert(From[i] == "let");
     i++;
 
-    string name = From[i];
+    std::string name = From[i];
 
     // Scrape generics here (and mangle)
-    vector<vector<string>> generics;
-    vector<string> curGen;
+    std::vector<std::vector<std::string>> generics;
+    std::vector<std::string> curGen;
 
     i++;
     int count = 0;
@@ -258,7 +261,7 @@ void addStruct(const vector<string> &FromIn)
 
     if (structData.count(name) != 0)
     {
-        cout << tags::yellow_bold << "Warning! Redefinition of struct '" << name << "'.\n" << tags::reset;
+        std::cout << tags::yellow_bold << "Warning! Redefinition of struct '" << name << "'.\n" << tags::reset;
     }
 
     // Ensures unit structs still get added
@@ -299,8 +302,8 @@ void addStruct(const vector<string> &FromIn)
         for (; i < From.size() && From[i] != "}"; i++)
         {
             // name : type ,
-            // name , name2 , name3 : type < string , hi > , name4 : type2 ,
-            vector<string> names, lexedType;
+            // name , name2 , name3 : type < std::string , hi > , name4 : type2 ,
+            std::vector<std::string> names, lexedType;
 
             while (i + 1 < From.size() && From[i + 1] == ",")
             {
@@ -318,7 +321,7 @@ void addStruct(const vector<string> &FromIn)
 
             // Get lexed type (can be multiple symbols due to templating)
             int templCount = 0;
-            vector<string> genericHolder;
+            std::vector<std::string> genericHolder;
 
             while (i < From.size() && !(templCount == 0 && From[i] == ","))
             {
@@ -341,7 +344,7 @@ void addStruct(const vector<string> &FromIn)
 
                     if (templCount == 0)
                     {
-                        string toAdd = mangle(genericHolder);
+                        std::string toAdd = mangle(genericHolder);
                         genericHolder.clear();
 
                         if (toAdd != "")
@@ -355,13 +358,13 @@ void addStruct(const vector<string> &FromIn)
             }
 
             Type toAdd = toType(lexedType);
-            for (string varName : names)
+            for (std::string varName : names)
             {
                 structData[name].members[varName] = toAdd;
                 structData[name].order.push_back(varName);
 
                 // Add semicolon
-                table["New"].back().seq.items.push_back(sequence{nullType, vector<sequence>(), atom, ";"});
+                table["New"].back().seq.items.push_back(sequence{nullType, std::vector<sequence>(), atom, ";"});
 
                 sequence toAppend;
                 toAppend.info = atom;
@@ -386,9 +389,9 @@ in the original table. However, skips all functions.
 If not contradicted by the above rules, bases off of
 the current table (not backup).
 */
-string restoreSymbolTable(multiSymbolTable &backup)
+std::string restoreSymbolTable(multiSymbolTable &backup)
 {
-    string output = "";
+    std::string output = "";
 
     multiSymbolTable newTable;
     for (auto p : table)

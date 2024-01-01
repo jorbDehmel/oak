@@ -1,13 +1,17 @@
+/*
+Jordan Dehmel, 2023 - present
+*/
+
 #include "mangler.hpp"
 
-string mangleStruct(const string &name, const vector<vector<string>> &generics)
+std::string mangleStruct(const std::string &name, const std::vector<std::vector<std::string>> &generics)
 {
     if (generics.size() == 0)
     {
         return name;
     }
 
-    vector<string> outputParts;
+    std::vector<std::string> outputParts;
     outputParts.push_back(name);
 
     if (generics.size() != 0)
@@ -18,7 +22,7 @@ string mangleStruct(const string &name, const vector<vector<string>> &generics)
         int i = 0;
         for (const auto &raw : generics)
         {
-            string s = mangle(raw);
+            std::string s = mangle(raw);
             outputParts.push_back(s);
 
             if (i + 1 < generics.size() && s != "PTR" && s != "GEN" && s != "ENDGEN" && s != "JOIN" && s != "")
@@ -32,7 +36,7 @@ string mangleStruct(const string &name, const vector<vector<string>> &generics)
         outputParts.push_back("ENDGEN");
     }
 
-    string out;
+    std::string out;
     for (int i = 0; i < outputParts.size(); i++)
     {
         out += outputParts[i];
@@ -46,14 +50,14 @@ string mangleStruct(const string &name, const vector<vector<string>> &generics)
     return out;
 }
 
-string mangleEnum(const string &name, const vector<vector<string>> &generics)
+std::string mangleEnum(const std::string &name, const std::vector<std::vector<std::string>> &generics)
 {
     return mangleStruct(name, generics);
 }
 
-string mangleType(const Type &type)
+std::string mangleType(const Type &type)
 {
-    vector<string> outputParts;
+    std::vector<std::string> outputParts;
 
     for (int i = 0; i < type.size(); i++)
     {
@@ -85,7 +89,7 @@ string mangleType(const Type &type)
         }
     }
 
-    string out;
+    std::string out;
     for (int i = 0; i < outputParts.size(); i++)
     {
         out += outputParts[i];
@@ -99,13 +103,13 @@ string mangleType(const Type &type)
     return out;
 }
 
-string mangleSymb(const string &name, Type &type)
+std::string mangleSymb(const std::string &name, Type &type)
 {
-    string typeStr = mangleType(type);
+    std::string typeStr = mangleType(type);
     return mangleSymb(name, typeStr);
 }
 
-string mangleSymb(const string &name, const string &typeStr)
+std::string mangleSymb(const std::string &name, const std::string &typeStr)
 {
     if (typeStr == "")
     {
@@ -117,9 +121,9 @@ string mangleSymb(const string &name, const string &typeStr)
     }
 }
 
-string mangle(const vector<string> &what)
+std::string mangle(const std::vector<std::string> &what)
 {
-    vector<string> outputParts;
+    std::vector<std::string> outputParts;
 
     for (auto s : what)
     {
@@ -174,7 +178,7 @@ string mangle(const vector<string> &what)
         }
     }
 
-    string out;
+    std::string out;
     for (int i = 0; i < outputParts.size(); i++)
     {
         out += outputParts[i];

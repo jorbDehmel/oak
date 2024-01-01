@@ -14,14 +14,14 @@ and the ternary must be added via rules, if at all.
 #include "tags.hpp"
 #include "type_builder.hpp"
 
-const static set<string> operators = {
+const static std::set<std::string> operators = {
     "+",  "-",  "/", "*", "%",  "=",  "-=", "+=", "/=", "*=", "%=", "&=", "|=", "<<", ">>",
     "&&", "||", "<", ">", "==", "!=", "<=", ">=", "&",  "|",  ",",  "(",  ")",  ";"};
 
 // Moves pre and post to include the operands to a binary
 // operator
 // Assumes that pre = i - 1, post = i + 1, i = index of bin op
-void getOperands(vector<string> &from, int &pre, int &post, const bool &useLine = false)
+void getOperands(std::vector<std::string> &from, int &pre, int &post, const bool &useLine = false)
 {
     /*
     Example cases:
@@ -152,13 +152,13 @@ void getOperands(vector<string> &from, int &pre, int &post, const bool &useLine 
 }
 
 // Substitute a single operation as identified
-void doSub(vector<string> &from, int &pos, const string &name)
+void doSub(std::vector<std::string> &from, int &pos, const std::string &name)
 {
     int pre = pos - 1, post = pos + 1;
     bool fullLine = false;
-    vector<string> toAdd;
+    std::vector<std::string> toAdd;
 
-    if (name == "Copy" || (name != "Eq" && name.find("Eq") != string::npos))
+    if (name == "Copy" || (name != "Eq" && name.find("Eq") != std::string::npos))
     {
         fullLine = true;
     }
@@ -214,12 +214,12 @@ void doSub(vector<string> &from, int &pos, const string &name)
     return;
 }
 
-void operatorSub(vector<string> &From)
+void operatorSub(std::vector<std::string> &From)
 {
     // Level 2: Multiplication, division and modulo
     for (int i = 0; i < From.size(); i++)
     {
-        string cur = From[i];
+        std::string cur = From[i];
 
         if (cur == "*")
         {
@@ -238,7 +238,7 @@ void operatorSub(vector<string> &From)
     // Level 3: Addition and subtraction
     for (int i = 0; i < From.size(); i++)
     {
-        string cur = From[i];
+        std::string cur = From[i];
         if (cur == "+")
         {
             doSub(From, i, "Add");
@@ -252,7 +252,7 @@ void operatorSub(vector<string> &From)
     // Level 4: Bitwise
     for (int i = 0; i < From.size(); i++)
     {
-        string cur = From[i];
+        std::string cur = From[i];
 
         if (cur == "<<")
         {
@@ -275,7 +275,7 @@ void operatorSub(vector<string> &From)
     // Level 5: Comparisons
     for (int i = 0; i < From.size(); i++)
     {
-        string cur = From[i];
+        std::string cur = From[i];
 
         if (cur == "<")
         {
@@ -345,7 +345,7 @@ void operatorSub(vector<string> &From)
     // Level 6: Booleans
     for (int i = 0; i < From.size(); i++)
     {
-        string cur = From[i];
+        std::string cur = From[i];
 
         if (cur == "&&")
         {
@@ -360,7 +360,7 @@ void operatorSub(vector<string> &From)
     // Level 1: Assignment
     for (int i = 0; i < From.size(); i++)
     {
-        string cur = From[i];
+        std::string cur = From[i];
 
         if (cur == "=")
         {

@@ -15,68 +15,64 @@ Package loading for Oak.
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
 #include "tags.hpp"
 
-using namespace std;
+const static std::string PACKAGE_TEMP_LOCATION = "/tmp/oak_packages/";
+const static std::string PACKAGE_INCLUDE_PATH = "/usr/include/oak/";
+const static std::string INFO_FILE = "oak_package_info.txt";
 
-#define PACKAGE_TEMP_LOCATION "/tmp/oak_packages/"
-#define PACKAGE_INCLUDE_PATH "/usr/include/oak/"
-#define INFO_FILE "oak_package_info.txt"
+const static std::string PACKAGES_LIST_PATH = "/usr/include/oak/packages_list.txt";
 
-#define PACKAGES_LIST_PATH "/usr/include/oak/packages_list.txt"
-
-#define CLONE_COMMAND "git clone "
+const static std::string CLONE_COMMAND = "git clone ";
 
 struct packageInfo
 {
-    string name;        // Package name
-    string version;     // Package version
-    string license;     // Package license
-    string date;        // Date the current version was released
-    string author;      // Self-explanitory
-    string email;       // See maintainer name
-    string source;      // URL package was downloaded from
-    string path;        // Path from URL to get to the install point
-    string description; // Package description
+    std::string name;        // Package name
+    std::string version;     // Package version
+    std::string license;     // Package license
+    std::string date;        // Date the current version was released
+    std::string author;      // Self-explanitory
+    std::string email;       // See maintainer name
+    std::string source;      // URL package was downloaded from
+    std::string path;        // Path from URL to get to the install point
+    std::string description; // Package description
 
-    string toInclude; // File within /usr/include/oak/$(PACKAGE_NAME) to include!();
+    std::string toInclude; // File within /usr/include/oak/$(PACKAGE_NAME) to include!();
 
-    string sysDeps;
+    std::string sysDeps;
 };
 
-extern string installCommand;
-void install(const string &What);
+extern std::string installCommand;
+void install(const std::string &What);
 
-ostream &operator<<(ostream &strm, const packageInfo &info);
+std::ostream &operator<<(std::ostream &strm, const packageInfo &info);
 
-class package_error : public runtime_error
+class package_error : public std::runtime_error
 {
   public:
-    package_error(const string &What) : runtime_error(What)
+    package_error(const std::string &What) : std::runtime_error(What)
     {
     }
 };
 
-#define pm_assert(expression, message)                                                                                 \
-    ((bool)(expression) ? true : throw package_error(message " (Failed assertion: '" #expression "')"))
-
-extern map<string, packageInfo> packages;
+extern std::map<std::string, packageInfo> packages;
 
 // Loads a package info file
-packageInfo loadPackageInfo(const string &Filepath);
+packageInfo loadPackageInfo(const std::string &Filepath);
 
 void loadAllPackages();
 
 // Saves a package info file
-void savePackageInfo(const packageInfo &Info, const string &Filepath);
+void savePackageInfo(const packageInfo &Info, const std::string &Filepath);
 
 // Downloads a package from a URL via git
-void downloadPackage(const string &URL, const bool &Reinstall = false, const string &Path = "");
+void downloadPackage(const std::string &URL, const bool &Reinstall = false, const std::string &Path = "");
 
 // Get the include!() -ed files of a package given name and possibly URL
-vector<string> getPackageFiles(const string &Name);
+std::vector<std::string> getPackageFiles(const std::string &Name);
 
 #endif
