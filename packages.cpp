@@ -443,7 +443,7 @@ void downloadPackage(const std::string &URLArg, const bool &Reinstall, const std
             throw std::runtime_error("Failed to clear old package files.");
         }
 
-        if (system(("sudo mkdir -p " + destFolderName).c_str()) == 0)
+        if (system(("sudo mkdir -p " + destFolderName).c_str()) != 0)
         {
             throw std::runtime_error("Failed to create package folder in /usr/include/oak; Check user permissions.");
         }
