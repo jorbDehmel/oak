@@ -1,0 +1,47 @@
+include!("stl/list.oak");
+package!("std");
+use_rule!("std");
+
+let main() -> i32
+{
+    println<i32>(_: i32);
+    println<str>(_: str);
+
+    let obj: list<i32>;
+
+    for (let i: i32; i < 100; i += 1)
+    {
+        append(obj, i);
+    }
+
+    // Forward iterator test
+
+    println("Forward:");
+
+    let it: ^node<i32>;
+    ptrcpy!(it, obj.head);
+
+    while to_void_ptr(it) != 0
+    {
+        print(it.data);
+        endl();
+
+        ptrcpy!(it, it.next);
+    }
+
+    // Backwards iterator test
+
+    println("Backward:");
+    
+    ptrcpy!(it, obj.tail);
+
+    while to_void_ptr(it) != 0
+    {
+        print(it.data);
+        endl();
+
+        ptrcpy!(it, it.prev);
+    }
+
+    0
+}

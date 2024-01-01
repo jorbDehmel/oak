@@ -1,0 +1,47 @@
+package!("std");
+use_rule!("std");
+
+include!("stl/vec.oak");
+
+let main() -> i32
+{
+    // Init new vec
+    let obj: vec<i32>;
+
+    let i: i32 = 0;
+    while (i < 100)
+    {
+        obj.push_back(i);
+
+        i += 1;
+    }
+
+    i = 0;
+    while (i < 110)
+    {
+        let result: opt<^i32>;
+        result = obj.Get(to_i128(i));
+
+        print(i);
+        print("\t");
+
+        match (result)
+        {
+            case some(data)
+            {
+                print(^^data);
+                print("\n");
+            }
+
+            case none()
+            {
+                print("Error: out of range!\n");
+                ;
+            }
+        }
+
+        i += 1;
+    }
+
+    0
+}

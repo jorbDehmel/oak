@@ -1,0 +1,142 @@
+////////////////////////////////////////////////////////////////
+
+/*
+A generic queue using a singly linked queue for Oak.
+
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+////////////////////////////////////////////////////////////////
+
+package!("std");
+use_rule!("std");
+
+include!("std/opt.oak");
+include!("stl/ptrcmp.oak");
+
+////////////////////////////////////////////////////////////////
+
+let queue_node<t>: struct
+{
+    data: t,
+    next: ^queue_node<t>,
+}
+pre
+{
+    to_void_ptr<queue_node<t>>(_: ^queue_node<t>);
+}
+post
+{
+    Del<t>(_: ^queue_node<t>);
+}
+
+////////////////////////////////////////////////////////////////
+
+let Del<t>(self: ^queue_node<t>) -> void
+{
+    if (to_void_ptr(self.next) != to_u128(0))
+    {
+        Del(self.next);
+        free!(self.next);
+    }
+}
+
+////////////////////////////////////////////////////////////////
+
+let queue<t>: struct
+{
+    head: ^queue_node<t>,
+    tail: ^queue_node<t>,
+    size: u128,
+}
+pre
+{
+    opt<t>;
+    queue_node<t>;
+}
+post
+{
+    to_void_ptr<queue_node<t>>(_: ^queue_node<t>);
+    Del<t>(_: ^queue<t>);
+
+    front<t>(_: ^queue<t>);
+
+    pop_front<t>(_: ^queue<t>);
+    append<t>(_: ^queue<t>, _: t);
+
+    pop<t>(_: ^queue<t>);
+    push<t>(_: ^queue<t>, _: t);
+
+    empty<t>(_: ^queue<t>);
+}
+
+////////////////////////////////////////////////////////////////
+
+let Del<t>(self: ^queue<t>) -> void
+{
+    if (to_void_ptr(self.head) != to_u128(0))
+    {
+        Del(self.head);
+    }
+}
+
+let front<t>(self: ^queue<t>) -> opt<t>
+{
+    let out: opt<t>;
+    out.wrap_none();
+
+    if (to_void_ptr(self.head) != to_u128(0))
+    {
+        out.wrap_some(self.head.data);
+    }
+
+    return out;
+}
+
+let pop_front<t>(self: ^queue<t>) -> void
+{
+    let old: ^queue_node<t>;
+    ptrcpy!(old, self.head);
+    ptrcpy!(self.head, self.head.next);
+
+    ptrcpy!(old.next, 0);
+    Del(old);
+}
+
+let append<t>(self: ^queue<t>, what: t) -> void
+{
+    if (to_void_ptr(self.head) == 0)
+    {
+        alloc!(self.head);
+        ptrcpy!(self.tail, self.head);
+        self.head.data = what;
+    }
+    else
+    {
+        alloc!(self.tail.next);
+        ptrcpy!(self.tail, self.tail.next);
+        self.tail.data = what;
+    }
+}
+
+let pop<t>(self: ^queue<t>) -> void
+{
+    pop_front(self);
+}
+
+let push<t>(self: ^queue<t>, what: t) -> void
+{
+    append(self, what);
+}
+
+let empty<t>(self: ^queue<t>) -> bool
+{
+    if (is_null(to_void_ptr(self.head)))
+    {
+        return true;
+    }
+    return false;
+}
+
+////////////////////////////////////////////////////////////////

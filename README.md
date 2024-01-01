@@ -2514,6 +2514,43 @@ their own section in this document:
 - You can call a multi-argument `=` operator (`Copy`) like this:
     `a = (b, c, d);` (as of `Oak` `0.0.10`)
 
+# Packages Included With the Standard Install
+
+The following packages are included with the `Oak` source code
+on `github`. These can be installed via the command
+`make packages`.
+
+## `extra`
+
+This package includes a regular expression interface and some
+resources for bitwise, hexadecimal, and ASCII printing of
+data structures. These prints allow you to see the contents of
+any arbitrary type.
+
+## `sdl`
+
+This package interfaces with the `C` `SDL2` library, which
+allows access to graphics. This library is useful for games.
+
+## `std`
+
+This package includes files vital for the function of nearly all
+`Oak` programs. It should be included in virtually all programs.
+
+## `stl`
+
+This package is the standard templated library for `Oak`. It
+includes generic implementations of the following data
+structures.
+
+- Binary Search Tree
+- List (doubly linked list)
+- Map (linear probing symbol table)
+- Queue
+- Set
+- Stack
+- Vector (vec)
+
 # `Oak` Compiler Structure
 
 This section is not required for a programmer-level

@@ -1,0 +1,39 @@
+/*
+Tests the stl set implementation for Oak.
+
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+package!("std");
+use_rule!("std");
+include!("stl/set.oak");
+
+let hash(what: i32) -> u128
+{
+    if what == 0
+    {
+        1
+    }
+    what
+}
+
+let main() -> i32
+{
+    let s: set<i32>;
+
+    s.insert(1);
+    s.insert(3);
+    s.insert(5);
+
+    for (let i: i32; i < 6; i += 1)
+    {
+        if s.has(i)
+        {
+            print(i);
+            endl();
+        }
+    }
+
+    0
+}

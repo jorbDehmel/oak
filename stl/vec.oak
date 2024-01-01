@@ -1,0 +1,258 @@
+////////////////////////////////////////////////////////////////
+
+/*
+A self-resizing generic array for Oak
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+////////////////////////////////////////////////////////////////
+
+package!("std");
+use_rule!("std");
+
+include!("std/opt.oak");
+include!("std/conv_extra.oak");
+
+////////////////////////////////////////////////////////////////
+
+let vec<t>: struct
+{
+    data: []t,
+    size: u128,
+    capacity: u128,
+}
+post
+{
+    Expand<t>(self: ^vec<t>);
+    Shrink<t>(self: ^vec<t>);
+
+    Get<t>(self: ^vec<t>, index: i128);
+    New<t>(self: ^vec<t>);
+    Copy<t>(self: ^vec<t>, other: vec<t>);
+    Del<t>(self: ^vec<t>);
+
+    push_back<t>(self: ^vec<t>, what: t);
+    append<t>(self: ^vec<t>, what: t);
+    pop_back<t>(self: ^vec<t>);
+    clear<t>(self: ^vec<t>);
+    empty<t>(self: ^vec<t>);
+
+    front<t>(self: ^vec<t>);
+    back<t>(self: ^vec<t>);
+}
+
+////////////////////////////////////////////////////////////////
+
+let New<t>(self: ^vec<t>) -> void
+{
+    self.size = 0;
+    self.capacity = 8;
+
+    alloc!(self.data, self.capacity);
+}
+
+// Deep copy from another vector
+let Copy<t>(self: ^vec<t>, other: vec<t>) -> void
+{
+    self.size = other.size;
+
+    // Adjust to appropriate size
+    while (self.size * to_u128(4) < self.capacity)
+    {
+        Shrink(self);
+    }
+
+    while (self.size * to_u128(2) > self.capacity)
+    {
+        Expand(self);
+    }
+
+    // Iteratively copy
+    let i: u128 = 0;
+    while (i < self.size)
+    {
+        Copy(ptrarr!(self.data, i), ptrarr!(other.data, i));
+        i += 1;
+    }
+}
+
+let Del<t>(self: ^vec<t>) -> void
+{
+    if (self.capacity != to_u128(0))
+    {
+        free!(self.data);
+    }
+}
+
+let Get<t>(self: ^vec<t>, index: i128) -> opt<^t>
+{
+    let real_index: u128;
+
+    if (index < to_i128(0))
+    {
+        real_index = self.size;
+        real_index += to_u128(index);
+    }
+    else
+    {
+        real_index = to_u128(index);
+    }
+
+    let out: opt<^t>;
+    wrap_none(@out);
+
+    if (real_index < self.size)
+    {
+        wrap_some(@out, ptrarr!(self.data, real_index));
+    }
+
+    out
+}
+
+// Double in size, no matter what
+let Expand<t>(self: ^vec<t>) -> void
+{
+    let new_capacity: u128;
+    new_capacity = self.capacity * to_u128(2);
+
+    // Create aux array
+    let new_data: []t;
+    alloc!(new_data, new_capacity);
+
+    // Copy into aux array
+    let i: u128 = 0;
+    while (i < self.size)
+    {
+        Copy(ptrarr!(new_data, i), ptrarr!(self.data, i));
+        i += 1;
+    }
+
+    // Set cur array to aux array
+    ptrcpy!(self.data, new_data);
+
+    // Set capacity to correct amount
+    self.capacity = new_capacity;
+}
+
+// Halve in size, so long as capacity >= 16
+let Shrink<t>(self: ^vec<t>) -> void
+{
+    if (self.capacity >= to_u128(16))
+    {
+        let new_capacity: u128 = self.capacity / to_u128(2);
+
+        // Create aux array
+        let new_data: []t;
+        alloc!(new_data, new_capacity);
+
+        // Copy into aux array
+        let i: u128 = 0;
+        while (i < self.size && i < self.capacity)
+        {
+            Copy(ptrarr!(new_data, i), ptrarr!(self.data, i));
+            i += 1;
+        }
+
+        // Set cur array to aux array
+        ptrcpy!(self.data, new_data);
+
+        // Set capacity to correct amount
+        self.capacity = new_capacity;
+    }
+}
+
+let append<t>(self: ^vec<t>, what: t) -> void
+{
+    push_back(self, what);
+}
+
+let push_back<t>(self: ^vec<t>, what: t) -> void
+{
+    while (self.size * to_u128(2) > self.capacity)
+    {
+        Expand(self);
+    }
+
+    Copy(ptrarr!(self.data, self.size), what);
+    self.size += 1;
+}
+
+
+let pop_back<t>(self: ^vec<t>) -> opt<t>
+{
+    let out: opt<t>;
+    wrap_none(@out);
+
+    if (self.size > to_u128(0))
+    {
+        let data: t;
+        data = ptrarr!(self.data, self.size - 1);
+
+        self.size -= 1;
+
+        wrap_some(@out, data);
+
+        while (self.size * to_u128(4) < self.capacity)
+        {
+            Shrink(self);
+        }
+    }
+
+    out
+}
+
+
+let clear<t>(self: ^vec<t>) -> void
+{
+    self.size = to_u128(0);
+
+    while (self.capacity > to_u128(8))
+    {
+        Shrink(self);
+    }
+}
+
+let empty<t>(self: ^vec<t>) -> bool
+{
+    let out: bool;
+    
+    if (self.size == to_u128(0))
+    {
+        out = true;
+    }
+    else
+    {
+        out = false;
+    }
+
+    out
+}
+
+let front<t>(self: ^vec<t>) -> opt<t>
+{
+    let out: opt<t>;
+    out.wrap_none();
+
+    if (self.size > 0)
+    {
+        out.wrap_some(ptrarr!(self.data, 0));
+    }
+
+    return out;
+}
+
+let back<t>(self: ^vec<t>) -> opt<t>
+{
+    let out: opt<t>;
+    out.wrap_none();
+
+    if (self.size > 0)
+    {
+        out.wrap_some(ptrarr!(self.data, self.size - 1));
+    }
+
+    return out;
+}
+
+////////////////////////////////////////////////////////////////

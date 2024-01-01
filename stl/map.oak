@@ -1,0 +1,341 @@
+////////////////////////////////////////////////////////////////
+
+/*
+Uses linear probing. Requires a hash function on the key, where
+the hash is NEVER 0, as this is reserved as a null marker.
+
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+////////////////////////////////////////////////////////////////
+
+package!("std");
+use_rule!("std");
+
+include!("std/opt.oak");
+include!("std/panic.oak");
+
+////////////////////////////////////////////////////////////////
+
+let map_node<k, d>: struct
+{
+    key: k,
+    data: d,
+    hash: u128,
+}
+pre
+{
+    hash<k>(_: k);
+    Eq<k>(_: k, _: k);
+}
+post
+{
+    Copy<k, d>(_: ^map_node<k, d>, _: k, _: d);
+}
+
+////////////////////////////////////////////////////////////////
+
+let Copy<k, d>(self: ^map_node<k, d>, key: k, data: d) -> void
+{
+    self.key = key;
+    self.data = data;
+    self.hash = hash(self.key);
+}
+
+////////////////////////////////////////////////////////////////
+
+let default_map_size! = 128;
+let max_alpha! = 0.5;
+
+let map<k, d>: struct
+{
+    data: []map_node<k, d>,
+    size: u128,
+    occupied: u128,
+    alpha: f64,
+}
+pre
+{
+    hash<k>(_: k);
+    Eq<k>(_: k, _: k);
+}
+post
+{
+    New<k, d>(_: ^map<k, d>);
+    Del<k, d>(_: ^map<k, d>);
+
+    expand<k, d>(_: ^map<k, d>);
+
+    Get<k, d>(_: ^map<k, d>, _: k);
+    get<k, d>(_: ^map<k, d>, _: k);
+    set<k, d>(_: ^map<k, d>, _: k, _: d);
+    has<k, d>(_: ^map<k, d>, _: k);
+}
+
+////////////////////////////////////////////////////////////////
+
+let New<k, d>(self: ^map<k, d>) -> void
+{
+    self.size = default_map_size!;
+    self.alpha = 0.0;
+    self.occupied = 0;
+
+    alloc!(self.data, self.size);
+}
+
+let Del<k, d>(self: ^map<k, d>) -> void
+{
+    free!(self.data);
+}
+
+let Get<k, d>(self: ^map<k, d>, key: k) -> opt<d>
+{
+    // Create vars
+    let h: u128;
+    let out: opt<d>;
+    let i: u128;
+    let sentinel: bool;
+    let cur: ^map_node<k, d>;
+
+    h = hash(key);
+    out.wrap_none();
+    sentinel = true;
+    
+    // Get initial guess
+    i = h % self.size;
+
+    // Continue until found or empty
+    while sentinel
+    {
+        // Get
+        ptrcpy!(cur, Get(self.data, i));
+
+        // If found, wrap answer and break
+        if cur.key == key
+        {
+            out.wrap_some(cur.data);
+            sentinel = false;
+        }
+
+        // Else if empty, break
+        else if cur.hash == to_u128(0)
+        {
+            sentinel = false;
+        }
+
+        // Else, advance
+        else
+        {
+            i += 1;
+            if i > self.size
+            {
+                i %= self.size;
+            }
+        }
+    }
+
+    out
+}
+
+let has<k, d>(self: ^map<k, d>, key: k) -> bool
+{
+    // Create vars
+    let h: u128;
+    let i: u128;
+    let sentinel: bool;
+    let cur: ^map_node<k, d>;
+
+    h = hash(key);
+    sentinel = true;
+    
+    // Get initial guess
+    i = h % self.size;
+
+    // Continue until found or empty
+    while sentinel
+    {
+        // Get
+        ptrcpy!(cur, Get(self.data, i));
+
+        // If found
+        if cur.key == key
+        {
+            return true;
+        }
+
+        // Else if empty
+        else if cur.hash == to_u128(0)
+        {
+            return false;
+        }
+
+        // Else, advance
+        else
+        {
+            i += 1;
+            if i > self.size
+            {
+                i %= self.size;
+            }
+        }
+    }
+
+    return false;
+}
+
+let get<k, d>(self: ^map<k, d>, key: k) -> opt<d>
+{
+    Get(self, key)
+}
+
+let set<k, d>(self: ^map<k, d>, key: k, data: d) -> void
+{
+    // Create vars
+    let h: u128;
+    let i: u128;
+    let sentinel: bool;
+    let cur: ^map_node<k, d>;
+
+    h = hash(key);
+    sentinel = true;
+    
+    // Get initial guess
+    i = h % self.size;
+
+    // Continue until found or empty
+    while sentinel
+    {
+        // Get
+        ptrcpy!(cur, Get(self.data, i));
+
+        // If found
+        if cur.key == key
+        {
+            cur.data = data;
+            sentinel = false;
+        }
+
+        // Else if empty, break
+        else if cur.hash == to_u128(0)
+        {
+            cur = (key, data);
+
+            // Update occupancy ratio
+            self.occupied += 1;
+            self.alpha = to_f64(self.occupied);
+            self.alpha /= to_f64(self.size);
+
+            // Expand if need be
+            while self.alpha > max_alpha!
+            {
+                expand(self);
+            }
+
+            sentinel = false;
+        }
+
+        // Else, advance
+        else
+        {
+            i += 1;
+            if i > self.size
+            {
+                i %= self.size;
+            }
+        }
+    }
+}
+
+/*
+Doubles in size
+*/
+let expand<k, d>(self: ^map<k, d>) -> void
+{
+    // Create new
+    let old_data: []map_node<k, d>;
+    let old_size: u128;
+    let i: u128;
+
+    let cur: ^map_node<k, d>;
+
+    old_size = self.size;
+    ptrcpy!(old_data, self.data);
+
+    self.size *= 2;
+
+    alloc!(self.data, self.size);
+    
+    self.occupied = 0;
+    self.alpha = 0.0;
+
+    // Copy from old to new
+    while i < old_size
+    {
+        ptrcpy!(cur, @ptrarr!(old_data, i));
+
+        if (cur.hash != to_u128(0))
+        {
+            // Source code copied from set
+            let key = cur.key;
+            let data = cur.data;
+
+            // Create vars
+            let h: u128;
+            let k: u128;
+            let sentinel: bool;
+            let cur: ^map_node<k, d>;
+
+            h = hash(key);
+            sentinel = true;
+            
+            // Get initial guess
+            k = h % self.size;
+
+            // Continue until found or empty
+            while sentinel
+            {
+                // Get
+                ptrcpy!(cur, Get(self.data, k));
+
+                // If found
+                if cur.key == key
+                {
+                    cur.data = data;
+                    sentinel = false;
+                }
+
+                // Else if empty, break
+                else if cur.hash == to_u128(0)
+                {
+                    cur = (key, data);
+
+                    // Update occupancy ratio
+                    self.occupied += 1;
+                    self.alpha = to_f64(self.occupied);
+                    self.alpha /= to_f64(self.size);
+
+                    sentinel = false;
+                }
+
+                // Else, advance
+                else
+                {
+                    k += 1;
+                    if k >= self.size
+                    {
+                        k %= self.size;
+                    }
+                }
+            }
+        }
+
+        i += 1;
+    }
+
+    // Delete old
+    free!(old_data);
+}
+
+
+////////////////////////////////////////////////////////////////

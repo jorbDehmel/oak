@@ -1,0 +1,24 @@
+/*
+Some garbage utilities for comparing pointers.
+*/
+
+link!("stl/ptrcmp.o");
+
+let Eq(l: ^void, r: ^void) -> bool
+let Neq(l: ^void, r: ^void) -> bool;
+
+let Eq(l: ^void, r: u128) -> bool;
+let Eq(l: u128, r: ^void) -> bool;
+
+let Neq(l: ^void, r: u128) -> bool;
+let Neq(l: u128, r: ^void) -> bool;
+
+let is_null(what: ^void) -> bool;
+let is_not_null(what: ^void) -> bool;
+
+let to_void_ptr<t>(what: ^t) -> ^void
+{
+    let out: ^void;
+    ptrcpy!(out, what);
+    out
+}

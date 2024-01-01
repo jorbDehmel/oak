@@ -1,0 +1,257 @@
+////////////////////////////////////////////////////////////////
+
+/*
+Map using a BST (not a red-black tree, notably). It is
+recommended to shuffle keys before input.
+
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+////////////////////////////////////////////////////////////////
+
+package!("std");
+use_rule!("std");
+
+include!("stl/ptrcmp.oak");
+include!("std/opt.oak");
+
+////////////////////////////////////////////////////////////////
+
+/*
+A node in a binary search tree. See below for more details on
+the BST's implementation.
+*/
+let bst_node<k, d>: struct
+{
+    key: k,
+    data: d,
+    left: ^bst_node<k, d>,
+    right: ^bst_node<k, d>,
+}
+post
+{
+    to_void_ptr<bst_node<k, d>>(_: ^bst_node<k, d>);
+    Copy<k, d>(_: ^bst_node<k, d>, _: k, _: d);
+    Del<k, d>(_: ^bst_node<k, d>);
+}
+
+////////////////////////////////////////////////////////////////
+
+/*
+Sets the key and data of a given node to given values.
+*/
+let Copy<k, d>(self: ^bst_node<k, d>, key: k, data: d) -> void
+{
+    self.key = key;
+    self.data = data;
+}
+
+/*
+Delete a note in a BST. Note: There is no need for a constructor
+since all variables are automatically initialized in Oak.
+*/
+let Del<k, d>(self: ^bst_node<k, d>) -> void
+{
+    if (is_not_null(to_void_ptr(self.left)))
+    {
+        Del(self.left);
+        free!(self.left);
+        ptrcpy!(self.left, 0);
+    }
+    if (is_not_null(to_void_ptr(self.right)))
+    {
+        Del(self.right);
+        free!(self.right);
+        ptrcpy!(self.right, 0);
+    }
+}
+
+////////////////////////////////////////////////////////////////
+
+/*
+Abstract data type representing a binary search tree. This has
+no internal self-balancing, so be careful how you input data!
+*/
+let bst<k, d>: struct
+{
+    root: ^bst_node<k, d>,
+}
+pre
+{
+    bst_node<k, d>;
+    opt<d>;
+}
+post
+{
+    to_void_ptr<bst_node<k, d>>(_: ^bst_node<k, d>);
+
+    Del<k, d>(_: ^bst<k, d>);
+
+    get<k, d>(_: ^bst<k, d>, _: k);
+    set<k, d>(_: ^bst<k, d>, _: k, _: d);
+    has<k, d>(_: ^bst<k, d>, _: k);
+
+    dist<k, d>(_: ^bst<k, d>, _: k);
+}
+
+////////////////////////////////////////////////////////////////
+
+/*
+Frees memory associated with a BST.
+*/
+let Del<k, d>(self: ^bst<k, d>) -> void
+{
+    if (is_not_null(to_void_ptr(self.root)))
+    {
+        Del(self.root);
+        free!(self.root);
+        ptrcpy!(self.root, 0);
+    }
+}
+
+/*
+Returns the value associated with a given key wrapped in an opt
+enum. If the key is not present in the tree, returns
+*/
+let get<k, d>(self: ^bst<k, d>, key: k) -> opt<d>
+{
+    let out: opt<d>;
+    out.wrap_none();
+
+    let cur: ^bst_node<k, d>;
+    ptrcpy!(cur, self.root);
+
+    while (is_not_null(to_void_ptr(cur)))
+    {
+        if (cur.key < key)
+        {
+            ptrcpy!(cur, cur.left);
+        }
+        else if (cur.key > key)
+        {
+            ptrcpy!(cur, cur.right);
+        }
+        else
+        {
+            out.wrap_some(cur.data);
+            return out;
+        }
+    }
+
+    out
+}
+
+/*
+Sets (or overwrites) the value associated with a given key.
+*/
+let set<k, d>(self: ^bst<k, d>, key: k, data: d) -> void
+{
+    if (is_null(to_void_ptr(self.root)))
+    {
+        alloc!(self.root);
+        self.root.key = key;
+        self.root.data = data;
+    }
+    else
+    {
+        let cur: ^bst_node<k, d>;
+        ptrcpy!(cur, self.root);
+
+        let sentinel = true;
+        while (sentinel)
+        {
+            if (cur.key < key)
+            {
+                if (is_not_null(to_void_ptr(cur.left)))
+                {
+                    ptrcpy!(cur, cur.left);
+                }
+                else
+                {
+                    alloc!(cur.left);
+                    cur.left = (key, data);
+                    sentinel = false;
+                }
+            }
+            else if (cur.key > key)
+            {
+                if (is_not_null(to_void_ptr(cur.right)))
+                {
+                    ptrcpy!(cur, cur.right);
+                }
+                else
+                {
+                    alloc!(cur.right);
+                    cur.right = (key, data);
+                    sentinel = false;
+                }
+            }
+            else
+            {
+                cur.data = data;
+            }
+        }
+    }
+}
+
+/*
+Returns true if a given key is in the tree, otherwise false.
+*/
+let has<k, d>(self: ^bst<k, d>, key: k) -> bool
+{
+    let cur: ^bst_node<k, d>;
+    ptrcpy!(cur, self.root);
+
+    while (is_not_null(to_void_ptr(cur)))
+    {
+        if (cur.key < key)
+        {
+            ptrcpy!(cur, cur.left);
+        }
+        else if (cur.key > key)
+        {
+            ptrcpy!(cur, cur.right);
+        }
+        else
+        {
+            return true;
+        }
+    }
+
+    false
+}
+
+/*
+Returns the number of nodes which need to be traversed (not
+counting the root) to reach a given key. If the key is not in
+the BST, returns -1. If the key is the root, returns 0.
+*/
+let dist<k, d>(self: ^bst<k, d>, key: k) -> i32
+{
+    let cur: ^bst_node<k, d>;
+    ptrcpy!(cur, self.root);
+    let i: i32 = 0;
+
+    while (is_not_null(to_void_ptr(cur)))
+    {
+        if (cur.key < key)
+        {
+            ptrcpy!(cur, cur.left);
+        }
+        else if (cur.key > key)
+        {
+            ptrcpy!(cur, cur.right);
+        }
+        else
+        {
+            return i;
+        }
+
+        i += 1;
+    }
+
+    -1
+}
+
+////////////////////////////////////////////////////////////////

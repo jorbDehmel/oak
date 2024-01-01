@@ -1,0 +1,37 @@
+/*
+Tests the stl stack implementation for Oak.
+
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+package!("std");
+use_rule!("std");
+include!("stl/stack.oak");
+
+let main() -> i32
+{
+    let q: stack<i32>;
+
+    print("Pushing\n");
+    for (let i: i32; i < 10; i += 1)
+    {
+        print(i);
+        endl();
+        q.push(i);
+    }
+
+    print("Popping\n");
+    while (Not(q.empty()))
+    {
+        let res = q.top();
+        let i: i32 = res.unwrap();
+
+        print(i);
+        endl();
+
+        q.pop();
+    }
+
+    0
+}

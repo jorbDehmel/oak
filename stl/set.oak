@@ -1,0 +1,279 @@
+////////////////////////////////////////////////////////////////
+
+/*
+Uses linear probing. Requires a hash function on the key, where
+the hash is NEVER 0, as this is reserved as a null marker.
+
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+////////////////////////////////////////////////////////////////
+
+package!("std");
+use_rule!("std");
+
+include!("std/opt.oak");
+include!("std/panic.oak");
+
+////////////////////////////////////////////////////////////////
+
+let set_node<k>: struct
+{
+    key: k,
+    hash: u128,
+}
+pre
+{
+    hash<k>(_: k);
+    Eq<k>(_: k, _: k);
+}
+post
+{
+    Copy<k>(_: ^set_node<k>, _: k);
+}
+
+////////////////////////////////////////////////////////////////
+
+let Copy<k>(self: ^set_node<k>, key: k) -> void
+{
+    self.key = key;
+    self.hash = hash(self.key);
+}
+
+////////////////////////////////////////////////////////////////
+
+let default_set_size! = 128;
+let max_alpha! = 0.5;
+
+let set<k>: struct
+{
+    data: []set_node<k>,
+    size: u128,
+    occupied: u128,
+    alpha: f64,
+}
+pre
+{
+    hash<k>(_: k);
+    Eq<k>(_: k, _: k);
+}
+post
+{
+    New<k>(_: ^set<k>);
+    Del<k>(_: ^set<k>);
+
+    expand<k>(_: ^set<k>);
+
+    insert<k>(_: ^set<k>, _: k);
+    has<k>(_: ^set<k>, _: k);
+}
+
+////////////////////////////////////////////////////////////////
+
+let New<k>(self: ^set<k>) -> void
+{
+    self.size = default_set_size!;
+    self.alpha = 0.0;
+    self.occupied = 0;
+
+    alloc!(self.data, self.size);
+}
+
+let Del<k>(self: ^set<k>) -> void
+{
+    free!(self.data);
+}
+
+let has<k>(self: ^set<k>, key: k) -> bool
+{
+    // Create vars
+    let h: u128;
+    let i: u128;
+    let sentinel: bool;
+    let cur: ^set_node<k>;
+
+    h = hash(key);
+    sentinel = true;
+    
+    // Get initial guess
+    i = h % self.size;
+
+    // Continue until found or empty
+    while sentinel
+    {
+        // Get
+        ptrcpy!(cur, Get(self.data, i));
+
+        // If found
+        if cur.key == key
+        {
+            return true;
+        }
+
+        // Else if empty
+        else if cur.hash == to_u128(0)
+        {
+            return false;
+        }
+
+        // Else, advance
+        else
+        {
+            i += 1;
+            if i > self.size
+            {
+                i %= self.size;
+            }
+        }
+    }
+
+    return false;
+}
+
+let insert<k>(self: ^set<k>, key: k) -> void
+{
+    // Create vars
+    let h: u128;
+    let i: u128;
+    let sentinel: bool;
+    let cur: ^set_node<k>;
+
+    h = hash(key);
+    sentinel = true;
+    
+    // Get initial guess
+    i = h % self.size;
+
+    // Continue until found or empty
+    while sentinel
+    {
+        // Get
+        ptrcpy!(cur, Get(self.data, i));
+
+        // If found
+        if cur.key == key
+        {
+            sentinel = false;
+        }
+
+        // Else if empty, break
+        else if cur.hash == to_u128(0)
+        {
+            cur = key;
+
+            // Update occupancy ratio
+            self.occupied += 1;
+            self.alpha = to_f64(self.occupied);
+            self.alpha /= to_f64(self.size);
+
+            // Expand if need be
+            while self.alpha > max_alpha!
+            {
+                expand(self);
+            }
+
+            sentinel = false;
+        }
+
+        // Else, advance
+        else
+        {
+            i += 1;
+            if i > self.size
+            {
+                i %= self.size;
+            }
+        }
+    }
+}
+
+/*
+Doubles in size
+*/
+let expand<k>(self: ^set<k>) -> void
+{
+    // Create new
+    let old_data: []set_node<k>;
+    let old_size: u128;
+    let i: u128;
+
+    let cur: ^set_node<k>;
+
+    old_size = self.size;
+    ptrcpy!(old_data, self.data);
+
+    self.size *= 2;
+
+    alloc!(self.data, self.size);
+    
+    self.occupied = 0;
+    self.alpha = 0.0;
+
+    // Copy from old to new
+    while i < old_size
+    {
+        ptrcpy!(cur, @ptrarr!(old_data, i));
+
+        if (cur.hash != to_u128(0))
+        {
+            // Source code copied from set
+            let key = cur.key;
+
+            // Create vars
+            let h: u128;
+            let k: u128;
+            let sentinel: bool;
+            let cur: ^set_node<k>;
+
+            h = hash(key);
+            sentinel = true;
+            
+            // Get initial guess
+            k = h % self.size;
+
+            // Continue until found or empty
+            while sentinel
+            {
+                // Get
+                ptrcpy!(cur, Get(self.data, k));
+
+                // If found
+                if cur.key == key
+                {
+                    sentinel = false;
+                }
+
+                // Else if empty, break
+                else if cur.hash == to_u128(0)
+                {
+                    cur = key;
+
+                    // Update occupancy ratio
+                    self.occupied += 1;
+                    self.alpha = to_f64(self.occupied);
+                    self.alpha /= to_f64(self.size);
+
+                    sentinel = false;
+                }
+
+                // Else, advance
+                else
+                {
+                    k += 1;
+                    if k >= self.size
+                    {
+                        k %= self.size;
+                    }
+                }
+            }
+        }
+
+        i += 1;
+    }
+
+    // Delete old
+    free!(old_data);
+}
+
+////////////////////////////////////////////////////////////////

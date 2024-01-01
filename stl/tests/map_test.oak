@@ -1,0 +1,73 @@
+/*
+Tests the stl map implementation for Oak.
+
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+package!("std");
+use_rule!("std");
+
+include!("std/rand.oak");
+include!("stl/map.oak");
+include!("std/printf.oak");
+
+let hash(what: i32) -> u128
+{
+    if (what == 0)
+    {
+        return 1;
+    }
+
+    return to_u128(what);
+}
+
+let size! = 256;
+let min! = 0;
+let max! = 100;
+
+let main() -> i32
+{
+    let m: map<i32, u128>;
+    let i: i32;
+    let j: i32;
+    let res: opt<u128>;
+
+    seed_rand();
+
+    print("Insertion phase...\n");
+    while i < size!
+    {
+        j = rand(min!, max!);
+
+        printf!("Inserting % for %\n", j, i);
+
+        m.set(i, j);
+
+        i += 1;
+    }
+
+    print("Printing phase...\n");
+    i = 0;
+    while i < size!
+    {
+        res = m.get(i);
+
+        match res
+        {
+            case some(data)
+            {
+                printf!("% -> %\n", i, data);
+            }
+
+            default
+            {
+                printf!("No entry for %.\n", i);
+            }
+        }
+
+        i += 1;
+    }
+
+    0
+}

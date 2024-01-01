@@ -1,0 +1,33 @@
+/*
+Tests the stl queue implementation for Oak.
+
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+package!("std");
+use_rule!("std");
+include!("stl/queue.oak");
+
+let main() -> i32
+{
+    let q: queue<i32>;
+
+    for (let i: i32; i < 10; i += 1)
+    {
+        q.push(i);
+    }
+
+    while (Not(q.empty()))
+    {
+        let res = q.front();
+        let i: i32 = res.unwrap();
+
+        print(i);
+        endl();
+
+        q.pop();
+    }
+
+    0
+}

@@ -1,0 +1,169 @@
+////////////////////////////////////////////////////////////////
+
+/*
+A self-resizing generic stack for Oak
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+
+Header file
+*/
+
+////////////////////////////////////////////////////////////////
+
+package!("std");
+use_rule!("std");
+
+include!("std/opt.oak");
+include!("std/printf.oak");
+
+////////////////////////////////////////////////////////////////
+
+let stack<t>: struct
+{
+    data: []t,
+    size: u128,
+    capacity: u128,
+}
+post
+{
+    expand<t>(self: ^stack<t>);
+    shrink<t>(self: ^stack<t>);
+
+    New<t>(self: ^stack<t>);
+    Del<t>(self: ^stack<t>);
+
+    push<t>(self: ^stack<t>, what: t);
+    pop<t>(self: ^stack<t>);
+    empty<t>(self: ^stack<t>);
+    top<t>(self: ^stack<t>);
+}
+
+////////////////////////////////////////////////////////////////
+
+let New<t>(self: ^stack<t>) -> void
+{
+    self.size = 0;
+    self.capacity = 8;
+
+    alloc!(self.data, self.capacity);
+}
+
+let Del<t>(self: ^stack<t>) -> void
+{
+    if (self.capacity != to_u128(0))
+    {
+        free!(self.data);
+    }
+}
+
+// Double in size, no matter what
+let expand<t>(self: ^stack<t>) -> void
+{
+    let new_capacity: u128;
+    new_capacity = self.capacity * to_u128(2);
+
+    // Create aux array
+    let new_data: []t;
+    alloc!(new_data, new_capacity);
+
+    // Copy into aux array
+    let i: u128 = 0;
+    while (i < self.size)
+    {
+        Copy(ptrarr!(new_data, i), ptrarr!(self.data, i));
+        i += 1;
+    }
+
+    // Set cur array to aux array
+    ptrcpy!(self.data, new_data);
+
+    // Set capacity to correct amount
+    self.capacity = new_capacity;
+}
+
+// Halve in size, so long as capacity >= 16
+let shrink<t>(self: ^stack<t>) -> void
+{
+    if (self.capacity >= to_u128(16))
+    {
+        let new_capacity: u128 = self.capacity / to_u128(2);
+
+        // Create aux array
+        let new_data: []t;
+        alloc!(new_data, new_capacity);
+
+        // Copy into aux array
+        let i: u128 = 0;
+        while (i < self.size && i < self.capacity)
+        {
+            Copy(ptrarr!(new_data, i), ptrarr!(self.data, i));
+            i += 1;
+        }
+
+        // Set cur array to aux array
+        ptrcpy!(self.data, new_data);
+
+        // Set capacity to correct amount
+        self.capacity = new_capacity;
+    }
+}
+
+let push<t>(self: ^stack<t>, what: t) -> void
+{
+    while (self.size * to_u128(2) > self.capacity)
+    {
+        expand(self);
+    }
+
+    Copy(ptrarr!(self.data, self.size), what);
+    self.size += 1;
+}
+
+let pop<t>(self: ^stack<t>) -> opt<t>
+{
+    let out: opt<t>;
+    wrap_none(@out);
+
+    if (self.size > to_u128(0))
+    {
+        let data: t;
+        data = ptrarr!(self.data, self.size - 1);
+
+        self.size -= 1;
+
+        wrap_some(@out, data);
+
+        if (self.size > 16 && self.size * to_u128(4) < self.capacity)
+        {
+            shrink(self);
+        }
+    }
+
+    out
+}
+
+let empty<t>(self: ^stack<t>) -> bool
+{
+    if (self.size == to_u128(0))
+    {
+        return true;
+    }
+    return false;
+}
+
+let top<t>(self: ^stack<t>) -> opt<t>
+{
+    let out: opt<t>;
+    out.wrap_none();
+
+    if (self.size > 0)
+    {
+        let real_i: u128 = self.size;
+        real_i -= 1;
+        out.wrap_some(ptrarr!(self.data, real_i));
+    }
+
+    return out;
+}
+
+////////////////////////////////////////////////////////////////

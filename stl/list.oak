@@ -1,0 +1,164 @@
+////////////////////////////////////////////////////////////////
+
+/*
+A generic doubly linked list for Oak
+
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+////////////////////////////////////////////////////////////////
+
+package!("std");
+use_rule!("std");
+
+include!("std/opt.oak");
+include!("stl/ptrcmp.oak");
+
+////////////////////////////////////////////////////////////////
+
+let node<t>: struct
+{
+    data: t,
+    next: ^node<t>,
+    prev: ^node<t>,
+}
+pre
+{
+    to_void_ptr<node<t>>(_: ^node<t>);
+}
+post
+{
+    Del<t>(_: ^node<t>);
+}
+
+////////////////////////////////////////////////////////////////
+
+let Del<t>(self: ^node<t>) -> void
+{
+    if (to_void_ptr(self.next) != to_u128(0))
+    {
+        Del(self.next);
+        free!(self.next);
+    }
+}
+
+////////////////////////////////////////////////////////////////
+
+let list<t>: struct
+{
+    head: ^node<t>,
+    tail: ^node<t>,
+    size: u128,
+}
+pre
+{
+    opt<t>;
+    node<t>;
+}
+post
+{
+    to_void_ptr<node<t>>(_: ^node<t>);
+    Del<t>(_: ^list<t>);
+
+    front<t>(_: ^list<t>);
+    back<t>(_: ^list<t>);
+
+    pop_front<t>(_: ^list<t>);
+    pop_back<t>(_: ^list<t>);
+
+    append<t>(_: ^list<t>, _: t);
+    prepend<t>(_: ^list<t>, _: t);
+}
+
+////////////////////////////////////////////////////////////////
+
+let Del<t>(self: ^list<t>) -> void
+{
+    if (to_void_ptr(self.head) != to_u128(0))
+    {
+        Del(self.head);
+    }
+}
+
+let front<t>(self: ^list<t>) -> opt<t>
+{
+    let out: opt<t>;
+    out.wrap_none();
+
+    if (to_void_ptr(self.head) != to_u128(0))
+    {
+        out.wrap_some(self.head.data);
+    }
+
+    return out;
+}
+
+let back<t>(self: ^list<t>) -> opt<t>
+{
+    let out: opt<t>;
+    out.wrap_none();
+
+    if (to_void_ptr(self.tail) != to_u128(0))
+    {
+        out.wrap_some(self.tail.data);
+    }
+
+    return out;
+}
+
+let pop_front<t>(self: ^list<t>) -> void
+{
+    let old: ^node<t>;
+    ptrcpy!(old, self.head);
+    ptrcpy!(self.head, self.head.next);
+    ptrcpy!(self.head.prev, 0);
+    ptrcpy!(old.next, 0);
+
+    Del(old);
+}
+
+let pop_back<t>(self: ^list<t>) -> void
+{
+    let old: ^node<t>;
+    ptrcpy!(old, self.tail);
+    ptrcpy!(self.tail, self.tail.prev);
+    ptrcpy!(self.tail.next, 0);
+    Del(old);
+}
+
+let append<t>(self: ^list<t>, what: t) -> void
+{
+    if (to_void_ptr(self.head) == 0)
+    {
+        alloc!(self.head);
+        ptrcpy!(self.tail, self.head);
+        self.head.data = what;
+    }
+    else
+    {
+        alloc!(self.tail.next);
+        ptrcpy!(self.tail.next.prev, self.tail);
+        ptrcpy!(self.tail, self.tail.next);
+        self.tail.data = what;
+    }
+}
+
+let prepend<t>(self: ^list<t>, what: t) -> void
+{
+    if (to_void_ptr(self.head) == 0)
+    {
+        alloc!(self.head);
+        ptrcpy!(self.tail, self.head);
+        self.head.data = what;
+    }
+    else
+    {
+        alloc!(self.head.prev);
+        ptrcpy!(self.head, self.head.prev);
+        ptrcpy!(self.head.prev.next, self.head);
+        self.head.data = what;
+    }
+}
+
+////////////////////////////////////////////////////////////////

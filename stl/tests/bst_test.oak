@@ -1,0 +1,40 @@
+/*
+Test of Binary Search Tree from the Oak STL.
+
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+
+TODO:
+- Fix memory leak (see valgrind output)
+*/
+
+package!("std");
+use_rule!("std");
+
+include!("stl/bst.oak");
+
+let main() -> i32
+{
+    let b: bst<i32, i32>;
+
+    b.set(1, 1);
+    b.set(-1, 2);
+    b.set(4, 3);
+
+    let res = b.get(1);
+    let i = res.unwrap();
+    print(i);
+    endl();
+
+    res = b.get(-1);
+    i = res.unwrap();
+    print(i);
+    endl();
+
+    res = b.get(4);
+    i = res.unwrap();
+    print(i);
+    endl();
+
+    0
+}
