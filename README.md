@@ -1243,7 +1243,13 @@ significantly increase the size of the output executable.
 The following are the standard macros associated with Acorn.
 
 `include!(WHAT, WHAT, ..)` causes the translator to also use
-the file(s) within. It can take `.oak` files.
+the file(s) within. It can take `.oak` files. It will first look
+for local files. However, if no local file exists, it will check
+the `/usr/include/oak` folder. For instance, if `include!` is
+called on `std/opt.oak`, `acorn` will first look for a local
+`./std/opt.oak` file. If none exists, it will check
+`/usr/include/oak/std/opt.oak` (which is part of the standard
+`Oak` package).
 
 `package!(WHAT, WHAT, ..)` is a more advanced version of the
 above. See the packages section below for more details.
