@@ -10,6 +10,7 @@ GPLv3 held by author
 #define ACORN_RESOURCES_HPP
 
 #include <chrono>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <map>

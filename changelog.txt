@@ -5,7 +5,7 @@ github.com/jorbDehmel/oak
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
 0.4.4           | 12/31/23 | Fixed bug w/ complex nested
-                |          | parenthesis.   
+                |          | parenthesis. Also include macros.
                 |          |
 0.4.3           | 12/30/23 | Fixed installation process for 
                 |          | unknown Linux distributions. Now

@@ -9,8 +9,11 @@ GPLv3 held by author
 #include "acorn_resources.hpp"
 #include "rules.hpp"
 #include "sequence.hpp"
+#include "sequence_resources.hpp"
+#include "tags.hpp"
 #include <bits/chrono.h>
 #include <chrono>
+#include <filesystem>
 #include <ratio>
 
 // Settings
@@ -381,7 +384,24 @@ void doFile(const string &From)
 
                         for (string a : args)
                         {
-                            doFile(OAK_DIR_PATH + a);
+                            // If local, do that
+                            if (filesystem::exists(a))
+                            {
+                                if (filesystem::exists(OAK_DIR_PATH + a))
+                                {
+                                    cout << tags::yellow_bold << "Warning: Including local file '" << a
+                                         << "' over package file of same name.\nThis may not be what you intended.\n"
+                                         << tags::reset;
+                                }
+
+                                doFile(a);
+                            }
+
+                            // Else, look in OAK_DIR_PATH
+                            else
+                            {
+                                doFile(OAK_DIR_PATH + a);
+                            }
                         }
 
                         // global_start = chrono::high_resolution_clock::now();
@@ -395,19 +415,7 @@ void doFile(const string &From)
                         // Clean arguments
                         for (int j = 0; j < args.size(); j++)
                         {
-                            while (!args[j].empty() && (args[j].front() == '"' || args[j].front() == '\''))
-                            {
-                                args[j].erase(0, 1);
-                            }
-                            while (!args[j].empty() && (args[j].back() == '"' || args[j].back() == '\''))
-                            {
-                                args[j].pop_back();
-                            }
-
-                            if (!args[j].empty() && args[j][0] != '-')
-                            {
-                                args[j] = OAK_DIR_PATH + args[j];
-                            }
+                            args[j] = cleanMacroArgument(args[j]);
                         }
 
                         for (string a : args)
@@ -417,7 +425,21 @@ void doFile(const string &From)
                                 cout << debugTreePrefix << "Inserting object " << a << '\n';
                             }
 
-                            objects.insert(a);
+                            if (filesystem::exists(a) || a[0] == '-')
+                            {
+                                if (filesystem::exists(OAK_DIR_PATH + a))
+                                {
+                                    cout << tags::yellow_bold << "Warning: Including local file '" << a
+                                         << "' over package file of same name.\n"
+                                         << tags::reset;
+                                }
+
+                                objects.insert(a);
+                            }
+                            else
+                            {
+                                objects.insert(OAK_DIR_PATH + a);
+                            }
                         }
                         i--;
                     }
