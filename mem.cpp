@@ -16,8 +16,9 @@ sequence getAllocSequence(Type &type, const string &name, const string &num)
     // C
     // name = (type *)malloc(len * sizeof(type));
 
-    out.items.push_back(sequence{nullType, vector<sequence>(), atom,
-                                 name + " = (" + toStrC(&type) + " *)malloc(sizeof(" + name + ") * " + num + ")"});
+    out.items.push_back(
+        sequence{nullType, vector<sequence>(), atom,
+                 name + " = (" + toStrC(&type) + " *)malloc(sizeof(" + toStrC(&type) + ") * " + num + ")"});
 
     return out;
 }
