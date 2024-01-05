@@ -17,7 +17,7 @@ language and compiler design (see the later section on
 dialects). `Oak` also aims to have an integrated build system,
 necessitating only one call to the compiler per executable.
 
-`Oak` is most closely related to `C`, but also has stronger
+`Oak` is most closely related to `C`, but also has strong
 macro support, modern typing, generics, compile-time syntax
 modification and integrated package management.
 
@@ -42,8 +42,10 @@ are `Oak` variants which use preprocessor rules to support
 independent syntactical structures.
 
 **Note: `Oak` has a default syntax, called canonical `Oak`.**
-Syntax modifications must be opted into on a file-by-file basis,
-or specified by the compiler via the use of dialect files.
+It also has the `std` dialect, provided by the `std` package.
+The later is more commonly used. Syntax modifications must be
+opted into on a file-by-file basis, or specified by the compiler
+via the use of dialect files.
 
 ## Names and Prerequisites
 
@@ -51,6 +53,7 @@ Name      | Meaning
 ----------|-----------------------------------------------------
 `Oak`     | The base `Oak` programming language.
 `Acorn`   | The `Oak` translator / compiler.
+`std`     | Short for `standard`.
 `Sapling` | The sub-language for creating `Oak` dialects/rules.
 Dialect   | A syntactically-modified branch of `Oak`.
 `TARM`    | Prototype for more advanced rule system.
@@ -777,6 +780,234 @@ All macros will use this third form
 variables can be named anything. A common form is
 `(c: i32, v: [][]i8) -> i32`.
 
+## Canonical `Oak` Vs `std`-dialect `Oak`
+
+Canonical `Oak` is fairly limited. It has very few "creature
+comforts". However, it compiles faster. `std` `Oak`, on the
+other hand, has many extra conveniences, but compiles slower.
+`std` `Oak` is activated by the code line `use_rule!("std");`.
+The following outlines some differences between canonical and
+`std` `Oak`.
+
+### Implicit void return
+
+Without `std`:
+```rust
+let fn_which_returns_void() -> void
+{
+}
+
+```
+
+With `std`:
+```rust
+// `-> void` is implied
+let fn_which_returns_void()
+{
+
+}
+```
+
+### Automatic parentheses for `if`, `while`, and `match` statements
+
+Without `std`:
+```rust
+if (condition)
+{
+    while (condition)
+    {
+        match (enum_instance)
+        {
+            // ...
+        }
+    }
+}
+```
+
+With `std`:
+```rust
+if condition
+{
+    while condition
+    {
+        match enum_instance
+        {
+            // ...
+        }
+    }
+}
+```
+
+### Object method "dot" call notation
+
+Without `std`:
+```rust
+let obj: struct
+{
+    member: i32,
+}
+
+let fn(self: ^obj) -> void
+{
+    print(self.member);
+}
+
+let main() -> i32
+{
+    let inst: obj;
+
+    fn(inst);
+    
+    0
+}
+```
+
+With `std`:
+```rust
+// <as above>
+
+let main() -> i32
+{
+    let inst: obj;
+
+    inst.fn();
+    
+    0
+}
+```
+
+### "Easy" method declarations
+
+Without `std`:
+```rust
+let obj: struct
+{
+    // ...
+}
+
+let fn(self: ^obj) -> void
+{
+    // ...
+}
+```
+
+With `std`:
+```rust
+let obj: struct
+{
+    // ...
+}
+
+let obj.fn() -> void
+{
+    // ...
+}
+```
+
+### Inline instantiation
+
+Without `std`:
+```rust
+let a: i128;
+a = 123;
+```
+
+With `std`:
+```rust
+let a: i128 = 123;
+```
+
+### Implied typing
+
+Without `std`:
+```rust
+let fn() -> i32
+{
+    5
+}
+
+let main() -> i32
+{
+    let a: i32;
+    a = fn();
+
+    0
+}
+```
+
+With `std`:
+```rust
+let fn() -> i32
+{
+    5
+}
+
+let main() -> i32
+{
+    // Automatically types `a` as an i32
+    let a = fn();
+
+    0
+}
+```
+
+### `for` loops
+
+Without `std`:
+```rust
+let i: i32;
+i = 0;
+while (i < 100)
+{
+    // ...
+    i += 1;
+}
+```
+
+With `std`:
+```rust
+for (let i: i32 = 0; i < 100; i += 1)
+{
+    // ...
+}
+```
+
+### Namespaces
+
+Without `std`:
+```rust
+let library_fn() -> void;
+```
+
+With `std`:
+```rust
+// `::` becomes `_`
+let library::fn() -> void;
+```
+
+**Note:** There is no `using` or `use` in `Oak`. If namespaces
+are to be used, they must always be fully qualified.
+
+### `import`, `include`, `link`, `use`, and `flag` keywords
+
+Without `std`:
+```rust
+package!("std");
+include!("std/opt.oak");
+link!("some_object.o");
+use_rule!("std");
+flag!("-some -compilation -flags");
+```
+
+With `std`:
+```rust
+import "std";
+include "std/opt.oak";
+link "some_object.o";
+use_rule "std";
+flag "-some -compilation -flags";
+```
+
 ## Object Oriented Programming
 
 `Oak` does not have classes, nor does it have internally defined
@@ -1213,6 +1444,9 @@ Option | Verbose     | Purpose
  -v    | --version   | Show version
  -w    | --new       | Create a new package
  -x    | --syntax    | Ignore syntax errors
+
+`acorn` can take in any number of input files, but can target
+only one output (`.o`, `.c`, or `.out`) file.
 
 ## Optimization and Runtime Debugging
 
@@ -2504,9 +2738,6 @@ constantly being added.
 Some miscellaneous notes which are not long enough to warrant 
 their own section in this document:
 
-- `Oak` does not have namespaces under the canonical dialect, 
-    although the `namespace` or `std` rules provide a simulacrum
-    of them.
 - `Oak` was previously (0.1.*) translated to `C++`. As of 0.2.0,
     it is instead translated to `C`.
 - As of version `0.0.10`, the `New` and `Del` operator aliases
@@ -2550,6 +2781,21 @@ structures.
 - Set
 - Stack
 - Vector (vec)
+
+The included binary search tree structure is non-self-balancing.
+It can be used as a `map`, but caution should be used. It has
+worst-case lookup time of `O(n)`. The included `list` is a
+standard doubly linked list. It does not have random-access
+lookups, but can be used for traversals (forwards or backwards).
+The included `map` uses linear probing based on a given hash
+function. It is hard-coded to use a maximal alpha of `0.5`. When
+this is reached, it will double in size and rehash. It does not
+support deletion. The included `queue`, `stack` and `vec` are
+standard implementations of their respective data structures.
+`vec`'s are dynamically resizing (for growing and shrinking).
+The included `set` is a specialization of `map` where only the
+key and hash are stored, with no lookup data. It also uses
+linear hashing, and also does not support deletion.
 
 # `Oak` Compiler Structure
 
@@ -4945,8 +5191,8 @@ The `Oak` programming language outlined here bears no relation
 nor resemblance to any other programming languages, frameworks
 or prototypes of the same name. Unique names are increasingly
 difficult to find for programming languages. The `Oak`
-referenced here was developed independently from any
-similarly-names items.
+referenced here was developed independently from any similarly
+named items.
 
 ## License
 
