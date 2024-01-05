@@ -8,11 +8,6 @@ jdehmel@outlook.com
 Header file
 */
 
-/*
-TODO:
-- Fix memory leak
-*/
-
 ////////////////////////////////////////////////////////////////
 
 package!("std");
@@ -78,6 +73,8 @@ let expand<t>(self: ^stack<t>) -> void
         Copy(ptrarr!(new_data, i), ptrarr!(self.data, i));
         i += 1;
     }
+
+    free!(self.data);
 
     // Set cur array to aux array
     ptrcpy!(self.data, new_data);

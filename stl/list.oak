@@ -7,11 +7,6 @@ Jordan Dehmel, 2023
 jdehmel@outlook.com
 */
 
-/*
-TODO:
-- Fix memory leak
-*/
-
 ////////////////////////////////////////////////////////////////
 
 package!("std");
@@ -34,10 +29,17 @@ pre
 }
 post
 {
+    New<t>(_: ^node<t>);
     Del<t>(_: ^node<t>);
 }
 
 ////////////////////////////////////////////////////////////////
+
+let New<t>(self: ^node<t>) -> void
+{
+    ptrcpy!(self.next, 0);
+    ptrcpy!(self.prev, 0);
+}
 
 let Del<t>(self: ^node<t>) -> void
 {
@@ -83,6 +85,7 @@ let Del<t>(self: ^list<t>) -> void
     if (to_void_ptr(self.head) != to_u128(0))
     {
         Del(self.head);
+        free!(self.head);
     }
 }
 

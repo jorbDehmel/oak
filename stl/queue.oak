@@ -7,11 +7,6 @@ Jordan Dehmel, 2023
 jdehmel@outlook.com
 */
 
-/*
-TODO:
-- Fix memory leak
-*/
-
 ////////////////////////////////////////////////////////////////
 
 package!("std");
@@ -83,6 +78,7 @@ let Del<t>(self: ^queue<t>) -> void
     if (to_void_ptr(self.head) != to_u128(0))
     {
         Del(self.head);
+        free!(self.head);
     }
 }
 
@@ -107,6 +103,7 @@ let pop_front<t>(self: ^queue<t>) -> void
 
     ptrcpy!(old.next, 0);
     Del(old);
+    free!(old);
 }
 
 let append<t>(self: ^queue<t>, what: t) -> void

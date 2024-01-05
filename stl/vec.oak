@@ -6,11 +6,6 @@ Jordan Dehmel, 2023
 jdehmel@outlook.com
 */
 
-/*
-TODO:
-- Fix memory leak
-*/
-
 ////////////////////////////////////////////////////////////////
 
 package!("std");
@@ -132,6 +127,8 @@ let Expand<t>(self: ^vec<t>) -> void
         Copy(ptrarr!(new_data, i), ptrarr!(self.data, i));
         i += 1;
     }
+
+    free!(self.data);
 
     // Set cur array to aux array
     ptrcpy!(self.data, new_data);
