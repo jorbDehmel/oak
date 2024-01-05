@@ -1,0 +1,34 @@
+/*
+Test to make sure destructors are being called at return.
+*/
+
+package!("std");
+use_rule!("std");
+
+let a: struct {}
+
+let a.New() -> void
+{
+    print("Constructor\n");
+}
+
+let a.Del() -> void
+{
+    print("Destructor\n");
+}
+
+let fn() -> a
+{
+    let inst: a;
+
+    return inst;
+}
+
+let main() -> i32
+{
+    let inst: a;
+
+    fn();
+
+    0
+}

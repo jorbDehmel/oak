@@ -42,6 +42,7 @@ enum sequenceInfo
     enum_keyword,
 };
 
+// Abstract Syntax Tree node: I don't know why I called it this
 struct sequence
 {
     Type type;
@@ -97,6 +98,6 @@ in the original table. However, skips all functions.
 If not contradicted by the above rules, bases off of
 the current table (not backup).
 */
-std::string restoreSymbolTable(multiSymbolTable &backup);
+std::vector<std::pair<std::string, std::string>> restoreSymbolTable(multiSymbolTable &backup);
 
 #endif

@@ -72,7 +72,7 @@ std::vector<std::pair<std::string, Type>> getArgs(Type &type);
 void debugPrint(const sequence &What, int spaces = 0, std::ostream &to = std::cout);
 
 Type checkLiteral(const std::string &From);
-std::string restoreSymbolTable(multiSymbolTable &backup);
+std::vector<std::pair<std::string, std::string>> restoreSymbolTable(multiSymbolTable &backup);
 
 void addEnum(const std::vector<std::string> &FromIn);
 
@@ -82,6 +82,9 @@ void dump(const std::vector<std::string> &Lexed, const std::string &Where, const
 
 std::string getMemberNew(const std::string &selfName, const std::string &varName, const Type &varType);
 std::string getMemberDel(const std::string &selfName, const std::string &varName, const Type &varType);
+
+// Inserts destructors at all appropriate places in a sequence
+void insertDestructors(sequence &what, const std::vector<std::pair<std::string, std::string>> &destructors);
 
 ////////////////////////////////////////////////////////////////
 

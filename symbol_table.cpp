@@ -389,9 +389,9 @@ in the original table. However, skips all functions.
 If not contradicted by the above rules, bases off of
 the current table (not backup).
 */
-std::string restoreSymbolTable(multiSymbolTable &backup)
+std::vector<std::pair<std::string, std::string>> restoreSymbolTable(multiSymbolTable &backup)
 {
-    std::string output = "";
+    std::vector<std::pair<std::string, std::string>> out;
 
     multiSymbolTable newTable;
     for (auto p : table)
@@ -444,7 +444,8 @@ std::string restoreSymbolTable(multiSymbolTable &backup)
                         s.type[0].info != sarr && p.first != "")
                     {
                         // Del_FN_PTR_typename_MAPS_void
-                        output += "Del_FN_PTR_" + s.type[0].name + "_MAPS_void(&" + p.first + ");\n";
+                        out.push_back(
+                            std::make_pair(p.first, "Del_FN_PTR_" + s.type[0].name + "_MAPS_void(&" + p.first + ");"));
                     }
                 }
             }
@@ -453,5 +454,5 @@ std::string restoreSymbolTable(multiSymbolTable &backup)
 
     table = newTable;
 
-    return output;
+    return out;
 }

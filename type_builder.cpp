@@ -336,6 +336,107 @@ bool typesAreSameExact(const Type *const A, const Type *const B)
     return true;
 }
 
+/*
+Compares two types. Returns true if they match exactly, if they
+match using auto-reference/auto-dereference, or internal literal
+casting. The number of changes is recorded in `changes`.
+*/
+bool typesAreSameCast(const Type *const A, const Type *const B, int &changes)
+{
+    const static std::set<std::string> intLiterals = {"u8",  "i8",  "u16", "i16",  "u32",
+                                                      "i32", "u64", "i64", "u128", "i128"};
+    const static std::set<std::string> floatLiterals = {"f32", "f64", "f128"};
+
+    unsigned int left, right;
+    bool castIsLegal = true;
+    left = right = 0;
+
+    while (left < A->internal.size() && right < B->internal.size())
+    {
+        while (left < A->internal.size() && (A->internal[left].info == var_name || A->internal[left].info == pointer))
+        {
+            if (A->internal[left].info == pointer)
+            {
+                castIsLegal = false;
+                changes++;
+            }
+            else
+            {
+                castIsLegal = true;
+            }
+
+            left++;
+        }
+
+        while (right < B->internal.size() &&
+               (B->internal[right].info == var_name || B->internal[right].info == pointer))
+        {
+            if (B->internal[right].info == pointer)
+            {
+                castIsLegal = false;
+                changes++;
+            }
+            else
+            {
+                castIsLegal = true;
+            }
+
+            right++;
+        }
+
+        if (left >= A->internal.size() || right >= B->internal.size())
+        {
+            break;
+        }
+
+        if (A->internal[left].info != B->internal[right].info &&
+            !(A->internal[left].info == sarr && B->internal[right].info == arr) &&
+            !(A->internal[left].info == arr && B->internal[right].info == sarr))
+        {
+            // Failure
+            return false;
+        }
+        else
+        {
+            if (A->internal[left].info == atomic)
+            {
+                if (castIsLegal)
+                {
+                    castIsLegal = false;
+
+                    // Case 1: Int cast
+                    if (intLiterals.count(A->internal[left].name) != 0 &&
+                        intLiterals.count(B->internal[right].name) != 0)
+                    {
+                        changes++;
+                        castIsLegal = true;
+                    }
+
+                    // Case 2: Float cast
+                    if (!castIsLegal && (floatLiterals.count(A->internal[left].name) != 0 &&
+                                         floatLiterals.count(B->internal[right].name) != 0))
+                    {
+                        changes++;
+                        castIsLegal = true;
+                    }
+                }
+
+                // Failure: No cast available
+                if (!castIsLegal && A->internal[left].name != B->internal[right].name)
+                {
+                    return false;
+                }
+            }
+        }
+
+        // Success; Move on
+        left++;
+        right++;
+    }
+
+    return true;
+}
+
 Type checkLiteral(const std::string &From)
 {
     // Check as bool

@@ -98,4 +98,11 @@ bool typesAreSame(const Type *const A, const Type *const B, int &changes);
 // Like the above, but does not do auto-referencing or dereferencing
 bool typesAreSameExact(const Type *const A, const Type *const B);
 
+/*
+Compares two types. Returns true if they match exactly, if they
+match using auto-reference/auto-dereference, or internal literal
+casting. The number of changes is recorded in `changes`.
+*/
+bool typesAreSameCast(const Type *const A, const Type *const B, int &changes);
+
 #endif

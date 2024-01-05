@@ -8,6 +8,11 @@ jdehmel@outlook.com
 Header file
 */
 
+/*
+TODO:
+- Fix memory leak
+*/
+
 ////////////////////////////////////////////////////////////////
 
 package!("std");

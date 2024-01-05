@@ -7,6 +7,9 @@ jdehmel@outlook.com
 #include "sequence_resources.hpp"
 #include "symbol_table.hpp"
 #include "type_builder.hpp"
+#include <codecvt>
+#include <stdexcept>
+#include <string>
 
 void toCInternal(const sequence &What, std::vector<std::string> &out)
 {
@@ -1329,4 +1332,81 @@ std::string getMemberDel(const std::string &selfName, const std::string &varName
         // This is where memory leaks come from
         return selfName + "." + varName + " = 0";
     }
+}
+
+// Returns an item to insert before a given sequence
+std::string insertDestructorsRecursive(sequence &what,
+                                       const std::vector<std::pair<std::string, std::string>> &destructors)
+{
+    if ((what.info == code_line || what.info == atom) && what.type != nullType)
+    {
+        // Janky return
+
+        std::string out, against;
+        against = toC(what);
+
+        for (const auto &p : destructors)
+        {
+            if (p.first == against)
+            {
+                continue;
+            }
+            else
+            {
+                out += p.second + ";";
+            }
+        }
+
+        return out;
+    }
+    else if (what.info == keyword && what.items[0].raw == "return")
+    {
+        // Keyword return
+
+        std::string out, against;
+        against = toC(what.items[1]);
+
+        for (const auto &p : destructors)
+        {
+            if (p.first == against || p.second == "")
+            {
+                continue;
+            }
+            else
+            {
+                out += p.second + ";";
+            }
+        }
+
+        return out;
+    }
+    else if (what.info == code_scope)
+    {
+        // Recursive
+        std::string out;
+        for (unsigned int i = 0; i < what.items.size(); i++)
+        {
+            out = insertDestructorsRecursive(what.items[i], destructors);
+
+            if (out != "")
+            {
+                // Insert the thing returned
+
+                what.items.insert(what.items.begin() + i, sequence{nullType, std::vector<sequence>(), atom, out});
+                i++;
+            }
+        }
+
+        return "";
+    }
+
+    return "";
+}
+
+// Insert destructors before any return statement that DOES NOT return the item in question
+// Recursive
+// Will only be called upon exiting a function
+void insertDestructors(sequence &what, const std::vector<std::pair<std::string, std::string>> &destructors)
+{
+    insertDestructorsRecursive(what, destructors);
 }

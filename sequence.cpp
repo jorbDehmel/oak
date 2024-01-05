@@ -12,6 +12,7 @@ GPLv3 held by author
 #include "tags.hpp"
 
 std::vector<std::string> curLineSymbols;
+static Type currentReturnType;
 
 unsigned long long int curLine = 1;
 std::string curFile = "";
@@ -95,7 +96,7 @@ sequence __createSequence(std::list<std::string> &From)
             curLineSymbols.erase(curLineSymbols.begin());
         }
 
-        sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
         From.pop_front();
         return __createSequence(From);
     }
@@ -111,7 +112,7 @@ sequence __createSequence(std::list<std::string> &From)
         if (From.front() == "erase!")
         {
             int count = 0;
-            sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
             From.pop_front();
             std::list<std::string> contents;
 
@@ -134,7 +135,7 @@ sequence __createSequence(std::list<std::string> &From)
                     }
                 }
 
-                sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
                 From.pop_front();
             } while (!From.empty() && count != 0);
 
@@ -176,7 +177,7 @@ sequence __createSequence(std::list<std::string> &From)
             std::cout << curFile << ":" << curLine << ":c_print! ";
 
             int count = 0;
-            sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
             From.pop_front();
 
             do
@@ -200,7 +201,7 @@ sequence __createSequence(std::list<std::string> &From)
                     }
                 }
 
-                sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
                 From.pop_front();
 
             } while (!From.empty() && count != 0);
@@ -214,7 +215,7 @@ sequence __createSequence(std::list<std::string> &From)
             std::string message = curFile + ":" + std::to_string(curLine) + ":c_panic! ";
 
             int count = 0;
-            sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
             From.pop_front();
 
             do
@@ -237,7 +238,7 @@ sequence __createSequence(std::list<std::string> &From)
                     }
                 }
 
-                sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
                 From.pop_front();
             } while (!From.empty() && count != 0);
 
@@ -251,7 +252,7 @@ sequence __createSequence(std::list<std::string> &From)
 
             std::string command;
             int count = 0;
-            sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
             From.pop_front();
 
             do
@@ -279,7 +280,7 @@ sequence __createSequence(std::list<std::string> &From)
                     }
                 }
 
-                sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
                 From.pop_front();
             } while (!From.empty() && count != 0);
 
@@ -301,7 +302,7 @@ sequence __createSequence(std::list<std::string> &From)
         else if (From.front() == "alloc!")
         {
             int count = 0;
-            sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
             From.pop_front();
             std::list<std::string> contents;
 
@@ -321,7 +322,7 @@ sequence __createSequence(std::list<std::string> &From)
                     contents.push_back(From.front());
                 }
 
-                sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
                 From.pop_front();
             } while (!From.empty() && count != 0);
 
@@ -364,7 +365,7 @@ sequence __createSequence(std::list<std::string> &From)
         else if (From.front() == "free!")
         {
             int count = 0;
-            sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
             From.pop_front();
             std::list<std::string> contents;
 
@@ -384,7 +385,7 @@ sequence __createSequence(std::list<std::string> &From)
                     contents.push_back(From.front());
                 }
 
-                sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
                 From.pop_front();
             } while (!From.empty() && count != 0);
 
@@ -403,7 +404,7 @@ sequence __createSequence(std::list<std::string> &From)
         else if (From.front() == "ptrcpy!")
         {
             int count = 0;
-            sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
             From.pop_front();
             std::list<std::string> contents;
 
@@ -423,7 +424,7 @@ sequence __createSequence(std::list<std::string> &From)
                     contents.push_back(From.front());
                 }
 
-                sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
                 From.pop_front();
             } while (!From.empty() && count != 0);
 
@@ -454,7 +455,7 @@ sequence __createSequence(std::list<std::string> &From)
         else if (From.front() == "ptrarr!")
         {
             int count = 0;
-            sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
             From.pop_front();
             std::list<std::string> contents;
 
@@ -474,7 +475,7 @@ sequence __createSequence(std::list<std::string> &From)
                     contents.push_back(From.front());
                 }
 
-                sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
                 From.pop_front();
             } while (!From.empty() && count != 0);
 
@@ -512,7 +513,7 @@ sequence __createSequence(std::list<std::string> &From)
     // Misc key-characters
     else if (From.front() == ";")
     {
-        sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
         From.pop_front();
         auto toReturn = __createSequence(From);
         toReturn.type = nullType;
@@ -530,7 +531,7 @@ sequence __createSequence(std::list<std::string> &From)
         out.raw = From.front();
         out.type = nullType;
 
-        sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
         From.pop_front();
 
         // Pops the first full sequence from the remaining front
@@ -581,19 +582,19 @@ sequence __createSequence(std::list<std::string> &From)
         out.raw = From.front();
         out.type = nullType;
 
-        sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
         From.pop_front();
 
         sm_assert(!From.empty(), "'case' must be followed by enumeration option name.");
         out.items.push_back(sequence{nullType, std::vector<sequence>{}, atom, From.front()});
         std::string optionName = From.front();
 
-        sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
         From.pop_front();
 
         sm_assert(!From.empty() && From.front() == "(",
                   "Enumeration option must be followed by capture parenthesis (IE name(capture_here)).");
-        sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
         From.pop_front();
 
         sm_assert(!From.empty(), "Capture group is missing name or closing parenthesis.");
@@ -616,7 +617,7 @@ sequence __createSequence(std::list<std::string> &From)
 
         sm_assert(!From.empty() && From.front() == ")", "Capture parenthesis must contain at most one symbol.");
 
-        sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
         From.pop_front();
 
         // Get actual code scope
@@ -639,7 +640,7 @@ sequence __createSequence(std::list<std::string> &From)
         out.raw = From.front();
         out.type = nullType;
 
-        sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
         From.pop_front();
 
         out.items.push_back(__createSequence(From));
@@ -655,7 +656,7 @@ sequence __createSequence(std::list<std::string> &From)
         out.raw = From.front();
         out.type = nullType;
 
-        sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
         From.pop_front();
 
         // Pops the first full sequence from the remaining front
@@ -687,7 +688,7 @@ sequence __createSequence(std::list<std::string> &From)
         out.raw = From.front();
         out.type = nullType;
 
-        sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
         From.pop_front();
 
         out.items.push_back(__createSequence(From));
@@ -699,24 +700,31 @@ sequence __createSequence(std::list<std::string> &From)
         // Takes a code scope / code line
         out.info = code_line;
         out.type = nullType;
-        out.items.push_back(sequence{nullType, std::vector<sequence>(), atom, "return"});
+        out.items.push_back(sequence{nullType, std::vector<sequence>(), keyword, "return"});
 
-        sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
         From.pop_front();
 
+        sm_assert(!From.empty() && From.front() != ";" && From.front() != "}",
+                  "'return' must be followed by the thing to return (void returns are not legal).");
         out.items.push_back(__createSequence(From));
+
+        int garbage = 0;
+        sm_assert(typesAreSameCast(&out.items.back().type, &currentReturnType, garbage),
+                  "Cannot return '" + toStr(&out.items.back().type) + "' from a function w/ return type '" +
+                      toStr(&currentReturnType) + "'");
 
         return out;
     }
     else if (From.front() == "let")
     {
         // Get name
-        sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
         From.pop_front(); // let
         sm_assert(!From.empty(), "'let' must be followed by something.");
 
         std::string name = From.front();
-        sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
         From.pop_front();
 
         // Gather templating if there is any
@@ -754,7 +762,7 @@ sequence __createSequence(std::list<std::string> &From)
         // Get type
         if (From.front() == ":")
         {
-            sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
             From.pop_front();
 
             if (!From.empty() && (From.front() == "struct" || From.front() == "enum"))
@@ -783,13 +791,13 @@ sequence __createSequence(std::list<std::string> &From)
                 {
                     toAdd.push_back(From.front());
 
-                    sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+                    sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
                     From.pop_front();
                 }
 
                 toAdd.push_back(From.front());
 
-                sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
                 From.pop_front();
 
                 bool exempt = false;
@@ -982,7 +990,7 @@ sequence __createSequence(std::list<std::string> &From)
                     }
 
                     toAdd.push_back(From.front());
-                    sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+                    sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
                     From.pop_front();
 
                     if (!From.empty() && From.front() == "=")
@@ -1062,7 +1070,7 @@ sequence __createSequence(std::list<std::string> &From)
                 do
                 {
                     toAdd.push_back(From.front());
-                    sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+                    sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
                     From.pop_front();
                 } while (From.front() != "{" && From.front() != ";");
 
@@ -1086,12 +1094,13 @@ sequence __createSequence(std::list<std::string> &From)
                     }
                 }
 
-                Type returnType = getReturnType(type);
+                sm_assert(currentReturnType == nullType, "Cannot nest function definitions.");
+                currentReturnType = getReturnType(type);
 
                 // Restrictions upon some types of methods
                 if (name == "New" || name == "Del")
                 {
-                    if (returnType != Type(atomic, "void"))
+                    if (currentReturnType != Type(atomic, "void"))
                     {
                         throw std::runtime_error("Illegal method definition! Method '" + name + "' must return void.");
                     }
@@ -1109,8 +1118,8 @@ sequence __createSequence(std::list<std::string> &From)
                     if (name == "main")
                     {
                         sm_assert(table[name].size() == 0, "Function 'main' cannot be overloaded.");
-                        sm_assert(returnType[0].info == atomic &&
-                                      (returnType[0].name == "i32" || returnType[0].name == "void"),
+                        sm_assert(currentReturnType[0].info == atomic &&
+                                      (currentReturnType[0].name == "i32" || currentReturnType[0].name == "void"),
                                   "Function 'main' must return i32.");
 
                         if (argsWithType.size() != 0)
@@ -1202,7 +1211,10 @@ sequence __createSequence(std::list<std::string> &From)
                     table[name].push_back(__multiTableSymbol{sequence{}, type, false, curFile});
                 }
 
-                restoreSymbolTable(oldTable);
+                auto destructors = restoreSymbolTable(oldTable);
+                // insertDestructors(table[name].back().seq, destructors);
+
+                currentReturnType = nullType;
             }
             else
             {
@@ -1368,7 +1380,7 @@ sequence __createSequence(std::list<std::string> &From)
 
     else if (From.front() == "{")
     {
-        sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
         From.pop_front();
 
         // Save symbol table for later restoration
@@ -1398,7 +1410,7 @@ sequence __createSequence(std::list<std::string> &From)
                 {
                     out.items.push_back(__createSequence(curVec));
                     curVec.clear();
-                    sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+                    sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
                     From.pop_front();
                     break;
                 }
@@ -1413,7 +1425,7 @@ sequence __createSequence(std::list<std::string> &From)
                     curVec.clear();
                 }
 
-                sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
                 From.pop_front();
             }
             else
@@ -1421,7 +1433,7 @@ sequence __createSequence(std::list<std::string> &From)
                 if (!From.empty())
                 {
                     curVec.push_back(From.front());
-                    sm_assert(!From.empty(), "Cannot pop from front of empty std::vector.");
+                    sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
                     From.pop_front();
                 }
                 else
@@ -1433,11 +1445,19 @@ sequence __createSequence(std::list<std::string> &From)
 
         // Restore symbol table
 
-        // This copies only newly instantiated functions; No other symbols.
-        std::string output = restoreSymbolTable(oldTable);
+        // Fetch destructors
+        auto destructors = restoreSymbolTable(oldTable);
+        insertDestructors(out, destructors);
 
-        // Call destructors
-        out.items.push_back(sequence{nullType, std::vector<sequence>(), atom, output});
+        // If a void function, call all destructors
+        // (otherwise, these calls will have been handled elsewhere)
+        if (currentReturnType == Type(atomic, "void"))
+        {
+            for (const auto &p : destructors)
+            {
+                out.items.push_back(sequence{nullType, std::vector<sequence>(), atom, p.second + ";"});
+            }
+        }
 
         // Check if/else validity
         for (int i = 1; i < out.items.size(); i++)
@@ -1452,6 +1472,14 @@ sequence __createSequence(std::list<std::string> &From)
 
                 sm_assert(out.items[i - 1].info == keyword && out.items[i - 1].raw == "if",
                           "Else statement must be prefixed by if statement.");
+            }
+
+            if (out.items[i].type != nullType)
+            {
+                int garbage = 0;
+                sm_assert(typesAreSameCast(&out.items[i].type, &currentReturnType, garbage),
+                          "Cannot return '" + toStr(&out.items[i].type) + "' from a function w/ return type '" +
+                              toStr(&currentReturnType) + "'");
             }
         }
 
@@ -1684,7 +1712,10 @@ Type resolveFunctionInternal(const std::vector<std::string> &What, int &start, s
             typeVec.push_back("struct");
         }
 
+        Type oldType = currentReturnType;
+        currentReturnType = nullType;
         std::string result = instantiateGeneric(name, generics, typeVec);
+        currentReturnType = oldType;
 
         start--;
 
@@ -2139,7 +2170,7 @@ Type resolveFunctionInternal(const std::vector<std::string> &What, int &start, s
 
             for (; pos < What.size() && pos < start + 8; pos++)
             {
-                std::cout << What[pos] << ' ';
+                std::cout << What[pos] << (pos == start + 7 ? "" : " ");
             }
 
             std::cout << "'\n" << tags::reset;
