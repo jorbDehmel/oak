@@ -1,0 +1,448 @@
+////////////////////////////////////////////////////////////////
+
+/*
+A basic turtle with a pen. Concept based off of the Python
+turtle package, which I used as a kid and helped to get me into
+programming.
+
+Jordan Dehmel, 2024
+jdehmel@outlook.com
+*/
+
+////////////////////////////////////////////////////////////////
+
+package!("std", "sdl", "stl");
+include!("std/math.oak");
+include!("std/string.oak");
+use_rule!("std");
+
+////////////////////////////////////////////////////////////////
+
+/*
+A structure representing a turtle with a pen. Has location and
+orientation. The center of the canvas is (0, 0). An orientation
+of 0 means the turtle is facing directly North (upwards). 90 is
+East, 180 is South, and 270 is West. 360 is North again.
+*/
+let turtle::turtle: struct
+{
+    x: i128,
+    y: i128,
+    pen_is_down: bool,
+    orientation: f64,
+    speed: f64,
+    radius: f64,
+
+    is_running: bool,
+    w: u128,
+    h: u128,
+    window: sdl::window,
+    bg_color: sdl::color,
+    pen_color: sdl::color,
+    turtle_color: sdl::color,
+    pixels: [][]bool,
+}
+
+let turtle_sqrt_two! = 1.41421;
+
+////////////////////////////////////////////////////////////////
+// Basic methods
+////////////////////////////////////////////////////////////////
+
+/*
+Create a new turtle, with all attributes set to defaults.
+*/
+let New(self: ^turtle::turtle) -> void
+{
+    self.x = 0;
+    self.y = 0;
+    self.pen_is_down = true;
+    self.orientation = 0.0;
+    self.speed = 2.0;
+    self.radius = 6.0;
+
+    self.is_running = true;
+
+    self.w = 512;
+    self.h = 512;
+
+    self.bg_color = (0xFF, 0xFF, 0xFF, 0xFF);
+    self.pen_color = (0x00, 0x00, 0x00, 0xFF);
+    self.turtle_color = (0x00, 0x00, 0x00, 0xFF);
+
+    sdl::init();
+    New(self.window);
+    self.window = (self.w, self.h);
+
+    // Initialize pixels array
+    alloc!(self.pixels, self.h);
+    let i: u128 = 0;
+
+    flush();
+    while i < self.h
+    {
+        alloc!(ptrarr!(self.pixels, i), self.w);
+
+        let j: u128 = 0;
+        while j < self.w
+        {
+            ptrarr!(ptrarr!(self.pixels, i), j) = false;
+
+            j += 1;
+        }
+
+        i += 1;
+    }
+}
+
+/*
+Set a turtle free, and close its window.
+*/
+let Del(self: ^turtle::turtle) -> void
+{
+    Del(self.window);
+    sdl::quit();
+
+    let i: u128 = 0;
+    while i < self.h
+    {
+        free!(ptrarr!(self.pixels, i));
+        ptrcpy!(ptrarr!(self.pixels, i), 0);
+
+        i += 1;
+    }
+    
+    free!(self.pixels, self.h);
+    ptrcpy!(self.pixels, 0);
+}
+
+/*
+Returns true if the given position is already filled, false
+otherwise.
+*/
+let is_filled(self: ^turtle::turtle, x: i128, y: i128) -> bool
+{
+    // Modulo inputs by sizes to avoid overflow
+    let real_x: u128 = to_u128(x) % to_u128(self.w);
+    let real_y: u128 = to_u128(y) % to_u128(self.h);
+
+    ptrarr!(ptrarr!(self.pixels, real_y), real_x)
+}
+
+////////////////////////////////////////////////////////////////
+// Drawing stuff
+////////////////////////////////////////////////////////////////
+
+/*
+Flood the current section with color. Uses the turtle's coords.
+*/
+let flood(self: ^turtle::turtle) -> void
+{
+
+}
+
+/*
+Rotate a point around another by a certain number of degrees.
+Note a method, so need namespace qualification. Results go into
+x and y.
+*/
+let turtle::rotate(
+    what: ^sdl::coord,
+    about: sdl::coord,
+    rot: f64) -> void
+{
+    if rot != 0.0
+    {
+        what.x -= about.x;
+        what.y -= about.y;
+
+        let c: f64 = sdl::cos(degrees_to_radians(rot));
+        let s: f64 = sdl::sin(degrees_to_radians(rot));
+        let x: f64 = to_f64(what.x);
+        let y: f64 = to_f64(what.y);
+
+        what.x = f_to_i(x * c - y * s);
+        what.y = f_to_i(y * c + x * s);
+
+        what.x += about.x;
+        what.y += about.y;
+    }
+}
+
+/*
+Refresh the window.
+*/
+let refresh(self: ^turtle::turtle) -> void
+{
+    if self.is_running
+    {
+        let start = sdl::get_ticks();
+
+        fill(self.window, self.bg_color);
+
+        // Draw pixels
+        let point: sdl::coord;
+
+        point.y = 0;
+        while point.y < to_u64(self.h)
+        {
+            point.x = 0;
+            while point.x < to_u64(self.w)
+            {
+                if self.is_filled(point.x, point.y)
+                {
+                    draw_dot(self.window, point, self.pen_color);
+                }
+
+                point.x += 1;
+            }
+
+            point.y += 1;
+        }
+
+        // Draw self (rotated triangle)
+        let a: sdl::coord;
+        let b: sdl::coord;
+        let c: sdl::coord;
+
+        a = (self.x, f_to_i(to_f64(self.y) + self.radius));
+        b = (f_to_i(to_f64(self.x) - self.radius), f_to_i(to_f64(self.y) - self.radius));
+        c = (f_to_i(to_f64(self.x) + self.radius), f_to_i(to_f64(self.y) - self.radius));
+
+        let center: sdl::coord;
+        center = (self.x, self.y);
+
+        turtle::rotate(a, center, self.orientation);
+        turtle::rotate(b, center, self.orientation);
+        turtle::rotate(c, center, self.orientation);
+
+        // Outline
+        draw_line(self.window, a, b, self.turtle_color);
+        draw_line(self.window, b, c, self.turtle_color);
+        draw_line(self.window, c, a, self.turtle_color);
+            
+        show(self.window);
+
+        // Process input signals
+        let event: sdl_event;
+        let flag_var: bool = true;
+        while flag_var
+        {
+            event.wrap_sdl_none();
+            event = sdl::poll_event();
+
+            match event
+            {
+                case sdl::none()
+                {
+                    flag_var = false;
+                }
+
+                case sdl::key_down_event(data)
+                {
+                    if (data.keycode == to_i128(27))
+                    {
+                        self.is_running = false;
+                    }
+                }
+
+                default
+                {
+                    ;
+                }
+            }
+        }
+
+        let end = sdl::get_ticks();
+        let elapsed = end - start;
+
+        if elapsed < 10
+        {
+            sdl::delay(10 - elapsed);
+        }
+    }
+}
+
+////////////////////////////////////////////////////////////////
+// Movement stuff
+////////////////////////////////////////////////////////////////
+
+let left(self: ^turtle::turtle, by: f64) -> void
+{
+    let frames: i32 = floor(by / self.speed);
+    let dt: f64 = by / to_f64(frames);
+
+    let frame: i32 = 0;
+    while frame < frames
+    {
+        self.orientation -= dt;
+
+        while (self.orientation < 0.0)
+        {
+            self.orientation += 360.0;
+        }
+        while (self.orientation >= 360.0)
+        {
+            self.orientation -= 360.0;
+        }
+
+        self.refresh();
+
+        frame += 1;
+    }
+}
+
+let right(self: ^turtle::turtle, by: f64) -> void
+{
+    let frames: i32 = floor(by / self.speed);
+    let dt: f64 = by / to_f64(frames);
+
+    let frame: i32 = 0;
+    while frame < frames
+    {
+        self.orientation += dt;
+
+        while (self.orientation < 0.0)
+        {
+            self.orientation += 360.0;
+        }
+        while (self.orientation >= 360.0)
+        {
+            self.orientation -= 360.0;
+        }
+
+        self.refresh();
+
+        frame += 1;
+    }
+}
+
+let forward(self: ^turtle::turtle, by: i128) -> void
+{
+    let frames: i32 = floor(to_f64(by) / self.speed);
+
+    let dx: f64 = to_f64(by) * sdl::sin(degrees_to_radians(self.orientation)) / to_f64(frames);
+    let dy: f64 = to_f64(by) * sdl::cos(degrees_to_radians(self.orientation)) / to_f64(frames);
+
+    let real_x: f64 = i_to_f(self.x);
+    let real_y: f64 = i_to_f(self.y);
+
+    let frame: i32 = 0;
+    while frame < frames
+    {
+        real_x += dx;
+        real_y += dy;
+
+        self.x = floor(real_x);
+        self.y = floor(real_y);
+        self.x %= self.w;
+        self.y %= self.h;
+
+        ptrarr!(ptrarr!(self.pixels, self.y), self.x) = true;
+
+        self.refresh();
+
+        frame += 1;
+    }
+}
+
+let set_position(self: ^turtle::turtle, x: i128, y: i128) -> void
+{
+    let t1 = x - self.x;
+    let t2 = y - self.y;
+    let by: f64 = sqrt(i_to_f(t1 * t1 + t2 * t2));
+
+    let frames: i32 = floor(by / self.speed);
+
+    if frames == 0
+    {
+        frames = 1;
+    }
+
+    let dx: f64 = to_f64(x - self.x) / to_f64(frames);
+    let dy: f64 = to_f64(y - self.y) / to_f64(frames);
+
+    let real_x: f64 = i_to_f(self.x);
+    let real_y: f64 = i_to_f(self.y);
+
+    let frame: i32 = 0;
+    while frame < frames
+    {
+        real_x += dx;
+        real_y += dy;
+
+        self.x = floor(real_x);
+        self.y = floor(real_y);
+        self.x %= self.w;
+        self.y %= self.h;
+
+        ptrarr!(ptrarr!(self.pixels, self.y), self.x) = true;
+        self.refresh();
+
+        frame += 1;
+    }
+}
+
+let set_orientation(self: ^turtle::turtle, to: f64) -> void
+{
+    let frames: i32 = floor(to / self.speed);
+    let dt: f64 = to_f64(to) / to_f64(frames);
+
+    let frame: i32 = 0;
+    while frame < frames
+    {
+        self.orientation += dt;
+
+        while (self.orientation < 0.0)
+        {
+            self.orientation += 360.0;
+        }
+        while (self.orientation >= 360.0)
+        {
+            self.orientation -= 360.0;
+        }
+
+        self.refresh();
+
+        frame += 1;
+    }
+}
+
+let backward(self: ^turtle::turtle, by: i128) -> void
+{
+    let frames: i32 = floor(to_f64(by) / self.speed);
+
+    let dx: f64 = to_f64(by) * sdl::sin(degrees_to_radians(self.orientation)) / to_f64(frames);
+    let dy: f64 = to_f64(by) * sdl::cos(degrees_to_radians(self.orientation)) / to_f64(frames);
+
+    let real_x: f64 = i_to_f(self.x);
+    let real_y: f64 = i_to_f(self.y);
+
+    let frame: i32 = 0;
+    while frame < frames
+    {
+        real_x -= dx;
+        real_y -= dy;
+
+        self.x = floor(real_x);
+        self.y = floor(real_y);
+        self.x %= self.w;
+        self.y %= self.h;
+
+        ptrarr!(ptrarr!(self.pixels, self.y), self.x) = true;
+
+        self.refresh();
+
+        frame += 1;
+    }
+}
+
+let up(self: ^turtle::turtle) -> void
+{
+    self.pen_is_down = false;
+}
+
+let down(self: ^turtle::turtle) -> void
+{
+    self.pen_is_down = true;
+}

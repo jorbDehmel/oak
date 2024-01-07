@@ -312,7 +312,9 @@ void downloadPackage(const std::string &URLArg, const bool &Reinstall, const std
     try
     {
         // URL
-        if (system((std::string(CLONE_COMMAND) + URL + " " + tempFolderName + " > /dev/null").c_str()) != 0)
+        if (system((std::string(CLONE_COMMAND) + URL + " " + tempFolderName + " > /dev/null && file " + tempFolderName +
+                    "/*.oak > /dev/null")
+                       .c_str()) != 0)
         {
             throw package_error("Git resolution failure; Likely an invalid source.");
         }

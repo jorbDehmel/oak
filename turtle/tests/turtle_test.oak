@@ -1,0 +1,37 @@
+package!("std", "turtle");
+include!("std/printf.oak");
+use_rule!("std");
+
+let draw_shape(t: ^turtle::turtle, sides: i32, side_length: i32) -> void
+{
+    let angle: f64 = 360.0 / to_f64(sides);
+
+    let i: i32 = 0;
+    while i < sides
+    {
+        t.forward(side_length);
+        t.right(angle);
+
+        sdl::delay(1000);
+
+        i += 1;
+    }
+}
+
+let main() -> i32
+{
+    let t: turtle::turtle;
+
+    t.x = 256;
+    t.y = 256;
+
+    let i: i32 = 4;
+    while i < 10 && t.is_running
+    {
+        t.draw_shape(i, 10);
+
+        i += 1;
+    }
+
+    0
+}
