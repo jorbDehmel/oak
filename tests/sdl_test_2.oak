@@ -37,7 +37,7 @@ let main() -> i32
     let running: bool = true;
     while running
     {
-        start = sdl_get_ticks();
+        start = sdl::get_ticks();
 
         // Clear screen
         wind.fill(black);
@@ -53,16 +53,16 @@ let main() -> i32
         while flag_var
         {
             event.wrap_sdl_none();
-            event = sdl_poll_event();
+            event = sdl::poll_event();
 
             match (event)
             {
-                case sdl_none()
+                case sdl::none()
                 {
                     flag_var = false;
                 }
 
-                case sdl_key_down_event(data)
+                case sdl::key_down_event(data)
                 {
                     let keycode: i128 = data.keycode;
 
@@ -88,7 +88,7 @@ let main() -> i32
                     }
                 }
 
-                case sdl_key_up_event(data)
+                case sdl::key_up_event(data)
                 {
                     let keycode: i128 = data.keycode;
 
@@ -149,12 +149,12 @@ let main() -> i32
             }
         }
 
-        end = sdl_get_ticks();
+        end = sdl::get_ticks();
         elapsed = end - start;
 
         if elapsed < 32
         {
-            sdl_delay(32 - elapsed);
+            sdl::delay(32 - elapsed);
         }
     }
 

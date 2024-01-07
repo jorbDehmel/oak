@@ -6,33 +6,33 @@ include "std/interface.oak";
 
 link "extra/regex_inter.o";
 
-let regex: struct
+let extra::regex: struct
 {
     __a: hidden_32_bytes,
 }
 
-let New(self: ^regex) -> void;
-let Del(self: ^regex) -> void;
+let New(self: ^extra::regex) -> void;
+let Del(self: ^extra::regex) -> void;
 
-let Copy(self: ^regex, pattern: ^string) -> void;
-let Copy(self: ^regex, pattern: str) -> void;
+let Copy(self: ^extra::regex, pattern: ^string) -> void;
+let Copy(self: ^extra::regex, pattern: str) -> void;
 
-let regex_smatch: struct
+let extra::regex_smatch: struct
 {
     __a: hidden_64_bytes,
     __b: hidden_32_bytes,
 }
 
-let New(self: ^regex_smatch) -> void;
+let New(self: ^extra::regex_smatch) -> void;
 
-let size(self: ^regex_smatch) -> u64;
-let str(self: ^regex_smatch) -> string;
-let Get(self: ^regex_smatch, index: u32) -> string;
+let size(self: ^extra::regex_smatch) -> u64;
+let str(self: ^extra::regex_smatch) -> string;
+let Get(self: ^extra::regex_smatch, index: u32) -> string;
 
-let regex_match(text: ^string, pattern: ^regex) -> bool;
-let regex_match(text: ^string, pattern: ^regex,
-    into: ^regex_smatch) -> bool;
+let extra::regex_match(text: ^string, pattern: ^extra::regex) -> bool;
+let extra::regex_match(text: ^string, pattern: ^extra::regex,
+    into: ^extra::regex_smatch) -> bool;
 
-let regex_search(text: ^string, pattern: ^regex) -> bool;
-let regex_search(text: ^string, pattern: ^regex,
-    into: ^regex_smatch) -> bool;
+let extra::regex_search(text: ^string, pattern: ^extra::regex) -> bool;
+let extra::regex_search(text: ^string, pattern: ^extra::regex,
+    into: ^extra::regex_smatch) -> bool;

@@ -18,7 +18,7 @@ include!("std/panic.oak");
 
 ////////////////////////////////////////////////////////////////
 
-let set_node<k>: struct
+let stl::set_node<k>: struct
 {
     key: k,
     hash: u128,
@@ -30,12 +30,12 @@ pre
 }
 post
 {
-    Copy<k>(_: ^set_node<k>, _: k);
+    Copy<k>(_: ^stl::set_node<k>, _: k);
 }
 
 ////////////////////////////////////////////////////////////////
 
-let Copy<k>(self: ^set_node<k>, key: k) -> void
+let Copy<k>(self: ^stl::set_node<k>, key: k) -> void
 {
     self.key = key;
     self.hash = hash(self.key);
@@ -46,32 +46,33 @@ let Copy<k>(self: ^set_node<k>, key: k) -> void
 let default_set_size! = 128;
 let max_alpha! = 0.5;
 
-let set<k>: struct
+let stl::set<k>: struct
 {
-    data: []set_node<k>,
+    data: []stl::set_node<k>,
     size: u128,
     occupied: u128,
     alpha: f64,
 }
 pre
 {
+    stl::set_node<k>;
     hash<k>(_: k);
     Eq<k>(_: k, _: k);
 }
 post
 {
-    New<k>(_: ^set<k>);
-    Del<k>(_: ^set<k>);
+    New<k>(_: ^stl::set<k>);
+    Del<k>(_: ^stl::set<k>);
 
-    expand<k>(_: ^set<k>);
+    expand<k>(_: ^stl::set<k>);
 
-    insert<k>(_: ^set<k>, _: k);
-    has<k>(_: ^set<k>, _: k);
+    insert<k>(_: ^stl::set<k>, _: k);
+    has<k>(_: ^stl::set<k>, _: k);
 }
 
 ////////////////////////////////////////////////////////////////
 
-let New<k>(self: ^set<k>) -> void
+let New<k>(self: ^stl::set<k>) -> void
 {
     self.size = default_set_size!;
     self.alpha = 0.0;
@@ -80,18 +81,18 @@ let New<k>(self: ^set<k>) -> void
     alloc!(self.data, self.size);
 }
 
-let Del<k>(self: ^set<k>) -> void
+let Del<k>(self: ^stl::set<k>) -> void
 {
     free!(self.data);
 }
 
-let has<k>(self: ^set<k>, key: k) -> bool
+let has<k>(self: ^stl::set<k>, key: k) -> bool
 {
     // Create vars
     let h: u128;
     let i: u128;
     let sentinel: bool;
-    let cur: ^set_node<k>;
+    let cur: ^stl::set_node<k>;
 
     h = hash(key);
     sentinel = true;
@@ -131,13 +132,13 @@ let has<k>(self: ^set<k>, key: k) -> bool
     return false;
 }
 
-let insert<k>(self: ^set<k>, key: k) -> void
+let insert<k>(self: ^stl::set<k>, key: k) -> void
 {
     // Create vars
     let h: u128;
     let i: u128;
     let sentinel: bool;
-    let cur: ^set_node<k>;
+    let cur: ^stl::set_node<k>;
 
     h = hash(key);
     sentinel = true;
@@ -191,14 +192,14 @@ let insert<k>(self: ^set<k>, key: k) -> void
 /*
 Doubles in size
 */
-let expand<k>(self: ^set<k>) -> void
+let expand<k>(self: ^stl::set<k>) -> void
 {
     // Create new
-    let old_data: []set_node<k>;
+    let old_data: []stl::set_node<k>;
     let old_size: u128;
     let i: u128;
 
-    let cur: ^set_node<k>;
+    let cur: ^stl::set_node<k>;
 
     old_size = self.size;
     ptrcpy!(old_data, self.data);
@@ -217,14 +218,14 @@ let expand<k>(self: ^set<k>) -> void
 
         if (cur.hash != to_u128(0))
         {
-            // Source code copied from set
+            // Source code copied from stl::set
             let key = cur.key;
 
             // Create vars
             let h: u128;
             let k: u128;
             let sentinel: bool;
-            let cur: ^set_node<k>;
+            let cur: ^stl::set_node<k>;
 
             h = hash(key);
             sentinel = true;

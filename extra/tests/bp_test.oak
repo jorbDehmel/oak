@@ -4,16 +4,16 @@ include!("extra/bit_print.oak");
 let main() -> i32
 {
     let j: u8;
-    bit_print<u8>(_: ^u8);
-    hex_print<u8>(_: ^u8);
+    extra::bit_print<u8>(_: ^u8);
+    extra::hex_print<u8>(_: ^u8);
 
     j = 0;
     while (j < to_u8(255))
     {
-        bit_print(j);
+        extra::bit_print(j);
         print("\n");
         
-        hex_print(j);
+        extra::hex_print(j);
         print("\n");
 
         j += 1;

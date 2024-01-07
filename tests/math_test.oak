@@ -7,12 +7,12 @@ include!("std/math.oak");
 let main() -> i32
 {
     let e: f64;
-    e = math_e();
+    e = math_e!;
     print(e);
     print("\n");
 
     let pi: f64;
-    pi = math_pi() * -1.0;
+    pi = math_pi! * -1.0;
     print(pi);
     print("\n");
 

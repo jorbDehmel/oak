@@ -1,6 +1,6 @@
 
 # The Oak Programming Language
-## Version 0.4.6
+## Version 0.4.8
 
 ![](logo_trimmed.png)
 
@@ -19,7 +19,10 @@ necessitating only one call to the compiler per executable.
 
 `Oak` is most closely related to `C`, but also has strong
 macro support, modern typing, generics, compile-time syntax
-modification and integrated package management.
+modification and integrated package management. An interesting
+consequence of `Oak`'s compile-time modifiable syntax is that
+**`Oak` can be a high or low level language**, depending on the
+rules / dialect applied.
 
 This document outlines the basics of `Oak`, as well as the
 canonical formatting of `Oak` code. Deviation from this
@@ -1558,6 +1561,26 @@ have known URLs, meaning you can just say
 packages keep their files in `/usr/include/oak/NAME`. Note: You
 can use `--install` or `-S`.
 
+### Packages and Namespaces
+
+While namespaces (denoted in most languages by the `::`
+operator) are not native to `Oak`, the `std` dialect provides
+them. **`Oak` packages (except `std`) must use these.** All
+structs, enums, and non-method functions **must** begin with the
+prefix `NAME_`. For instance, all such symbols in the `stl`
+(standard templated library) package begin with `stl_`, followed
+by their name. The `list` data structure is then `stl_list`.
+When using the namespace rule provided by the `std` dialect
+(or via the `std/ns.oak` file and `namespace` rule), this can
+be equivalently written `stl::list`. This naming convention is
+expected for all packages which are not `std`. The `std` package
+is allowed to be namespace-free.
+
+**Note:** In `Oak`, all namespaces must always be fully
+qualified. While in languages like `C++` you may say
+`using namespace std` to automatically include all items from
+the `std` namespace, `Oak` has no such statement.
+
 ### Creating Packages
 
 Every package must have a file named `oak_package_info.txt`.
@@ -2774,13 +2797,13 @@ This package is the standard templated library for `Oak`. It
 includes generic implementations of the following data
 structures.
 
-- Binary Search Tree
-- List (doubly linked list)
-- Map (linear probing symbol table)
-- Queue
-- Set
-- Stack
-- Vector (vec)
+- Binary Search Tree - `stl::bst` via `stl/bst.oak`
+- List (doubly linked list) - `stl::list` via `stl/list.oak`
+- Map (symbol table) - `stl::map` via `stl/map.oak`
+- Queue - `stl::queue` via `stl/queue.oak`
+- Set - `stl::set` via `stl/set.oak`
+- Stack - `stl::stack` via `stl/stack.oak`
+- Vector - `stl::vec` via `stl/vec.oak`
 
 The included binary search tree structure is non-self-balancing.
 It can be used as a `map`, but caution should be used. It has

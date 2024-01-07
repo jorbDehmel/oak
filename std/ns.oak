@@ -1,0 +1,2 @@
+// Namespace rule
+new_rule!("namespace", "$a :: $b", "$a $< _ $< $b");

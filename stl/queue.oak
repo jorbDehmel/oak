@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////
 
 /*
-A generic queue using a singly linked queue for Oak.
+A generic stl::queue using a singly linked stl::queue for Oak.
 
 Jordan Dehmel, 2023
 jdehmel@outlook.com
@@ -17,23 +17,20 @@ include!("stl/ptrcmp.oak");
 
 ////////////////////////////////////////////////////////////////
 
-let queue_node<t>: struct
+let stl::queue_node<t>: struct
 {
     data: t,
-    next: ^queue_node<t>,
-}
-pre
-{
-    to_void_ptr<queue_node<t>>(_: ^queue_node<t>);
+    next: ^stl::queue_node<t>,
 }
 post
 {
-    Del<t>(_: ^queue_node<t>);
+    to_void_ptr<stl::queue_node<t>>(_: ^stl::queue_node<t>);
+    Del<t>(_: ^stl::queue_node<t>);
 }
 
 ////////////////////////////////////////////////////////////////
 
-let Del<t>(self: ^queue_node<t>) -> void
+let Del<t>(self: ^stl::queue_node<t>) -> void
 {
     if (to_void_ptr(self.next) != to_u128(0))
     {
@@ -44,36 +41,36 @@ let Del<t>(self: ^queue_node<t>) -> void
 
 ////////////////////////////////////////////////////////////////
 
-let queue<t>: struct
+let stl::queue<t>: struct
 {
-    head: ^queue_node<t>,
-    tail: ^queue_node<t>,
+    head: ^stl::queue_node<t>,
+    tail: ^stl::queue_node<t>,
     size: u128,
 }
 pre
 {
     opt<t>;
-    queue_node<t>;
+    stl::queue_node<t>;
 }
 post
 {
-    to_void_ptr<queue_node<t>>(_: ^queue_node<t>);
-    Del<t>(_: ^queue<t>);
+    to_void_ptr<stl::queue_node<t>>(_: ^stl::queue_node<t>);
+    Del<t>(_: ^stl::queue<t>);
 
-    front<t>(_: ^queue<t>);
+    front<t>(_: ^stl::queue<t>);
 
-    pop_front<t>(_: ^queue<t>);
-    append<t>(_: ^queue<t>, _: t);
+    pop_front<t>(_: ^stl::queue<t>);
+    append<t>(_: ^stl::queue<t>, _: t);
 
-    pop<t>(_: ^queue<t>);
-    push<t>(_: ^queue<t>, _: t);
+    pop<t>(_: ^stl::queue<t>);
+    push<t>(_: ^stl::queue<t>, _: t);
 
-    empty<t>(_: ^queue<t>);
+    empty<t>(_: ^stl::queue<t>);
 }
 
 ////////////////////////////////////////////////////////////////
 
-let Del<t>(self: ^queue<t>) -> void
+let Del<t>(self: ^stl::queue<t>) -> void
 {
     if (to_void_ptr(self.head) != to_u128(0))
     {
@@ -82,7 +79,7 @@ let Del<t>(self: ^queue<t>) -> void
     }
 }
 
-let front<t>(self: ^queue<t>) -> opt<t>
+let front<t>(self: ^stl::queue<t>) -> opt<t>
 {
     let out: opt<t>;
     out.wrap_none();
@@ -95,9 +92,9 @@ let front<t>(self: ^queue<t>) -> opt<t>
     return out;
 }
 
-let pop_front<t>(self: ^queue<t>) -> void
+let pop_front<t>(self: ^stl::queue<t>) -> void
 {
-    let old: ^queue_node<t>;
+    let old: ^stl::queue_node<t>;
     ptrcpy!(old, self.head);
     ptrcpy!(self.head, self.head.next);
 
@@ -106,7 +103,7 @@ let pop_front<t>(self: ^queue<t>) -> void
     free!(old);
 }
 
-let append<t>(self: ^queue<t>, what: t) -> void
+let append<t>(self: ^stl::queue<t>, what: t) -> void
 {
     if (to_void_ptr(self.head) == 0)
     {
@@ -122,17 +119,17 @@ let append<t>(self: ^queue<t>, what: t) -> void
     }
 }
 
-let pop<t>(self: ^queue<t>) -> void
+let pop<t>(self: ^stl::queue<t>) -> void
 {
     pop_front(self);
 }
 
-let push<t>(self: ^queue<t>, what: t) -> void
+let push<t>(self: ^stl::queue<t>, what: t) -> void
 {
     append(self, what);
 }
 
-let empty<t>(self: ^queue<t>) -> bool
+let empty<t>(self: ^stl::queue<t>) -> bool
 {
     if (is_null(to_void_ptr(self.head)))
     {

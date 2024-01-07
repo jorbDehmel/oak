@@ -835,6 +835,8 @@ int main(const int argc, const char *argv[])
             out = "./" + out;
         }
 
+        std::cout << tags::reset << std::flush;
+
         int result = system(out.c_str());
         if (result != 0)
         {
@@ -887,7 +889,7 @@ int main(const int argc, const char *argv[])
             start = std::chrono::high_resolution_clock::now();
             if (execute)
             {
-                result = system(("acorn --execute " + test + " >> test_suite.log 2>&1").c_str());
+                result = system(("acorn -o a.out --execute " + test + " >> test_suite.log 2>&1").c_str());
             }
             else
             {

@@ -2,14 +2,14 @@
 #include "/usr/include/oak/std_oak_header.h"
 #include <boost/regex.hpp>
 
-struct regex
+struct extra_regex
 {
     boost::regex *re;
 
     char padding[32 - sizeof(boost::regex *)]; // To get to 32 bytes
 };
 
-struct regex_smatch
+struct extra_regex_smatch
 {
     boost::smatch m;
 
@@ -18,37 +18,37 @@ struct regex_smatch
 
 extern "C"
 {
-    bool regex_match_FN_PTR_string_JOIN_PTR_regex_MAPS_bool(string *text, regex *pattern)
+    bool extra_regex_match_FN_PTR_string_JOIN_PTR_extra_regex_MAPS_bool(string *text, extra_regex *pattern)
     {
         return boost::regex_match(std::string(text->data), *pattern->re);
     }
 
-    bool regex_match_FN_PTR_string_JOIN_PTR_regex_JOIN_PTR_regex_smatch_MAPS_bool(string *text, regex *pattern,
-                                                                                  regex_smatch *into)
+    bool extra_regex_match_FN_PTR_string_JOIN_PTR_extra_regex_JOIN_PTR_extra_regex_smatch_MAPS_bool(
+        string *text, extra_regex *pattern, extra_regex_smatch *into)
     {
         return boost::regex_match(std::string(text->data), into->m, *pattern->re);
     }
 
-    bool regex_search_FN_PTR_string_JOIN_PTR_regex_MAPS_bool(string *text, regex *pattern)
+    bool extra_regex_search_FN_PTR_string_JOIN_PTR_extra_regex_MAPS_bool(string *text, extra_regex *pattern)
     {
         return boost::regex_search(std::string(text->data), *pattern->re);
     }
 
-    bool regex_search_FN_PTR_string_JOIN_PTR_regex_JOIN_PTR_regex_smatch_MAPS_bool(string *text, regex *pattern,
-                                                                                   regex_smatch *into)
+    bool extra_regex_search_FN_PTR_string_JOIN_PTRextra__regex_JOIN_PTR_extra_regex_smatch_MAPS_bool(
+        string *text, extra_regex *pattern, extra_regex_smatch *into)
     {
         return boost::regex_search(std::string(text->data), into->m, *pattern->re);
     }
 
     //////////// Methods ////////////
 
-    void New_FN_PTR_regex_MAPS_void(regex *self)
+    void New_FN_PTR_extra_regex_MAPS_void(extra_regex *self)
     {
-        memset(self, 0, sizeof(regex));
+        memset(self, 0, sizeof(extra_regex));
         self->re = nullptr;
     }
 
-    void Del_FN_PTR_regex_MAPS_void(regex *self)
+    void Del_FN_PTR_extra_regex_MAPS_void(extra_regex *self)
     {
         if (self->re != nullptr)
         {
@@ -56,7 +56,7 @@ extern "C"
         }
     }
 
-    void Copy_FN_PTR_regex_JOIN_PTR_string_MAPS_void(regex *self, string *pattern)
+    void Copy_FN_PTR_extra_regex_JOIN_PTR_string_MAPS_void(extra_regex *self, string *pattern)
     {
         if (self->re != nullptr)
         {
@@ -66,7 +66,7 @@ extern "C"
         self->re = new boost::regex(pattern->data);
     }
 
-    void Copy_FN_PTR_regex_JOIN_str_MAPS_void(regex *self, str pattern)
+    void Copy_FN_PTR_extra_regex_JOIN_str_MAPS_void(extra_regex *self, str pattern)
     {
         if (self->re != nullptr)
         {
@@ -76,17 +76,17 @@ extern "C"
         self->re = new boost::regex(pattern);
     }
 
-    void New_FN_PTR_regex_smatch_MAPS_void(regex_smatch *self)
+    void New_FN_PTR_extra_regex_smatch_MAPS_void(extra_regex_smatch *self)
     {
-        memset(self, 0, sizeof(regex_smatch));
+        memset(self, 0, sizeof(extra_regex_smatch));
     }
 
-    u64 size_FN_PTR_regex_smatch_MAPS_u64(regex_smatch *self)
+    u64 size_FN_PTR_extra_regex_smatch_MAPS_u64(extra_regex_smatch *self)
     {
         return self->m.size();
     }
 
-    string str_FN_PTR_regex_smatch_MAPS_string(regex_smatch *self)
+    string str_FN_PTR_extra_regex_smatch_MAPS_string(extra_regex_smatch *self)
     {
         string out;
         out.size = self->m.str().size();
@@ -98,7 +98,7 @@ extern "C"
         return out;
     }
 
-    string Get_FN_PTR_smatch_JOIN_u32_MAPS_string(regex_smatch *self, u32 index)
+    string Get_FN_PTR_extra_smatch_JOIN_u32_MAPS_string(extra_regex_smatch *self, u32 index)
     {
         string out;
         std::string from = self->m[index].str();

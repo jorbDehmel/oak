@@ -20,7 +20,7 @@ let hash(what: i32) -> u128
 
 let main() -> i32
 {
-    let s: set<i32>;
+    let s: stl::set<i32>;
 
     s.insert(1);
     s.insert(3);

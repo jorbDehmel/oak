@@ -11,7 +11,7 @@ include!("stl/queue.oak");
 
 let main() -> i32
 {
-    let q: queue<i32>;
+    let q: stl::queue<i32>;
 
     for (let i: i32; i < 10; i += 1)
     {

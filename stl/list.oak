@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////
 
 /*
-A generic doubly linked list for Oak
+A generic doubly linked stl::list for Oak
 
 Jordan Dehmel, 2023
 jdehmel@outlook.com
@@ -17,31 +17,29 @@ include!("stl/ptrcmp.oak");
 
 ////////////////////////////////////////////////////////////////
 
-let node<t>: struct
+let stl::list_node<t>: struct
 {
     data: t,
-    next: ^node<t>,
-    prev: ^node<t>,
-}
-pre
-{
-    to_void_ptr<node<t>>(_: ^node<t>);
+    next: ^stl::list_node<t>,
+    prev: ^stl::list_node<t>,
 }
 post
 {
-    New<t>(_: ^node<t>);
-    Del<t>(_: ^node<t>);
+    to_void_ptr<stl::list_node<t>>(_: ^stl::list_node<t>);
+
+    New<t>(_: ^stl::list_node<t>);
+    Del<t>(_: ^stl::list_node<t>);
 }
 
 ////////////////////////////////////////////////////////////////
 
-let New<t>(self: ^node<t>) -> void
+let New<t>(self: ^stl::list_node<t>) -> void
 {
     ptrcpy!(self.next, 0);
     ptrcpy!(self.prev, 0);
 }
 
-let Del<t>(self: ^node<t>) -> void
+let Del<t>(self: ^stl::list_node<t>) -> void
 {
     if (to_void_ptr(self.next) != to_u128(0))
     {
@@ -52,35 +50,35 @@ let Del<t>(self: ^node<t>) -> void
 
 ////////////////////////////////////////////////////////////////
 
-let list<t>: struct
+let stl::list<t>: struct
 {
-    head: ^node<t>,
-    tail: ^node<t>,
+    head: ^stl::list_node<t>,
+    tail: ^stl::list_node<t>,
     size: u128,
 }
 pre
 {
     opt<t>;
-    node<t>;
+    stl::list_node<t>;
 }
 post
 {
-    to_void_ptr<node<t>>(_: ^node<t>);
-    Del<t>(_: ^list<t>);
+    to_void_ptr<stl::list_node<t>>(_: ^stl::list_node<t>);
+    Del<t>(_: ^stl::list<t>);
 
-    front<t>(_: ^list<t>);
-    back<t>(_: ^list<t>);
+    front<t>(_: ^stl::list<t>);
+    back<t>(_: ^stl::list<t>);
 
-    pop_front<t>(_: ^list<t>);
-    pop_back<t>(_: ^list<t>);
+    pop_front<t>(_: ^stl::list<t>);
+    pop_back<t>(_: ^stl::list<t>);
 
-    append<t>(_: ^list<t>, _: t);
-    prepend<t>(_: ^list<t>, _: t);
+    append<t>(_: ^stl::list<t>, _: t);
+    prepend<t>(_: ^stl::list<t>, _: t);
 }
 
 ////////////////////////////////////////////////////////////////
 
-let Del<t>(self: ^list<t>) -> void
+let Del<t>(self: ^stl::list<t>) -> void
 {
     if (to_void_ptr(self.head) != to_u128(0))
     {
@@ -89,7 +87,7 @@ let Del<t>(self: ^list<t>) -> void
     }
 }
 
-let front<t>(self: ^list<t>) -> opt<t>
+let front<t>(self: ^stl::list<t>) -> opt<t>
 {
     let out: opt<t>;
     out.wrap_none();
@@ -102,7 +100,7 @@ let front<t>(self: ^list<t>) -> opt<t>
     return out;
 }
 
-let back<t>(self: ^list<t>) -> opt<t>
+let back<t>(self: ^stl::list<t>) -> opt<t>
 {
     let out: opt<t>;
     out.wrap_none();
@@ -115,9 +113,9 @@ let back<t>(self: ^list<t>) -> opt<t>
     return out;
 }
 
-let pop_front<t>(self: ^list<t>) -> void
+let pop_front<t>(self: ^stl::list<t>) -> void
 {
-    let old: ^node<t>;
+    let old: ^stl::list_node<t>;
     ptrcpy!(old, self.head);
     ptrcpy!(self.head, self.head.next);
     ptrcpy!(self.head.prev, 0);
@@ -126,16 +124,16 @@ let pop_front<t>(self: ^list<t>) -> void
     Del(old);
 }
 
-let pop_back<t>(self: ^list<t>) -> void
+let pop_back<t>(self: ^stl::list<t>) -> void
 {
-    let old: ^node<t>;
+    let old: ^stl::list_node<t>;
     ptrcpy!(old, self.tail);
     ptrcpy!(self.tail, self.tail.prev);
     ptrcpy!(self.tail.next, 0);
     Del(old);
 }
 
-let append<t>(self: ^list<t>, what: t) -> void
+let append<t>(self: ^stl::list<t>, what: t) -> void
 {
     if (to_void_ptr(self.head) == 0)
     {
@@ -152,7 +150,7 @@ let append<t>(self: ^list<t>, what: t) -> void
     }
 }
 
-let prepend<t>(self: ^list<t>, what: t) -> void
+let prepend<t>(self: ^stl::list<t>, what: t) -> void
 {
     if (to_void_ptr(self.head) == 0)
     {

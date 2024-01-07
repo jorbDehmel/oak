@@ -20,10 +20,10 @@ let secret: struct
 
 let main() -> i32
 {
-    bit_print<secret>(_: ^secret);
-    hex_print<secret>(_: ^secret);
-    char_print<secret>(_: ^secret);
-    hex_dump<secret>(_: ^secret);
+    extra::bit_print<secret>(_: ^secret);
+    extra::hex_print<secret>(_: ^secret);
+    extra::char_print<secret>(_: ^secret);
+    extra::hex_dump<secret>(_: ^secret);
 
     let s: secret;
     strcpy(s.name, "Hi! How are you?");
@@ -36,14 +36,14 @@ let main() -> i32
     // endl();
 
     // But these aren't!
-    bit_print(s);
+    extra::bit_print(s);
     endl();
-    hex_print(s);
+    extra::hex_print(s);
     endl();
 
-    char_print(s);
+    extra::char_print(s);
     endl();
-    hex_dump(s);
+    extra::hex_dump(s);
     endl();
 
     /*

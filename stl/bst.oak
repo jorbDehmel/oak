@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////
 
 /*
-Map using a BST (not a red-black tree, notably). It is
+Map using a stl::bst (not a red-black tree, notably). It is
 recommended to shuffle keys before input.
 
 Jordan Dehmel, 2023
@@ -20,20 +20,20 @@ include!("std/opt.oak");
 
 /*
 A node in a binary search tree. See below for more details on
-the BST's implementation.
+the stl::bst's implementation.
 */
-let bst_node<k, d>: struct
+let stl::bst_node<k, d>: struct
 {
     key: k,
     data: d,
-    left: ^bst_node<k, d>,
-    right: ^bst_node<k, d>,
+    left: ^stl::bst_node<k, d>,
+    right: ^stl::bst_node<k, d>,
 }
 post
 {
-    to_void_ptr<bst_node<k, d>>(_: ^bst_node<k, d>);
-    Copy<k, d>(_: ^bst_node<k, d>, _: k, _: d);
-    Del<k, d>(_: ^bst_node<k, d>);
+    to_void_ptr<stl::bst_node<k, d>>(_: ^stl::bst_node<k, d>);
+    Copy<k, d>(_: ^stl::bst_node<k, d>, _: k, _: d);
+    Del<k, d>(_: ^stl::bst_node<k, d>);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -41,17 +41,17 @@ post
 /*
 Sets the key and data of a given node to given values.
 */
-let Copy<k, d>(self: ^bst_node<k, d>, key: k, data: d) -> void
+let Copy<k, d>(self: ^stl::bst_node<k, d>, key: k, data: d) -> void
 {
     self.key = key;
     self.data = data;
 }
 
 /*
-Delete a note in a BST. Note: There is no need for a constructor
+Delete a note in a stl::bst. Note: There is no need for a constructor
 since all variables are automatically initialized in Oak.
 */
-let Del<k, d>(self: ^bst_node<k, d>) -> void
+let Del<k, d>(self: ^stl::bst_node<k, d>) -> void
 {
     if (is_not_null(to_void_ptr(self.left)))
     {
@@ -73,34 +73,34 @@ let Del<k, d>(self: ^bst_node<k, d>) -> void
 Abstract data type representing a binary search tree. This has
 no internal self-balancing, so be careful how you input data!
 */
-let bst<k, d>: struct
+let stl::bst<k, d>: struct
 {
-    root: ^bst_node<k, d>,
+    root: ^stl::bst_node<k, d>,
 }
 pre
 {
-    bst_node<k, d>;
+    stl::bst_node<k, d>;
     opt<d>;
 }
 post
 {
-    to_void_ptr<bst_node<k, d>>(_: ^bst_node<k, d>);
+    to_void_ptr<stl::bst_node<k, d>>(_: ^stl::bst_node<k, d>);
 
-    Del<k, d>(_: ^bst<k, d>);
+    Del<k, d>(_: ^stl::bst<k, d>);
 
-    get<k, d>(_: ^bst<k, d>, _: k);
-    set<k, d>(_: ^bst<k, d>, _: k, _: d);
-    has<k, d>(_: ^bst<k, d>, _: k);
+    get<k, d>(_: ^stl::bst<k, d>, _: k);
+    set<k, d>(_: ^stl::bst<k, d>, _: k, _: d);
+    has<k, d>(_: ^stl::bst<k, d>, _: k);
 
-    dist<k, d>(_: ^bst<k, d>, _: k);
+    dist<k, d>(_: ^stl::bst<k, d>, _: k);
 }
 
 ////////////////////////////////////////////////////////////////
 
 /*
-Frees memory associated with a BST.
+Frees memory associated with a stl::bst.
 */
-let Del<k, d>(self: ^bst<k, d>) -> void
+let Del<k, d>(self: ^stl::bst<k, d>) -> void
 {
     if (is_not_null(to_void_ptr(self.root)))
     {
@@ -114,12 +114,12 @@ let Del<k, d>(self: ^bst<k, d>) -> void
 Returns the value associated with a given key wrapped in an opt
 enum. If the key is not present in the tree, returns
 */
-let get<k, d>(self: ^bst<k, d>, key: k) -> opt<d>
+let get<k, d>(self: ^stl::bst<k, d>, key: k) -> opt<d>
 {
     let out: opt<d>;
     out.wrap_none();
 
-    let cur: ^bst_node<k, d>;
+    let cur: ^stl::bst_node<k, d>;
     ptrcpy!(cur, self.root);
 
     while (is_not_null(to_void_ptr(cur)))
@@ -145,7 +145,7 @@ let get<k, d>(self: ^bst<k, d>, key: k) -> opt<d>
 /*
 Sets (or overwrites) the value associated with a given key.
 */
-let set<k, d>(self: ^bst<k, d>, key: k, data: d) -> void
+let set<k, d>(self: ^stl::bst<k, d>, key: k, data: d) -> void
 {
     if (is_null(to_void_ptr(self.root)))
     {
@@ -155,7 +155,7 @@ let set<k, d>(self: ^bst<k, d>, key: k, data: d) -> void
     }
     else
     {
-        let cur: ^bst_node<k, d>;
+        let cur: ^stl::bst_node<k, d>;
         ptrcpy!(cur, self.root);
 
         let sentinel = true;
@@ -198,9 +198,9 @@ let set<k, d>(self: ^bst<k, d>, key: k, data: d) -> void
 /*
 Returns true if a given key is in the tree, otherwise false.
 */
-let has<k, d>(self: ^bst<k, d>, key: k) -> bool
+let has<k, d>(self: ^stl::bst<k, d>, key: k) -> bool
 {
-    let cur: ^bst_node<k, d>;
+    let cur: ^stl::bst_node<k, d>;
     ptrcpy!(cur, self.root);
 
     while (is_not_null(to_void_ptr(cur)))
@@ -225,11 +225,11 @@ let has<k, d>(self: ^bst<k, d>, key: k) -> bool
 /*
 Returns the number of nodes which need to be traversed (not
 counting the root) to reach a given key. If the key is not in
-the BST, returns -1. If the key is the root, returns 0.
+the stl::bst, returns -1. If the key is the root, returns 0.
 */
-let dist<k, d>(self: ^bst<k, d>, key: k) -> i32
+let dist<k, d>(self: ^stl::bst<k, d>, key: k) -> i32
 {
-    let cur: ^bst_node<k, d>;
+    let cur: ^stl::bst_node<k, d>;
     ptrcpy!(cur, self.root);
     let i: i32 = 0;
 

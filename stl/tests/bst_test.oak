@@ -15,7 +15,7 @@ include!("stl/bst.oak");
 
 let main() -> i32
 {
-    let b: bst<i32, i32>;
+    let b: stl::bst<i32, i32>;
 
     b.set(1, 1);
     b.set(-1, 2);

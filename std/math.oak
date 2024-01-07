@@ -7,7 +7,11 @@ Jordan Dehmel, 2023
 package!("std");
 use_rule!("std");
 
-// include!("std/conv_extra.oak");
+// Pi to 8 decimal places
+let math_pi! = 3.14159265;
+
+// Euler's constant e to 8 decimal places
+let math_e! = 2.71828182;
 
 // Returns true if a is even
 let even(a: i128) -> bool
@@ -138,23 +142,6 @@ let pow(a: f64, b: i32) -> f64
     out
 }
 
-// Return Euler's constant e to 8 decimal places
-/*
-$a \in \mathbb{Z}^+ :
-\frac{\partial}{\partial x} \left( a^x \right) = a^x$
-*/
-let math_e() -> f64
-{
-    2.71828182
-}
-
-// Return Pi to 8 decimal places
-// $a \in \mathbb{R}^+ | \sin{(2a)} = 0$
-let math_pi() -> f64
-{
-    3.14159265
-}
-
 // Return the factorial of a number x
 let fact(x: i32) -> i128
 {
@@ -173,7 +160,18 @@ let fact(x: i32) -> i128
     out
 }
 
+let radians_to_degrees(rad: f64) -> f64
+{
+    180.0 * rad / math_pi!
+}
+
+let degrees_to_radians(deg: f64) -> f64
+{
+    math_pi! * deg / 180.0
+}
+
 /*
+Takes in radians.
 Uses a ninth-degree Taylor polynomial with x modulo-ed by pi
 $x - \frac{x^3}{3!} +
 \frac{x^5}{5!} - \frac{x^7}{7!} + \frac{x^9}{9!}$
@@ -183,7 +181,7 @@ let sin(x: f64) -> f64
     let real_x: f64 = x;
 
     let pi: f64;
-    pi = math_pi();
+    pi = math_pi!;
 
     if (real_x < 0.0)
     {
@@ -218,7 +216,7 @@ let sin(x: f64) -> f64
 let cos(x: f64) -> f64
 {
     let pi: f64;
-    pi = math_pi();
+    pi = math_pi!;
 
     sin(x + 0.5 * pi)
 }
@@ -236,13 +234,13 @@ let tan(x: f64) -> f64
 }
 
 // Return the largest integer less than or equal to x
-let floor(x: f64) -> i32
+let floor(x: f64) -> i128
 {
     f_to_i(x)
 }
 
 // Return the smallest integer greater than or equal to x
-let ceiling(x: f64) -> i32
+let ceiling(x: f64) -> i128
 {
     f_to_i(x + 0.9999)
 }

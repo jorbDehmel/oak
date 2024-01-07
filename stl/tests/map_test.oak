@@ -28,7 +28,7 @@ let max! = 100;
 
 let main() -> i32
 {
-    let m: map<i32, u128>;
+    let m: stl::map<i32, u128>;
     let i: i32;
     let j: i32;
     let res: opt<u128>;

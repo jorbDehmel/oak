@@ -311,24 +311,24 @@ void downloadPackage(const std::string &URLArg, const bool &Reinstall, const std
     // Clone package using git
     try
     {
-        // URL
-        if (system((std::string(CLONE_COMMAND) + URL + " " + tempFolderName + " > /dev/null && file " + tempFolderName +
-                    "/*.oak > /dev/null")
-                       .c_str()) != 0)
+        // Local file
+        if (system(("cp -r " + URL + " " + tempFolderName).c_str()) != 0)
         {
-            throw package_error("Git resolution failure; Likely an invalid source.");
+            throw std::runtime_error("Local copy failed; Is not a filepath.");
         }
     }
     catch (package_error &e)
     {
-        std::cout << tags::yellow_bold << e.what() << '\n' << "Attempting git-less copy...\n" << tags::reset;
+        std::cout << tags::yellow_bold << e.what() << '\n' << "Attempting git copy...\n" << tags::reset;
 
         try
         {
-            // Local file
-            if (system(("cp -r " + URL + " " + tempFolderName).c_str()) != 0)
+            // URL
+            if (system((std::string(CLONE_COMMAND) + URL + " " + tempFolderName + " > /dev/null && file " +
+                        tempFolderName + "/*.oak > /dev/null")
+                           .c_str()) != 0)
             {
-                throw std::runtime_error("Local copy failed; Is neither URL nor filepath.");
+                throw package_error("Git resolution failure; Likely an invalid source.");
             }
         }
         catch (package_error &e)
@@ -429,7 +429,7 @@ void downloadPackage(const std::string &URLArg, const bool &Reinstall, const std
         // Read info file
         packageInfo info = loadPackageInfo(tempFolderName + "/" + path + "/" + INFO_FILE);
 
-        std::cout << tags::green << "Loaded package from " << URL << "\n" << info << '\n' << tags::reset;
+        std::cout << tags::green << "Loaded package from " << URL << "\n" << info << '\n' << tags::reset << std::flush;
 
         // Ensure valid formatting
         for (char c : info.name)

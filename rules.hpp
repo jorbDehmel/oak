@@ -45,6 +45,7 @@ extern std::map<std::string, void (*)(std::vector<std::string> &, int &, rule &)
 void addEngine(const std::string &name, void (*hook)(std::vector<std::string> &, int &, rule &));
 
 extern bool doRuleLogFile;
+extern std::ofstream ruleLogFile;
 extern std::map<std::string, rule> rules;
 
 extern std::string curFile;

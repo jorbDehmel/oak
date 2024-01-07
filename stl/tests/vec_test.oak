@@ -6,7 +6,7 @@ include!("stl/vec.oak");
 let main() -> i32
 {
     // Init new vec
-    let obj: vec<i32>;
+    let obj: stl::vec<i32>;
 
     let i: i32 = 0;
     while (i < 100)

@@ -4,6 +4,14 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.4.8           | 1/7/24   | Fixed bug w/ incorrect selection of
+                |          | function candidates. Also added
+                |          | turtle package and fixed various
+                |          | other bugs.
+                |          |
+0.4.7           | 1/6/24   | Required fully-qualified namespaces
+                |          | in all non-`std` packages.
+                |          |
 0.4.6           | 1/5/24   | Fixed automatic destructor calls,
                 |          | bugs w/ return type checking.
                 |          |

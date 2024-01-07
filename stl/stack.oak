@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////
 
 /*
-A self-resizing generic stack for Oak
+A self-resizing generic stl::stack for Oak
 Jordan Dehmel, 2023
 jdehmel@outlook.com
 
@@ -18,7 +18,7 @@ include!("std/printf.oak");
 
 ////////////////////////////////////////////////////////////////
 
-let stack<t>: struct
+let stl::stack<t>: struct
 {
     data: []t,
     size: u128,
@@ -26,21 +26,21 @@ let stack<t>: struct
 }
 post
 {
-    expand<t>(self: ^stack<t>);
-    shrink<t>(self: ^stack<t>);
+    expand<t>(self: ^stl::stack<t>);
+    shrink<t>(self: ^stl::stack<t>);
 
-    New<t>(self: ^stack<t>);
-    Del<t>(self: ^stack<t>);
+    New<t>(self: ^stl::stack<t>);
+    Del<t>(self: ^stl::stack<t>);
 
-    push<t>(self: ^stack<t>, what: t);
-    pop<t>(self: ^stack<t>);
-    empty<t>(self: ^stack<t>);
-    top<t>(self: ^stack<t>);
+    push<t>(self: ^stl::stack<t>, what: t);
+    pop<t>(self: ^stl::stack<t>);
+    empty<t>(self: ^stl::stack<t>);
+    top<t>(self: ^stl::stack<t>);
 }
 
 ////////////////////////////////////////////////////////////////
 
-let New<t>(self: ^stack<t>) -> void
+let New<t>(self: ^stl::stack<t>) -> void
 {
     self.size = 0;
     self.capacity = 8;
@@ -48,7 +48,7 @@ let New<t>(self: ^stack<t>) -> void
     alloc!(self.data, self.capacity);
 }
 
-let Del<t>(self: ^stack<t>) -> void
+let Del<t>(self: ^stl::stack<t>) -> void
 {
     if (self.capacity != to_u128(0))
     {
@@ -57,7 +57,7 @@ let Del<t>(self: ^stack<t>) -> void
 }
 
 // Double in size, no matter what
-let expand<t>(self: ^stack<t>) -> void
+let expand<t>(self: ^stl::stack<t>) -> void
 {
     let new_capacity: u128;
     new_capacity = self.capacity * to_u128(2);
@@ -84,7 +84,7 @@ let expand<t>(self: ^stack<t>) -> void
 }
 
 // Halve in size, so long as capacity >= 16
-let shrink<t>(self: ^stack<t>) -> void
+let shrink<t>(self: ^stl::stack<t>) -> void
 {
     if (self.capacity >= to_u128(16))
     {
@@ -110,7 +110,7 @@ let shrink<t>(self: ^stack<t>) -> void
     }
 }
 
-let push<t>(self: ^stack<t>, what: t) -> void
+let push<t>(self: ^stl::stack<t>, what: t) -> void
 {
     while (self.size * to_u128(2) > self.capacity)
     {
@@ -121,7 +121,7 @@ let push<t>(self: ^stack<t>, what: t) -> void
     self.size += 1;
 }
 
-let pop<t>(self: ^stack<t>) -> opt<t>
+let pop<t>(self: ^stl::stack<t>) -> opt<t>
 {
     let out: opt<t>;
     wrap_none(@out);
@@ -144,7 +144,7 @@ let pop<t>(self: ^stack<t>) -> opt<t>
     out
 }
 
-let empty<t>(self: ^stack<t>) -> bool
+let empty<t>(self: ^stl::stack<t>) -> bool
 {
     if (self.size == to_u128(0))
     {
@@ -153,7 +153,7 @@ let empty<t>(self: ^stack<t>) -> bool
     return false;
 }
 
-let top<t>(self: ^stack<t>) -> opt<t>
+let top<t>(self: ^stl::stack<t>) -> opt<t>
 {
     let out: opt<t>;
     out.wrap_none();

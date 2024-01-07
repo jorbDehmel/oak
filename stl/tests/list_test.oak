@@ -7,7 +7,7 @@ let main() -> i32
     println<i32>(_: i32);
     println<str>(_: str);
 
-    let obj: list<i32>;
+    let obj: stl::list<i32>;
 
     for (let i: i32; i < 100; i += 1)
     {
@@ -18,7 +18,7 @@ let main() -> i32
 
     println("Forward:");
 
-    let it: ^node<i32>;
+    let it: ^stl::list_node<i32>;
     ptrcpy!(it, obj.head);
 
     while to_void_ptr(it) != 0

@@ -4,6 +4,7 @@ Linkage file for the Oak standard package.
 */
 
 include!(
+    "std/ns.oak",
     "std/io_inter.oak",
     "std/conv_inter.oak",
     "std/std_ops.oak",
@@ -17,9 +18,6 @@ new_rule!(
     "$[$;$^$@$,$[$]$($)${$}$] $*p [ $*a ]",
     "$p . Get ( $a )"
 );
-
-// Namespace rule
-new_rule!("namespace", "$a :: $b", "$a $< _ $< $b");
 
 // Void return rule
 new_rule!(
@@ -102,6 +100,7 @@ new_rule!(
 // Bundle everything together
 bundle_rule!(
     "std",
+    "namespace",
     "access",
     "get_method",
     "void_return",
@@ -115,7 +114,6 @@ bundle_rule!(
     "auto_init",
     "def_init",
     "for",
-    "namespace",
     "import",
     "include",
     "link",

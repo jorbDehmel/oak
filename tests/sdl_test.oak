@@ -10,12 +10,12 @@ include!("std/time.oak");
 
 let main() -> i32
 {
-    sdl_init();
+    sdl::init();
 
     let wind: sdl_window;
 
     Copy(@wind, to_u64(512), to_u64(512));
-    wind.sdl_enable_window_fullscreen();
+    sdl::enable_window_fullscreen(wind);
 
     let black: sdl_color;
     let white: sdl_color;
@@ -50,24 +50,23 @@ let main() -> i32
 
         let event: sdl_event;
         let flag_var: bool = true;
-
         while (flag_var)
         {
             event.wrap_sdl_none();
-            event = sdl_poll_event();
+            event = sdl::poll_event();
 
             match (event)
             {
-                case sdl_none()
+                case sdl::none()
                 {
                     flag_var = false;
                 }
 
-                case sdl_key_down_event(data)
+                case sdl::key_down_event(data)
                 {
                     let keycode: i128 = data.keycode;
 
-                    print(sdl_keycode_to_str(keycode));
+                    print(sdl::keycode_to_str(keycode));
                     print("\n");
                 }
 
@@ -83,7 +82,7 @@ let main() -> i32
 
     let elapsed_s: i64 = end_time - start_time;
 
-    wind.sdl_disable_window_fullscreen();
+    sdl::disable_window_fullscreen(wind);
     wind.Del();
     sdl_quit();
 

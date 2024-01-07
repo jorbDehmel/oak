@@ -10,6 +10,7 @@ GPLv3 held by author
 #include "sequence_resources.hpp"
 #include "symbol_table.hpp"
 #include "tags.hpp"
+#include "type_builder.hpp"
 
 std::vector<std::string> curLineSymbols;
 static Type currentReturnType;

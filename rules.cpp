@@ -15,6 +15,7 @@ std::map<std::string, std::vector<std::string>> bundles;
 std::map<std::string, void (*)(std::vector<std::string> &, int &, rule &)> engines;
 
 bool doRuleLogFile = false;
+std::ofstream ruleLogFile;
 
 // I is the point in Lexed at which a macro name was found
 // CONSUMPTIVE!
@@ -79,7 +80,6 @@ std::vector<std::string> getMacroArgs(std::vector<std::string> &lexed, const int
 
 void doRules(std::vector<std::string> &From)
 {
-    std::ofstream ruleLogFile;
     if (doRuleLogFile)
     {
         ruleLogFile.open(".oak_build/__rule_log.log", std::ios::out | std::ios::app);
@@ -278,6 +278,11 @@ void doRules(std::vector<std::string> &From)
     }
 
     // cout << "Done.\n";
+
+    if (doRuleLogFile && ruleLogFile.is_open())
+    {
+        ruleLogFile.close();
+    }
 
     return;
 }
@@ -852,32 +857,32 @@ void doRuleAcorn(std::vector<std::string> &From, int &i, rule &curRule)
         }
 
         // Log if needed
-        // if (doRuleLogFile)
-        // {
-        //     ruleLogFile << "Sapling rule w/ Input pattern\t";
+        if (doRuleLogFile)
+        {
+            ruleLogFile << "Sapling rule w/ Input pattern\t";
 
-        //     for (const auto &what : curRule.inputPattern)
-        //     {
-        //         ruleLogFile << "'" << what << "' ";
-        //     }
+            for (const auto &what : curRule.inputPattern)
+            {
+                ruleLogFile << "'" << what << "' ";
+            }
 
-        //     ruleLogFile << "\nOutput pattern\t";
+            ruleLogFile << "\nOutput pattern\t";
 
-        //     for (const auto &what : curRule.outputPattern)
-        //     {
-        //         ruleLogFile << "'" << what << "' ";
-        //     }
+            for (const auto &what : curRule.outputPattern)
+            {
+                ruleLogFile << "'" << what << "' ";
+            }
 
-        //     ruleLogFile << "\nMatch '";
-        // }
+            ruleLogFile << "\nMatch '";
+        }
 
         // Erase old contents
         for (int k = i; k < posInFrom; k++)
         {
-            // if (doRuleLogFile)
-            // {
-            //     ruleLogFile << From[i] << ' ';
-            // }
+            if (doRuleLogFile)
+            {
+                ruleLogFile << From[i] << ' ';
+            }
 
             if (From[i].size() > 1 && From[i].substr(2) == "//")
             {
@@ -890,17 +895,17 @@ void doRuleAcorn(std::vector<std::string> &From, int &i, rule &curRule)
             }
         }
 
-        // if (doRuleLogFile)
-        // {
-        //     ruleLogFile << "'\nIs now '";
+        if (doRuleLogFile)
+        {
+            ruleLogFile << "'\nIs now '";
 
-        //     for (const auto &what : newContents)
-        //     {
-        //         ruleLogFile << what << ' ';
-        //     }
+            for (const auto &what : newContents)
+            {
+                ruleLogFile << what << ' ';
+            }
 
-        //     ruleLogFile << "'\n\n";
-        // }
+            ruleLogFile << "'\n\n";
+        }
 
         // Insert new contents
         for (int k = newContents.size() - 1; k >= 0; k--)

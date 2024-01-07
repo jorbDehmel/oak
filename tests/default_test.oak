@@ -13,22 +13,22 @@ let node: struct
 let main(argc: i32, argv: []str) -> i32
 {
     println<i32>(_: i32);
-    bit_print<i32>(_: ^i32);
-    hex_print<i32>(_: ^i32);
+    extra::bit_print<i32>(_: ^i32);
+    extra::hex_print<i32>(_: ^i32);
 
-    bit_print<node>(_: ^node);
+    extra::bit_print<node>(_: ^node);
 
     let a: i32;
     println(a);
     
-    bit_print(a);
+    extra::bit_print(a);
     print("\n");
 
-    hex_print(a);
+    extra::hex_print(a);
     print("\n");
 
     let n: node;
-    bit_print(n);
+    extra::bit_print(n);
     print("\n");
 
     0

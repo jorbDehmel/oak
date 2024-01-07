@@ -4,10 +4,6 @@ include!("std/interface.oak");
 let sdl_window: struct
 {
     width, height: u64,
-
-    // DON'T MESS WITH THESE!
-    // This is how you add
-    // oak-invisible C++ items in linking.
     internal: hidden_64_bytes,
 }
 

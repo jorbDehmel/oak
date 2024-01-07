@@ -900,43 +900,10 @@ std::vector<int> getCastingCandidates(const std::vector<std::vector<Type>> &cand
         cur = 0;
         for (int k = 0; k < candArgs[j].size(); k++)
         {
-            if (!typesAreSame(&candArgs[j][k], &argTypes[k], cur))
+            if (!typesAreSameCast(&candArgs[j][k], &argTypes[k], cur))
             {
-                // Inexact match, rather than exact in the last one
-                // Special case; Internal implicit casting
-                if (candArgs[j][k].size() == 1 && argTypes[k].size() == 1)
-                {
-                    std::string a, b;
-                    a = candArgs[j][k][0].name;
-                    b = argTypes[k][0].name;
-
-                    // Special case 1: Implicit int casting
-                    if (a == "u8" || a == "i8" || a == "u16" || a == "i16" || a == "u32" || a == "i32" || a == "u64" ||
-                        a == "i64" || a == "u128" || a == "i128")
-                    {
-                        if (b == "u8" || b == "i8" || b == "u16" || b == "i16" || b == "u32" || b == "i32" ||
-                            b == "u64" || b == "i64" || b == "u128" || b == "i128")
-                        {
-                            cur++;
-                            continue;
-                        }
-                    }
-
-                    // Special case 2: Implicit float casting
-                    else if (a == "f32" || a == "f64" || a == "f128")
-                    {
-                        if (b == "f32" || b == "f64" || b == "f128")
-                        {
-                            cur++;
-                            continue;
-                        }
-                    }
-                }
-                else
-                {
-                    isMatch = false;
-                    break;
-                }
+                isMatch = false;
+                break;
             }
         }
 

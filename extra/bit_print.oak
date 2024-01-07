@@ -7,6 +7,9 @@ Jordan Dehmel, 2023
 jdehmel@outlook.com
 */
 
+include!("std/ns.oak");
+use_rule!("namespace");
+
 include!("std/io.oak");
 link!("extra/bit_print.o");
 
@@ -19,29 +22,29 @@ let hex_dump_internal(what: ^void, size: u128) -> void;
 
 ////////////////////////////////////////////////////////////////
 
-let bit_println<t>(what: ^t) -> void
+let extra::bit_println<t>(what: ^t) -> void
 {
-    bit_print(what);
+    extra::bit_print(what);
     endl();
 }
 pre
 {
-    bit_print<t>(_: ^t);
+    extra::bit_print<t>(_: ^t);
 }
 
-let hex_println<t>(what: ^t) -> void
+let extra::hex_println<t>(what: ^t) -> void
 {
-    hex_print(what);
+    extra::hex_print(what);
     endl();
 }
 pre
 {
-    hex_print<t>(_: ^t);
+    extra::hex_print<t>(_: ^t);
 }
 
 ////////////////////////////////////////////////////////////////
 
-let bit_print<t>(what: ^t) -> void
+let extra::bit_print<t>(what: ^t) -> void
 {
     let ptr: ^void;
     let size: u128;
@@ -52,7 +55,7 @@ let bit_print<t>(what: ^t) -> void
     bit_print_internal(ptr, size);
 }
 
-let hex_print<t>(what: ^t) -> void
+let extra::hex_print<t>(what: ^t) -> void
 {
     let ptr: ^void;
     let size: u128;
@@ -63,7 +66,7 @@ let hex_print<t>(what: ^t) -> void
     hex_print_internal(ptr, size);
 }
 
-let char_print<t>(what: ^t) -> void
+let extra::char_print<t>(what: ^t) -> void
 {
     let ptr: ^void;
     let size: u128;
@@ -75,7 +78,7 @@ let char_print<t>(what: ^t) -> void
     endl();
 }
 
-let hex_dump<t>(what: ^t) -> void
+let extra::hex_dump<t>(what: ^t) -> void
 {
     let ptr: ^void;
     let size: u128;

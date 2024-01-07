@@ -84,14 +84,14 @@ str b_to_s_FN_bool_MAPS_str(bool what)
     return (what ? "true" : "false");
 }
 
-f64 i_to_f_FN_i32_MAPS_f64(i32 what)
+f64 i_to_f_FN_i128_MAPS_f64(i128 what)
 {
     return (f64)what;
 }
 
-i32 f_to_i_FN_f64_MAPS_i32(f64 what)
+i32 f_to_i_FN_f64_MAPS_i128(f64 what)
 {
-    return (i32)what;
+    return (i128)what;
 }
 
 i32 to_i32_FN_u8_MAPS_i32(u8 what)

@@ -16,7 +16,7 @@ include!("std/conv_extra.oak");
 
 ////////////////////////////////////////////////////////////////
 
-let vec<t>: struct
+let stl::vec<t>: struct
 {
     data: []t,
     size: u128,
@@ -24,27 +24,27 @@ let vec<t>: struct
 }
 post
 {
-    Expand<t>(self: ^vec<t>);
-    Shrink<t>(self: ^vec<t>);
+    Expand<t>(self: ^stl::vec<t>);
+    Shrink<t>(self: ^stl::vec<t>);
 
-    Get<t>(self: ^vec<t>, index: i128);
-    New<t>(self: ^vec<t>);
-    Copy<t>(self: ^vec<t>, other: vec<t>);
-    Del<t>(self: ^vec<t>);
+    Get<t>(self: ^stl::vec<t>, index: i128);
+    New<t>(self: ^stl::vec<t>);
+    Copy<t>(self: ^stl::vec<t>, other: stl::vec<t>);
+    Del<t>(self: ^stl::vec<t>);
 
-    push_back<t>(self: ^vec<t>, what: t);
-    append<t>(self: ^vec<t>, what: t);
-    pop_back<t>(self: ^vec<t>);
-    clear<t>(self: ^vec<t>);
-    empty<t>(self: ^vec<t>);
+    push_back<t>(self: ^stl::vec<t>, what: t);
+    append<t>(self: ^stl::vec<t>, what: t);
+    pop_back<t>(self: ^stl::vec<t>);
+    clear<t>(self: ^stl::vec<t>);
+    empty<t>(self: ^stl::vec<t>);
 
-    front<t>(self: ^vec<t>);
-    back<t>(self: ^vec<t>);
+    front<t>(self: ^stl::vec<t>);
+    back<t>(self: ^stl::vec<t>);
 }
 
 ////////////////////////////////////////////////////////////////
 
-let New<t>(self: ^vec<t>) -> void
+let New<t>(self: ^stl::vec<t>) -> void
 {
     self.size = 0;
     self.capacity = 8;
@@ -53,7 +53,7 @@ let New<t>(self: ^vec<t>) -> void
 }
 
 // Deep copy from another vector
-let Copy<t>(self: ^vec<t>, other: vec<t>) -> void
+let Copy<t>(self: ^stl::vec<t>, other: stl::vec<t>) -> void
 {
     self.size = other.size;
 
@@ -77,7 +77,7 @@ let Copy<t>(self: ^vec<t>, other: vec<t>) -> void
     }
 }
 
-let Del<t>(self: ^vec<t>) -> void
+let Del<t>(self: ^stl::vec<t>) -> void
 {
     if (self.capacity != to_u128(0))
     {
@@ -85,7 +85,7 @@ let Del<t>(self: ^vec<t>) -> void
     }
 }
 
-let Get<t>(self: ^vec<t>, index: i128) -> opt<^t>
+let Get<t>(self: ^stl::vec<t>, index: i128) -> opt<^t>
 {
     let real_index: u128;
 
@@ -111,7 +111,7 @@ let Get<t>(self: ^vec<t>, index: i128) -> opt<^t>
 }
 
 // Double in size, no matter what
-let Expand<t>(self: ^vec<t>) -> void
+let Expand<t>(self: ^stl::vec<t>) -> void
 {
     let new_capacity: u128;
     new_capacity = self.capacity * to_u128(2);
@@ -138,7 +138,7 @@ let Expand<t>(self: ^vec<t>) -> void
 }
 
 // Halve in size, so long as capacity >= 16
-let Shrink<t>(self: ^vec<t>) -> void
+let Shrink<t>(self: ^stl::vec<t>) -> void
 {
     if (self.capacity >= to_u128(16))
     {
@@ -164,12 +164,12 @@ let Shrink<t>(self: ^vec<t>) -> void
     }
 }
 
-let append<t>(self: ^vec<t>, what: t) -> void
+let append<t>(self: ^stl::vec<t>, what: t) -> void
 {
     push_back(self, what);
 }
 
-let push_back<t>(self: ^vec<t>, what: t) -> void
+let push_back<t>(self: ^stl::vec<t>, what: t) -> void
 {
     while (self.size * to_u128(2) > self.capacity)
     {
@@ -181,7 +181,7 @@ let push_back<t>(self: ^vec<t>, what: t) -> void
 }
 
 
-let pop_back<t>(self: ^vec<t>) -> opt<t>
+let pop_back<t>(self: ^stl::vec<t>) -> opt<t>
 {
     let out: opt<t>;
     wrap_none(@out);
@@ -205,7 +205,7 @@ let pop_back<t>(self: ^vec<t>) -> opt<t>
 }
 
 
-let clear<t>(self: ^vec<t>) -> void
+let clear<t>(self: ^stl::vec<t>) -> void
 {
     self.size = to_u128(0);
 
@@ -215,7 +215,7 @@ let clear<t>(self: ^vec<t>) -> void
     }
 }
 
-let empty<t>(self: ^vec<t>) -> bool
+let empty<t>(self: ^stl::vec<t>) -> bool
 {
     let out: bool;
     
@@ -231,7 +231,7 @@ let empty<t>(self: ^vec<t>) -> bool
     out
 }
 
-let front<t>(self: ^vec<t>) -> opt<t>
+let front<t>(self: ^stl::vec<t>) -> opt<t>
 {
     let out: opt<t>;
     out.wrap_none();
@@ -244,7 +244,7 @@ let front<t>(self: ^vec<t>) -> opt<t>
     return out;
 }
 
-let back<t>(self: ^vec<t>) -> opt<t>
+let back<t>(self: ^stl::vec<t>) -> opt<t>
 {
     let out: opt<t>;
     out.wrap_none();

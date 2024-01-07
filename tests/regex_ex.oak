@@ -7,7 +7,8 @@ include "std/string.oak";
 
 let main() -> i32
 {
-    let pattern: regex = "abra*ca?dabra+";
+    let pattern: extra::regex;
+    pattern = "abra*ca?dabra+";
 
     let string_one: string = "abrcadabraaa";
     let string_two: string = "abraaaacdabra";
@@ -15,7 +16,7 @@ let main() -> i32
     let string_four: string = "abarcdabrar";
 
     // Test string 1
-    if regex_match(string_one, pattern)
+    if extra::regex_match(string_one, pattern)
     {
         print("String one matched.\n");
     }
@@ -25,7 +26,7 @@ let main() -> i32
     }
 
     // Test string 2
-    if regex_match(string_two, pattern)
+    if extra::regex_match(string_two, pattern)
     {
         print("String two matched.\n");
     }
@@ -35,7 +36,7 @@ let main() -> i32
     }
 
     // Test string 3
-    if regex_match(string_three, pattern)
+    if extra::regex_match(string_three, pattern)
     {
         print("String three matched.\n");
     }
@@ -45,7 +46,7 @@ let main() -> i32
     }
 
     // Test string 4
-    if regex_match(string_four, pattern)
+    if extra::regex_match(string_four, pattern)
     {
         print("String four matched.\n");
     }

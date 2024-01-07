@@ -302,3 +302,31 @@ let to_i128(what: ^string) -> i128
     out
 
 }
+
+/*
+Uses DJB2 by Dan Bernstein
+http://www.cse.yorku.ca/~oz/hash.html
+*/
+let hash(self: ^string) -> u128
+{
+    let out: u128 = 5 381;
+    let cur: i8 = 0;
+
+    let i: u128 = 0;
+    while i < self.size
+    {
+        cur = ptrarr!(self.data, i);
+
+        out *= 33;
+        out += cur;
+
+        i += 1;
+    }
+
+    if out == to_u128(0)
+    {
+        out = 1;
+    }
+
+    out
+}

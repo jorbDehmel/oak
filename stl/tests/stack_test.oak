@@ -11,7 +11,7 @@ include!("stl/stack.oak");
 
 let main() -> i32
 {
-    let q: stack<i32>;
+    let q: stl::stack<i32>;
 
     print("Pushing\n");
     for (let i: i32; i < 10; i += 1)

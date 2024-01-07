@@ -1,7 +1,6 @@
 NAME = 'extra'
 DATE = 'Thu Nov 16 14:33:22 2023'
-INCLUDE = 'extra.oak'
-VERSION = '0.0.0'
+VERSION = '0.0.1'
 LICENSE = 'MIT Commons'
 SOURCE = ''
 AUTHOR = 'Jordan Dehmel'

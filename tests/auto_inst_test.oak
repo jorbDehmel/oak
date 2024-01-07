@@ -26,13 +26,13 @@ let main() -> i32
     // Auto-instantiation for functions (does not work)
 
     // We want to make lines like these unnecessary:
-    hex_dump<opt<i32>>(_: ^opt<i32>);
+    extra::hex_dump<opt<i32>>(_: ^opt<i32>);
 
     o.wrap_none();
-    hex_dump(o);
+    extra::hex_dump(o);
 
     o.wrap_some(255 << 8);
-    hex_dump(o);
+    extra::hex_dump(o);
 
     0
 }

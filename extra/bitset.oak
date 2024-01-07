@@ -1,6 +1,5 @@
 /*
 A bitset for Oak
-Revised for Oak 0.3.0, which added arrays.
 
 Jordan Dehmel, 2023
 jdehmel@outlook.com
@@ -17,7 +16,7 @@ number of BYTES, not bits.
 Least significant bits are first. Can also function as an
 arbitrary-precision integer.
 */
-let bitset<size>: struct
+let extra::bitset<size>: struct
 {
     data: [size]u8,
 }
@@ -27,20 +26,20 @@ pre
 }
 post
 {
-    Get<size>(_: ^bitset<size>, _: u128);
+    Get<size>(_: ^extra::bitset<size>, _: u128);
 
-    set<size>(_: ^bitset<size>, _: u128);
-    clear<size>(_: ^bitset<size>, _: u128);
-    flip<size>(_: ^bitset<size>, _: u128);
+    set<size>(_: ^extra::bitset<size>, _: u128);
+    clear<size>(_: ^extra::bitset<size>, _: u128);
+    flip<size>(_: ^extra::bitset<size>, _: u128);
 
-    print<size>(_: ^bitset<size>);
+    print<size>(_: ^extra::bitset<size>);
 }
 
 ////////////////////////////////////////////////////////////////
 // Implementations
 ////////////////////////////////////////////////////////////////
 
-let Get<size>(self: ^bitset<size>, i: u128) -> opt<bool>
+let Get<size>(self: ^extra::bitset<size>, i: u128) -> opt<bool>
 {
     let out: opt<bool>;
     out.wrap_none();
@@ -69,7 +68,7 @@ let Get<size>(self: ^bitset<size>, i: u128) -> opt<bool>
     out
 }
 
-let set<size>(self: ^bitset<size>, i: u128) -> void
+let set<size>(self: ^extra::bitset<size>, i: u128) -> void
 {
     let byte_i: u128 = i / to_u128(8);
     let bit_i: u8 = to_u8(i % to_u128(8));
@@ -79,7 +78,7 @@ let set<size>(self: ^bitset<size>, i: u128) -> void
     ^Get(self.data, byte_i) |= mask;
 }
 
-let clear<size>(self: ^bitset<size>, i: u128) -> void
+let clear<size>(self: ^extra::bitset<size>, i: u128) -> void
 {
     let byte_i: u128 = i / to_u128(8);
     let bit_i: u8 = to_u8(i % to_u128(8));
@@ -90,7 +89,7 @@ let clear<size>(self: ^bitset<size>, i: u128) -> void
     ^Get(self.data, byte_i) &= mask;
 }
 
-let flip<size>(self: ^bitset<size>, i: u128) -> void
+let flip<size>(self: ^extra::bitset<size>, i: u128) -> void
 {
     let res = self.Get(i);
 
@@ -104,8 +103,9 @@ let flip<size>(self: ^bitset<size>, i: u128) -> void
     }
 }
 
-let print<size>(what: ^bitset<size>) -> void
+let print<size>(what: ^extra::bitset<size>) -> void
 {
-    bit_print<bitset<size>>(_: ^bitset<size>);
-    bit_print(what);
+    extra::bit_print<extra::bitset<size>>(_: ^extra::bitset<size>);
+
+    extra::bit_print(what);
 }

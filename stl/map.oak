@@ -18,7 +18,7 @@ include!("std/panic.oak");
 
 ////////////////////////////////////////////////////////////////
 
-let map_node<k, d>: struct
+let stl::map_node<k, d>: struct
 {
     key: k,
     data: d,
@@ -31,12 +31,12 @@ pre
 }
 post
 {
-    Copy<k, d>(_: ^map_node<k, d>, _: k, _: d);
+    Copy<k, d>(_: ^stl::map_node<k, d>, _: k, _: d);
 }
 
 ////////////////////////////////////////////////////////////////
 
-let Copy<k, d>(self: ^map_node<k, d>, key: k, data: d) -> void
+let Copy<k, d>(self: ^stl::map_node<k, d>, key: k, data: d) -> void
 {
     self.key = key;
     self.data = data;
@@ -48,9 +48,9 @@ let Copy<k, d>(self: ^map_node<k, d>, key: k, data: d) -> void
 let default_map_size! = 128;
 let max_alpha! = 0.5;
 
-let map<k, d>: struct
+let stl::map<k, d>: struct
 {
-    data: []map_node<k, d>,
+    data: []stl::map_node<k, d>,
     size: u128,
     occupied: u128,
     alpha: f64,
@@ -59,23 +59,25 @@ pre
 {
     hash<k>(_: k);
     Eq<k>(_: k, _: k);
+
+    stl::map_node<k, d>;
 }
 post
 {
-    New<k, d>(_: ^map<k, d>);
-    Del<k, d>(_: ^map<k, d>);
+    New<k, d>(_: ^stl::map<k, d>);
+    Del<k, d>(_: ^stl::map<k, d>);
 
-    expand<k, d>(_: ^map<k, d>);
+    expand<k, d>(_: ^stl::map<k, d>);
 
-    Get<k, d>(_: ^map<k, d>, _: k);
-    get<k, d>(_: ^map<k, d>, _: k);
-    set<k, d>(_: ^map<k, d>, _: k, _: d);
-    has<k, d>(_: ^map<k, d>, _: k);
+    Get<k, d>(_: ^stl::map<k, d>, _: k);
+    get<k, d>(_: ^stl::map<k, d>, _: k);
+    set<k, d>(_: ^stl::map<k, d>, _: k, _: d);
+    has<k, d>(_: ^stl::map<k, d>, _: k);
 }
 
 ////////////////////////////////////////////////////////////////
 
-let New<k, d>(self: ^map<k, d>) -> void
+let New<k, d>(self: ^stl::map<k, d>) -> void
 {
     self.size = default_map_size!;
     self.alpha = 0.0;
@@ -84,19 +86,19 @@ let New<k, d>(self: ^map<k, d>) -> void
     alloc!(self.data, self.size);
 }
 
-let Del<k, d>(self: ^map<k, d>) -> void
+let Del<k, d>(self: ^stl::map<k, d>) -> void
 {
     free!(self.data);
 }
 
-let Get<k, d>(self: ^map<k, d>, key: k) -> opt<d>
+let Get<k, d>(self: ^stl::map<k, d>, key: k) -> opt<d>
 {
     // Create vars
     let h: u128;
     let out: opt<d>;
     let i: u128;
     let sentinel: bool;
-    let cur: ^map_node<k, d>;
+    let cur: ^stl::map_node<k, d>;
 
     h = hash(key);
     out.wrap_none();
@@ -138,13 +140,13 @@ let Get<k, d>(self: ^map<k, d>, key: k) -> opt<d>
     out
 }
 
-let has<k, d>(self: ^map<k, d>, key: k) -> bool
+let has<k, d>(self: ^stl::map<k, d>, key: k) -> bool
 {
     // Create vars
     let h: u128;
     let i: u128;
     let sentinel: bool;
-    let cur: ^map_node<k, d>;
+    let cur: ^stl::map_node<k, d>;
 
     h = hash(key);
     sentinel = true;
@@ -184,18 +186,18 @@ let has<k, d>(self: ^map<k, d>, key: k) -> bool
     return false;
 }
 
-let get<k, d>(self: ^map<k, d>, key: k) -> opt<d>
+let get<k, d>(self: ^stl::map<k, d>, key: k) -> opt<d>
 {
     Get(self, key)
 }
 
-let set<k, d>(self: ^map<k, d>, key: k, data: d) -> void
+let set<k, d>(self: ^stl::map<k, d>, key: k, data: d) -> void
 {
     // Create vars
     let h: u128;
     let i: u128;
     let sentinel: bool;
-    let cur: ^map_node<k, d>;
+    let cur: ^stl::map_node<k, d>;
 
     h = hash(key);
     sentinel = true;
@@ -250,14 +252,14 @@ let set<k, d>(self: ^map<k, d>, key: k, data: d) -> void
 /*
 Doubles in size
 */
-let expand<k, d>(self: ^map<k, d>) -> void
+let expand<k, d>(self: ^stl::map<k, d>) -> void
 {
     // Create new
-    let old_data: []map_node<k, d>;
+    let old_data: []stl::map_node<k, d>;
     let old_size: u128;
     let i: u128;
 
-    let cur: ^map_node<k, d>;
+    let cur: ^stl::map_node<k, d>;
 
     old_size = self.size;
     ptrcpy!(old_data, self.data);
@@ -284,7 +286,7 @@ let expand<k, d>(self: ^map<k, d>) -> void
             let h: u128;
             let k: u128;
             let sentinel: bool;
-            let cur: ^map_node<k, d>;
+            let cur: ^stl::map_node<k, d>;
 
             h = hash(key);
             sentinel = true;

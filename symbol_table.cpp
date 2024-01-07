@@ -7,6 +7,7 @@ GPLv3 held by author
 */
 
 #include "symbol_table.hpp"
+#include "enums.hpp"
 #include "sequence_resources.hpp"
 #include <stdexcept>
 
@@ -177,16 +178,15 @@ Type toType(const std::vector<std::string> &WhatIn)
         }
     }
 
-    /*
-    cout << DB_INFO << "Input:\n\t";
-    for (const auto &a : What)
+    for (const auto &what : out.internal)
     {
-        cout << a << ' ';
+        if (what.info == atomic)
+        {
+            sm_assert(structData.count(what.name) != 0 || enumData.count(what.name) || atomics.count(what.name) != 0 ||
+                          what.name == "struct" || what.name == "enum",
+                      "Type '" + what.name + "' does not exist.");
+        }
     }
-    cout << "\n"
-         << "Output:\n\t";
-    cout << toStr(&out) << '\n';
-    */
 
     return out;
 }

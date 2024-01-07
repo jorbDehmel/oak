@@ -20,10 +20,10 @@ let s_to_b(what: str) -> bool;
 let b_to_s(what: bool) -> str;
 
 // Int to float
-let i_to_f(what: i32) -> f64;
+let i_to_f(what: i128) -> f64;
 
 // Float to int (rounds down)
-let f_to_i(what: f64) -> i32;
+let f_to_i(what: f64) -> i128;
 
 // Stupid conversions
 let to_i32(what: u8) -> i32;
