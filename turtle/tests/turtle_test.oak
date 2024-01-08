@@ -12,8 +12,6 @@ let draw_shape(t: ^turtle::turtle, sides: i32, side_length: i32) -> void
         t.forward(side_length);
         t.right(angle);
 
-        sdl::delay(1000);
-
         i += 1;
     }
 }
@@ -28,6 +26,11 @@ let main() -> i32
     let i: i32 = 4;
     while i < 10 && t.is_running
     {
+        t.clear();
+        t.flood();
+
+        sdl::delay(1000);
+
         t.draw_shape(i, 10);
 
         i += 1;

@@ -13,6 +13,7 @@ jdehmel@outlook.com
 
 package!("std", "sdl", "stl");
 include!("std/math.oak");
+include!("std/printf.oak");
 include!("std/string.oak");
 use_rule!("std");
 
@@ -123,8 +124,8 @@ otherwise.
 let is_filled(self: ^turtle::turtle, x: i128, y: i128) -> bool
 {
     // Modulo inputs by sizes to avoid overflow
-    let real_x: u128 = to_u128(x) % to_u128(self.w);
-    let real_y: u128 = to_u128(y) % to_u128(self.h);
+    let real_x: i128 = to_i128(x) % to_i128(self.w);
+    let real_y: i128 = to_i128(y) % to_i128(self.h);
 
     ptrarr!(ptrarr!(self.pixels, real_y), real_x)
 }
@@ -132,14 +133,6 @@ let is_filled(self: ^turtle::turtle, x: i128, y: i128) -> bool
 ////////////////////////////////////////////////////////////////
 // Drawing stuff
 ////////////////////////////////////////////////////////////////
-
-/*
-Flood the current section with color. Uses the turtle's coords.
-*/
-let flood(self: ^turtle::turtle) -> void
-{
-
-}
 
 /*
 Rotate a point around another by a certain number of degrees.
@@ -220,7 +213,7 @@ let refresh(self: ^turtle::turtle) -> void
         draw_line(self.window, a, b, self.turtle_color);
         draw_line(self.window, b, c, self.turtle_color);
         draw_line(self.window, c, a, self.turtle_color);
-            
+        
         show(self.window);
 
         // Process input signals
@@ -261,6 +254,70 @@ let refresh(self: ^turtle::turtle) -> void
             sdl::delay(10 - elapsed);
         }
     }
+}
+
+let turtle::__flood_recursive(canvas: [][]bool, w: u128, h: u128, x: i128, y: i128) -> void
+{
+    let sentinel: bool = true;
+
+    if x < to_i128(0)
+    {
+        sentinel = false;
+    }
+    else if x >= to_i128(w)
+    { 
+        sentinel = false;
+    }
+    else if y < to_i128(0)
+    {
+        sentinel = false;
+    }
+    else if y >= to_i128(h)
+    {
+        sentinel = false;
+    }
+    else if ptrarr!(ptrarr!(canvas, y), x)
+    {
+        sentinel = false;
+    }
+    
+    if sentinel
+    {
+        ptrarr!(ptrarr!(canvas, y), x) = true;
+
+        turtle::__flood_recursive(canvas, w, h, x - (1), y);
+        turtle::__flood_recursive(canvas, w, h, x + 1, y);
+        turtle::__flood_recursive(canvas, w, h, x, y - (1));
+        turtle::__flood_recursive(canvas, w, h, x, y + 1);
+    }
+}
+
+/*
+Flood the current section with color. Uses the turtle's coords.
+*/
+let flood(self: ^turtle::turtle) -> void
+{
+    turtle::__flood_recursive(self.pixels, self.w, self.h, self.x, self.y);
+    self.refresh();
+}
+
+let clear(self: ^turtle::turtle) -> void
+{
+    let y: u128 = 0;
+    while y < self.h
+    {
+        let x: u128 = 0;
+        while x < self.w
+        {
+            ptrarr!(ptrarr!(self.pixels, y), x) = false;
+
+            x += 1;
+        }
+
+        y += 1;
+    }
+
+    self.refresh();
 }
 
 ////////////////////////////////////////////////////////////////

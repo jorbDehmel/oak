@@ -1921,10 +1921,9 @@ Type resolveFunctionInternal(const std::vector<std::string> &What, int &start, s
              argTypes[1][0].name == "u64" || argTypes[1][0].name == "i64" || argTypes[1][0].name == "u128" ||
              argTypes[1][0].name == "i128"))
         {
-            // Return type is pointer to the thing the array is of
-            type = argTypes[0];
-            type[0].info = pointer;
-            c.push_back("(" + argStrs[0] + "+" + argStrs[1] + ")");
+            // Return type is the thing the array is of
+            type = Type(argTypes[0], 1);
+            c.push_back("(*(" + argStrs[0] + "+" + argStrs[1] + "))");
         }
         else
         {

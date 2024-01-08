@@ -68,6 +68,18 @@ let print(what: f32) -> void
     print(to_f64(what));
 }
 
+let print(what: bool) -> void
+{
+    if (what)
+    {
+        print("true");
+    }
+    else
+    {
+        print("false");
+    }
+}
+
 let println<t>(what: t) -> void
 {
     print(what);
