@@ -31,7 +31,7 @@ let main() -> i32
     o.wrap_none();
     extra::hex_dump(o);
 
-    o.wrap_some(255 << 8);
+    o.wrap_some(Lbs(255, 8));
     extra::hex_dump(o);
 
     0

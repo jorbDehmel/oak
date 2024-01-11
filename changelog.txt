@@ -4,6 +4,9 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.4.9           | 1/11/24  | Switched lexer to be DFA-based,
+                |          | various bug fixes.
+                |          |
 0.4.8           | 1/7/24   | Fixed bug w/ incorrect selection of
                 |          | function candidates. Also added
                 |          | turtle package and fixed various

@@ -74,11 +74,11 @@ void debugPrint(const sequence &What, int spaces = 0, std::ostream &to = std::co
 Type checkLiteral(const std::string &From);
 std::vector<std::pair<std::string, std::string>> restoreSymbolTable(multiSymbolTable &backup);
 
-void addEnum(const std::vector<std::string> &FromIn);
+void addEnum(const std::vector<token> &FromIn);
 
 // Dump data to file
-void dump(const std::vector<std::string> &Lexed, const std::string &Where, const std::string &FileName, const int &Line,
-          const sequence &FileSeq, const std::vector<std::string> LexedBackup);
+void dump(const std::vector<token> &Lexed, const std::string &Where, const std::string &FileName, const int &Line,
+          const sequence &FileSeq, const std::vector<token> LexedBackup, const std::string &ErrorMsg = "");
 
 std::string getMemberNew(const std::string &selfName, const std::string &varName, const Type &varType);
 std::string getMemberDel(const std::string &selfName, const std::string &varName, const Type &varType);

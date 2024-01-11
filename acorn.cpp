@@ -880,7 +880,8 @@ int main(const int argc, const char *argv[])
         system("rm test_suite.log");
         std::cout << tags::violet_bold << "Running " << files.size() << " tests...\n" << tags::reset;
 
-        std::cout << "[compiling " << (execute ? "and" : "but not") << " executing]\n";
+        std::cout << "[compiling, " << (execute ? "" : "NOT ") << "executing," << (testFail ? "" : " NOT")
+                  << " halting on failure]\n";
 
         // Iterate through files
         int i = 1;

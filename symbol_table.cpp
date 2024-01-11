@@ -8,26 +8,43 @@ GPLv3 held by author
 
 #include "symbol_table.hpp"
 #include "enums.hpp"
+#include "lexer.hpp"
 #include "sequence_resources.hpp"
 #include <stdexcept>
 
 multiSymbolTable table;
 
-// Converts lexed symbols into a type
 Type toType(const std::vector<std::string> &WhatIn)
+{
+    token templ;
+    templ.file = curFile;
+    templ.line = curLine;
+    templ.pos = 0;
+    templ.state = alpha_state;
+
+    std::vector<token> temp;
+    temp.reserve(WhatIn.size());
+
+    for (const auto &item : WhatIn)
+    {
+        temp.push_back(item);
+    }
+
+    return toType(temp);
+}
+
+// Converts lexed symbols into a type
+Type toType(const std::vector<token> &WhatIn)
 {
     if (WhatIn.size() == 0)
     {
         return Type(atomic, "NULL");
     }
 
-    std::vector<std::string> What;
-    for (std::string s : WhatIn)
+    std::vector<token> What;
+    for (token s : WhatIn)
     {
-        if (s.size() < 2 || s.substr(0, 2) != "//")
-        {
-            What.push_back(s);
-        }
+        What.push_back(s);
     }
 
     if (What.size() == 0)
@@ -141,12 +158,14 @@ Type toType(const std::vector<std::string> &WhatIn)
 
             try
             {
-                long long result = stoi(What[i + 1]);
+                long long result = stoi(What[i + 1].text);
                 sm_assert(result > 0, "");
             }
             catch (...)
             {
-                throw sequencing_error("Array size must be a compile-time constant positive integer");
+                throw sequencing_error("Array size must be a compile-time constant positive integer, instead '" +
+                                       What[i + 1].text + "' (" + curFile + ":" + std::to_string(What[i + 1].line) +
+                                       ")");
             }
 
             out.append(Type(sarr, What[i + 1]));
@@ -192,19 +211,8 @@ Type toType(const std::vector<std::string> &WhatIn)
 }
 
 // Can throw errors (IE malformed definitions)
-void addStruct(const std::vector<std::string> &FromIn)
+void addStruct(const std::vector<token> &From)
 {
-    std::vector<std::string> From;
-
-    // Clean input of any special symbols
-    for (auto f : FromIn)
-    {
-        if (f.size() < 2 || f.substr(0, 2) != "//")
-        {
-            From.push_back(f);
-        }
-    }
-
     // Assert the expression can be properly-formed
     parse_assert(From.size() >= 4);
 
@@ -303,7 +311,7 @@ void addStruct(const std::vector<std::string> &FromIn)
         {
             // name : type ,
             // name , name2 , name3 : type < std::string , hi > , name4 : type2 ,
-            std::vector<std::string> names, lexedType;
+            std::vector<token> names, lexedType;
 
             while (i + 1 < From.size() && From[i + 1] == ",")
             {
@@ -349,7 +357,7 @@ void addStruct(const std::vector<std::string> &FromIn)
 
                         if (toAdd != "")
                         {
-                            lexedType.back().append("_" + toAdd);
+                            lexedType.back().text += "_" + toAdd;
                         }
                     }
                 }

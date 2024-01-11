@@ -19,14 +19,8 @@ std::map<std::string, unsigned long long> atomics = {
 // Removes illegal characters
 std::string purifyStr(const std::string &What)
 {
-    const std::string illegalChars = "<>(){}[]\\'\"`~!@#$%^&*-=+|?,;:";
+    const std::string illegalChars = "<>(){}[]\\'\"`~!@#$%^&*-=+|?,;:/";
     std::string out = What;
-
-    // Trim filepath
-    while (out.find("/") != std::string::npos)
-    {
-        out.erase(0, out.find("/") + 1);
-    }
 
     // Trim file extension(s)
     while (out.find(".") != std::string::npos)
@@ -476,9 +470,6 @@ std::string toStrC(const Type *What, const std::string &Name, const unsigned int
         suffix = "[" + (*What)[pos].name + "]" + suffix;
         break;
     case var_name:
-        // Argument in function: Will be FOLLOWED by its type in Oak
-        // hello: *map<string, int>;
-        // map<string, int> *hello;
         out += toStrC(What, Name, pos + 1);
         out += (*What)[pos].name;
         break;

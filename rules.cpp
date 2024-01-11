@@ -12,23 +12,18 @@ jdehmel@outlook.com
 std::map<std::string, rule> rules;
 std::vector<std::string> activeRules, dialectRules;
 std::map<std::string, std::vector<std::string>> bundles;
-std::map<std::string, void (*)(std::vector<std::string> &, int &, rule &)> engines;
+std::map<std::string, void (*)(std::vector<token> &, int &, rule &)> engines;
 
 bool doRuleLogFile = false;
 std::ofstream ruleLogFile;
 
 // I is the point in Lexed at which a macro name was found
 // CONSUMPTIVE!
-std::vector<std::string> getMacroArgs(std::vector<std::string> &lexed, const int &i)
+std::vector<std::string> getMacroArgs(std::vector<token> &lexed, const int &i)
 {
     std::vector<std::string> out;
 
     lexed.erase(lexed.begin() + i);
-
-    while (lexed[i].size() > 2 && lexed[i].substr(0, 2) == "//")
-    {
-        lexed.erase(lexed.begin() + i);
-    }
 
     if (lexed[i] != "(")
     {
@@ -37,11 +32,6 @@ std::vector<std::string> getMacroArgs(std::vector<std::string> &lexed, const int
 
     // Erase opening parenthesis
     lexed.erase(lexed.begin() + i);
-
-    while (lexed[i].size() > 2 && lexed[i].substr(0, 2) == "//")
-    {
-        lexed.erase(lexed.begin() + i);
-    }
 
     std::string cur = "";
     int count = 1;
@@ -62,7 +52,7 @@ std::vector<std::string> getMacroArgs(std::vector<std::string> &lexed, const int
             out.push_back(cur);
             cur = "";
         }
-        else if (lexed[i].size() < 3 || lexed[i].substr(0, 2) != "//")
+        else
         {
             cur += lexed[i];
         }
@@ -70,15 +60,10 @@ std::vector<std::string> getMacroArgs(std::vector<std::string> &lexed, const int
         lexed.erase(lexed.begin() + i);
     }
 
-    if (!lexed.empty())
-    {
-        lexed.erase(lexed.begin() + i);
-    }
-
     return out;
 }
 
-void doRules(std::vector<std::string> &From)
+void doRules(std::vector<token> &From)
 {
     if (doRuleLogFile)
     {
@@ -93,15 +78,8 @@ void doRules(std::vector<std::string> &From)
 
     for (int i = 0; i < From.size(); i++)
     {
-        // cout << __FILE__ << ' ' << __LINE__ << ' ' << curFile << ' ' << i << '\t' << From[i] << '\n';
-
-        if (From[i].size() >= 2 && From[i].substr(0, 2) == "//")
-        {
-            continue;
-        }
-
         // Add a new rule to the list of all rules
-        else if (From[i] == "new_rule!")
+        if (From[i] == "new_rule!")
         {
             auto args = getMacroArgs(From, i);
             for (int j = 0; j < args.size(); j++)
@@ -132,8 +110,9 @@ void doRules(std::vector<std::string> &From)
                 toAdd.doRule = engines[args[3]];
             }
 
-            toAdd.inputPattern = lex(args[1]);
-            toAdd.outputPattern = lex(args[2]);
+            lexer dfa_lexer;
+            toAdd.inputPattern = dfa_lexer.lex(args[1]);
+            toAdd.outputPattern = dfa_lexer.lex(args[2]);
 
             rules[name] = toAdd;
         }
@@ -287,9 +266,10 @@ void doRules(std::vector<std::string> &From)
     return;
 }
 
-bool dialectLock = false;
 void loadDialectFile(const std::string &File)
 {
+    static bool dialectLock = false;
+
     if (dialectLock)
     {
         return;
@@ -318,11 +298,7 @@ void loadDialectFile(const std::string &File)
     {
         lineNum++;
 
-        if (line.size() > 1 && line.substr(0, 2) == "//")
-        {
-            continue;
-        }
-        else if (line.size() == 0)
+        if (line.size() == 0)
         {
             continue;
         }
@@ -377,12 +353,13 @@ void loadDialectFile(const std::string &File)
             outputStr = outputStr.substr(1, outputStr.size() - 2);
 
             // Lex patterns
+            lexer dfa_lexer;
             rm_assert(inputStr != "", "Input rule must be non-empty.");
-            toAdd.inputPattern = lex(inputStr);
+            toAdd.inputPattern = dfa_lexer.lex(inputStr);
 
             if (outputStr != "")
             {
-                toAdd.outputPattern = lex(outputStr);
+                toAdd.outputPattern = dfa_lexer.lex(outputStr);
             }
 
             // Fetch engine based on current
@@ -422,7 +399,7 @@ void loadDialectFile(const std::string &File)
     return;
 }
 
-void doRuleAcorn(std::vector<std::string> &From, int &i, rule &curRule)
+void doRuleAcorn(std::vector<token> &From, int &i, rule &curRule)
 {
     int posInFrom = i;
     std::vector<std::string> memory;
@@ -431,17 +408,6 @@ void doRuleAcorn(std::vector<std::string> &From, int &i, rule &curRule)
     for (int k = 0; posInFrom < From.size() && k < curRule.inputPattern.size(); k++)
     {
         std::string match = curRule.inputPattern[k];
-
-        while (From[posInFrom].size() >= 2 && From[posInFrom].substr(0, 2) == "//")
-        {
-            posInFrom++;
-
-            if (posInFrom >= From.size())
-            {
-                isMatch = false;
-                break;
-            }
-        }
 
         if (posInFrom >= From.size())
         {
@@ -481,16 +447,6 @@ void doRuleAcorn(std::vector<std::string> &From, int &i, rule &curRule)
                     isMatch = false;
                     break;
                 }
-
-                while (From[posInFrom].size() > 1 && From[posInFrom].substr(0, 2) == "//")
-                {
-                    posInFrom++;
-                    if (posInFrom >= From.size())
-                    {
-                        isMatch = false;
-                        break;
-                    }
-                }
             }
 
             continue;
@@ -514,16 +470,6 @@ void doRuleAcorn(std::vector<std::string> &From, int &i, rule &curRule)
                 {
                     isMatch = false;
                     break;
-                }
-
-                while (From[posInFrom].size() > 1 && From[posInFrom].substr(0, 2) == "//")
-                {
-                    posInFrom++;
-                    if (posInFrom >= From.size())
-                    {
-                        isMatch = false;
-                        break;
-                    }
                 }
             }
 
@@ -624,7 +570,7 @@ void doRuleAcorn(std::vector<std::string> &From, int &i, rule &curRule)
 
                 // Do actual compare here
                 // If matches, isMatch. Otherwise, keep going.
-                if (match.substr(start, end - start) == From[posInFrom])
+                if (match.substr(start, end - start) == From[posInFrom].text)
                 {
                     posInFrom++;
                     break;
@@ -660,7 +606,7 @@ void doRuleAcorn(std::vector<std::string> &From, int &i, rule &curRule)
 
                 // Do actual compare here
                 // If matches, is not match. Otherwise, keep going.
-                if (match.substr(start, end - start) == From[posInFrom])
+                if (match.substr(start, end - start) == From[posInFrom].text)
                 {
                     isMatch = false;
                     break;
@@ -700,18 +646,16 @@ void doRuleAcorn(std::vector<std::string> &From, int &i, rule &curRule)
                     isMatch = false;
                     break;
                 }
-                else if (From[posInFrom].size() < 2 || From[posInFrom].substr(0, 2) != "//")
-                {
-                    memory.push_back(From[posInFrom]);
 
-                    if (From[posInFrom] == opener)
-                    {
-                        count++;
-                    }
-                    else if (From[posInFrom] == closer)
-                    {
-                        count--;
-                    }
+                memory.push_back(From[posInFrom]);
+
+                if (From[posInFrom] == opener)
+                {
+                    count++;
+                }
+                else if (From[posInFrom] == closer)
+                {
+                    count--;
                 }
 
                 posInFrom++;
@@ -742,7 +686,7 @@ void doRuleAcorn(std::vector<std::string> &From, int &i, rule &curRule)
                 }
                 else
                 {
-                    ruleVars[name] += " " + From[posInFrom];
+                    ruleVars[name] += " " + From[posInFrom].text;
                 }
 
                 memory.push_back(From[posInFrom]);
@@ -752,16 +696,6 @@ void doRuleAcorn(std::vector<std::string> &From, int &i, rule &curRule)
                 {
                     isMatch = false;
                     break;
-                }
-
-                while (From[posInFrom].size() > 1 && From[posInFrom].substr(0, 2) == "//")
-                {
-                    posInFrom++;
-                    if (posInFrom >= From.size())
-                    {
-                        isMatch = false;
-                        break;
-                    }
                 }
             }
 
@@ -777,7 +711,7 @@ void doRuleAcorn(std::vector<std::string> &From, int &i, rule &curRule)
             }
             else
             {
-                ruleVars[match] += " " + From[posInFrom];
+                ruleVars[match] += " " + From[posInFrom].text;
             }
 
             memory.push_back(From[posInFrom]);
@@ -786,7 +720,7 @@ void doRuleAcorn(std::vector<std::string> &From, int &i, rule &curRule)
         }
 
         // Literal; Must match verbatim
-        else if (match == From[posInFrom])
+        else if (match == From[posInFrom].text)
         {
             posInFrom++;
             memory.push_back(From[posInFrom]);
@@ -808,7 +742,11 @@ void doRuleAcorn(std::vector<std::string> &From, int &i, rule &curRule)
         // Variable table is already built at this point
 
         // Get new contents
-        std::vector<std::string> newContents;
+        std::vector<token> newContents;
+
+        token templ = From[i];
+        templ.text = "NULL";
+
         for (int sIndex = 0; sIndex < curRule.outputPattern.size(); sIndex++)
         {
             std::string s = curRule.outputPattern[sIndex];
@@ -817,7 +755,8 @@ void doRuleAcorn(std::vector<std::string> &From, int &i, rule &curRule)
             {
                 std::string raw = ruleVars[s];
 
-                std::vector<std::string> lexed = lex(raw);
+                lexer dfa_lexer;
+                std::vector<token> lexed = dfa_lexer.lex(raw);
                 for (auto s : lexed)
                 {
                     newContents.push_back(s);
@@ -833,8 +772,9 @@ void doRuleAcorn(std::vector<std::string> &From, int &i, rule &curRule)
 
                 if (ruleVars.count(toInsert) != 0)
                 {
+                    lexer dfa_lexer;
                     std::string raw = ruleVars[toInsert];
-                    std::vector<std::string> lexed = lex(raw);
+                    std::vector<token> lexed = dfa_lexer.lex(raw);
 
                     toInsert = "";
                     for (auto str : lexed)
@@ -848,11 +788,12 @@ void doRuleAcorn(std::vector<std::string> &From, int &i, rule &curRule)
                     sIndex++;
                 }
 
-                newContents.back().append(toInsert);
+                newContents.back().text += toInsert;
             }
             else
             {
-                newContents.push_back(s);
+                templ.text = s;
+                newContents.push_back(templ);
             }
         }
 
@@ -863,14 +804,14 @@ void doRuleAcorn(std::vector<std::string> &From, int &i, rule &curRule)
 
             for (const auto &what : curRule.inputPattern)
             {
-                ruleLogFile << "'" << what << "' ";
+                ruleLogFile << "'" << what.text << "' ";
             }
 
             ruleLogFile << "\nOutput pattern\t";
 
             for (const auto &what : curRule.outputPattern)
             {
-                ruleLogFile << "'" << what << "' ";
+                ruleLogFile << "'" << what.text << "' ";
             }
 
             ruleLogFile << "\nMatch '";
@@ -881,18 +822,9 @@ void doRuleAcorn(std::vector<std::string> &From, int &i, rule &curRule)
         {
             if (doRuleLogFile)
             {
-                ruleLogFile << From[i] << ' ';
+                ruleLogFile << From[i].text << ' ';
             }
-
-            if (From[i].size() > 1 && From[i].substr(2) == "//")
-            {
-                i++;
-                k--;
-            }
-            else
-            {
-                From.erase(From.begin() + i);
-            }
+            From.erase(From.begin() + i);
         }
 
         if (doRuleLogFile)
@@ -901,7 +833,7 @@ void doRuleAcorn(std::vector<std::string> &From, int &i, rule &curRule)
 
             for (const auto &what : newContents)
             {
-                ruleLogFile << what << ' ';
+                ruleLogFile << what.text << ' ';
             }
 
             ruleLogFile << "'\n\n";
@@ -917,7 +849,7 @@ void doRuleAcorn(std::vector<std::string> &From, int &i, rule &curRule)
     ruleVars.clear();
 }
 
-void addEngine(const std::string &name, void (*hook)(std::vector<std::string> &, int &, rule &))
+void addEngine(const std::string &name, void (*hook)(std::vector<token> &, int &, rule &))
 {
     engines[name] = hook;
     return;

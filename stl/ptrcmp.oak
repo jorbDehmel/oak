@@ -4,7 +4,7 @@ Some garbage utilities for comparing pointers.
 
 link!("stl/ptrcmp.o");
 
-let Eq(l: ^void, r: ^void) -> bool
+let Eq(l: ^void, r: ^void) -> bool;
 let Neq(l: ^void, r: ^void) -> bool;
 
 let Eq(l: ^void, r: u128) -> bool;
@@ -21,4 +21,17 @@ let to_void_ptr<t>(what: ^t) -> ^void
     let out: ^void;
     ptrcpy!(out, what);
     out
+}
+
+let Eq<t>(l: ^t, r: ^t) -> bool
+{
+    to_void_ptr<t>(_: ^t);
+
+    let real_l: ^void;
+    let real_r: ^void;
+
+    ptrcpy!(real_l, to_void_ptr(l));
+    ptrcpy!(real_r, to_void_ptr(r));
+
+    return real_l == real_r;
 }

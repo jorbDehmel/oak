@@ -10,28 +10,24 @@ let draw_shape(t: ^turtle::turtle, sides: i32, side_length: i32) -> void
     while i < sides
     {
         t.forward(side_length);
-        t.right(angle);
+        t.left(angle);
 
         i += 1;
     }
+
+    t.set_orientation(0.0);
 }
 
 let main() -> i32
 {
     let t: turtle::turtle;
-
-    t.x = 256;
-    t.y = 256;
-
     let i: i32 = 4;
-    while i < 10 && t.is_running
+    while i < 50 && t.is_running
     {
         t.clear();
-        t.flood();
-
-        sdl::delay(1000);
-
-        t.draw_shape(i, 10);
+        
+        t.set_position(256, 256);
+        t.draw_shape(i, 50);
 
         i += 1;
     }

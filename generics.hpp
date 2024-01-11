@@ -51,8 +51,8 @@ struct genericInfo
     std::vector<std::string> typeVec;
     std::string originFile;
 
-    std::vector<std::string> symbols;
-    std::vector<std::string> preBlock, postBlock;
+    std::vector<token> symbols;
+    std::vector<token> preBlock, postBlock;
 
     std::vector<std::string> genericNames;
 
@@ -69,9 +69,9 @@ std::string instantiateGeneric(const std::string &what, const std::vector<std::v
                                const std::vector<std::string> &typeVec);
 
 // Also holds the skeleton of the inst block system, although gathering of these happens elsewhere.
-void addGeneric(const std::vector<std::string> &what, const std::string &name,
-                const std::vector<std::string> &genericsList, const std::vector<std::string> &typeVec,
-                const std::vector<std::string> &preBlock, const std::vector<std::string> &postBlock);
+void addGeneric(const std::vector<token> &what, const std::string &name, const std::vector<std::string> &genericsList,
+                const std::vector<std::string> &typeVec, const std::vector<token> &preBlock,
+                const std::vector<token> &postBlock);
 
 // Print the info of all existing generics to a file stream
 void printGenericDumpInfo(std::ostream &to);

@@ -34,6 +34,6 @@ typedef double f64;
 typedef long double f128; // Not usually supported
 
 // Misc
-typedef const char *const str;
+typedef const char *const str; // Use []i8 whenever possible
 
 #endif

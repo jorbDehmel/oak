@@ -101,7 +101,6 @@ new_rule!(
 bundle_rule!(
     "std",
     "namespace",
-    "access",
     "get_method",
     "void_return",
     "auto_if_paren",

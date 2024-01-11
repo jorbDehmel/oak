@@ -7,6 +7,7 @@ GPLv3 held by author
 */
 
 #include "sequence.hpp"
+#include "enums.hpp"
 #include "sequence_resources.hpp"
 #include "symbol_table.hpp"
 #include "tags.hpp"
@@ -22,13 +23,13 @@ std::string curFile = "";
 unsigned long long int depth = 0;
 
 // Internal consumptive version: Erases from std::vector, so not safe for frontend
-sequence __createSequence(std::list<std::string> &From);
+sequence __createSequence(std::list<token> &From);
 
-sequence createSequence(const std::vector<std::string> &From)
+sequence createSequence(const std::vector<token> &From)
 {
     // Clone to feed into the consumptive version
     // std::vector<std::string> temp(From);
-    std::list<std::string> temp;
+    std::list<token> temp;
     temp.assign(From.begin(), From.end());
 
     std::vector<sequence> out;
@@ -36,7 +37,13 @@ sequence createSequence(const std::vector<std::string> &From)
     // Feed to consumptive version
     while (!temp.empty())
     {
+        // std::cout << "During createSequence, head: " << temp.front().text << '\n';
         out.push_back(__createSequence(temp));
+
+        while (!temp.empty() && temp.front() == ";")
+        {
+            temp.pop_front();
+        }
     }
 
     if (out.size() == 0)
@@ -62,7 +69,7 @@ sequence createSequence(const std::vector<std::string> &From)
 }
 
 // Internal consumptive version: Erases from std::vector, so not safe for frontend
-sequence __createSequence(std::list<std::string> &From)
+sequence __createSequence(std::list<token> &From)
 {
     static std::string prevMatchTypeStr = "NULL";
 
@@ -74,19 +81,14 @@ sequence __createSequence(std::list<std::string> &From)
     {
         return out;
     }
-    else if (strncmp(From.front().c_str(), "//__LINE__=", 11) == 0)
+    else if (From.front().line != curLine)
     {
         // Line update special symbol
-        std::string newLineNum = From.front().substr(11);
-
-        curLine = stoull(newLineNum);
-
+        curLine = From.front().line;
         curLineSymbols.clear();
         if (From.size() != 0)
         {
-            for (auto it = From.begin();
-                 it != From.end() && !(it != From.begin() && it->size() > 11 && it->substr(0, 11) == "//__LINE__=");
-                 it++)
+            for (auto it = From.begin(); it != From.end() && it->line == curLine; it++)
             {
                 curLineSymbols.push_back(*it);
             }
@@ -97,8 +99,6 @@ sequence __createSequence(std::list<std::string> &From)
             curLineSymbols.erase(curLineSymbols.begin());
         }
 
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-        From.pop_front();
         return __createSequence(From);
     }
     else if (From.front() == ",")
@@ -142,26 +142,37 @@ sequence __createSequence(std::list<std::string> &From)
 
             for (auto s : contents)
             {
-                if (!((s.front() == '"' && s.back() == '"') || (s.front() == '\'' && s.back() == '\'')))
+                std::string symb = s;
+                if ((s.front() == '"' && s.back() == '"') || (s.front() == '\'' && s.back() == '\''))
                 {
-                    throw parse_error("All arguments to 'erase!' must be strings.");
+                    // Trim quotes
+                    symb = symb.substr(1, s.size() - 2);
                 }
 
-                // Trim quotes
-                std::string symb = s.substr(1, s.size() - 2);
+                bool didErase = false;
 
                 if (structData.count(symb) != 0)
                 {
+                    didErase = true;
                     structData[symb].erased = true;
                 }
-                else if (table.count(symb) != 0)
+
+                if (enumData.count(symb) != 0)
                 {
+                    didErase = true;
+                    enumData[symb].erased = true;
+                }
+
+                if (table.count(symb) != 0)
+                {
+                    didErase = true;
                     for (int l = 0; l < table[symb].size(); l++)
                     {
                         table[symb][l].erased = true;
                     }
                 }
-                else
+
+                if (!didErase)
                 {
                     std::cout << tags::yellow_bold << "Warning! No symbols were erase!-ed via the symbol '" << symb
                               << "'\n"
@@ -192,14 +203,10 @@ sequence __createSequence(std::list<std::string> &From)
                     count--;
                 }
 
-                if (strncmp(From.front().c_str(), "//", 2) != 0)
+                if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")") && From.front() != ",")
                 {
-                    if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")") &&
-                        From.front() != ",")
-                    {
-                        std::string cur = From.front();
-                        std::cout << cleanMacroArgument(cur) << " ";
-                    }
+                    std::string cur = From.front();
+                    std::cout << cleanMacroArgument(cur) << " ";
                 }
 
                 sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
@@ -230,13 +237,9 @@ sequence __createSequence(std::list<std::string> &From)
                     count--;
                 }
 
-                if (strncmp(From.front().c_str(), "//", 2) != 0)
+                if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")") && From.front() != ",")
                 {
-                    if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")") &&
-                        From.front() != ",")
-                    {
-                        message += cleanMacroArgument(From.front()) + " ";
-                    }
+                    message += cleanMacroArgument(From.front()) + " ";
                 }
 
                 sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
@@ -267,18 +270,14 @@ sequence __createSequence(std::list<std::string> &From)
                     count--;
                 }
 
-                if (From.front().size() > 2 && strncmp(From.front().c_str(), "//", 2) != 0)
+                if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")") && From.front() != ",")
                 {
-                    if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")") &&
-                        From.front() != ",")
+                    if (command != "")
                     {
-                        if (command != "")
-                        {
-                            command += " && ";
-                        }
-
-                        command += cleanMacroArgument(From.front());
+                        command += " && ";
                     }
+
+                    command += cleanMacroArgument(From.front());
                 }
 
                 sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
@@ -305,7 +304,7 @@ sequence __createSequence(std::list<std::string> &From)
             int count = 0;
             sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
             From.pop_front();
-            std::list<std::string> contents;
+            std::list<token> contents;
 
             do
             {
@@ -368,7 +367,7 @@ sequence __createSequence(std::list<std::string> &From)
             int count = 0;
             sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
             From.pop_front();
-            std::list<std::string> contents;
+            std::list<token> contents;
 
             do
             {
@@ -407,7 +406,7 @@ sequence __createSequence(std::list<std::string> &From)
             int count = 0;
             sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
             From.pop_front();
-            std::list<std::string> contents;
+            std::list<token> contents;
 
             do
             {
@@ -458,7 +457,7 @@ sequence __createSequence(std::list<std::string> &From)
             int count = 0;
             sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
             From.pop_front();
-            std::list<std::string> contents;
+            std::list<token> contents;
 
             do
             {
@@ -771,20 +770,20 @@ sequence __createSequence(std::list<std::string> &From)
                 // addStruct takes in the full struct definition, from
                 // let to end curly bracket. So we must first parse this.
 
-                std::vector<std::string> toAdd = {"let", name};
+                std::vector<token> toAdd = {token("let"), token(name)};
 
                 // Add generics back in here
                 if (generics.size() != 0)
                 {
-                    toAdd.push_back("<");
+                    toAdd.push_back(token("<"));
                     for (int i = 0; i < generics.size(); i++)
                     {
                         toAdd.push_back(generics[i]);
                     }
-                    toAdd.push_back(">");
+                    toAdd.push_back(token(">"));
                 }
 
-                toAdd.push_back(":");
+                toAdd.push_back(token(":"));
                 std::string front = From.front();
 
                 int count = 0;
@@ -829,12 +828,7 @@ sequence __createSequence(std::list<std::string> &From)
                 else
                 {
                     // Check for needs / inst block here
-                    std::vector<std::string> preBlock, postBlock;
-
-                    while (!From.empty() && From.front().size() > 1 && From.front().substr(0, 2) == "//")
-                    {
-                        From.pop_front();
-                    }
+                    std::vector<token> preBlock, postBlock;
 
                     while (!From.empty() && (From.front() == "pre" || From.front() == "post"))
                     {
@@ -842,11 +836,6 @@ sequence __createSequence(std::list<std::string> &From)
                         {
                             // pop needs
                             From.pop_front();
-
-                            while (!From.empty() && From.front().size() > 1 && From.front().substr(0, 2) == "//")
-                            {
-                                From.pop_front();
-                            }
 
                             // pop {
                             sm_assert(!From.empty() && From.front() == "{", "'pre' block must be followed by scope.");
@@ -880,11 +869,6 @@ sequence __createSequence(std::list<std::string> &From)
                         {
                             // pop needs
                             From.pop_front();
-
-                            while (!From.empty() && From.front().size() > 1 && From.front().substr(0, 2) == "//")
-                            {
-                                From.pop_front();
-                            }
 
                             // pop {
                             sm_assert(!From.empty() && From.front() == "{", "'post' block must be followed by scope.");
@@ -935,10 +919,10 @@ sequence __createSequence(std::list<std::string> &From)
                 sm_assert(generics.empty(), "Variable declaration must not be templated.");
 
                 // Scrape entire definition for this
-                std::vector<std::string> toAdd = {
-                    "let",
-                    name,
-                    ":",
+                std::vector<token> toAdd = {
+                    token("let"),
+                    token(name),
+                    token(":"),
                 };
 
                 while (!From.empty() && From.front() != ";")
@@ -948,7 +932,7 @@ sequence __createSequence(std::list<std::string> &From)
                         // Case for type!() macro
 
                         // Scrape entire type!(what) call to a std::vector
-                        std::vector<std::string> toAnalyze;
+                        std::vector<token> toAnalyze;
                         int count = 0;
 
                         From.pop_front();
@@ -979,7 +963,8 @@ sequence __createSequence(std::list<std::string> &From)
                         Type type = resolveFunction(toAnalyze, pos, junk);
 
                         // Convert type to lexed std::string vec
-                        std::vector<std::string> lexedType = lex(toStr(&type));
+                        lexer dfa_lexer;
+                        std::vector<token> lexedType = dfa_lexer.lex(toStr(&type));
 
                         // Push lexed vec to front of From
                         for (auto iter = lexedType.rbegin(); iter != lexedType.rend(); iter++)
@@ -1020,7 +1005,7 @@ sequence __createSequence(std::list<std::string> &From)
                     // Syntactically necessary
                     out.items.push_back(sequence{nullType, std::vector<sequence>(), atom, ";"});
 
-                    std::vector<std::string> newCall = {"New", "(", "@", name, ")"};
+                    std::vector<token> newCall = {token("New"), token("("), token("@"), token(name), token(")")};
                     int garbage = 0;
 
                     sequence toAppend;
@@ -1067,7 +1052,7 @@ sequence __createSequence(std::list<std::string> &From)
             if (generics.size() == 0)
             {
                 // Arguments
-                std::vector<std::string> toAdd;
+                std::vector<token> toAdd;
                 do
                 {
                     toAdd.push_back(From.front());
@@ -1221,7 +1206,7 @@ sequence __createSequence(std::list<std::string> &From)
             {
                 // Templated function definition
 
-                std::vector<std::string> toAdd = {"let", name}, returnType;
+                std::vector<token> toAdd = {token("let"), token(name)}, returnType;
                 std::vector<std::string> typeVec;
 
                 while (From.front() != "->")
@@ -1272,7 +1257,7 @@ sequence __createSequence(std::list<std::string> &From)
                 } while (count != 0);
 
                 // Check for needs / inst block here
-                std::vector<std::string> preBlock, postBlock;
+                std::vector<token> preBlock, postBlock;
 
                 while (!From.empty() && From.front().size() > 1 && From.front().substr(0, 2) == "//")
                 {
@@ -1373,7 +1358,7 @@ sequence __createSequence(std::list<std::string> &From)
         {
             throw sequencing_error("Ill-formed 'let' statement: Must take the form `let a: type` or `let fn() -> "
                                    "type`. Instead, name is followed by '" +
-                                   From.front() + "'");
+                                   From.front().text + "'");
         }
 
         return out;
@@ -1391,7 +1376,7 @@ sequence __createSequence(std::list<std::string> &From)
 
         // Code scope.
         int count = 1;
-        std::list<std::string> curVec;
+        std::list<token> curVec;
         while (true)
         {
             if (From.empty())
@@ -1490,22 +1475,12 @@ sequence __createSequence(std::list<std::string> &From)
     // Non-special case; code line.
     // Function calls and template instantiation may occur within.
 
-    while (From.front().size() > 11 && From.front().substr(0, 11) == "//__LINE__=")
-    {
-        // Line update special symbol
-        std::string newLineNum = From.front().substr(12);
-        curLine = stoull(newLineNum);
-
-        // Pop
-        From.pop_front();
-    }
-
     sequence temp;
     temp.info = atom;
 
     int i = 0;
 
-    std::vector<std::string> tempVec;
+    std::vector<token> tempVec;
     for (auto i : From)
     {
         tempVec.push_back(i);
@@ -1535,7 +1510,7 @@ sequence __createSequence(std::list<std::string> &From)
 
 // This should only be called after method replacement
 // I know I wrote this, but it still feels like black magic and I don't really understand it
-Type resolveFunctionInternal(const std::vector<std::string> &What, int &start, std::vector<std::string> &c)
+Type resolveFunctionInternal(const std::vector<token> &What, int &start, std::vector<std::string> &c)
 {
     while (start < What.size() && What[start].size() > 1 && What[start].substr(0, 2) == "//")
     {
@@ -1605,7 +1580,7 @@ Type resolveFunctionInternal(const std::vector<std::string> &What, int &start, s
     // Parenthesis
     if (What[start] == "(")
     {
-        std::vector<std::string> toUse;
+        std::vector<token> toUse;
         int count = 0;
         do
         {
@@ -1632,12 +1607,14 @@ Type resolveFunctionInternal(const std::vector<std::string> &What, int &start, s
         int trash = 0;
         Type toReturn = resolveFunctionInternal(toUse, trash, c);
 
-        // c = "(" + c + ")";
-        // Costly:
-        // c.insert(c.begin(), "(");
-
-        // Less costly:
-        c.front().insert(c.front().begin(), '(');
+        if (!c.empty())
+        {
+            c.front().insert(c.front().begin(), '(');
+        }
+        else
+        {
+            c.push_back("(");
+        }
         c.push_back(")");
 
         return toReturn;
@@ -1759,7 +1736,7 @@ Type resolveFunctionInternal(const std::vector<std::string> &What, int &start, s
         // Case for size!() macro
 
         // Scrape entire size!(what) call to a std::vector
-        std::vector<std::string> toAnalyze;
+        std::vector<token> toAnalyze;
         int count = 0;
 
         start++;
@@ -1802,7 +1779,7 @@ Type resolveFunctionInternal(const std::vector<std::string> &What, int &start, s
         // Otherwise unspecified macro
 
         // Scrape entire call to a std::vector
-        std::list<std::string> toAnalyze = {What[start], "("};
+        std::list<token> toAnalyze = {token(What[start]), token("(")};
         int count = 0;
 
         start++;
@@ -1824,7 +1801,7 @@ Type resolveFunctionInternal(const std::vector<std::string> &What, int &start, s
 
             start++;
         } while (count != 0 && start < What.size());
-        toAnalyze.push_back(")");
+        toAnalyze.push_back(token(")"));
 
         // Analyze type of collected
         sequence s = __createSequence(toAnalyze);
@@ -1838,8 +1815,8 @@ Type resolveFunctionInternal(const std::vector<std::string> &What, int &start, s
     if (What.size() > start + 1 && What[start + 1] == "(")
     {
         // get args within parenthesis
-        std::vector<std::string> curArg;
-        std::vector<std::vector<std::string>> args;
+        std::vector<token> curArg;
+        std::vector<std::vector<token>> args;
 
         int count = 0, templCount = 0;
         start++;
@@ -1904,7 +1881,7 @@ Type resolveFunctionInternal(const std::vector<std::string> &What, int &start, s
 
         std::vector<Type> argTypes;
         std::vector<std::string> argStrs;
-        for (std::vector<std::string> arg : args)
+        for (std::vector<token> arg : args)
         {
             int trash = 0;
             std::string cur;
@@ -1925,6 +1902,15 @@ Type resolveFunctionInternal(const std::vector<std::string> &What, int &start, s
             type = Type(argTypes[0], 1);
             c.push_back("(*(" + argStrs[0] + "+" + argStrs[1] + "))");
         }
+
+        // Special case: Pointer nullification
+        else if (name == "Copy" && argTypes[0][0].info == pointer && argStrs[1] == "0")
+        {
+            // Return type is the thing the array is of
+            type = argTypes[0];
+            c.push_back("(" + argStrs[0] + "=0)");
+        }
+
         else
         {
             // Search for candidates
@@ -2114,9 +2100,9 @@ Type resolveFunctionInternal(const std::vector<std::string> &What, int &start, s
         if (litType == nullType)
         {
             // Is not a literal
-            sm_assert(table.count(What[start]) != 0, "No definitions exist for symbol '" + What[start] + "'.");
+            sm_assert(table.count(What[start]) != 0, "No definitions exist for symbol '" + What[start].text + "'.");
             auto candidates = table[What[start]];
-            sm_assert(candidates.size() != 0, "No definitions exist for symbol '" + What[start] + "'.");
+            sm_assert(candidates.size() != 0, "No definitions exist for symbol '" + What[start].text + "'.");
 
             type = candidates.back().type;
         }
@@ -2156,7 +2142,7 @@ Type resolveFunctionInternal(const std::vector<std::string> &What, int &start, s
             sm_assert(structData.count(structName) != 0, "Struct type '" + structName + "' does not exist.");
             sm_assert(!structData[structName].erased, "Struct '" + structName + "' exists, but is erased (private).");
             sm_assert(structData[structName].members.count(What[start + 2]) != 0,
-                      "Struct '" + structName + "' has no member '" + What[start + 2] + "'.");
+                      "Struct '" + structName + "' has no member '" + What[start + 2].text + "'.");
         }
         catch (sequencing_error &e)
         {
@@ -2170,7 +2156,7 @@ Type resolveFunctionInternal(const std::vector<std::string> &What, int &start, s
 
             for (; pos < What.size() && pos < start + 8; pos++)
             {
-                std::cout << What[pos] << (pos == start + 7 ? "" : " ");
+                std::cout << What[pos].text << (pos == start + 7 ? "" : " ");
             }
 
             std::cout << "'\n" << tags::reset;
@@ -2192,7 +2178,7 @@ Type resolveFunctionInternal(const std::vector<std::string> &What, int &start, s
     return type;
 }
 
-Type resolveFunction(const std::vector<std::string> &What, int &start, std::string &c)
+Type resolveFunction(const std::vector<token> &What, int &start, std::string &c)
 {
     std::vector<std::string> cVec;
 

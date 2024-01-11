@@ -31,15 +31,15 @@ class rule_error : public std::runtime_error
 
 struct rule
 {
-    std::vector<std::string> inputPattern;
-    std::vector<std::string> outputPattern;
+    std::vector<token> inputPattern;
+    std::vector<token> outputPattern;
 
     // The function to call
-    void (*doRule)(std::vector<std::string> &, int &, rule &);
+    void (*doRule)(std::vector<token> &, int &, rule &);
 };
 
 // Maps a string engine ID to its corresponding engine function.
-extern std::map<std::string, void (*)(std::vector<std::string> &, int &, rule &)> engines;
+extern std::map<std::string, void (*)(std::vector<token> &, int &, rule &)> engines;
 
 // Add a new engine
 void addEngine(const std::string &name, void (*hook)(std::vector<std::string> &, int &, rule &));
@@ -58,15 +58,15 @@ extern std::map<std::string, std::vector<std::string>> bundles;
 
 // I is the point in Lexed at which a macro name was found
 // CONSUMPTIVE!
-std::vector<std::string> getMacroArgs(std::vector<std::string> &lexed, const int &i);
+std::vector<std::string> getMacroArgs(std::vector<token> &lexed, const int &i);
 
 // Active rules should already be present in their vector
-void doRules(std::vector<std::string> &From);
+void doRules(std::vector<token> &From);
 
 // Load a dialect file
 void loadDialectFile(const std::string &File);
 
 // Internal pass-through for Sapling rule engine
-void doRuleAcorn(std::vector<std::string> &tokens, int &i, rule &toDo);
+void doRuleAcorn(std::vector<token> &tokens, int &i, rule &toDo);
 
 #endif

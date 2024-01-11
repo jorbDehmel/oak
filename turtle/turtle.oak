@@ -2,8 +2,7 @@
 
 /*
 A basic turtle with a pen. Concept based off of the Python
-turtle package, which I used as a kid and helped to get me into
-programming.
+turtle package.
 
 Jordan Dehmel, 2024
 jdehmel@outlook.com
@@ -11,10 +10,8 @@ jdehmel@outlook.com
 
 ////////////////////////////////////////////////////////////////
 
-package!("std", "sdl", "stl");
+package!("std", "sdl");
 include!("std/math.oak");
-include!("std/printf.oak");
-include!("std/string.oak");
 use_rule!("std");
 
 ////////////////////////////////////////////////////////////////
@@ -41,9 +38,13 @@ let turtle::turtle: struct
     bg_color: sdl::color,
     pen_color: sdl::color,
     turtle_color: sdl::color,
-    pixels: [][]bool,
+    pixels: [][]sdl::color,
 }
 
+/*
+A constant used for later calculations. Equal to the square
+root of two.
+*/
 let turtle_sqrt_two! = 1.41421;
 
 ////////////////////////////////////////////////////////////////
@@ -87,7 +88,7 @@ let New(self: ^turtle::turtle) -> void
         let j: u128 = 0;
         while j < self.w
         {
-            ptrarr!(ptrarr!(self.pixels, i), j) = false;
+            ptrarr!(ptrarr!(self.pixels, i), j) = self.bg_color;
 
             j += 1;
         }
@@ -128,6 +129,20 @@ let is_filled(self: ^turtle::turtle, x: i128, y: i128) -> bool
     let real_y: i128 = to_i128(y) % to_i128(self.h);
 
     ptrarr!(ptrarr!(self.pixels, real_y), real_x)
+        != self.bg_color
+}
+
+/*
+Does nothing for a certain number of seconds.
+*/
+let sleep(self: ^turtle::turtle, s: f64) -> void
+{
+    if self.is_running
+    {
+        let ms: u128;
+        ms = floor(s * 1000.0);
+        sdl::delay(ms);
+    }
 }
 
 ////////////////////////////////////////////////////////////////
@@ -184,7 +199,17 @@ let refresh(self: ^turtle::turtle) -> void
             {
                 if self.is_filled(point.x, point.y)
                 {
-                    draw_dot(self.window, point, self.pen_color);
+                    draw_dot(
+                        self.window,
+                        point,
+                        ptrarr!(
+                            ptrarr!(
+                                self.pixels,
+                                point.y
+                            ),
+                            point.x
+                        )
+                    );
                 }
 
                 point.x += 1;
@@ -199,8 +224,10 @@ let refresh(self: ^turtle::turtle) -> void
         let c: sdl::coord;
 
         a = (self.x, f_to_i(to_f64(self.y) + self.radius));
-        b = (f_to_i(to_f64(self.x) - self.radius), f_to_i(to_f64(self.y) - self.radius));
-        c = (f_to_i(to_f64(self.x) + self.radius), f_to_i(to_f64(self.y) - self.radius));
+        b = (f_to_i(to_f64(self.x) - self.radius),
+             f_to_i(to_f64(self.y) - self.radius));
+        c = (f_to_i(to_f64(self.x) + self.radius),
+             f_to_i(to_f64(self.y) - self.radius));
 
         let center: sdl::coord;
         center = (self.x, self.y);
@@ -256,51 +283,9 @@ let refresh(self: ^turtle::turtle) -> void
     }
 }
 
-let turtle::__flood_recursive(canvas: [][]bool, w: u128, h: u128, x: i128, y: i128) -> void
-{
-    let sentinel: bool = true;
-
-    if x < to_i128(0)
-    {
-        sentinel = false;
-    }
-    else if x >= to_i128(w)
-    { 
-        sentinel = false;
-    }
-    else if y < to_i128(0)
-    {
-        sentinel = false;
-    }
-    else if y >= to_i128(h)
-    {
-        sentinel = false;
-    }
-    else if ptrarr!(ptrarr!(canvas, y), x)
-    {
-        sentinel = false;
-    }
-    
-    if sentinel
-    {
-        ptrarr!(ptrarr!(canvas, y), x) = true;
-
-        turtle::__flood_recursive(canvas, w, h, x - (1), y);
-        turtle::__flood_recursive(canvas, w, h, x + 1, y);
-        turtle::__flood_recursive(canvas, w, h, x, y - (1));
-        turtle::__flood_recursive(canvas, w, h, x, y + 1);
-    }
-}
-
 /*
-Flood the current section with color. Uses the turtle's coords.
+Clear the canvas of any pen marks.
 */
-let flood(self: ^turtle::turtle) -> void
-{
-    turtle::__flood_recursive(self.pixels, self.w, self.h, self.x, self.y);
-    self.refresh();
-}
-
 let clear(self: ^turtle::turtle) -> void
 {
     let y: u128 = 0;
@@ -309,7 +294,7 @@ let clear(self: ^turtle::turtle) -> void
         let x: u128 = 0;
         while x < self.w
         {
-            ptrarr!(ptrarr!(self.pixels, y), x) = false;
+            ptrarr!(ptrarr!(self.pixels, y), x) = self.bg_color;
 
             x += 1;
         }
@@ -324,32 +309,10 @@ let clear(self: ^turtle::turtle) -> void
 // Movement stuff
 ////////////////////////////////////////////////////////////////
 
+/*
+Turn the turtle left by a given number of degrees.
+*/
 let left(self: ^turtle::turtle, by: f64) -> void
-{
-    let frames: i32 = floor(by / self.speed);
-    let dt: f64 = by / to_f64(frames);
-
-    let frame: i32 = 0;
-    while frame < frames
-    {
-        self.orientation -= dt;
-
-        while (self.orientation < 0.0)
-        {
-            self.orientation += 360.0;
-        }
-        while (self.orientation >= 360.0)
-        {
-            self.orientation -= 360.0;
-        }
-
-        self.refresh();
-
-        frame += 1;
-    }
-}
-
-let right(self: ^turtle::turtle, by: f64) -> void
 {
     let frames: i32 = floor(by / self.speed);
     let dt: f64 = by / to_f64(frames);
@@ -374,12 +337,46 @@ let right(self: ^turtle::turtle, by: f64) -> void
     }
 }
 
+/*
+Turn the turtle right by a given number of degrees.
+*/
+let right(self: ^turtle::turtle, by: f64) -> void
+{
+    let frames: i32 = floor(by / self.speed);
+    let dt: f64 = by / to_f64(frames);
+
+    let frame: i32 = 0;
+    while frame < frames
+    {
+        self.orientation -= dt;
+
+        while (self.orientation < 0.0)
+        {
+            self.orientation += 360.0;
+        }
+        while (self.orientation >= 360.0)
+        {
+            self.orientation -= 360.0;
+        }
+
+        self.refresh();
+
+        frame += 1;
+    }
+}
+
+/*
+Move the turtle forward in the current direction. If the pen is
+down, it will make markings in the current pen color.
+*/
 let forward(self: ^turtle::turtle, by: i128) -> void
 {
     let frames: i32 = floor(to_f64(by) / self.speed);
 
-    let dx: f64 = to_f64(by) * sdl::sin(degrees_to_radians(self.orientation)) / to_f64(frames);
-    let dy: f64 = to_f64(by) * sdl::cos(degrees_to_radians(self.orientation)) / to_f64(frames);
+    let dx: f64 = to_f64(by) * sdl::sin(
+        degrees_to_radians(self.orientation)) / to_f64(frames);
+    let dy: f64 = to_f64(by) * sdl::cos(
+        degrees_to_radians(self.orientation)) / to_f64(frames);
 
     let real_x: f64 = i_to_f(self.x);
     let real_y: f64 = i_to_f(self.y);
@@ -392,10 +389,24 @@ let forward(self: ^turtle::turtle, by: i128) -> void
 
         self.x = floor(real_x);
         self.y = floor(real_y);
+
+        while self.x < to_i128(0)
+        {
+            self.x += self.w;
+        }
+        while self.y < to_i128(0)
+        {
+            self.y += self.h;
+        }
+
         self.x %= self.w;
         self.y %= self.h;
 
-        ptrarr!(ptrarr!(self.pixels, self.y), self.x) = true;
+        if self.pen_is_down
+        {
+            ptrarr!(ptrarr!(self.pixels, self.y), self.x)
+                = self.pen_color;
+        }
 
         self.refresh();
 
@@ -403,7 +414,12 @@ let forward(self: ^turtle::turtle, by: i128) -> void
     }
 }
 
-let set_position(self: ^turtle::turtle, x: i128, y: i128) -> void
+/*
+Move the turtle to an absolute position, rather than just
+forward or backward.
+*/
+let set_position(self: ^turtle::turtle, x: i128, y: i128)
+    -> void
 {
     let t1 = x - self.x;
     let t2 = y - self.y;
@@ -430,16 +446,34 @@ let set_position(self: ^turtle::turtle, x: i128, y: i128) -> void
 
         self.x = floor(real_x);
         self.y = floor(real_y);
+
+        while self.x < to_i128(0)
+        {
+            self.x += self.w;
+        }
+        while self.y < to_i128(0)
+        {
+            self.y += self.h;
+        }
+
         self.x %= self.w;
         self.y %= self.h;
 
-        ptrarr!(ptrarr!(self.pixels, self.y), self.x) = true;
+        if self.pen_is_down
+        {
+            ptrarr!(ptrarr!(self.pixels, self.y), self.x)
+                = self.pen_color;
+        }
+
         self.refresh();
 
         frame += 1;
     }
 }
 
+/*
+Set the current orientation, regardless of the current one.
+*/
 let set_orientation(self: ^turtle::turtle, to: f64) -> void
 {
     let frames: i32 = floor(to / self.speed);
@@ -463,14 +497,22 @@ let set_orientation(self: ^turtle::turtle, to: f64) -> void
 
         frame += 1;
     }
+
+    self.orientation = to;
 }
 
+/*
+Move the turtle backwards a given number of steps. If the pen is
+down, it will make markings.
+*/
 let backward(self: ^turtle::turtle, by: i128) -> void
 {
     let frames: i32 = floor(to_f64(by) / self.speed);
 
-    let dx: f64 = to_f64(by) * sdl::sin(degrees_to_radians(self.orientation)) / to_f64(frames);
-    let dy: f64 = to_f64(by) * sdl::cos(degrees_to_radians(self.orientation)) / to_f64(frames);
+    let dx: f64 = to_f64(by) * sdl::sin(
+        degrees_to_radians(self.orientation)) / to_f64(frames);
+    let dy: f64 = to_f64(by) * sdl::cos(
+        degrees_to_radians(self.orientation)) / to_f64(frames);
 
     let real_x: f64 = i_to_f(self.x);
     let real_y: f64 = i_to_f(self.y);
@@ -483,10 +525,24 @@ let backward(self: ^turtle::turtle, by: i128) -> void
 
         self.x = floor(real_x);
         self.y = floor(real_y);
+
+        while self.x < to_i128(0)
+        {
+            self.x += self.w;
+        }
+        while self.y < to_i128(0)
+        {
+            self.y += self.h;
+        }
+
         self.x %= self.w;
         self.y %= self.h;
 
-        ptrarr!(ptrarr!(self.pixels, self.y), self.x) = true;
+        if self.pen_is_down
+        {
+            ptrarr!(ptrarr!(self.pixels, self.y), self.x)
+                = self.pen_color;
+        }
 
         self.refresh();
 
@@ -494,12 +550,22 @@ let backward(self: ^turtle::turtle, by: i128) -> void
     }
 }
 
+/*
+Move the turtle's pen up, such that it does not make markings
+when it moves.
+*/
 let up(self: ^turtle::turtle) -> void
 {
     self.pen_is_down = false;
 }
 
+/*
+Move the turtle's pen down, such that it does make markings when
+it moves.
+*/
 let down(self: ^turtle::turtle) -> void
 {
     self.pen_is_down = true;
 }
+
+////////////////////////////////////////////////////////////////

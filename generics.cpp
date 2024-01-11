@@ -7,11 +7,12 @@ Jordan Dehmel, 2023
 
 #include "generics.hpp"
 #include "symbol_table.hpp"
+#include "tags.hpp"
 #include "type_builder.hpp"
 
 // External definition of createSequence, defined in sequence.cpp
 // This avoids circular dependencies
-extern sequence createSequence(const std::vector<std::string> &From);
+extern sequence createSequence(const std::vector<token> &From);
 
 // A pair of <name, number_of_generics> maps to a vector of symbols within
 std::map<std::string, std::vector<genericInfo>> generics;
@@ -207,7 +208,7 @@ std::string __instantiateGeneric(const std::string &what, genericInfo &info,
         substitutions[info.genericNames[i]] = genericSubs[i];
     }
 
-    std::vector<std::string> copy;
+    std::vector<token> copy;
 
     // Needs block (pre, so no functions)
     if (info.preBlock.size() != 0)
@@ -453,9 +454,9 @@ std::string instantiateGeneric(const std::string &what, const std::vector<std::v
     return mangleStr;
 }
 
-void addGeneric(const std::vector<std::string> &what, const std::string &name,
-                const std::vector<std::string> &genericsList, const std::vector<std::string> &typeVec,
-                const std::vector<std::string> &preBlock, const std::vector<std::string> &postBlock)
+void addGeneric(const std::vector<token> &what, const std::string &name, const std::vector<std::string> &genericsList,
+                const std::vector<std::string> &typeVec, const std::vector<token> &preBlock,
+                const std::vector<token> &postBlock)
 {
     genericInfo toAdd;
     toAdd.originFile = curFile;
@@ -554,7 +555,7 @@ void printGenericDumpInfo(std::ostream &file)
                     file << "\n\t\t\t";
                 }
 
-                file << cand.symbols[i] << ' ';
+                file << cand.symbols[i].text << ' ';
             }
 
             file << '\n' << "\t\tPre block:";
@@ -565,7 +566,7 @@ void printGenericDumpInfo(std::ostream &file)
                     file << "\n\t\t\t";
                 }
 
-                file << cand.preBlock[i] << ' ';
+                file << cand.preBlock[i].text << ' ';
             }
 
             file << '\n' << "\t\tPost block:";
@@ -576,7 +577,7 @@ void printGenericDumpInfo(std::ostream &file)
                     file << "\n\t\t\t";
                 }
 
-                file << cand.postBlock[i] << ' ';
+                file << cand.postBlock[i].text << ' ';
             }
 
             file << '\n' << "\t\tInstances:\n";

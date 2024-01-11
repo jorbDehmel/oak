@@ -104,7 +104,7 @@ let has<k>(self: ^stl::set<k>, key: k) -> bool
     while sentinel
     {
         // Get
-        ptrcpy!(cur, Get(self.data, i));
+        ptrcpy!(cur, @Get(self.data, i));
 
         // If found
         if cur.key == key
@@ -150,7 +150,7 @@ let insert<k>(self: ^stl::set<k>, key: k) -> void
     while sentinel
     {
         // Get
-        ptrcpy!(cur, Get(self.data, i));
+        ptrcpy!(cur, @Get(self.data, i));
 
         // If found
         if cur.key == key
@@ -237,7 +237,7 @@ let expand<k>(self: ^stl::set<k>) -> void
             while sentinel
             {
                 // Get
-                ptrcpy!(cur, Get(self.data, k));
+                ptrcpy!(cur, @Get(self.data, k));
 
                 // If found
                 if cur.key == key

@@ -21,6 +21,7 @@ source code.
 
 #include "reconstruct.hpp"
 #include "symbol_table.hpp"
+#include "tags.hpp"
 
 const static std::string COMPILED_PATH = ".oak_build/";
 const static std::string COMPILER_COMMAND = "acorn";

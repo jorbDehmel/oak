@@ -74,6 +74,8 @@ post
 
     append<t>(_: ^stl::list<t>, _: t);
     prepend<t>(_: ^stl::list<t>, _: t);
+
+    erase<t>(_: ^stl::list<t>, _: ^stl::list_node<t>);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -164,6 +166,32 @@ let prepend<t>(self: ^stl::list<t>, what: t) -> void
         ptrcpy!(self.head, self.head.prev);
         ptrcpy!(self.head.prev.next, self.head);
         self.head.data = what;
+    }
+}
+
+let erase<t>(self: ^stl::list<t>, what: ^stl::list_node<t>) -> void
+{
+    Eq<stl::list_node<i32>>(_: ^stl::list_node<i32>, _: ^stl::list_node<i32>);
+
+    if self.head == what
+    {
+        self.pop_front();
+    }
+    else if self.tail == what
+    {
+        self.pop_back();
+    }
+    else
+    {
+        ptrcpy!(what.prev.next, what.next);
+        ptrcpy!(what.next.prev, what.prev);
+        ptrcpy!(what.next, 0);
+        ptrcpy!(what.prev, 0);
+
+        Del(what);
+        free!(what);
+
+        ptrcpy!(what, 0);
     }
 }
 

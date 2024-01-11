@@ -31,8 +31,8 @@ GPLv3 held by author
 #include "sizer.hpp"
 #include "tags.hpp"
 
-// Info
-const static std::string VERSION = "0.4.8";
+// Info globals
+const static std::string VERSION = "0.4.9";
 const static std::string LICENSE = "GPLv3";
 const static std::string INFO = "jdehmel@outlook.com";
 

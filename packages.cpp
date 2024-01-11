@@ -345,43 +345,36 @@ void downloadPackage(const std::string &URLArg, const bool &Reinstall, const std
             std::string line;
             while (getline(packagesList, line))
             {
-                if (line.size() >= 2 && line.substr(0, 2) == "//")
+
+                pm_assert(line.find(' ') != std::string::npos, "Malformed packages_list.txt");
+
+                std::cout << 330 << '\t' << line << '\n';
+
+                // name source path
+                std::string name, source, path;
+
+                auto breakPoint = line.find(' ');
+
+                name = line.substr(0, breakPoint);
+                source = line.substr(breakPoint + 1);
+
+                std::cout << 340 << '\t' << name << '\t' << source << '\n';
+
+                pm_assert(source.find(' ') != std::string::npos, "Malformed packages_list.txt");
+                breakPoint = source.find(' ');
+
+                path = source.substr(breakPoint + 1);
+                source = source.substr(0, breakPoint);
+
+                std::cout << 347 << '\t' << name << '\t' << source << '\t' << path << '\n';
+
+                if (name == URL)
                 {
-                    continue;
-                }
-                else
-                {
-                    pm_assert(line.find(' ') != std::string::npos, "Malformed packages_list.txt");
+                    std::cout << "Package '" << name << "' found in /usr/include/oak/packages_list.txt w/ repo URL of '"
+                              << source << "'\n";
 
-                    std::cout << 330 << '\t' << line << '\n';
-
-                    // name source path
-                    std::string name, source, path;
-
-                    auto breakPoint = line.find(' ');
-
-                    name = line.substr(0, breakPoint);
-                    source = line.substr(breakPoint + 1);
-
-                    std::cout << 340 << '\t' << name << '\t' << source << '\n';
-
-                    pm_assert(source.find(' ') != std::string::npos, "Malformed packages_list.txt");
-                    breakPoint = source.find(' ');
-
-                    path = source.substr(breakPoint + 1);
-                    source = source.substr(0, breakPoint);
-
-                    std::cout << 347 << '\t' << name << '\t' << source << '\t' << path << '\n';
-
-                    if (name == URL)
-                    {
-                        std::cout << "Package '" << name
-                                  << "' found in /usr/include/oak/packages_list.txt w/ repo URL of '" << source
-                                  << "'\n";
-
-                        downloadPackage(source, Reinstall, path);
-                        return;
-                    }
+                    downloadPackage(source, Reinstall, path);
+                    return;
                 }
             }
 

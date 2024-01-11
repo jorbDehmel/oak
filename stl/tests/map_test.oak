@@ -14,11 +14,6 @@ include!("std/printf.oak");
 
 let hash(what: i32) -> u128
 {
-    if (what == 0)
-    {
-        return 1;
-    }
-
     return to_u128(what);
 }
 

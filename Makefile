@@ -4,7 +4,7 @@
 # github.com/jorbDehmel/oak
 ################################################################
 
-CC := clang++
+CC := clang++ -g
 
 OBJS := build/lexer.o build/symbol_table.o \
 	build/type_builder.o build/reconstruct.o \
@@ -57,20 +57,18 @@ test:
 
 ################################################################
 
+dirs:
+	mkdir -p bin
+	mkdir -p build
+
 README.pdf:	README.md
 	pandoc README.md -o README.pdf
 
 build/%.o:	%.cpp $(HEADS)
-	mkdir -p build
 	$(CC) $(FLAGS) -c -o $@ $<
 
-bin/%.out:	build/%.o $(OBJS) $(HEADS)
-	mkdir -p bin
-	$(CC) $(FLAGS) -o $@ $< $(OBJS)
-
-bin/acorn.out:	build/acorn.o $(OBJS) $(HEADS)
-	mkdir -p bin
-	$(CC) $(FLAGS) -o $@ $< $(OBJS)
+bin/acorn.out:	dirs build/acorn.o $(OBJS) $(HEADS)
+	$(CC) $(FLAGS) -o $@ build/acorn.o $(OBJS)
 
 ################################################################
 

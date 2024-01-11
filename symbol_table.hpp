@@ -61,14 +61,6 @@ struct __multiTableSymbol
     std::string sourceFilePath = "";
 };
 
-// For later instantiation
-struct __template_info
-{
-    std::vector<std::string> generics;
-    std::vector<std::string> guts;
-    std::vector<std::string> returnType;
-};
-
 typedef std::map<std::string, std::vector<__multiTableSymbol>> multiSymbolTable;
 
 // typedef map<string, vector<__template_info>> multiTemplTable;
@@ -79,13 +71,14 @@ extern multiSymbolTable table;
 std::string toC(const sequence &What);
 
 // Converts lexed symbols into a type
+Type toType(const std::vector<token> &What);
 Type toType(const std::vector<std::string> &What);
 
 // Can throw errors (IE malformed definitions)
 // Takes in the whole definition, starting at let
 // and ending after }. (Oak has no trailing semicolon)
 // Can also handle templating
-void addStruct(const std::vector<std::string> &From);
+void addStruct(const std::vector<token> &From);
 
 // Extern defs
 std::string mangleStruct(const std::string &name, const std::vector<std::vector<std::string>> &generics);

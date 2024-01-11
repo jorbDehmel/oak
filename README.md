@@ -1,6 +1,6 @@
 
 # The Oak Programming Language
-## Version 0.4.8
+## Version 0.4.9
 
 ![](logo_trimmed.png)
 
@@ -1994,23 +1994,6 @@ they represent character-wise iteration.
 10 - (External) Object file creation via `clang`
 11 - (External) Executable linking via `clang`
 
-## Special Symbols
-
-Special symbols are inserted during lexing to retain metadata.
-They are essentially ways for the lexer to talk to the compiler.
-They are ignored by nearly every other stage of translation.
-This is, for instance, how `acorn` knows which line an error
-occurs on even though the `Oak` lexer erases newlines extremely
-early in processing. Special symbols are prefixed with two
-slashes, like a comment. The `line` special symbol looks like
-this: `//__LINE__=X`, with `X` being replaced by the current
-line.
-
-As a front-end user of `acorn`, you shouldn't have to worry
-about special symbols. They will appear in some parts of
-`acorn`-generated dump files, but otherwise they should not
-appear anywhere (even `Sapling` ignores them).
-
 ## Time and Space Complexities
 
 `Oak` translation, in theory, runs in time complexity
@@ -2791,6 +2774,13 @@ allows access to graphics. This library is useful for games.
 This package includes files vital for the function of nearly all
 `Oak` programs. It should be included in virtually all programs.
 
+## `turtle`
+
+This packages is based on the `Python` `turtle` package. It
+provides a `turtle::turtle` object, which is a turtle with a pen
+on a canvas. This turtle can rotate and move, lift or set down a
+pen, and thus draw pictures.
+
 ## `stl`
 
 This package is the standard templated library for `Oak`. It
@@ -2877,6 +2867,13 @@ could meaningfully be). This process is called lexical
 tokenization, and these tokens will be the only thing used by
 the remainder of the compilation process.
 
+The `Oak` lexer, like most lexical tokenizers, operates using a
+DFA (deterministic finite-state automata). This machine is fed
+each character, and changes state based on only its current
+state and the input. It has one state which represents the
+splitting of a token. Because of this process, the `Oak` lexer
+runs in `O(n)`, where `n` is the number of input bytes.
+
 Tokenization is context-dependant. The same symbol set that in
 one place would signify a new token could, in another, continue
 on in the same token. For instance, if the lexer came across the
@@ -2888,14 +2885,9 @@ be started when following `+`, but not when following `a`.
 During lexing, several important processes happen. The first of
 these is that all comments, single-line or multi-line, are
 erased. All `#`-begun lines (the only legal use of which being
-the shebang `#!/path/to/program`) are also removed. The second
-important process is the insertion of **special symbols**. These
-are symbols which are ignored by everything following this
-process. They carry additional information that might otherwise
-be lost by tokenization, like the line number. These begin with
-`//`, but they are **not** tokenizations of comments in the
-source code. They are only inserted by the lexer, not the source
-code.
+the shebang `#!/path/to/program`) are also removed. Secondly,
+information about the origin and line of all tokens is
+inserted into the token stream.
 
 The final pass of the lexer is called the conglomeration pass.
 At this time, the tokenized input will be iterated over, and

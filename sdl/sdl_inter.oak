@@ -46,6 +46,41 @@ let Copy(self: ^sdl_color, r: u8, g: u8, b: u8, a: u8) -> void
     self.a = a;
 }
 
+let Copy(self: ^sdl_color, other: sdl_color) -> void
+{
+    self.r = other.r;
+    self.g = other.g;
+    self.b = other.b;
+    self.a = other.a;
+}
+
+let Eq(l: sdl_color, r: sdl_color) -> bool
+{
+    if (l.r != r.r)
+    {
+        return false;
+    }
+    else if (l.g != r.g)
+    {
+        return false;
+    }
+    else if (l.b != r.b)
+    {
+        return false;
+    }
+    else if (l.a != r.a)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+let Neq(l: sdl_color, r: sdl_color) -> bool
+{
+    return Not(Eq(l, r));
+}
+
 let sdl_coord: struct
 {
     x, y: u64,
@@ -61,6 +96,12 @@ let Copy(self: ^sdl_coord, x: u64, y: u64) -> void
 {
     self.x = x;
     self.y = y;
+}
+
+let Copy(self: ^sdl_coord, other: sdl_coord) -> void
+{
+    self.x = other.x;
+    self.y = other.y;
 }
 
 let sdl_rect: struct
@@ -82,6 +123,14 @@ let Copy(self: ^sdl_rect, x: u64, y: u64, w: u64, h: u64) -> void
     self.y = y;
     self.w = w;
     self.h = h;
+}
+
+let Copy(self: ^sdl_rect, other: sdl_rect) -> void
+{
+    self.x = other.x;
+    self.y = other.y;
+    self.w = other.w;
+    self.h = other.h;
 }
 
 let sdl_sin(x: f64) -> f64;

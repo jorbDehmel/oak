@@ -1,712 +1,468 @@
-/*
-Jordan Dehmel
-jdehmel@outlook.com
-github.com/jorbDehmel
-2023 - present
-GPLv3 held by author
-*/
-
 #include "lexer.hpp"
+#include "tags.hpp"
+#include <stdexcept>
 
-const static std::string alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-const static std::string numbers = "0123456789";
+static bool is_initialized = false;
+static lexer_state **dfa = nullptr;
 
-std::vector<std::string> lex(const std::string &What)
+std::string to_string(token &what)
 {
-    std::vector<std::string> out;
-    std::string cur = "";
-    unsigned long long line = 1;
-
-    char c;
-
-    for (unsigned int i = 0; i < What.size(); i++)
+    if (what.text == " ")
     {
-        c = What[i];
+        return "\\s";
+    }
+    else if (what.text == "\n")
+    {
+        return "\\n";
+    }
+    else if (what.text == "\t")
+    {
+        return "\\t";
+    }
+    else
+    {
+        return what.text;
+    }
+}
 
-        // Universal deliminators ignored
-        // Ex: whitespace
-        if (c == ' ' || c == '\t' || c == '\n')
+lexer::lexer()
+{
+    const static char *alpha = "abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ`";
+    const static char *numer = "0123456789";
+    const static char *oper = "!%&*=+|/~[]";
+    const static char *singletons = "^@#(){};,";
+    const static char *whitespace = " \t\n";
+
+    cur_file = "NULL";
+
+    // Localize variables
+    text = "";
+    pos = 0;
+    line = 1;
+    state = delim_state;
+
+    // Initialize singleton members
+    if (is_initialized)
+    {
+        is_responsible = false;
+        return;
+    }
+
+    is_responsible = true;
+    is_initialized = true;
+
+    // Initialize DFA
+    dfa = new lexer_state *[number_states];
+    for (int i = 0; i < number_states; i++)
+    {
+        dfa[i] = new lexer_state[number_chars];
+
+        // Set default to deliminator state
+        for (int j = 0; j < number_chars; j++)
         {
-            if (cur != "")
-            {
-                out.push_back(cur);
-                cur = "";
-            }
+            dfa[i][j] = delim_state;
+        }
+    }
 
-            if (c == '\n')
-            {
-                // Newline. Increment line count and insert line special symbol
-                line++;
-                out.push_back("//__LINE__=" + std::to_string(line));
-            }
+    // Alphabetic stuff
+    for (const char *i = &alpha[0]; *i != '\0'; i++)
+    {
+        dfa[delim_state][(unsigned int)*i] = alpha_state;
+        dfa[numerical_state][(unsigned int)*i] = numerical_state;
+        dfa[alpha_state][(unsigned int)*i] = alpha_state;
+        dfa[string_literal_state_single][(unsigned int)*i] = string_literal_state_single;
+        dfa[string_literal_state_double][(unsigned int)*i] = string_literal_state_double;
+        dfa[whitespace_state][(unsigned int)*i] = delim_state;
+    }
 
+    // Non-ascii alphabetic stuff
+    for (int i = 1; i < number_chars; i++)
+    {
+        if (i > 31 && i < 128)
+        {
+            continue;
+        }
+        else if (i == '\t' || i == '\n')
+        {
             continue;
         }
 
-        // Rule processing; Use whole word
-        else if (c == '$')
+        dfa[delim_state][i] = alpha_state;
+        dfa[numerical_state][i] = numerical_state;
+        dfa[alpha_state][i] = alpha_state;
+        dfa[string_literal_state_single][i] = string_literal_state_single;
+        dfa[string_literal_state_double][i] = string_literal_state_double;
+        dfa[whitespace_state][i] = delim_state;
+    }
+
+    // Numerical stuff
+    for (const char *i = &numer[0]; *i != '\0'; i++)
+    {
+        dfa[delim_state][(unsigned int)*i] = numerical_state;
+        dfa[numerical_state][(unsigned int)*i] = numerical_state;
+        dfa[alpha_state][(unsigned int)*i] = alpha_state;
+        dfa[dot_state][(unsigned int)*i] = numerical_state;
+        dfa[string_literal_state_single][(unsigned int)*i] = string_literal_state_single;
+        dfa[string_literal_state_double][(unsigned int)*i] = string_literal_state_double;
+        dfa[dash_state][(unsigned int)*i] = numerical_state;
+    }
+
+    // Dot stuff
+    dfa[delim_state][(unsigned int)'.'] = dot_state;
+    dfa[numerical_state][(unsigned int)'.'] = numerical_state;
+    dfa[string_literal_state_single][(unsigned int)'.'] = string_literal_state_single;
+    dfa[string_literal_state_double][(unsigned int)'.'] = string_literal_state_double;
+
+    // Singleton stuff
+    for (const char *i = &singletons[0]; *i != '\0'; i++)
+    {
+        dfa[delim_state][(unsigned int)*i] = singleton_state;
+    }
+
+    // Square bracket stuff
+    dfa[delim_state][(unsigned int)'<'] = open_square_bracket_state;
+    dfa[delim_state][(unsigned int)'>'] = close_square_bracket_state;
+    dfa[open_square_bracket_state][(unsigned int)'='] = operator_state;
+    dfa[close_square_bracket_state][(unsigned int)'='] = operator_state;
+
+    // Dash stuff
+    dfa[delim_state][(unsigned int)'-'] = dash_state;
+    dfa[dash_state][(unsigned int)'>'] = operator_state;
+
+    // Operator stuff
+    for (const char *i = &oper[0]; *i != '\0'; i++)
+    {
+        dfa[delim_state][(unsigned int)*i] = operator_state;
+        dfa[operator_state][(unsigned int)*i] = operator_state;
+        dfa[string_literal_state_single][(unsigned int)*i] = string_literal_state_single;
+        dfa[string_literal_state_double][(unsigned int)*i] = string_literal_state_double;
+        dfa[dash_state][(unsigned int)*i] = operator_state;
+    }
+    dfa[operator_state][(unsigned int)'['] = delim_state;
+
+    // String literal stuff
+    for (int i = 0; i < 256; i++)
+    {
+        dfa[string_literal_state_single][i] = string_literal_state_single;
+        dfa[string_literal_state_double][i] = string_literal_state_double;
+    }
+
+    dfa[delim_state][(unsigned int)'\''] = string_literal_state_single;
+    dfa[delim_state][(unsigned int)'"'] = string_literal_state_double;
+    dfa[delim_state][(unsigned int)':'] = colon_state;
+    dfa[string_literal_state_single][(unsigned int)'\''] = delim_state;
+    dfa[string_literal_state_double][(unsigned int)'"'] = delim_state;
+
+    for (int i = 1; i < number_states; i++)
+    {
+        if (i != string_literal_state_double)
         {
-            while (i < What.size() && What[i] != ' ' && What[i] != '\t')
-            {
-                cur += What[i];
-                i++;
-            }
+            dfa[(lexer_state)i][(unsigned int)'\''] = delim_state;
+        }
+        if (i != string_literal_state_single)
+        {
+            dfa[(lexer_state)i][(unsigned int)'"'] = delim_state;
+        }
+    }
 
-            out.push_back(cur);
-            cur = "";
+    // Whitespace stuff
+    for (const char *i = &whitespace[0]; *i != '\0'; i++)
+    {
+        dfa[delim_state][(unsigned int)*i] = whitespace_state;
+        dfa[string_literal_state_single][(unsigned int)*i] = string_literal_state_single;
+        dfa[string_literal_state_double][(unsigned int)*i] = string_literal_state_double;
+    }
 
+    dfa[string_literal_state_single][(unsigned int)'\n'] = delim_state;
+    dfa[string_literal_state_double][(unsigned int)'\n'] = delim_state;
+
+    // Misc
+    dfa[alpha_state][(unsigned int)'!'] = alpha_state;
+
+    for (int i = 0; i < number_states; i++)
+    {
+        if (i == string_literal_state_single || i == string_literal_state_double || i == whitespace_state)
+        {
             continue;
         }
 
-        // Preproc, should NOT get to this point!
-        else if (c == '#')
-        {
-            // The whole line is garbage for our concerns
-            while (i < What.size() && What[i] != '\n')
-            {
-                i++;
-            }
-            continue;
-        }
+        dfa[i][(unsigned int)'$'] = dollar_sign_state;
+    }
+    for (int i = 0; i < number_chars; i++)
+    {
+        dfa[dollar_sign_state][i] = dollar_sign_state;
+        dfa[colon_state][i] = delim_state;
+    }
 
-        // Single-line comments, also shouldn't get to this point
-        else if (c == '/' && i + 1 < What.size() && What[i + 1] == '/')
-        {
-            while (i < What.size() && What[i] != '\n')
-            {
-                i++;
-            }
+    dfa[dollar_sign_state][(unsigned int)' '] = delim_state;
+    dfa[dollar_sign_state][(unsigned int)'\t'] = delim_state;
+    dfa[dollar_sign_state][(unsigned int)'\n'] = delim_state;
+    dfa[colon_state][(unsigned int)':'] = colon_state;
+}
 
+lexer::~lexer()
+{
+    if (!is_responsible)
+    {
+        return;
+    }
+
+    for (int i = 0; i < number_states; i++)
+    {
+        delete[] dfa[i];
+    }
+    delete[] dfa;
+    dfa = 0;
+
+    is_initialized = false;
+}
+
+void lexer::str(const std::string &from) noexcept
+{
+    pos = 0;
+    line = 1;
+    text = from;
+}
+
+void lexer::file(const std::string &filepath)
+{
+    pos = 0;
+    line = 1;
+    cur_file = filepath;
+
+    std::string line;
+    std::ifstream f(filepath, std::ios::ate);
+
+    if (!f.is_open())
+    {
+        throw std::runtime_error("Failed to open file '" + filepath + "'");
+    }
+
+    text.clear();
+    text.reserve(f.tellg());
+    f.seekg(std::ios::beg);
+
+    while (getline(f, line))
+    {
+        text.append(line + '\n');
+    }
+
+    f.close();
+}
+
+token lexer::single()
+{
+    // Assume we are in null_state right now
+    lexer_state prev_state = delim_state;
+    token out;
+
+    out.pos = pos;
+    out.line = line;
+
+    bool skip = false;
+    do
+    {
+        if (text[pos] == '\n' && pos != out.pos)
+        {
+            if (state == string_literal_state_single || state == string_literal_state_double)
+            {
+                state = delim_state;
+                break;
+            }
             line++;
-            out.push_back("//__LINE__=" + std::to_string(line));
-
-            continue;
         }
 
-        // Multi-line comments, ditto as above
-        else if (c == '/' && i + 1 < What.size() && What[i + 1] == '*')
+        if (skip)
         {
-            int count = 0;
-
-            while (true)
-            {
-                if (i + 2 < What.size() && What.substr(i, 2) == "/*")
-                {
-                    count++;
-                }
-                else if (i + 2 < What.size() && What.substr(i, 2) == "*/")
-                {
-                    count--;
-                }
-
-                if (i + 1 >= What.size())
-                {
-                    break;
-                }
-                else if (count == 0 && What[i] == '*' && What[i + 1] == '/')
-                {
-                    break;
-                }
-                else
-                {
-                    if (What[i] == '\n')
-                    {
-                        line++;
-                        out.push_back("//__LINE__=" + std::to_string(line));
-                    }
-
-                    i++;
-                }
-            }
-            i++;
+            pos++;
+            skip = false;
             continue;
         }
-
-        // Conditional deliminators
-        // Ex: -> <= >= == != && ||
-        // -= += /= *= %= ^= &= |=
-        else if (c == '-')
+        else if (text[pos] == '\\')
         {
-            if (i + 1 >= What.size())
-            {
-                cur += c;
-                out.push_back(cur);
-                cur = "";
-            }
-            else if (What[i + 1] != '>' && What[i + 1] != '=')
-            {
-                out.push_back(cur);
-
-                cur = c;
-                out.push_back(cur);
-                cur = "";
-            }
-            else
-            {
-                if (cur != "")
-                {
-                    out.push_back(cur);
-                }
-
-                i++;
-                cur = c;
-                cur += What[i];
-                out.push_back(cur);
-                cur = "";
-            }
+            skip = true;
+            pos++;
             continue;
         }
 
-        else if (c == '<')
+        prev_state = state;
+        state = dfa[state][(unsigned char)text[pos]];
+        pos++;
+    } while (state != delim_state);
+
+    if (prev_state != string_literal_state_single && prev_state != string_literal_state_double)
+    {
+        pos--;
+    }
+
+    if (pos <= out.pos)
+    {
+        int start, end;
+        start = std::max(0ll, (long long)(pos - 20));
+        end = std::min((long long)text.size(), (long long)(pos + 20));
+
+        std::string sub = text.substr(start, end - start);
+        for (int i = 0; i < sub.size(); i++)
         {
-            if (i + 1 >= What.size())
+            if (sub[i] == '\n')
             {
-                cur += c;
-                out.push_back(cur);
-                cur = "";
+                sub[i] = ' ';
             }
-            else if (What[i + 1] != '=' && What[i + 1] != '<')
-            {
-                out.push_back(cur);
-
-                cur = c;
-                out.push_back(cur);
-                cur = "";
-            }
-            else
-            {
-                if (cur != "")
-                {
-                    out.push_back(cur);
-                }
-
-                i++;
-                cur = c;
-
-                // Nested templates fix
-                if (What[i] == '<' && i + 1 < What.size() && What[i + 1] != ' ')
-                {
-                    out.push_back(cur);
-                    cur = "";
-                }
-
-                cur += What[i];
-                out.push_back(cur);
-                cur = "";
-            }
-            continue;
         }
 
-        else if (c == '>')
+        std::cout << tags::violet_bold << "In region:\n" << sub << "\n";
+        for (int i = start; i < pos; i++)
         {
-            if (i + 1 >= What.size())
-            {
-                out.push_back(cur);
-
-                cur = c;
-                out.push_back(cur);
-                cur = "";
-            }
-            else if (What[i + 1] != '=' && What[i + 1] != '>')
-            {
-                out.push_back(cur);
-
-                cur = c;
-                out.push_back(cur);
-                cur = "";
-            }
-            else
-            {
-                if (cur != "")
-                {
-                    out.push_back(cur);
-                }
-
-                i++;
-                cur = c;
-
-                // Nested templates fix
-                if (What[i] == '>' && i + 1 < What.size() && What[i + 1] != ' ')
-                {
-                    out.push_back(cur);
-                    cur = "";
-                }
-
-                cur += What[i];
-                out.push_back(cur);
-                cur = "";
-            }
-            continue;
+            std::cout << ' ';
         }
+        std::cout << "^\n\n" << tags::reset;
 
-        else if (c == '=')
+        throw std::runtime_error("Invalid lex: Token cannot be of size zero!");
+    }
+
+    // Record the falling state and text
+    out.text = text.substr(out.pos, pos - out.pos);
+    out.state = prev_state;
+
+    return out;
+}
+
+bool lexer::done() const noexcept
+{
+    return pos >= text.size();
+}
+
+void erase_comments(std::list<token> &what)
+{
+    int count = 0;
+    for (auto it = what.begin(); it != what.end(); it++)
+    {
+        if (it->text == "/*")
         {
-            if (i + 1 >= What.size())
-            {
-                cur += c;
-                out.push_back(cur);
-                cur = "";
-            }
-            else if (What[i + 1] != '=')
-            {
-                out.push_back(cur);
-
-                cur = c;
-                out.push_back(cur);
-                cur = "";
-            }
-            else
-            {
-                if (cur != "")
-                {
-                    out.push_back(cur);
-                }
-
-                i++;
-                cur = c;
-                cur += What[i];
-                out.push_back(cur);
-                cur = "";
-            }
-            continue;
+            count++;
         }
-
-        // Boolean not (ignores the trailing ! on macros!)
-        else if (c == '!' && (i == 0 || What[i - 1] == ' '))
+        else if (it->text == "*/")
         {
-            if (i + 1 >= What.size())
-            {
-                cur += c;
-                out.push_back(cur);
-                cur = "";
-            }
-            else if (What[i + 1] != '=')
-            {
-                out.push_back(cur);
-
-                cur = c;
-                out.push_back(cur);
-                cur = "";
-            }
-            else
-            {
-                if (cur != "")
-                {
-                    out.push_back(cur);
-                }
-
-                i++;
-                cur = c;
-                cur += What[i];
-                out.push_back(cur);
-                cur = "";
-            }
-            continue;
+            count--;
         }
 
-        else if (c == '&')
+        if (count != 0 || (count == 0 && it->text == "*/"))
         {
-            if (i + 1 >= What.size())
-            {
-                cur += c;
-                out.push_back(cur);
-                cur = "";
-            }
-            else if (What[i + 1] != '&' && What[i + 1] != '=')
-            {
-                out.push_back(cur);
-
-                cur = c;
-                out.push_back(cur);
-                cur = "";
-            }
-            else
-            {
-                if (cur != "")
-                {
-                    out.push_back(cur);
-                }
-
-                i++;
-                cur = c;
-                cur += What[i];
-                out.push_back(cur);
-                cur = "";
-            }
-            continue;
+            it = what.erase(it);
+            it--;
         }
-
-        else if (c == '|')
-        {
-            if (i + 1 >= What.size())
-            {
-                cur += c;
-                out.push_back(cur);
-                cur = "";
-            }
-            else if (What[i + 1] != '|' && What[i + 1] != '=')
-            {
-                out.push_back(cur);
-
-                cur = c;
-                out.push_back(cur);
-                cur = "";
-            }
-            else
-            {
-                if (cur != "")
-                {
-                    out.push_back(cur);
-                }
-
-                i++;
-                cur = c;
-                cur += What[i];
-                out.push_back(cur);
-                cur = "";
-            }
-            continue;
-        }
-
-        else if (c == ':')
-        {
-            if (cur != "")
-            {
-                out.push_back(cur);
-            }
-
-            cur = ":";
-
-            if (i + 1 < What.size() && What[i + 1] == ':')
-            {
-                i++;
-                out.push_back("::");
-                cur = "";
-            }
-            else
-            {
-                out.push_back(":");
-                cur = "";
-            }
-            continue;
-        }
-
-        else if (c == '+')
-        {
-            if (What.size() > i + 1 && What[i + 1] == '=')
-            {
-                cur += c;
-                cur += What[i + 1];
-                out.push_back(cur);
-                i++;
-                cur = "";
-            }
-            else if (What.size() > i + 1 && What[i + 1] == '+')
-            {
-                // Increment operator ++
-                cur += c;
-                cur += What[i + 1];
-                out.push_back(cur);
-                i++;
-                cur = "";
-            }
-            else
-            {
-                out.push_back(cur);
-                cur = c;
-                out.push_back(cur);
-                cur = "";
-            }
-            continue;
-        }
-
-        else if (c == '-')
-        {
-            if (What.size() > i + 1 && (What[i + 1] == '=' || What[i + 1] == '-'))
-            {
-                cur += c;
-                cur += What[i + 1];
-                out.push_back(cur);
-                i++;
-                cur = "";
-            }
-            else
-            {
-                out.push_back(cur);
-                cur = c;
-                out.push_back(cur);
-                cur = "";
-            }
-            continue;
-        }
-
-        else if (c == '*')
-        {
-            if (What.size() > i + 1 && What[i + 1] == '=')
-            {
-                cur += c;
-                cur += What[i + 1];
-                out.push_back(cur);
-                i++;
-                cur = "";
-            }
-            else
-            {
-                out.push_back(cur);
-                cur = c;
-                out.push_back(cur);
-                cur = "";
-            }
-            continue;
-        }
-
-        else if (c == '/')
-        {
-            if (What.size() > i + 1 && What[i + 1] == '=')
-            {
-                cur += c;
-                cur += What[i + 1];
-                out.push_back(cur);
-                i++;
-                cur = "";
-            }
-            else
-            {
-                out.push_back(cur);
-
-                cur = c;
-                out.push_back(cur);
-                cur = "";
-            }
-            continue;
-        }
-
-        else if (c == '%')
-        {
-            if (What.size() > i + 1 && What[i + 1] == '=')
-            {
-                cur += c;
-                cur += What[i + 1];
-                out.push_back(cur);
-                i++;
-                cur = "";
-            }
-            else
-            {
-                out.push_back(cur);
-
-                cur = c;
-                out.push_back(cur);
-                cur = "";
-            }
-            continue;
-        }
-
-        else if (c == '^')
-        {
-            if (What.size() > i + 1 && What[i + 1] == '=')
-            {
-                cur += c;
-                cur += What[i + 1];
-                out.push_back(cur);
-                i++;
-                cur = "";
-            }
-            else
-            {
-                out.push_back(cur);
-                cur = c;
-                out.push_back(cur);
-                cur = "";
-            }
-            continue;
-        }
-
-        // Universal deliminators (non-ignored)
-        else if (c == ';' || c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}' || c == '.' ||
-                 c == ',' || c == '^' || c == '@')
-        {
-            if (cur != "")
-            {
-                out.push_back(cur);
-            }
-
-            if (c == ']' && !out.empty() && out.back() == "[")
-            {
-                out.back().push_back(']');
-            }
-            else
-            {
-                cur = c;
-                out.push_back(cur);
-                cur = "";
-            }
-
-            continue;
-        }
-
-        // String literals
-        else if ((i == 0 || What[i - 1] != '\\') && (c == '"' || c == '\''))
-        {
-            if (cur != "")
-            {
-                out.push_back(cur);
-                cur = "";
-            }
-
-            i++;
-            while (i < What.size() && What[i] != c)
-            {
-                if (What[i] == '\\')
-                {
-                    cur += What[i];
-                    cur += What[i + 1];
-                    i += 2;
-                }
-                else
-                {
-                    cur += What[i];
-                    i++;
-                }
-            }
-
-            out.push_back("\"" + cur + "\"");
-            cur = "";
-
-            continue;
-        }
-
-        // Character set change deliminator (number to letter only)
-        // else if (i + 1 < What.size() && numbers.find(c) != string::npos && alphabet.find(What[i + 1]) !=
-        // string::npos)
-        // {
-        //     cur += c;
-        //     out.push_back(cur);
-        //     cur = "";
-        //     continue;
-        // }
-
-        // Non-deliminators
         else
         {
-            cur += c;
+            if (it->substr(0, 2) == "//" || it->substr(0, 1) == "#")
+            {
+                while (it->text != "\n")
+                {
+                    it = what.erase(it);
+                }
+                it--;
+            }
         }
     }
+}
 
-    if (cur != "")
+void erase_whitespace(std::list<token> &what)
+{
+    for (auto it = what.begin(); it != what.end(); it++)
     {
-        out.push_back(cur);
-        cur = "";
-    }
-
-    for (int i = 0; i < out.size(); i++)
-    {
-        if (out[i] == "")
+        if (it->state == whitespace_state)
         {
-            out.erase(out.begin() + i);
-            i--;
+            it = what.erase(it);
+            it--;
         }
     }
+}
 
-    // Coagulation pass
-    std::string prev, next;
-    for (int i = 0; i < out.size(); i++)
+void join_numbers(std::list<token> &what)
+{
+    for (auto it = what.begin(); it != what.end(); it++)
     {
-        prev = i == 0 ? "" : out[i - 1];
-        cur = out[i];
-        next = i + 1 == out.size() ? "" : out[i + 1];
-
-        if (cur == ".")
+        if (it->state == numerical_state)
         {
-            if (prev != "" && (('0' <= prev[0] && prev[0] <= '9') || (prev != "-" && '0' <= prev[1] && prev[1] <= '9')))
-            {
-                out[i] = prev + out[i];
-                out.erase(out.begin() + (i - 1));
-                i--;
+            it++;
 
-                cur = out[i];
-                next = out[i + 1];
+            if (it->state == numerical_state)
+            {
+                std::string temp = it->text;
+                it--;
+                it->text += temp;
+                it++;
+
+                it = what.erase(it);
             }
 
-            if (next != "" && ('0' <= next[0] && next[0] <= '9'))
-            {
-                out[i] += next;
-                out.erase(out.begin() + (i + 1));
-
-                cur = out[i];
-                next = out[i + 1];
-            }
+            it--;
         }
-        else if (cur == "-")
-        {
-            if (next != "" && ('0' <= next[0] && next[0] <= '9'))
-            {
-                out[i] += next;
-                out.erase(out.begin() + (i + 1));
+    }
+}
 
-                cur = out[i];
-                next = out[i + 1];
-            }
-        }
+void lexer::str(const std::string &from, const std::string &filepath) noexcept
+{
+    pos = 0;
+    line = 1;
+    text = from;
+    cur_file = filepath;
+}
 
-        else if (prev.back() == '"' && cur.front() == '"')
-        {
-            prev.pop_back();
+std::list<token> lexer::str_all(const std::string &from) noexcept
+{
+    pos = 0;
+    line = 1;
+    text = from;
 
-            out[i] = prev + out[i].substr(1);
-            out.erase(out.begin() + (i - 1));
-            i--;
+    std::list<token> out;
 
-            cur = out[i];
-            next = out[i + 1];
-        }
-
-        else if (prev.back() == '"' && strncmp(cur.c_str(), "//", 2) == 0 && next.front() == '"')
-        {
-            prev.pop_back();
-
-            out[i] = prev + next.substr(1);
-            out.erase(out.begin() + (i - 1));
-            out.erase(out.begin() + i);
-            i--;
-
-            cur = out[i];
-            next = out[i + 1];
-        }
-
-        else if (cur == "0x" || cur == "0b")
-        {
-            if (next != "")
-            {
-                out[i] += next;
-                out.erase(out.begin() + (i + 1));
-
-                cur = out[i];
-                next = out[i + 1];
-            }
-        }
-
-        // Two successive numerical literals; Merge
-        else if ((cur.size() >= 1 && '0' <= cur[0] && cur[0] <= '9') &&
-                 (('0' <= cur.back() && cur.back() <= '9') || ('a' <= cur.back() && cur.back() <= 'f') ||
-                  ('A' <= cur.back() && cur.back() <= 'F')) &&
-                 next != "" &&
-                 (('0' <= next.front() && next.front() <= '9') || ('a' <= next.front() && next.front() <= 'f') ||
-                  ('A' <= next.front() && next.front() <= 'F')))
-        {
-            out[i] += next;
-            out.erase(out.begin() + (i + 1));
-
-            cur = out[i];
-            next = out[i + 1];
-        }
-
-        prev = cur;
+    while (!done())
+    {
+        out.push_back(single());
     }
 
     return out;
 }
 
+std::list<token> lexer::str_all(const std::string &from, const std::string &filepath) noexcept
+{
+    pos = 0;
+    line = 1;
+    text = from;
+    cur_file = filepath;
+
+    std::list<token> out;
+
+    while (!done())
+    {
+        out.push_back(single());
+    }
+
+    return out;
+}
+
+std::vector<token> lexer::lex(const std::string &What)
+{
+    str(What);
+
+    std::list<token> out;
+
+    while (!done())
+    {
+        out.push_back(single());
+    }
+
+    erase_comments(out);
+    erase_whitespace(out);
+
+    join_numbers(out);
+
+    std::vector<token> out_vec;
+    out_vec.assign(out.begin(), out.end());
+    return out_vec;
+}
+
+// Throws an error upon failure
 void smartSystem(const std::string &What)
 {
     int result = system(What.c_str());

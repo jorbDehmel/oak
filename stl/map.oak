@@ -1,8 +1,7 @@
 ////////////////////////////////////////////////////////////////
 
 /*
-Uses linear probing. Requires a hash function on the key, where
-the hash is NEVER 0, as this is reserved as a null marker.
+Uses linear probing. Requires a hash function on the key.
 
 Jordan Dehmel, 2023
 jdehmel@outlook.com
@@ -20,6 +19,8 @@ include!("std/panic.oak");
 
 let stl::map_node<k, d>: struct
 {
+    state: u8,  // 0 = unoccupied, 1 = occupied, 2 = erased
+
     key: k,
     data: d,
     hash: u128,
@@ -31,16 +32,29 @@ pre
 }
 post
 {
+    New<k, d>(_: ^stl::map_node<k, d>);
     Copy<k, d>(_: ^stl::map_node<k, d>, _: k, _: d);
+    erase<k, d>(_: ^stl::map_node<k, d>);
 }
 
 ////////////////////////////////////////////////////////////////
+
+let New<k, d>(self: ^stl::map_node<k, d>) -> void
+{
+    self.state = 0;
+}
 
 let Copy<k, d>(self: ^stl::map_node<k, d>, key: k, data: d) -> void
 {
     self.key = key;
     self.data = data;
     self.hash = hash(self.key);
+    self.state = 1;
+}
+
+let erase<k, d>(self: ^stl::map_node<k, d>) -> void
+{
+    self.state = 2;
 }
 
 ////////////////////////////////////////////////////////////////
@@ -84,6 +98,13 @@ let New<k, d>(self: ^stl::map<k, d>) -> void
     self.occupied = 0;
 
     alloc!(self.data, self.size);
+
+    let i: i32 = 0;
+    while i < self.size
+    {
+        New(ptrarr!(self.data, i));
+        i += 1;
+    }
 }
 
 let Del<k, d>(self: ^stl::map<k, d>) -> void
@@ -111,19 +132,32 @@ let Get<k, d>(self: ^stl::map<k, d>, key: k) -> opt<d>
     while sentinel
     {
         // Get
-        ptrcpy!(cur, Get(self.data, i));
+        ptrcpy!(cur, @Get(self.data, i));
 
-        // If found, wrap answer and break
-        if cur.key == key
+        // If empty, break
+        if cur.state == 0
         {
-            out.wrap_some(cur.data);
             sentinel = false;
         }
 
-        // Else if empty, break
-        else if cur.hash == to_u128(0)
+        // Skip tombstone nodes
+        else if cur.state == 1
         {
-            sentinel = false;
+            i += 1;
+            if i > self.size
+            {
+                i %= self.size;
+            }
+        }
+
+        // Else if found, wrap answer and break
+        if cur.key == key
+        {
+            if cur.state == 1
+            {
+                out.wrap_some(cur.data);
+                sentinel = false;
+            }
         }
 
         // Else, advance
@@ -158,18 +192,31 @@ let has<k, d>(self: ^stl::map<k, d>, key: k) -> bool
     while sentinel
     {
         // Get
-        ptrcpy!(cur, Get(self.data, i));
+        ptrcpy!(cur, @Get(self.data, i));
 
-        // If found
-        if cur.key == key
+        // If empty, break
+        if cur.state == 0
         {
-            return true;
+            sentinel = false;
         }
 
-        // Else if empty
-        else if cur.hash == to_u128(0)
+        // Skip tombstone nodes
+        else if cur.state == 1
         {
-            return false;
+            i += 1;
+            if i > self.size
+            {
+                i %= self.size;
+            }
+        }
+
+        // Else if found, wrap answer and break
+        if cur.key == key
+        {
+            if cur.state == 1
+            {
+                return true;
+            }
         }
 
         // Else, advance
@@ -209,17 +256,10 @@ let set<k, d>(self: ^stl::map<k, d>, key: k, data: d) -> void
     while sentinel
     {
         // Get
-        ptrcpy!(cur, Get(self.data, i));
+        ptrcpy!(cur, @Get(self.data, i));
 
-        // If found
-        if cur.key == key
-        {
-            cur.data = data;
-            sentinel = false;
-        }
-
-        // Else if empty, break
-        else if cur.hash == to_u128(0)
+        // If empty, break
+        if cur.state == 0
         {
             cur = (key, data);
 
@@ -235,6 +275,26 @@ let set<k, d>(self: ^stl::map<k, d>, key: k, data: d) -> void
             }
 
             sentinel = false;
+        }
+
+        // Skip tombstone nodes
+        else if cur.state == 1
+        {
+            i += 1;
+            if i > self.size
+            {
+                i %= self.size;
+            }
+        }
+
+        // Else if found, wrap answer and break
+        if cur.key == key
+        {
+            if cur.state == 1
+            {
+                cur.data = data;
+                sentinel = false;
+            }
         }
 
         // Else, advance
@@ -276,7 +336,7 @@ let expand<k, d>(self: ^stl::map<k, d>) -> void
     {
         ptrcpy!(cur, @ptrarr!(old_data, i));
 
-        if (cur.hash != to_u128(0))
+        if (cur.state == 1)
         {
             // Source code copied from set
             let key = cur.key;
@@ -298,7 +358,7 @@ let expand<k, d>(self: ^stl::map<k, d>) -> void
             while sentinel
             {
                 // Get
-                ptrcpy!(cur, Get(self.data, k));
+                ptrcpy!(cur, @Get(self.data, k));
 
                 // If found
                 if cur.key == key
@@ -338,6 +398,5 @@ let expand<k, d>(self: ^stl::map<k, d>) -> void
     // Delete old
     free!(old_data);
 }
-
 
 ////////////////////////////////////////////////////////////////

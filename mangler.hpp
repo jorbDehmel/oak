@@ -19,7 +19,7 @@ std::string mangle(const std::vector<std::string> &what);
 std::string mangleStruct(const std::string &name, const std::vector<std::vector<std::string>> &generics =
                                                       std::vector<std::vector<std::string>>());
 
-// Mangle an enumeration, givne its generic substitutions
+// Mangle an enumeration, give its generic substitutions
 std::string mangleEnum(const std::string &name,
                        const std::vector<std::vector<std::string>> &generics = std::vector<std::vector<std::string>>());
 

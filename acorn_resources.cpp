@@ -7,6 +7,7 @@ GPLv3 held by author
 */
 
 #include "acorn_resources.hpp"
+#include "lexer.hpp"
 #include "packages.hpp"
 #include "rules.hpp"
 #include "sequence.hpp"
@@ -17,8 +18,9 @@ GPLv3 held by author
 #include <filesystem>
 #include <ratio>
 #include <stdexcept>
+#include <string>
 
-// std::settings
+// settings
 bool debug = false;
 bool compile = true;
 bool doLink = true;
@@ -87,7 +89,7 @@ void doFile(const std::string &From)
     curLine = 1;
     curFile = From;
 
-    std::vector<std::string> lexed, lexedCopy;
+    std::vector<token> lexed, lexedCopy;
 
     preprocDefines["prev_file!"] = (oldFile == "" ? "\"NULL\"" : ("\"" + oldFile + "\""));
     preprocDefines["file!"] = '"' + From + '"';
@@ -218,7 +220,8 @@ void doFile(const std::string &From)
             start = std::chrono::high_resolution_clock::now();
         }
 
-        lexed = lex(text);
+        lexer dfa_lexer;
+        lexed = dfa_lexer.lex(text);
         lexedCopy = lexed;
 
         if (debug)
@@ -266,7 +269,7 @@ void doFile(const std::string &From)
 
                     while (lexed.size() >= i && lexed[i] != "{" && lexed[i] != ";")
                     {
-                        contents += " " + lexed[i];
+                        contents += " " + lexed[i].text;
                         lexed.erase(lexed.begin() + i);
                     }
 
@@ -285,13 +288,14 @@ void doFile(const std::string &From)
                             count--;
                         }
 
-                        if (lexed[i].size() < 2 || lexed[i].substr(0, 2) != "//")
+                        if (lexed[i].line == curLine)
                         {
-                            contents += " " + lexed[i];
+                            contents += " " + lexed[i].text;
                         }
                         else
                         {
-                            contents += "\n";
+                            contents += "\n" + lexed[i].text;
+                            curLine = lexed[i].line;
                         }
 
                         lexed.erase(lexed.begin() + i);
@@ -307,11 +311,11 @@ void doFile(const std::string &From)
                     // Safety checks
                     if (preprocDefines.count(lexed[i]) != 0)
                     {
-                        throw sequencing_error("Preprocessor definition '" + lexed[i] + "' cannot be overridden.");
+                        throw sequencing_error("Preprocessor definition '" + lexed[i].text + "' cannot be overridden.");
                     }
                     else if (macros.count(lexed[i]) != 0)
                     {
-                        throw sequencing_error("Preprocessor definition '" + lexed[i] +
+                        throw sequencing_error("Preprocessor definition '" + lexed[i].text +
                                                "' cannot overwrite macro of same name.");
                     }
 
@@ -673,39 +677,11 @@ void doFile(const std::string &From)
                 std::vector<std::string> args = getMacroArgs(lexed, i);
 
                 std::string output = callMacro(name, args, debug);
-                std::vector<std::string> lexedOutput = lex(output);
+                std::vector<token> lexedOutput = dfa_lexer.lex(output);
 
-                // Restd::set preproc defs, as they tend to break w/ macros
+                // Reset preproc defs, as they tend to break w/ macros
                 preprocDefines["prev_file!"] = (oldFile == "" ? "\"NULL\"" : ("\"" + oldFile + "\""));
                 preprocDefines["file!"] = '"' + From + '"';
-
-                // Remove lines
-                for (int ind = 0; ind < lexedOutput.size(); ind++)
-                {
-                    if (lexedOutput[ind].size() > 1 && lexedOutput[ind].substr(0, 2) == "//")
-                    {
-                        if (lexedOutput[ind].size() > 11 && lexedOutput[ind].substr(0, 11) == "//__LINE__=")
-                        {
-                            preprocDefines["line!"] = lexedOutput[ind].substr(11);
-                        }
-
-                        lexedOutput.erase(lexedOutput.begin() + ind);
-                    }
-
-                    // Preproc defines subs
-                    else if (preprocDefines.count(lexedOutput[ind]) != 0)
-                    {
-                        std::vector<std::string> lexedDef = lex(preprocDefines[lexedOutput[ind]]);
-                        lexedOutput.erase(lexedOutput.begin() + ind);
-
-                        for (int j = lexedDef.size() - 1; j >= 0; j--)
-                        {
-                            lexedOutput.insert(lexedOutput.begin() + ind, lexedDef[j]);
-                        }
-
-                        ind--;
-                    }
-                }
 
                 // Insert the new code
                 for (int j = lexedOutput.size() - 1; j >= 0; j--)
@@ -731,18 +707,12 @@ void doFile(const std::string &From)
             start = std::chrono::high_resolution_clock::now();
         }
 
-        preprocDefines["line!"] = "1";
         for (int i = 0; i < lexed.size(); i++)
         {
-            if (lexed[i].size() >= 2 && lexed[i].substr(0, 2) == "//")
+            preprocDefines["line!"] = std::to_string(lexed[i].line);
+            if (preprocDefines.count(lexed[i]) != 0)
             {
-                // Line update special symbol
-                std::string newLineNum = lexed[i].substr(11);
-                preprocDefines["line!"] = newLineNum;
-            }
-            else if (preprocDefines.count(lexed[i]) != 0)
-            {
-                std::vector<std::string> lexedDef = lex(preprocDefines[lexed[i]]);
+                std::vector<token> lexedDef = dfa_lexer.lex(preprocDefines[lexed[i]]);
                 lexed.erase(lexed.begin() + i);
 
                 for (int j = lexedDef.size() - 1; j >= 0; j--)
@@ -751,6 +721,10 @@ void doFile(const std::string &From)
                 }
 
                 i--;
+            }
+            else if (lexed[i].size() > 1 && lexed[i].back() == '!' && (i + 1 >= lexed.size() || lexed[i + 1] != "("))
+            {
+                throw sequencing_error("Unknown preprocessor definition '" + lexed[i].text + "'");
             }
         }
 
@@ -802,7 +776,7 @@ void doFile(const std::string &From)
 
         if (alwaysDump)
         {
-            std::string name = "oak_dump_" + purifyStr(From) + ".log";
+            std::string name = purifyStr(From) + ".oak.log";
 
             if (debug)
             {
@@ -822,9 +796,9 @@ void doFile(const std::string &From)
     {
         std::cout << tags::red_bold << "Caught rule error '" << e.what() << "'\n" << tags::reset;
 
-        std::string name = "oak_dump_" + purifyStr(From) + ".log";
+        std::string name = purifyStr(From) + ".oak.log";
         std::cout << "Dump saved in " << name << "\n";
-        dump(lexed, name, From, curLine, sequence(), lexedCopy);
+        dump(lexed, name, From, curLine, sequence(), lexedCopy, e.what());
 
         throw std::runtime_error("Failure in file '" + From + "': " + e.what());
     }
@@ -832,9 +806,9 @@ void doFile(const std::string &From)
     {
         std::cout << tags::red_bold << "Caught sequencing error '" << e.what() << "'\n" << tags::reset;
 
-        std::string name = "oak_dump_" + purifyStr(From) + ".log";
+        std::string name = purifyStr(From) + ".oak.log";
         std::cout << "Dump saved in " << name << "\n";
-        dump(lexed, name, From, curLine, sequence(), lexedCopy);
+        dump(lexed, name, From, curLine, sequence(), lexedCopy, e.what());
 
         throw std::runtime_error("Failure in file '" + From + "': " + e.what());
     }
@@ -842,9 +816,9 @@ void doFile(const std::string &From)
     {
         std::cout << tags::red_bold << "Caught parse error '" << e.what() << "'\n" << tags::reset;
 
-        std::string name = "oak_dump_" + purifyStr(From) + ".log";
+        std::string name = purifyStr(From) + ".oak.log";
         std::cout << "Dump saved in " << name << "\n";
-        dump(lexed, name, From, curLine, sequence(), lexedCopy);
+        dump(lexed, name, From, curLine, sequence(), lexedCopy, e.what());
 
         throw std::runtime_error("Failure in file '" + From + "': " + e.what());
     }
@@ -852,9 +826,9 @@ void doFile(const std::string &From)
     {
         std::cout << tags::red_bold << "Caught package error '" << e.what() << "'\n" << tags::reset;
 
-        std::string name = "oak_dump_" + purifyStr(From) + ".log";
+        std::string name = purifyStr(From) + ".oak.log";
         std::cout << "Dump saved in " << name << "\n";
-        dump(lexed, name, From, curLine, sequence(), lexedCopy);
+        dump(lexed, name, From, curLine, sequence(), lexedCopy, e.what());
 
         throw std::runtime_error("Failure in file '" + From + "': " + e.what());
     }
@@ -862,9 +836,9 @@ void doFile(const std::string &From)
     {
         std::cout << tags::red_bold << "Caught generic error '" << e.what() << "'\n" << tags::reset;
 
-        std::string name = "oak_dump_" + purifyStr(From) + ".log";
+        std::string name = purifyStr(From) + ".oak.log";
         std::cout << "Dump saved in " << name << "\n";
-        dump(lexed, name, From, curLine, sequence(), lexedCopy);
+        dump(lexed, name, From, curLine, sequence(), lexedCopy, e.what());
 
         throw std::runtime_error("Failure in file '" + From + "': " + e.what());
     }
@@ -872,9 +846,9 @@ void doFile(const std::string &From)
     {
         std::cout << tags::red_bold << "Caught runtime error '" << e.what() << "'\n" << tags::reset;
 
-        std::string name = "oak_dump_" + purifyStr(From) + ".log";
+        std::string name = purifyStr(From) + ".oak.log";
         std::cout << "Dump saved in " << name << "\n";
-        dump(lexed, name, From, curLine, sequence(), lexedCopy);
+        dump(lexed, name, From, curLine, sequence(), lexedCopy, e.what());
 
         throw std::runtime_error("Failure in file '" + From + "': " + e.what());
     }
@@ -882,15 +856,15 @@ void doFile(const std::string &From)
     {
         std::cout << tags::red_bold << "Caught exception '" << e.what() << "'\n" << tags::reset;
 
-        std::string name = "oak_dump_" + purifyStr(From) + ".log";
+        std::string name = purifyStr(From) + ".oak.log";
         std::cout << "Dump saved in " << name << "\n";
-        dump(lexed, name, From, curLine, sequence(), lexedCopy);
+        dump(lexed, name, From, curLine, sequence(), lexedCopy, e.what());
 
         throw std::runtime_error("Failure in file '" + From + "': " + e.what());
     }
     catch (...)
     {
-        std::string name = "oak_dump_" + purifyStr(From) + ".log";
+        std::string name = purifyStr(From) + ".oak.log";
         std::cout << "Dump saved in " << name << "\n";
         dump(lexed, name, From, curLine, sequence(), lexedCopy);
 
@@ -1056,7 +1030,6 @@ void ensureSyntax(const std::string &text, const bool &fatal)
                 for (int j = 0; j < curLineVec.size(); j++)
                 {
                     const char c = curLineVec[j];
-                    // std::cout << DB_INFO << c << '\t' << j << '\t' << curLineVec[j] << '\n';
 
                     if (c == '\\')
                     {
@@ -1170,7 +1143,7 @@ void ensureSyntax(const std::string &text, const bool &fatal)
                 }
             }
 
-            // Restd::set line
+            // Reset line
             curLineVec.clear();
             curLine++;
         }

@@ -12,9 +12,7 @@ use_rule!("std");
 
 /*
 A bitset for Oak. Size is a positive integer representing the
-number of BYTES, not bits.
-Least significant bits are first. Can also function as an
-arbitrary-precision integer.
+number of BYTES, not bits. Least significant bits are first.
 */
 let extra::bitset<size>: struct
 {
@@ -53,7 +51,7 @@ let Get<size>(self: ^extra::bitset<size>, i: u128) -> opt<bool>
     let bit_i: u8 = to_u8(i % to_u128(8));
     bit_i = 7 - bit_i;
     let got: u8 = Get(self.data, byte_i);
-    let mask: u8 = 1 << bit_i;
+    let mask: u8 = Lbs(1, bit_i);
     got &= mask;
 
     if got != 0
@@ -73,9 +71,9 @@ let set<size>(self: ^extra::bitset<size>, i: u128) -> void
     let byte_i: u128 = i / to_u128(8);
     let bit_i: u8 = to_u8(i % to_u128(8));
     bit_i = 7 - bit_i;
-    let mask: u8 = 1 << bit_i;
+    let mask: u8 = Lbs(1, bit_i);
 
-    ^Get(self.data, byte_i) |= mask;
+    Get(self.data, byte_i) |= mask;
 }
 
 let clear<size>(self: ^extra::bitset<size>, i: u128) -> void
@@ -83,10 +81,10 @@ let clear<size>(self: ^extra::bitset<size>, i: u128) -> void
     let byte_i: u128 = i / to_u128(8);
     let bit_i: u8 = to_u8(i % to_u128(8));
     bit_i = 7 - bit_i;
-    let mask: u8 = 1 << bit_i;
+    let mask: u8 = Lbs(1, bit_i);
     mask = 255 - mask;
 
-    ^Get(self.data, byte_i) &= mask;
+    Get(self.data, byte_i) &= mask;
 }
 
 let flip<size>(self: ^extra::bitset<size>, i: u128) -> void
