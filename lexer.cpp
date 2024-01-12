@@ -400,6 +400,81 @@ void join_numbers(std::list<token> &what)
     }
 }
 
+void join_bitshifts(std::list<token> &what)
+{
+    for (auto it = what.begin(); it != what.end(); it++)
+    {
+        auto next = it;
+        next++;
+
+        if (next == what.end())
+        {
+            break;
+        }
+
+        // Possibly merge into a left bitshift
+        if (*it == "<")
+        {
+            /*
+            If a ) or ; occurs before the next >, do sub.
+            Otherwise, is templating; Advance i past all of this.
+            */
+
+            bool isTemplating = false;
+            int depth = 1;
+            auto j = it;
+            for (; j != what.end(); j++)
+            {
+                if (*j == ";" || *j == ")")
+                {
+                    isTemplating = false;
+                    break;
+                }
+                else if (*j == ">")
+                {
+                    depth--;
+
+                    if (depth == 0)
+                    {
+                        isTemplating = true;
+                        break;
+                    }
+                }
+                else if (*j == "<")
+                {
+                    depth++;
+                }
+            }
+
+            if (isTemplating)
+            {
+                // Move past a valid template
+                it = j;
+            }
+            else if (*next == "<")
+            {
+                // Merge into a left bit shift
+                next->text = "<<";
+                next->state = operator_state;
+
+                it = what.erase(it);
+            }
+        }
+
+        // The above code will skip past any valid templating.
+        // Therefore, no need to peek ahead for right bitshifts.
+
+        else if (*it == ">" && *next == ">")
+        {
+            // Merge into a right bit shift
+            next->text = ">>";
+            next->state = operator_state;
+
+            it = what.erase(it);
+        }
+    }
+}
+
 void lexer::str(const std::string &from, const std::string &filepath) noexcept
 {
     pos = 0;
@@ -456,6 +531,7 @@ std::vector<token> lexer::lex(const std::string &What)
     erase_whitespace(out);
 
     join_numbers(out);
+    join_bitshifts(out);
 
     std::vector<token> out_vec;
     out_vec.assign(out.begin(), out.end());
