@@ -91,31 +91,6 @@ void doFile(const std::string &From)
 
     std::vector<token> lexed, lexedCopy;
 
-    preprocDefines["prev_file!"] = (oldFile == "" ? "\"NULL\"" : ("\"" + oldFile + "\""));
-    preprocDefines["file!"] = '"' + From + '"';
-    preprocDefines["comp_time!"] = std::to_string(time(NULL));
-
-    // System defines
-    /*
-    Options:
-    -WINDOWS
-    -LINUX
-    -MAC
-    -UNKNOWN
-    */
-    if (preprocDefines.count("sys!") == 0)
-    {
-#if (defined(_WIN32) || defined(_WIN64))
-        preprocDefines["sys!"] = "WINDOWS";
-#elif (defined(LINUX) || defined(__linux__))
-        preprocDefines["sys!"] = "LINUX";
-#elif (defined(__APPLE__))
-        preprocDefines["sys!"] = "MAC";
-#else
-        preprocDefines["sys!"] = "UNKNOWN";
-#endif
-    }
-
     try
     {
         if (From.size() < 4 || From.substr(From.size() - 4) != ".oak")
@@ -123,14 +98,11 @@ void doFile(const std::string &From)
             std::cout << tags::yellow_bold << "Warning! File '" << From << "' is not a .oak file.\n" << tags::reset;
         }
 
-        std::string realName;
-        if (From.find("/") == std::string::npos)
+        std::string realName = From;
+
+        while (realName.find("/") != std::string::npos)
         {
-            realName = From;
-        }
-        else
-        {
-            realName = From.substr(From.find("/") + 1);
+            realName = realName.substr(From.find("/") + 1);
         }
 
         for (char c : realName)
@@ -701,6 +673,26 @@ void doFile(const std::string &From)
         }
 
         // H: Preproc definitions
+
+        preprocDefines["prev_file!"] = (oldFile == "" ? "\"NULL\"" : ("\"" + oldFile + "\""));
+        preprocDefines["file!"] = '"' + From + '"';
+        preprocDefines["comp_time!"] = std::to_string(time(NULL));
+        preprocDefines["oak_version!"] = "\"" + std::string(VERSION) + "\"";
+
+        // OS definition
+        if (preprocDefines.count("sys!") == 0)
+        {
+#if (defined(_WIN32) || defined(_WIN64))
+            preprocDefines["sys!"] = "\"WINDOWS\"";
+#elif (defined(LINUX) || defined(__linux__))
+            preprocDefines["sys!"] = "\"LINUX\"";
+#elif (defined(__APPLE__))
+            preprocDefines["sys!"] = "\"MAC\"";
+#else
+            preprocDefines["sys!"] = "\"UNKNOWN\"";
+#endif
+        }
+
         if (debug)
         {
             std::cout << debugTreePrefix << "Preproc definitions\n";

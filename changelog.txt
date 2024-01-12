@@ -4,6 +4,10 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.4.10          | 1/11/24  | Added `arr` and `matrix` data
+                |          | structures to `stl` library. Minor
+                |          | bug fixes to preproc definitions.
+                |          |
 0.4.9           | 1/11/24  | Switched lexer to be DFA-based,
                 |          | various bug fixes.
                 |          |

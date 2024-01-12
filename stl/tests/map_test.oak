@@ -42,6 +42,8 @@ let main() -> i32
         i += 1;
     }
 
+    m.erase(50);
+
     print("Printing phase...\n");
     i = 0;
     while i < size!

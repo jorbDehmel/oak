@@ -35,5 +35,17 @@ let main() -> i32
         }
     }
 
+    s.erase(3);
+
+    print("After erasure:\n");
+    for (i = 0; i < 6; i += 1)
+    {
+        if s.has(i)
+        {
+            print(i);
+            endl();
+        }
+    }
+
     0
 }

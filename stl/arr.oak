@@ -1,0 +1,134 @@
+////////////////////////////////////////////////////////////////
+
+/*
+A static sized 2D arr for Oak. The 1D version can be found
+in stl/arr.oak.
+
+Jordan Dehmel, 2024
+jdehmel@outlook.com
+*/
+
+package!("std");
+include!("std/opt.oak");
+include!("std/panic.oak");
+use_rule!("std");
+
+////////////////////////////////////////////////////////////////
+
+/*
+A static 1-dimensional array structure. The `responsible` member
+denotes whether or not this instance was responsible for
+allocating the memory it holds. This is useful if the array was
+instantiated as a pointer to memory it did not already own.
+`Get` calls will throw panic!-s if they attempt to access out of
+bounds data.
+*/
+let stl::arr<t>: struct
+{
+    data: []t,
+    l: u128,
+    responsible: bool,
+}
+pre
+{
+    Copy<t>(_: ^t, _: t);
+}
+post
+{
+    New<t>(_: ^stl::arr<t>);
+    Del<t>(_: ^stl::arr<t>);
+
+    Copy<t>(_: ^stl::arr<t>, _: u128);
+    Copy<t>(_: ^stl::arr<t>, _: stl::arr<t>);
+    Get<t>(_: ^stl::arr<t>, _: u128);
+
+    get<t>(_: ^stl::arr<t>, _: u128);
+    set<t>(_: ^stl::arr<t>, _: u128, _: t);
+}
+
+////////////////////////////////////////////////////////////////
+
+let New<t>(self: ^stl::arr<t>) -> void
+{
+    self.l = 0;
+    self.responsible = false;
+}
+
+let Del<t>(self: ^stl::arr<t>) -> void
+{
+    if self.responsible && self.l != 0
+    {
+        let i: u128 = 0;
+        while i < self.l
+        {
+            Del(Get(self.data, i));
+            i += 1;
+        }
+
+        free!(self.data);
+        self.responsible = false;
+    }
+}
+
+let Copy<t>(self: ^stl::arr<t>, l: u128) -> void
+{
+    assert!(l > to_u128(0));
+
+    Del(self);
+    self.responsible = true;
+
+    alloc!(self.data, l);
+
+    let i: u128 = 0;
+    while i < l
+    {
+        New(Get(self.data, i));
+        i += 1;
+    }
+
+    self.l = l;
+}
+
+let Copy<t>(self: ^stl::arr<t>, other: stl::arr<t>) -> void
+{
+    self.responsible = other.responsible;
+
+    if self.responsible
+    {
+        // Deep copy
+
+        self = other.l;
+        let i: u128 = 0;
+        while i < self.l
+        {
+            Get(self.data, i) = Get(other.data, i);
+        }
+    }
+    else
+    {
+        // Shallow copy
+
+        self.l = other.l;
+        ptrcpy!(self.data, other.data);
+    }
+}
+
+let Get<t>(self: ^stl::arr<t>, x: u128) -> t
+{
+    assert!(x < self.l);
+    Get(self.data, x)
+}
+
+let get<t>(self: ^stl::arr<t>, x: u128) -> t
+{
+    assert!(x < self.l);
+    Get(self.data, x)
+}
+
+let set<t>(self: ^stl::arr<t>, x: u128, from: t) -> void
+{
+    assert!(x < self.l);
+    Get(self.data, x) = from;
+}
+
+////////////////////////////////////////////////////////////////

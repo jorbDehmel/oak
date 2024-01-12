@@ -1,8 +1,7 @@
 ////////////////////////////////////////////////////////////////
 
 /*
-Uses linear probing. Requires a hash function on the key, where
-the hash is NEVER 0, as this is reserved as a null marker.
+Uses linear probing. Requires a hash function on the key.
 
 Jordan Dehmel, 2023
 jdehmel@outlook.com
@@ -20,6 +19,7 @@ include!("std/panic.oak");
 
 let stl::set_node<k>: struct
 {
+    state: u8,  // 0 = unoccupied, 1 = occupied, 2 = erased
     key: k,
     hash: u128,
 }
@@ -30,15 +30,28 @@ pre
 }
 post
 {
+    New<k>(_: ^stl::set_node<k>);
     Copy<k>(_: ^stl::set_node<k>, _: k);
+    erase<k>(_: ^stl::set_node<k>);
 }
 
 ////////////////////////////////////////////////////////////////
+
+let New<k>(self: ^stl::set_node<k>) -> void
+{
+    self.state = 0;
+}
 
 let Copy<k>(self: ^stl::set_node<k>, key: k) -> void
 {
     self.key = key;
     self.hash = hash(self.key);
+    self.state = 1;
+}
+
+let erase<k>(self: ^stl::set_node<k>) -> void
+{
+    self.state = 2;
 }
 
 ////////////////////////////////////////////////////////////////
@@ -68,6 +81,7 @@ post
 
     insert<k>(_: ^stl::set<k>, _: k);
     has<k>(_: ^stl::set<k>, _: k);
+    erase<k>(_: stl::set<k>, _: k);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -79,6 +93,13 @@ let New<k>(self: ^stl::set<k>) -> void
     self.occupied = 0;
 
     alloc!(self.data, self.size);
+
+    let i: i32 = 0;
+    while i < self.size
+    {
+        New(ptrarr!(self.data, i));
+        i += 1;
+    }
 }
 
 let Del<k>(self: ^stl::set<k>) -> void
@@ -106,16 +127,29 @@ let has<k>(self: ^stl::set<k>, key: k) -> bool
         // Get
         ptrcpy!(cur, @Get(self.data, i));
 
-        // If found
-        if cur.key == key
+        // If empty, break
+        if cur.state == 0
         {
-            return true;
+            sentinel = false;
         }
 
-        // Else if empty
-        else if cur.hash == to_u128(0)
+        // Skip tombstone nodes
+        else if cur.state == 2
         {
-            return false;
+            i += 1;
+            if i > self.size
+            {
+                i %= self.size;
+            }
+        }
+
+        // Else if found, wrap answer and break
+        if cur.key == key
+        {
+            if cur.state == 1
+            {
+                return true;
+            }
         }
 
         // Else, advance
@@ -152,14 +186,8 @@ let insert<k>(self: ^stl::set<k>, key: k) -> void
         // Get
         ptrcpy!(cur, @Get(self.data, i));
 
-        // If found
-        if cur.key == key
-        {
-            sentinel = false;
-        }
-
-        // Else if empty, break
-        else if cur.hash == to_u128(0)
+        // If empty, break
+        if cur.state == 0
         {
             cur = key;
 
@@ -175,6 +203,83 @@ let insert<k>(self: ^stl::set<k>, key: k) -> void
             }
 
             sentinel = false;
+        }
+
+        // Skip tombstone nodes
+        else if cur.state == 2
+        {
+            i += 1;
+            if i > self.size
+            {
+                i %= self.size;
+            }
+        }
+
+        // Else if found, wrap answer and break
+        if cur.key == key
+        {
+            if cur.state == 1
+            {
+                sentinel = false;
+            }
+        }
+
+        // Else, advance
+        else
+        {
+            i += 1;
+            if i > self.size
+            {
+                i %= self.size;
+            }
+        }
+    }
+}
+
+let erase<k>(self: stl::set<k>, key: k) -> void
+{
+    // Create vars
+    let h: u128;
+    let i: u128;
+    let sentinel: bool;
+    let cur: ^stl::set_node<k>;
+
+    h = hash(key);
+    sentinel = true;
+    
+    // Get initial guess
+    i = h % self.size;
+
+    // Continue until found or empty
+    while sentinel
+    {
+        // Get
+        ptrcpy!(cur, @Get(self.data, i));
+
+        // If empty, break
+        if cur.state == 0
+        {
+            sentinel = false;
+        }
+
+        // Skip tombstone nodes
+        else if cur.state == 2
+        {
+            i += 1;
+            if i > self.size
+            {
+                i %= self.size;
+            }
+        }
+
+        // Else if found, wrap answer and break
+        if cur.key == key
+        {
+            if cur.state == 1
+            {
+                cur.erase();
+                sentinel = false;
+            }
         }
 
         // Else, advance
@@ -216,9 +321,9 @@ let expand<k>(self: ^stl::set<k>) -> void
     {
         ptrcpy!(cur, @ptrarr!(old_data, i));
 
-        if (cur.hash != to_u128(0))
+        if (cur.state == 1)
         {
-            // Source code copied from stl::set
+            // Source code copied from set
             let key = cur.key;
 
             // Create vars

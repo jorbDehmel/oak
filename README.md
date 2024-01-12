@@ -1,6 +1,6 @@
 
 # The Oak Programming Language
-## Version 0.4.9
+## Version 0.4.10
 
 ![](logo_trimmed.png)
 
@@ -2793,7 +2793,9 @@ structures.
 - Queue - `stl::queue` via `stl/queue.oak`
 - Set - `stl::set` via `stl/set.oak`
 - Stack - `stl::stack` via `stl/stack.oak`
-- Vector - `stl::vec` via `stl/vec.oak`
+- Dynamic array / vector - `stl::vec` via `stl/vec.oak`
+- Static array - `stl::arr` via `stl/arr.oak`
+- Static 2D array - `stl::matrix` via `stl/matrix.oak`
 
 The included binary search tree structure is non-self-balancing.
 It can be used as a `map`, but caution should be used. It has
@@ -2802,13 +2804,14 @@ standard doubly linked list. It does not have random-access
 lookups, but can be used for traversals (forwards or backwards).
 The included `map` uses linear probing based on a given hash
 function. It is hard-coded to use a maximal alpha of `0.5`. When
-this is reached, it will double in size and rehash. It does not
-support deletion. The included `queue`, `stack` and `vec` are
-standard implementations of their respective data structures.
-`vec`'s are dynamically resizing (for growing and shrinking).
-The included `set` is a specialization of `map` where only the
-key and hash are stored, with no lookup data. It also uses
-linear hashing, and also does not support deletion.
+this is reached, it will double in size and rehash. The included
+`queue`, `stack`, `matrix`, `arr` and `vec` are standard
+implementations of their respective data structures. Note that,
+unlike `vec`, `arr` is not self-resizing. Neither are the
+included matrices, although there is no corresponding
+self-resizing version of these. The included `set` is a
+specialization of `map` where only the key and hash are stored,
+with no lookup data.
 
 # `Oak` Compiler Structure
 

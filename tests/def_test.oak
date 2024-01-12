@@ -7,12 +7,22 @@ Passed Oct 18 '23
 */
 
 package!("std");
+use_rule!("std");
 
 let value! = 0;
 
 let main() -> i32
 {
-    print(value!);
+    println<str>(_: str);
+    println<[]i8>(_: []i8);
+    println<i32>(_: i32);
+
+    println(value!);
+    println(oak_version!);
+    println(comp_time!);
+    println(sys!);
+    println(file!);
+    println(prev_file!);
     
     0
 }

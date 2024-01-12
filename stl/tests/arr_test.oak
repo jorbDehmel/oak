@@ -1,0 +1,40 @@
+/*
+Test of stl::arr for Oak.
+
+Jordan Dehmel, 2024
+jdehmel@outlook.com
+*/
+
+package!("std");
+include!("stl/arr.oak");
+use_rule!("std");
+
+let size! = 20;
+
+let main() -> i32
+{
+    let a: stl::arr<i32>;
+
+    a = size!;
+
+    let x: u128 = 0;
+    while x < size!
+    {
+        a.set(x, x);
+
+        x += 1;
+    }
+
+    x = 0;
+    while x < size!
+    {
+        print(a.Get(x));
+        print(" ");
+
+        x += 1;
+    }
+
+    endl();
+
+    0
+}

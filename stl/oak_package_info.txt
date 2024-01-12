@@ -1,5 +1,5 @@
 NAME = "stl"
-VERSION = "0.0.3"
+VERSION = "0.0.4"
 LICENSE = "GPLv3"
 DATE = "Jan 5, 2024"
 SOURCE = "github.com/jorbDehmel/oak"

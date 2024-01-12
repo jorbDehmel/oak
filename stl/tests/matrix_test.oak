@@ -1,0 +1,60 @@
+/*
+Test of stl::matrix for Oak.
+
+Jordan Dehmel, 2024
+jdehmel@outlook.com
+*/
+
+package!("std");
+include!("stl/matrix.oak");
+use_rule!("std");
+
+let main() -> i32
+{
+    let m: stl::matrix<i32>;
+
+    m = (3, 3);
+
+    let y: u128 = 0;
+    while y < 3
+    {
+        let x: u128 = 0;
+        while x < 3
+        {
+            m.set(x, y, x * y);
+
+            x += 1;
+        }
+        y += 1;
+    }
+
+    y = 0;
+    while y < 3
+    {
+        let x: u128 = 0;
+        while x < 3
+        {
+            print(m.Get(x, y));
+            print(" ");
+
+            x += 1;
+        }
+        
+        endl();
+        y += 1;
+    }
+
+    print("Row test:\n");
+
+    let r = m.row(1);
+    let i: u128 = 0;
+    while i < r.l
+    {
+        print(r.Get(i));
+        print(" ");
+        i += 1;
+    }
+    endl();
+
+    0
+}
