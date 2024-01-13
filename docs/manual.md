@@ -96,13 +96,15 @@ in one major release will have no guarantees about any other.
 ## For More Help
 
 For examples on the concepts presented in this document, see the
-`./tests/` directory included in this `git` repo. The files
+`../src/tests/` directory included in this `git` repo. The files
 therein are labeled `CONCEPT_test.oak`, where `CONCEPT` is the
 concept covered within. These files are both demos and unit
 tests for `Oak` and `acorn`. Consequently, you can compile all
 demos via `make test` or `acorn -T`.
 
 ## Quirks of `Oak`
+
+**If you read only one section, read this one.**
 
 This section outlines things which make `Oak` syntax unlike
 other common syntaxes. As mentioned above, this document
@@ -114,6 +116,11 @@ we will mostly focus on differences of this.
 In `C++` and `Rust`, the reference operator is `&` and the 
 dereference operator is `*`. In `Oak`, the reference operator is
 `@` and the dereference operator is `^`.
+
+ Operator Name | `C` | `Oak`
+---------------|-----|-------
+ Reference     | `&` | `@`
+ Dereference   | `*` | `^`
 
 ### Array Order
 
@@ -280,7 +287,8 @@ let is_bigger_than_five(a: i32) -> bool
 
 Note that leaving off a semicolon is equivalent to `C++`'s
 `return` statement. Equivalently, you can use the `return`
-keyword.
+keyword. **You cannot have any form of `void` return in `Oak`.**
+Void functions will only return at the end of their code scopes.
 
 Pointers are `^` (IE a pointer to a bool is `^bool`). The "get
 address" operator is @.
@@ -603,7 +611,7 @@ arrays in memory somewhere, are initialized to the null pointer
 
 Sized arrays are **not** pointers- They are the actual
 contiguous memory positions which unsized arrays point to.
-**Their memory is initialized to all zeros.**
+**Their memory is initialized with the native `New` function.**
 
 ## Formatting
 
@@ -640,6 +648,16 @@ if (true) {
 let fn() -> void {
     // ..
 }
+```
+
+A rare exception is single-line functions. These are functions
+which are so short that they can fit in a standard 96-character
+`Oak` line. These are visually similar to `Python`'s lambda
+functions. They will usually not use the `return` keyword.
+
+```rust
+// A valid single-line function:
+let a_times_b(a: i32, b: i32) -> i32 { a * b }
 ```
 
 Ensure you always have some sort of return statement (except
@@ -710,6 +728,15 @@ incorrect multi-line comment
 
 /*Also do not
 do this*/
+
+/*
+    If this is prettier in context, it is also valid.
+    However, it is not the default.
+*/
+
+// The following is a valid (and encouraged) section break:
+////////////////////////////////////////////////////////////////
+// (Even though it does not have a leading space)
 ```
 
 Also, all files should always end with a newline.
@@ -722,6 +749,14 @@ extension all comments should as well.
 Any sequence starting with `#` is ignored completely. This is to
 allow for shebangs. This symbol should **never** be used for
 commenting.
+
+```rust
+// This is fine:
+#!/usr/bin/acorn -E
+
+// This is bad:
+# Hello!
+```
 
 Tabbing should follow standard `C++` rules. Tabs and
 quadruple-spaces are both acceptable, but double-spaces are not.
@@ -820,17 +855,16 @@ let main(argc: i32, argv: []str) -> i32;
 let main(argc: i32, argv: [][]i8) -> i32;
 ```
 
-All macros will use this third form
-(`(argc: i32, argv: [][]i8) -> i32`). Note that these two
-variables can be named anything. A common form is
-`(c: i32, v: [][]i8) -> i32`.
+Note that these two arguments can be named anything. A common
+form is `(c: i32, v: [][]i8) -> i32`.
 
 ## Canonical `Oak` Vs `std`-dialect `Oak`
 
 Canonical `Oak` is fairly limited. It has very few "creature
 comforts". However, it compiles faster. `std` `Oak`, on the
 other hand, has many extra conveniences, but compiles slower.
-`std` `Oak` is activated by the code line `use_rule!("std");`.
+`std` `Oak` is activated by the code line `use_rule!("std");`
+(provided that the `"std"` package has already been imported).
 The following outlines some differences between canonical and
 `std` `Oak`.
 
@@ -975,6 +1009,10 @@ let main() -> i32
 {
     let a: i32;
     a = fn();
+    
+    // Or
+    let a: type!(fn());
+    a = fn();
 
     0
 }
@@ -1031,7 +1069,8 @@ let library::fn() -> void;
 ```
 
 **Note:** There is no `using` or `use` in `Oak`. If namespaces
-are to be used, they must always be fully qualified.
+are to be used, they must always be fully qualified. Namespaces
+are **required** when developing non-`std` packages.
 
 ### `import`, `include`, `link`, `use`, and `flag` keywords
 
@@ -1164,7 +1203,7 @@ returns an **unsized array** of the newly allocated values.
 Otherwise, it returns a **pointer** to the single newly
 allocated space.
 
-## Interchangeability With C
+## Interoperability With C
 
 You can declare only the function signatures in `Oak` and define
 them in `C`, as is done in the `Oak` `std` (standard) package.
@@ -1172,6 +1211,11 @@ This is called **interfacing**. These pairs of dual-language
 files are **interfacial files**, and any package primarily
 porting one language's features to `Oak` is an
 **interfacial package**.
+
+Since `Oak` is translated into `C` for compilation, there is
+also the `raw_c!()` macro, which writes the quote-enclosed
+contents within as raw `C` code. This is useful for more
+advanced rules and dialects.
 
 **Note:** You will have to follow the `Oak` mangling process, as
 detailed below.
@@ -1257,7 +1301,7 @@ let Eq(self: ^example, ..) -> bool;
 ```
 
 There are many so-called "operator aliases" which are listed
-below. If `self` is not a pointer, it is a const function.
+below.
 
 `Oak`  | `C++`     | Description
 -------|-----------|------------------------
@@ -1291,23 +1335,24 @@ Rbs    | >>        | Right bitshift
 New    | TYPE_NAME | Instantiation
 Del    | N/A       | Deletion
 
-There is no `Oak` equivalent to `C++`'s increment and decrement
-operators.
+**Note A:** There is no `Oak` equivalent to `C++`'s increment
+and decrement operators, although such a rule would be trivial
+to write.
 
-It is notable that there is not a set return type for many of
-these. It is common to see `copy` return `T`, `^T`, or `void`.
+**Note B:** There is not a set return type for many of these.
+For instance, it is common to see `copy` return the type of the
+item copied into, the type of the item copied from, or `void`.
 
-With a few exceptions, operator alias replacement occurs within
-parenthesis (either as standalone blocks for evaluation or as
-part of a function call). However, in cases like assignment
-parenthesis are inferred.
-
-No `std` `Oak` files use `C++`-style streams, but there is
-nothing in the language stopping them from working. However, the
-obfuscation they add to programmers only familiar with modern
-languages most likely outweighs any benefit they might provide.
+**Note C:** No `std` `Oak` files use `C++`-style streams, but
+there is nothing in the language stopping them from working.
+However, the obfuscation they add to programmers only familiar
+with modern languages most likely outweighs any benefit they
+might provide.
 
 ## Atomic Types
+
+The following are the built-in types of `Oak`, with their `C++`
+equivalents.
 
 `C++`               | `Oak`
 --------------------|-------
@@ -1403,16 +1448,14 @@ let split_string! = "we can also" "do this";
 
 ```
 
-**Note:** Integer literals *cannot* be split across multiple
-lines.
-
 ## Generics
 
 You can declare a generic function (a function which can operate
 on a generic type, rather than a specific, defined type) by
-using the `<..>` notation as below.
+using the `<t>` notation as below.
 
 ```rust
+// Where t is the generic type to be inserted later
 let generic_fn_demo<t>(arg1: t, arg2: bool, arg3: *t) -> t;
 ```
 
@@ -1421,7 +1464,7 @@ want) to enter the function's scope temporarily. On a compiler
 level, generic functions do not exist until they are called.
 Upon compiler detection of a call, it is ensured that an
 appropriately-typed function exists (otherwise, such a function
-is instantiated).
+is **instantiated**, or created based on the given template).
 
 `Oak` does not have automatic instantiation of generic functions
 via argument type analysis. You must manually call the template
@@ -1441,6 +1484,8 @@ let main() -> i32
     // which is our gen_fn for the i32 type
     gen_fn<i32>(what: i32);
 
+    // Only now that the function has been instantiated is this
+    // call valid.
     gen_fn(123);
 
     0
@@ -1450,7 +1495,7 @@ let main() -> i32
 **Note:** It is common to replace the names of any and all
 argument in the instantiator call with the null-name token `_`.
 This is equivalent to writing anything else there, but signals
-to the user that it is an instantiation call.
+to the programmer that it is an instantiation call.
 
 Similarly, you can define **generic structs** as follows.
 
@@ -1473,6 +1518,11 @@ let main() -> i32
 Generic enumerations are defined exactly like structs (see later
 for more information on enumerations). See later in this
 document for more about instantiating generic structs.
+
+**Note:** Generic structs and enumerations *can* be
+automatically instantiated; That is to say, the `node<i32>;`
+line in the above code is redundant. This is not the case for
+generic functions, as mentioned earlier.
 
 ## Acorn
 
@@ -1519,10 +1569,9 @@ only one output (`.o`, `.c`, or `.out`) file.
 ## Optimization and Runtime Debugging
 
 `Oak` has some limited support for compiler optimization and
-runtime debugging due to its use of LLVM-IR via Clang. The
-`acorn -O` and `acorn -g` commands tell Clang to use full
-compile-time optimization and allow runtime debugging
-respectively.
+runtime debugging via `clang`. The `acorn -O` and `acorn -g`
+commands tell `clang` to use full compile-time optimization and
+to allow runtime debugging respectively.
 
 **Due to `Oak`'s mangler and rule system, runtime debugging**
 **information may not be immediately useful.** For instance,
@@ -1538,13 +1587,18 @@ easier to parse.
 
 Additionally, it is worth noting that both of these options will
 increase compilation time, and the `-g` option will
-significantly increase the size of the output executable.
+significantly increase the size of the output executable. It is
+often also useful to examine the output `acorn` logs and `C`
+target files to determine what has gone wrong during debugging.
 
 ## Macros
 
+Macros in `Oak` are code which write code. Compiler macros in
+`Oak` are macros which specifically control the compiler.
+
 The following are the standard macros associated with Acorn.
 
-`include!(WHAT, WHAT, ..)` causes the translator to also use
+`include!(WHAT, WHAT, ...)` causes the translator to also use
 the file(s) within. It can take `.oak` files. It will first look
 for local files. However, if no local file exists, it will check
 the `/usr/include/oak` folder. For instance, if `include!` is
@@ -1556,7 +1610,7 @@ called on `std/opt.oak`, `acorn` will first look for a local
 `package!(WHAT, WHAT, ..)` is a more advanced version of the
 above. See the packages section below for more details.
 
-`link!(WHAT, WHAT, ..)` causes the compiler to also use the
+`link!(WHAT, WHAT, ...)` causes the compiler to also use the
 file(s) within. It takes `.o` files, or anything that can be
 used by a standard `C` linker. You can, for example, write a
 function header with no body in a `.oak` file, and add a `link!`
@@ -1573,8 +1627,12 @@ Macro arguments are always treated as strings. For instance,
 encouraged to put quotations around any filenames.
 
 ```rust
-let hi!(argc: i32, argv: ^^i8) -> i32
+let hi!(argc: i32, argv: [][]i8) -> i32
 {
+    // Each macro is its own translation unit, so compiler
+    // macros must be included inside them. Compiler macros
+    // called outside of here will not carry over.
+
     include!("std/std_io.oak");
 
     print("print(\"hello world\")");
@@ -1593,8 +1651,10 @@ which prints the name of a symbol 5 types, you would do the
 following.
 
 ```rust
-let print_five_times!(argc: i32, argv: ^str)
+let print_five_times!(argc: i32, argv: []str)
 {
+    package!("std");
+
     if (argc != 2)
     {
         throw(error("Invalid number of arguments."));
@@ -1621,10 +1681,15 @@ The `package!(WHAT)` macro imports a package. If it is not yet
 installed on the compiling device, it can be cloned via Git by
 using `acorn --install PACKAGE_URL`. You can update or reinstall
 a package via `acorn --reinstall PACKAGE_URL`. A few packages
-have known URLs, meaning you can just say 
-`acorn --install NAME`, rather than the full URL. Installed
-packages keep their files in `/usr/include/oak/NAME`. Note: You
-can use `--install` or `-S`.
+have known URLs, meaning you can just say `acorn --install NAME`
+rather than the full URL. Installed packages keep their files in
+`/usr/include/oak/NAME`.
+
+**Note A:** You can use `--install` or `-S`.
+
+**Note B:** All packages must be strictly unique in their names,
+and package names must contain only characters which are valid
+in UNIX directory names.
 
 ### Packages and Namespaces
 
@@ -1657,11 +1722,13 @@ VERSION = "0.0.1"
 LICENSE = "license"
 DATE = "July 14th, 2023"
 SOURCE = "example.com/example_package"
+PATH = "./path/within/source/to/package"
 AUTHOR = "Jordan Dehmel, Joe Shmoe"
 EMAIL = "jdehmel@outlook.com, example@example.com"
 ABOUT = "A demo of Oak package creation"
 INCLUDE = "main_file_to_link_to.oak,another_file.oak"
 SYS_DEPS = "package1 package2"
+OAK_DEPS = "some oak packages here"
 ```
 
 `NAME` is the name of the package. `VERSION` is the version
@@ -1676,6 +1743,8 @@ description.
 `INCLUDE` is the most important field- It contains the filepaths
 (relative to the main folder of the repo, IE `./`) of all files
 which will be directly `include!()`-ed by Acorn at compile-time.
+If this is left empty, the `package!()` macro will not do
+anything.
 
 For instance, the `STD` (standard) library has a central linking
 file named `std.oak`. This file contains `include!` macros for
@@ -1729,29 +1798,32 @@ let name! = definition;
 Following the above definition, all occurrences of `name!` will
 be replaced by `definition`.
 
+**Note:** Preproc definitions can never be redefined. This is
+also true of macros.
+
 ## Preproc Rules and Sapling
 
 ### Outline
 
-Use with caution. Rules alter the fundamental syntax of the
-language.
+**Note:** Use with caution. Rules alter the fundamental syntax
+of the language.
 
 The following subsection describes the use of the `Sapling` rule
 engine. Additional rule engines are available via minor changes
 to the `acorn` source code.
 
-Rules are an experimental feature that allow you to add more
-functionality to `Oak`. They take in a pattern of symbols, and
-replace it with a different one when it is detected in the code.
-A pattern definition is mostly like a fragment of `Oak` code,
-save for a few special features.
+Rules are a feature which allows you to add more functionality
+to `Oak`. They take in a pattern of symbols, and replace matches
+with a different pattern when they is detected in the code. A
+pattern definition is mostly like a fragment of `Oak` code, save
+for a few special features.
 
 The default symbol type in a rule is a literal. These match only
-the symbol that they are. For instance, `hi` would only match
-symbols that say `hi`. It would not match a symbol that said
-`hi-llo`, even though the pattern is a prefix of the latter.
-This is because rules operate on symbol-wise pattern matching,
-not character-wise pattern matching.
+the symbol that they are. For instance, `cat` would only match
+symbols that say `cat`. It would not match a symbol that said
+`catterpillar`, even though the pattern is a prefix of the
+latter. This is because rules operate on symbol-wise pattern
+matching, not character-wise pattern matching.
 
 The second type of symbol in a rule is a variable. These take
 the form of a dollar sign followed by a single alphanumeric
@@ -2636,8 +2708,8 @@ creating structs, a definition for `New` and `Del` are always
 required. However, it is not always practical to write these
 functions explicitly each time, especially if they are to be
 unit (empty) functions. For these reasons, we introduce the
-concepts of
-**explicit, implicit, and autogen function definitions.**
+concepts of **explicit**, **implicit**, and **autogen**
+function definitions.
 
 ```rust
 // A casual definition
@@ -2667,7 +2739,8 @@ Thus, if you provide a casual definition for `New` or `Del`, you
 can define them in external object files and link them together.
 
 Autogen functions are marked with the `//autogen` special
-symbol.
+symbol during sequencing. This is just a unit marker used for
+detection, and is ignored for all real compilation purposes.
 
 ## Naming Conventions for Library Files
 
@@ -2786,7 +2859,11 @@ controlled by an assembly language. A rigorous exploration of
 yet implemented into `Oak`.
 
 `acorn` version `0.2.11` introduced the option for multiple
-rule engines, allowing the future integration of `TARM`.
+rule engines, allowing the future integration of `TARM`. Rule
+engines are highly experimental, and are thusly not detailed in
+this document as a means of discouraging their use. When they
+have reached a more stable state of development, a section will
+be added on them.
 
 ## List of Keywords
 
@@ -2855,12 +2932,13 @@ constantly being added.
 Some miscellaneous notes which are not long enough to warrant 
 their own section in this document:
 
-- `Oak` was previously (0.1.*) translated to `C++`. As of 0.2.0,
-    it is instead translated to `C`.
-- As of version `0.0.10`, the `New` and `Del` operator aliases
-    are single-argument only. Just use `Copy` for anything else.
+- `Oak` does **not** have default argument values.
+- `Oak` does **not** have struct builder syntax.
+- `Oak` was previously (0.1.*) translated to `C++`. Since 0.2.0,
+    it has instead been translated to `C`.
+- The `New` and `Del` operator aliases are single-argument only.
 - You can call a multi-argument `=` operator (`Copy`) like this:
-    `a = (b, c, d);` (as of `Oak` `0.0.10`)
+    `a = (b, c, d);
 
 # Packages Included With the Standard Install
 

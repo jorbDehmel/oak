@@ -417,6 +417,10 @@ std::vector<std::pair<std::string, Type>> getArgs(Type &type)
             // Append to curType
             curType.append(type[cur].info, type[cur].name);
         }
+        else if (type[cur].info == sarr)
+        {
+            throw sequencing_error("Sized arrays may not be used in argument types. Use unsized arrays ([]) instead.");
+        }
 
         // Increment at end
         cur++;
