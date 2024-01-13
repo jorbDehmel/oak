@@ -140,6 +140,19 @@ void draw_rect_FN_PTR_sdl_window_JOIN_sdl_rect_JOIN_sdl_color_MAPS_void(struct s
     return;
 }
 
+void sdl_save_FN_PTR_sdl_window_JOIN_ARR_i8_MAPS_void(struct sdl_window *self, i8 filepath[])
+{
+    // Get pixels
+    SDL_Surface *surf = SDL_CreateRGBSurface(0, self->width, self->height, 32, 0, 0, 0, 0);
+    SDL_RenderReadPixels(self->rend, NULL, 0, surf->pixels, surf->pitch);
+
+    // Save as bmp file
+    SDL_SaveBMP(surf, filepath);
+
+    // Free used memory
+    SDL_FreeSurface(surf);
+}
+
 ///////////////////////////////////// Event stuff /////////////////////////////////////
 
 struct sdl_event

@@ -4,6 +4,8 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.4.11          | 1/12/24  | Added more tests, `trait` rule.
+                |          |
 0.4.10          | 1/11/24  | Added `arr` and `matrix` data
                 |          | structures to `stl` library. Minor
                 |          | bug fixes to preproc definitions.

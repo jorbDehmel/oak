@@ -1,0 +1,34 @@
+package!("std", "turtle");
+include!("std/printf.oak");
+use_rule!("std");
+
+let draw_circle(self: ^turtle::turtle, radius: f64) -> void
+{
+    let step: f64 = 2.0 * math_pi! * radius;
+    step /= 360.0;
+    let i: u128 = 0;
+    while i < to_u128(360)
+    {
+        self.forward(ceiling(step));
+        self.left(1.0);
+        i += 1;
+    }
+}
+
+let main() -> i32
+{
+    let t: turtle::turtle;
+
+    t.up();
+    t.set_position(256, 256);
+    t.down();
+
+    t.color(255, 0, 0);
+    t.draw_circle(100.0);
+    t.color(0, 255, 0);
+    t.draw_circle(200.0);
+    t.color(0, 0, 255);
+    t.draw_circle(300.0);
+
+    0
+}

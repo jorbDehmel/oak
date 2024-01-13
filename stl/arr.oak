@@ -132,3 +132,79 @@ let set<t>(self: ^stl::arr<t>, x: u128, from: t) -> void
 }
 
 ////////////////////////////////////////////////////////////////
+
+let stl::math_arr<t>: trait
+pre
+{
+    Add<t>(_: t, _: t);
+    Sub<t>(_: t, _: t);
+    Mult<t>(_: t, _: t);
+}
+post
+{
+    Mult<t>(_: ^stl::arr<t>, _: stl::arr<t>);
+    sum<t>(_: ^stl::arr<t>);
+    diff<t>(_: ^stl::arr<t>);
+}
+
+////////////////////////////////////////////////////////////////
+
+/*
+Return the dot product of two arrays.
+*/
+let Mult<t>(self: ^stl::arr<t>, other: stl::arr<t>) -> t
+{
+    assert!(self.l == other.l);
+
+    let out: t;
+    let i: u128 = 0;
+    while i < self.l
+    {
+        out += self.get(i) * other.get(i);
+
+        i += 1;
+    }
+
+    out
+}
+
+/*
+Return the sum of the array.
+*/
+let sum<t>(self: ^stl::arr<t>) -> t
+{
+    let out: t;
+    let i: u128 = 0;
+    while i < self.l
+    {
+        out += self.get(i);
+        i += 1;
+    }
+
+    out
+}
+
+/*
+For all i where i + 1 < out.l:
+out.diff[i] = out[i + 1] - out[i]
+*/
+let diff<t>(self: ^stl::arr<t>) -> stl::arr<t>
+{
+    let out: stl::arr<t>;
+
+    // Allocate correct size
+    out = (self.l - 1);
+    
+    // Create values
+    let i: u128 = 0;
+    while i < out.l
+    {
+        out.set(i, self.get(i + 1) - self.get(i));
+        i += 1;
+    }
+
+    out
+}
+
+
+////////////////////////////////////////////////////////////////

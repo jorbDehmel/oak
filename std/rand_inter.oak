@@ -15,3 +15,4 @@ let seed_rand(with: i32) -> void;
 
 // Generates a random number
 let rand(low: i32, high: i32) -> i32;
+let rand() -> i32;

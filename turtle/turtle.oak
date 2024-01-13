@@ -34,6 +34,7 @@ let turtle::turtle: struct
     is_running: bool,
     w: u128,
     h: u128,
+    delay: u128,
     window: sdl::window,
     bg_color: sdl::color,
     pen_color: sdl::color,
@@ -50,6 +51,9 @@ let turtle_sqrt_two! = 1.41421;
 ////////////////////////////////////////////////////////////////
 // Basic methods
 ////////////////////////////////////////////////////////////////
+
+// Early definition to avoid errors
+let refresh(_: ^turtle::turtle) -> void;
 
 /*
 Create a new turtle, with all attributes set to defaults.
@@ -68,6 +72,7 @@ let New(self: ^turtle::turtle) -> void
     self.w = 512;
     self.h = 512;
 
+    self.delay = 10;
     self.bg_color = (0xFF, 0xFF, 0xFF, 0xFF);
     self.pen_color = (0x00, 0x00, 0x00, 0xFF);
     self.turtle_color = (0x00, 0x00, 0x00, 0xFF);
@@ -142,12 +147,36 @@ let sleep(self: ^turtle::turtle, s: f64) -> void
         let ms: u128;
         ms = floor(s * 1000.0);
         sdl::delay(ms);
+        self.refresh();
     }
 }
 
 ////////////////////////////////////////////////////////////////
 // Drawing stuff
 ////////////////////////////////////////////////////////////////
+
+/*
+Set the color of the turtle's pen.
+*/
+let color(self: ^turtle::turtle, r: u8, g: u8, b: u8) -> void
+{
+    self.pen_color.r = r;
+    self.pen_color.g = g;
+    self.pen_color.b = b;
+}
+let color(self: ^turtle::turtle, to: sdl::color) -> void
+{
+    self.pen_color = to;
+}
+
+/*
+Get the color of the turtle's pen.
+*/
+let color(self: ^turtle::turtle) -> sdl::color
+{
+    let out = self.pen_color;
+    out
+}
 
 /*
 Rotate a point around another by a certain number of degrees.
@@ -164,8 +193,19 @@ let turtle::rotate(
         what.x -= about.x;
         what.y -= about.y;
 
-        let c: f64 = sdl::cos(degrees_to_radians(rot));
-        let s: f64 = sdl::sin(degrees_to_radians(rot));
+        let real_rot = rot;
+
+        while real_rot > 360.0
+        {
+            real_rot -= 360.0;
+        }
+        while real_rot < 0.0
+        {
+            real_rot += 360.0;
+        }
+
+        let c: f64 = sdl::cos(degrees_to_radians(360.0 - rot));
+        let s: f64 = sdl::sin(degrees_to_radians(360.0 - rot));
         let x: f64 = to_f64(what.x);
         let y: f64 = to_f64(what.y);
 
@@ -276,9 +316,9 @@ let refresh(self: ^turtle::turtle) -> void
         let end = sdl::get_ticks();
         let elapsed = end - start;
 
-        if elapsed < 10
+        if elapsed < self.delay
         {
-            sdl::delay(10 - elapsed);
+            sdl::delay(self.delay - elapsed);
         }
     }
 }
@@ -317,6 +357,8 @@ let left(self: ^turtle::turtle, by: f64) -> void
     let frames: i32 = floor(by / self.speed);
     let dt: f64 = by / to_f64(frames);
 
+    let start_orientation = self.orientation;
+
     let frame: i32 = 0;
     while frame < frames
     {
@@ -335,6 +377,18 @@ let left(self: ^turtle::turtle, by: f64) -> void
 
         frame += 1;
     }
+
+    // Ensure accurate rotation
+    start_orientation += by;
+    self.orientation = start_orientation;
+    while (self.orientation < 0.0)
+    {
+        self.orientation += 360.0;
+    }
+    while (self.orientation >= 360.0)
+    {
+        self.orientation -= 360.0;
+    }
 }
 
 /*
@@ -344,6 +398,8 @@ let right(self: ^turtle::turtle, by: f64) -> void
 {
     let frames: i32 = floor(by / self.speed);
     let dt: f64 = by / to_f64(frames);
+
+    let start_orientation = self.orientation;
 
     let frame: i32 = 0;
     while frame < frames
@@ -362,6 +418,18 @@ let right(self: ^turtle::turtle, by: f64) -> void
         self.refresh();
 
         frame += 1;
+    }
+
+    // Ensure accurate rotation
+    start_orientation -= by;
+    self.orientation = start_orientation;
+    while (self.orientation < 0.0)
+    {
+        self.orientation += 360.0;
+    }
+    while (self.orientation >= 360.0)
+    {
+        self.orientation -= 360.0;
     }
 }
 
@@ -566,6 +634,11 @@ it moves.
 let down(self: ^turtle::turtle) -> void
 {
     self.pen_is_down = true;
+}
+
+let save(self: ^turtle::turtle, filepath: []i8) -> void
+{
+    sdl::save(self.window, filepath);
 }
 
 ////////////////////////////////////////////////////////////////

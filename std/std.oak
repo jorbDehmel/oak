@@ -95,6 +95,12 @@ new_rule!(
     "flag! ( $a ) ;"
 );
 
+new_rule!(
+    "trait",
+    "trait",
+    "struct {}"
+);
+
 ////////////////////////////////////////////////////////////////
 
 // Bundle everything together
@@ -117,5 +123,6 @@ bundle_rule!(
     "include",
     "link",
     "use",
-    "flag"
+    "flag",
+    "trait"
 );

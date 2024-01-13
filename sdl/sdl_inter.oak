@@ -24,6 +24,7 @@ let Copy(self: ^sdl_window, w: u64, h: u64) -> void;
 
 let sdl_enable_window_fullscreen(self: ^sdl_window) -> void;
 let sdl_disable_window_fullscreen(self: ^sdl_window) -> void;
+let sdl_save(self: ^sdl_window, filepath: []i8) -> void;
 
 let sdl_color: struct
 {

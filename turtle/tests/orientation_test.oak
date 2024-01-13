@@ -1,0 +1,29 @@
+package!("std", "turtle");
+use_rule!("std");
+include!("std/cstr.oak");
+
+let main() -> i32
+{
+    println<f64>(_: f64);
+
+    let t: turtle::turtle;
+
+    t.up();
+    t.set_position(256, 256);
+    t.set_orientation(0.0);
+    t.down();
+
+    while t.is_running
+    {
+        t.right(7.0);
+        t.forward(100);
+        t.backward(100);
+    }
+
+    let file: [13]i8;
+    strcpy(file, "whatever.bmp");
+
+    t.save(file);
+
+    0
+}

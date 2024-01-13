@@ -1,0 +1,19 @@
+include!("std/ns.oak");
+include!("std/rand.oak");
+use_rule!("namespace");
+link!("extra/math.o");
+
+// Returns a^b
+let extra::pow(a: f64, b: f64) -> f64;
+
+// Returns e^a
+let extra::exp(a: f64) -> f64;
+
+// Returns a random number x where min <= x <= max
+let extra::f_rand(min: f64, max: f64) -> f64
+{
+    let base: f64;
+    base = to_f64(rand()) / to_f64(pow(2, 32));
+    base *= (max - min);
+    (min + base)
+}

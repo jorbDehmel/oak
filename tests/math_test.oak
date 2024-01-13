@@ -2,7 +2,9 @@
 // Passed Aug 3, 23
 
 package!("std");
+use_rule!("std");
 include!("std/math.oak");
+include!("std/printf.oak");
 
 let main() -> i32
 {
@@ -52,6 +54,22 @@ let main() -> i32
 
     print(ceiling(12.0));
     print("\n");
+
+    let rad: f64 = 0.0;
+    while rad < 4.0 * math_pi!
+    {
+        printf!("The angle % is equal to % degrees.\n", rad, radians_to_degrees(rad));
+
+        rad += (math_pi! / 4.0);
+    }
+
+    let deg: f64 = 0.0;
+    while deg < 720.0!
+    {
+        printf!("The angle % is equal to % radians.\n", deg, degrees_to_radians(deg));
+
+        deg += 45.0;
+    }
 
     0
 }

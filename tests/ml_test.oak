@@ -1,0 +1,103 @@
+////////////////////////////////////////////////////////////////
+
+/*
+Machine learning formulas for math testing
+*/
+
+////////////////////////////////////////////////////////////////
+
+package!("std");
+include!(
+    "std/math.oak",
+    "std/printf.oak",
+    "std/rand.oak",
+    "extra/math.oak",
+    "stl/arr.oak"
+);
+use_rule!("std");
+
+////////////////////////////////////////////////////////////////
+
+// A perceptron node using static stl::arr data structures
+stl::math_arr<f64>;
+let node: struct
+{
+    inputs: stl::arr<f64>,
+    weights: stl::arr<f64>,
+    bias: f64,
+}
+
+// Initialize the inputs and weights of a node
+let Copy(self: ^node, num_inputs: u128) -> void
+{
+    self.inputs = num_inputs;
+    self.weights = num_inputs;
+}
+
+// Randomize the weights of a node
+let randomize(self: ^node, min: f64, max: f64) -> void
+{
+    let i: u128 = 0;
+    while i < self.weights.l
+    {
+        set(self.weights, i, extra::f_rand(min, max));
+        i += 1;
+    }
+}
+
+// Return the new activation of a node
+let propagate(self: ^node) -> f64 { self.inputs * self.weights + self.bias }
+
+////////////////////////////////////////////////////////////////
+
+// Return $\frac{1}{1 + e^{-x}}$
+let sigmoid(x: f64) -> f64 { 1.0 / (1.0 + extra::pow(math_e!, -1.0 * x)) }
+
+// Return the derivative of the sigmoid activation function
+let sigmoid_derivative(x: f64) -> f64
+{
+    let out = sigmoid(x);
+    out * (1.0 - out)
+}
+
+// Rectifier activation function
+let relu(x: f64) -> f64 { if x < 0.0 { return 0.0; } else { return x; } }
+
+// Derivative of the rectifier activation function
+let relu_derivative(x: f64) -> f64
+{
+    if x < 0.0
+    {
+        return 0.0;
+    }
+    else
+    {
+        return 1.0;
+    }
+}
+
+////////////////////////////////////////////////////////////////
+
+let min! = -15.0;
+let max! = -1.0 * min!;
+
+let main() -> i32
+{
+    let x: f64 = min!;
+
+    while x <= max!
+    {
+        printf!(
+            "x: %, S: %, dS: %\n",
+            x,
+            sigmoid(x),
+            sigmoid_derivative(x)
+        );
+
+        x += 1.0;
+    }
+
+    0
+}
+
+////////////////////////////////////////////////////////////////

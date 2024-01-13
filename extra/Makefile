@@ -1,7 +1,7 @@
 FLAGS := -pedantic -Wall -O3 -fpic -static
 
 all:
-	$(MAKE) -j 2 regex_inter.o bit_print.o
+	$(MAKE) -j 8 regex_inter.o bit_print.o math.o
 
 %.o:	%.c
 	clang $(FLAGS) -c -o $@ $<

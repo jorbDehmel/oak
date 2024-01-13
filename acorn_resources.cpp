@@ -30,7 +30,7 @@ bool ignoreSyntaxErrors = false;
 bool timeAnalysis = false;
 bool isMacroCall = false;
 
-std::set<std::string> visitedFiles;
+std::set<std::filesystem::path> visitedFiles;
 std::set<std::string> cppSources;
 std::set<std::string> objects;
 std::set<std::string> cflags;
@@ -116,7 +116,7 @@ void doFile(const std::string &From)
             }
         }
 
-        if (visitedFiles.count(realName) != 0)
+        if (visitedFiles.count(From) != 0)
         {
             if (debug)
             {
@@ -127,7 +127,7 @@ void doFile(const std::string &From)
             return;
         }
 
-        visitedFiles.insert(realName);
+        visitedFiles.insert(From);
 
         if (debug)
         {

@@ -32,7 +32,7 @@ GPLv3 held by author
 #include "tags.hpp"
 
 // Info globals
-const static std::string VERSION = "0.4.10";
+const static std::string VERSION = "0.4.11";
 const static std::string LICENSE = "GPLv3";
 const static std::string INFO = "jdehmel@outlook.com";
 
@@ -90,7 +90,8 @@ const static std::string helpText = "Acorn - Oak Standard Translator\n"
                                     " -x    | --syntax    | Ignore syntax errors\n";
 
 extern bool debug, compile, doLink, alwaysDump, manual, ignoreSyntaxErrors, isMacroCall;
-extern std::set<std::string> visitedFiles, cppSources, objects, cflags;
+extern std::set<std::string> cppSources, objects, cflags;
+extern std::set<std::filesystem::path> visitedFiles;
 extern std::map<std::string, std::string> preprocDefines;
 extern std::vector<unsigned long long> phaseTimes;
 

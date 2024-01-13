@@ -1,0 +1,29 @@
+package!("std", "turtle");
+include!("std/printf.oak");
+use_rule!("std");
+
+let main() -> i32
+{
+    let t: turtle::turtle;
+
+    let a: u128 = 0;
+    let b: u128 = 1;
+    let c: u128;
+
+    t.up();
+    t.x = 256;
+    t.y = 256;
+    t.down();
+
+    while t.is_running
+    {
+        c = a + b;
+        a = b;
+        b = c;
+
+        t.forward(10);
+        t.orientation = to_f64(a % to_u128(360));
+    }
+
+    0
+}

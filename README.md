@@ -1,6 +1,6 @@
 
 # The Oak Programming Language
-## Version 0.4.10
+## Version 0.4.11
 
 ![](logo_trimmed.png)
 
@@ -2514,6 +2514,52 @@ does not inherently "come" with any methods, and thus the exact
 methods to instantiate with a generic struct are unknown. This
 allows the programmer to tell the compiler exactly what is
 needed for use with the struct.
+
+## `trait`s
+
+Traits are a shorthand for instantiating many functions at once
+without specifying a type. Usually, `pre` and `post` blocks can
+only be used when instantiating a function, enumeration or
+struct. However, this may not always be wanted. For instance,
+the `stl::arr` type does not provide any dot product function.
+This, along with several other math functions, can be created at
+once by instantiating `stl::math_arr`. Internally, this is a
+zero-member struct with the associated functions contained in
+`pre` and `post` blocks. This can be notated in two ways, which
+are shown below.
+
+Without traits:
+```rust
+let item<t>: struct
+{
+    ,
+}
+pre
+{
+    // These things must be true for this to work
+}
+post
+{
+    // Some functions to instantiate when this trait is called
+}
+```
+
+With traits:
+```rust
+// The `std` rule provides the `trait` shorthand
+package!("std");
+use_rule!("std");
+
+let item<t>: trait
+pre
+{
+    // These things must be true for this to work
+}
+post
+{
+    // Some functions to instantiate when this trait is called
+}
+```
 
 ## Explicit, Implicit / Casual, and Autogen Function Definitions
 
