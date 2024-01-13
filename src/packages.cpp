@@ -10,22 +10,6 @@ GPLv3 held by author
 #include "tags.hpp"
 #include <stdexcept>
 
-/*
-File oak_package_info.txt:
-
-NAME = "name goes here"
-VERSION = "0.0.1"
-LICENSE = "GPLv3"
-DATE = "April 1st, 2003"
-SOURCE = "www.google.com"
-PATH = ""
-AUTHOR = "John Smith"
-EMAIL = "JSmith@gmail.com"
-ABOUT = "A demo package"
-INCLUDE = "main_include.oak"
-SYS_DEPS = ""
-*/
-
 #define pm_assert(expression, message)                                                                                 \
     ((bool)(expression) ? true : throw package_error(message " (Failed assertion: '" #expression "')"))
 
@@ -40,9 +24,10 @@ std::ostream &operator<<(std::ostream &strm, const packageInfo &info)
          << "Author(s) '" << info.author << "'\n"
          << "Email(s) '" << info.email << "'\n"
          << "Via '" << info.source << ":/" << info.path << "'\n\n"
-         << info.description << "\n\n"
+         << info.about << "\n\n"
          << "Include path '/usr/include/oak/" << info.name << "/" << info.toInclude << "'\n"
-         << "System Deps: '" << info.sysDeps << "'\n";
+         << "System Deps: '" << info.sysDeps << "'\n"
+         << "Oak Deps: '" << info.oakDeps << "'\n";
 
     return strm;
 }
@@ -227,7 +212,7 @@ packageInfo loadPackageInfo(const std::string &Filepath)
         }
         else if (name == "ABOUT")
         {
-            toAdd.description = content;
+            toAdd.about = content;
         }
         else if (name == "DATE")
         {
@@ -241,6 +226,10 @@ packageInfo loadPackageInfo(const std::string &Filepath)
         {
             toAdd.sysDeps = content;
         }
+        else if (name == "OAK_DEPS")
+        {
+            toAdd.oakDeps = content;
+        }
         else if (name == "PATH")
         {
             toAdd.path = content;
@@ -252,6 +241,15 @@ packageInfo loadPackageInfo(const std::string &Filepath)
     }
 
     inp.close();
+
+    if (toAdd.name == "")
+    {
+        throw package_error("Malformed package file '" + Filepath + "': Must inclue NAME field.");
+    }
+    else if (toAdd.source == "")
+    {
+        throw package_error("Malformed package file '" + Filepath + "': Must inclue SOURCE field.");
+    }
 
     packages[toAdd.name] = toAdd;
     return toAdd;
@@ -269,9 +267,10 @@ void savePackageInfo(const packageInfo &Info, const std::string &Filepath)
         << "AUTHOR = '" << Info.author << "'\n"
         << "EMAIL = '" << Info.email << "'\n"
         << "SOURCE = '" << Info.source << "'\n"
-        << "ABOUT = '" << Info.description << "'\n"
+        << "ABOUT = '" << Info.about << "'\n"
         << "INCLUDE = '" << Info.toInclude << "'\n"
         << "SYS_DEPS = '" << Info.sysDeps << "'\n"
+        << "OAK_DEPS = '" << Info.oakDeps << "'\n"
         << "PATH = '" << Info.path << "'\n";
 
     out.close();
@@ -445,6 +444,33 @@ void downloadPackage(const std::string &URLArg, const bool &Reinstall, const std
         if (info.sysDeps != "")
         {
             install(info.sysDeps);
+        }
+
+        // Install Oak deps
+        if (info.oakDeps != "")
+        {
+            // Split into packages and install them
+            std::string current;
+            for (const char &c : info.oakDeps)
+            {
+                if (c == ' ')
+                {
+                    if (packages.count(current) == 0)
+                    {
+                        downloadPackage(current);
+                    }
+                    current = "";
+                }
+                else
+                {
+                    current.push_back(c);
+                }
+            }
+
+            if (current != "" && packages.count(current) == 0)
+            {
+                downloadPackage(current);
+            }
         }
 
         // Make package if needed

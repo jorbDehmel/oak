@@ -60,10 +60,6 @@ void getDiskUsage()
 
 void doFile(const std::string &From)
 {
-    // std::chrono::high_resolution_clock::time_point global_start, global_end;
-    // unsigned long long elapsedms = 0;
-    // global_start = std::chrono::high_resolution_clock::now();
-
     if (debug)
     {
         while (phaseTimes.size() < 9)
@@ -863,10 +859,6 @@ void doFile(const std::string &From)
         throw std::runtime_error("Unknown failure in file '" + From + "'");
     }
 
-    // global_end = std::chrono::high_resolution_clock::now();
-    // elapsedms += std::chrono::duration_cast<std::chrono::milliseconds>(global_end - global_start).count();
-    // std::cout << DB_INFO << curFile << "\t" << elapsedms << " ms\n";
-
     curLine = oldLineNum;
     curFile = oldFile;
 
@@ -895,26 +887,18 @@ void makePackage(const std::string &RawName)
     std::string time = ctime(&now);
     time.pop_back();
 
-    /*
-    VERSION = "0.0.1"
-    LICENSE = "GPLv3"
-    SOURCE = "github.com/jorbDehmel"
-    AUTHOR = "Jordan Dehmel"
-    EMAIL = "jdehmel@outlook.com"
-    ABOUT = "Oak STD Package"
-    SYS_DEPS = "git clang"
-    */
-
     info << "NAME = '" << name << "'\n"
-         << "DATE = '" << time << "'\n"
-         << "INCLUDE = '" << name << ".oak'\n"
          << "VERSION = ''\n"
          << "LICENSE = ''\n"
-         << "SOURCE = ''\n"
+         << "DATE = '" << time << "'\n"
          << "AUTHOR = ''\n"
          << "EMAIL = ''\n"
+         << "SOURCE = ''\n"
+         << "PATH = '.'\n"
          << "ABOUT = ''\n"
-         << "SYS_DEPS = ''\n";
+         << "INCLUDE = '" << name << ".oak'\n"
+         << "SYS_DEPS = ''\n"
+         << "OAK_DEPS = ''\n";
 
     info.close();
 

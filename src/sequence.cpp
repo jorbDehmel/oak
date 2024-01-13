@@ -28,7 +28,6 @@ sequence __createSequence(std::list<token> &From);
 sequence createSequence(const std::vector<token> &From)
 {
     // Clone to feed into the consumptive version
-    // std::vector<std::string> temp(From);
     std::list<token> temp;
     temp.assign(From.begin(), From.end());
 
@@ -37,7 +36,6 @@ sequence createSequence(const std::vector<token> &From)
     // Feed to consumptive version
     while (!temp.empty())
     {
-        // std::cout << "During createSequence, head: " << temp.front().text << '\n';
         out.push_back(__createSequence(temp));
 
         while (!temp.empty() && temp.front() == ";")
@@ -723,7 +721,6 @@ sequence __createSequence(std::list<token> &From)
         From.pop_front(); // let
         sm_assert(!From.empty(), "'let' must be followed by something.");
 
-        // std::string name = From.front();
         std::vector<std::string> names = {From.front()};
 
         sm_assert(!From.empty(), "Cannot pop from front of empty vector.");

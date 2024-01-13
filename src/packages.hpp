@@ -31,19 +31,20 @@ const static std::string CLONE_COMMAND = "git clone ";
 
 struct packageInfo
 {
-    std::string name;        // Package name
-    std::string version;     // Package version
-    std::string license;     // Package license
-    std::string date;        // Date the current version was released
-    std::string author;      // Self-explanitory
-    std::string email;       // See maintainer name
-    std::string source;      // URL package was downloaded from
-    std::string path;        // Path from URL to get to the install point
-    std::string description; // Package description
+    std::string name;    // Package name
+    std::string version; // Package version
+    std::string license; // Package license
+    std::string date;    // Date the current version was released
+    std::string author;  // Self-explanitory
+    std::string email;   // See maintainer name
+    std::string source;  // URL package was downloaded from
+    std::string path;    // Path from URL to get to the install point
+    std::string about;   // Package description
 
     std::string toInclude; // File within /usr/include/oak/$(PACKAGE_NAME) to include!();
 
     std::string sysDeps;
+    std::string oakDeps;
 };
 
 extern std::string installCommand;
