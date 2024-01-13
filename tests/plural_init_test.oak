@@ -1,0 +1,16 @@
+/*
+Test of plural initialization notation in Oak.
+
+Jordan Dehmel, 2024
+jdehmel@outlook.com
+*/
+
+package!("std");
+
+let main() -> i32
+{
+    let d: i32;
+    let a, b, c: i32;
+
+    0
+}

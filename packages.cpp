@@ -314,7 +314,7 @@ void downloadPackage(const std::string &URLArg, const bool &Reinstall, const std
         // Local file
         if (system(("cp -r " + URL + " " + tempFolderName).c_str()) != 0)
         {
-            throw std::runtime_error("Local copy failed; Is not a filepath.");
+            throw package_error("Local copy failed; Is not a filepath.");
         }
     }
     catch (package_error &e)
@@ -345,10 +345,12 @@ void downloadPackage(const std::string &URLArg, const bool &Reinstall, const std
             std::string line;
             while (getline(packagesList, line))
             {
+                if (strncmp(line.c_str(), "//", 2) == 0 || line.size() == 0)
+                {
+                    continue;
+                }
 
                 pm_assert(line.find(' ') != std::string::npos, "Malformed packages_list.txt");
-
-                std::cout << 330 << '\t' << line << '\n';
 
                 // name source path
                 std::string name, source, path;
@@ -358,15 +360,11 @@ void downloadPackage(const std::string &URLArg, const bool &Reinstall, const std
                 name = line.substr(0, breakPoint);
                 source = line.substr(breakPoint + 1);
 
-                std::cout << 340 << '\t' << name << '\t' << source << '\n';
-
                 pm_assert(source.find(' ') != std::string::npos, "Malformed packages_list.txt");
                 breakPoint = source.find(' ');
 
                 path = source.substr(breakPoint + 1);
                 source = source.substr(0, breakPoint);
-
-                std::cout << 347 << '\t' << name << '\t' << source << '\t' << path << '\n';
 
                 if (name == URL)
                 {

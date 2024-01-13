@@ -1,6 +1,6 @@
 
 # The Oak Programming Language
-## Version 0.4.11
+## Version 0.4.12
 
 ![](logo_trimmed.png)
 
@@ -109,12 +109,34 @@ other common syntaxes. As mentioned above, this document
 requires a moderate understanding of `C`/`C++` syntax, and thus
 we will mostly focus on differences of this.
 
+### Reference and Dereference Operators
+
+In `C++` and `Rust`, the reference operator is `&` and the 
+dereference operator is `*`. In `Oak`, the reference operator is
+`@` and the dereference operator is `^`.
+
 ### Array Order
 
 In `Oak`, types are read strictly left-to-right. This means that
 an array of integers is `[]i32`, not `i32 NAME[]` or `[i32]`.
 `Oak` arrays always come immediately before the thing they
 contain in `Oak` type syntax.
+
+For example:
+```rust
+let arr_of_bools: []bool;
+let sized_arr_of_bools: [123]bool;
+let arr_of_bool_pointers: []^bool;
+let pointer_to_arr_of_bools: ^[]bool;
+
+let misc_1: [123][]i32;
+let misc_2: []^[]^^^[][][]f64;
+```
+
+A sized array looks like this: `[size_here]i32`, where
+`size_here` is a compile-time positive integer constant. An
+unsized array, on the other hand, looks like this: `[]i32`.
+Unsized arrays are assigned via the `alloc!` macro.
 
 ### Modern Generics / Templates
 
@@ -164,7 +186,27 @@ foobar(123);
 
 `Oak` does not have classes (only structs). Additionally, `Oak`
 does not have any form of member protection. This means that all
-struct member variables are always `public`.
+struct member variables are always `public`. For a demonstration
+of why this is the case, see `extra/tests/mischief.oak`.
+
+**Note:** Informal private members are denoted as in `Python`,
+with two underscores as a prefix. This is the same for local
+helper functions in libraries.
+
+```rust
+let library_name::public_fn() -> void {}
+let library_name::__private_fn() -> void {}
+
+let library_name::struct_name: struct
+{
+    public_member: u128,
+    __private_member: u128,
+}
+```
+
+These members are **not actually private**, but are informally
+treated as such. That is to say, you *shouldn't* modify them,
+but you still *can*.
 
 ### Class Methods
 
@@ -1139,7 +1181,7 @@ detailed below.
 The `Oak` function signatures
 
 ```rust
-let foo_bar(self: ^data_structure, what: data, hello: ^^data) -> data_structure;
+let foo_bar(self: ^data, what: data, hello: ^^data) -> data;
 let hello_world() -> void;
 let fn_ptr_thing(fn: ^() -> void) -> void;
 ```
@@ -1150,7 +1192,8 @@ Will, upon translation to `C`, become
 // Note how the new "mangled" function name contains the entire type
 // Argument types are separated by JOIN, and the argument section ends
 // with MAPS, followed by the return type.
-struct data_structure foo_bar_FN_PTR_data_structure_JOIN_data_JOIN_PTR_PTR_data_MAPS_data_structure(struct data_structure *self, struct data what, struct data **hello);
+struct data foo_bar_FN_PTR_data_JOIN_data_JOIN_PTR_PTR_data_MAPS_data(
+    struct data *self, struct data what, struct data **hello);
 
 void hello_world_FN_MAPS_void(void);
 
@@ -1163,6 +1206,28 @@ above pattern. For higher-level languages like `C++` and `Rust`,
 you will have to manually disable the mangler upon compile time
 in order for interfacing to be successful. For `C++`, this
 comes in the form of the `extern "C"` statement.
+
+**Note:** `Oak` cannot see templates of other languages, nor can
+other languages see `Oak` templates. `Oak` namespaces are
+shorthand for underscores, so they can be interfaced at a low
+level like anything else. For example, the `Oak` interfacial
+code:
+
+```rust
+let math::sin(x: f64) -> f64;
+
+// Is the same as
+
+let math_sin(x: f64) -> f64;
+```
+
+Can interface with the `C++` code:
+```cpp
+f64 math_sin_FN_f64_MAPS_f64(f64 x)
+{
+    // ...
+}
+```
 
 ## Operator Overloading / Aliases
 
@@ -1181,7 +1246,7 @@ public:
 In `Oak` you would write
 
 ```rust
-// The unit struct; No members
+// The empty struct; No members
 let example: struct
 {
     ,
@@ -1194,37 +1259,37 @@ let Eq(self: ^example, ..) -> bool;
 There are many so-called "operator aliases" which are listed
 below. If `self` is not a pointer, it is a const function.
 
-`Oak`  | `C++`     | Description            | Signature for `T`
--------|-----------|------------------------|------------------------
-Less   | <         | Less than              | let Less(self: T, other: T) -> bool;
-Great  | >         | Greater than           | let Great(self: T, other: T) -> bool;
-Leq    | <=        | Less that or equal     | let Leq(self: T, other: T) -> bool;
-Greq   | >=        | Greater than or equal  | let Greq(self: T, other: T) -> bool;
-Eq     | ==        | Equal to               | let Eq(self: T, other: T) -> bool;
-Neq    | !=        | Not equal to           | let Neq(self: T, other: T) -> bool;
-And    | &         | Bitwise and            | let And(self: T, other: T) -> T;
-Andd   | &&        | Boolean and            | let Andd(self: T, other: T) -> bool;
-Or     | \|        | Bitwise or             | let Or(self: T, other: T) -> T;
-Orr    | \|\|      | Boolean or             | let Orr(self: T, other: T) -> bool;
-Not    | !         | Boolean negation       | let Not(self: T) -> T;
-Copy   | =         | Copy constructor       | let Copy(self: ^T, other: T) -> void;
-Del    | ~         | Deletion               | let Del(self: ^T) -> void;
-Add    | +         | Addition               | let Add(self: T, other: T) -> T;
-Sub    | -         | Subtraction            | let Sub(self: T, other: T) -> T;
-Mult   | *         | Multiplication         | let Mult(self: T, other: T) -> T;
-Div    | /         | Division               | let Div(self: T, other: T) -> T;
-Mod    | %         | Modulo / remainder     | let Mod(self: T, other: T) -> T;
-AddEq  | +=        | Increment by a number  | let AddEq(self: ^T, other: T) -> T;
-SubEq  | -=        | Decrement by a number  | let SubEq(self: ^T, other: T) -> T;
-MultEq | *=        | Multiply and assign    | let MultEq(self: ^T, other: T) -> T;
-DivEq  | /=        | Divide and assign      | let DivEq(self: ^T, other: T) -> T;
-ModEq  | %=        | Modulo and assign      | let ModEq(self: ^T, other: T) -> T;
-AndEq  | &=        | Bitwise AND and assign | let AndEq(self: ^T, other: T) -> T;
-OrEq   | \|=       | Bitwise OR and assign  | let OrEq(self: ^T, other: T) -> T;
-Lbs    | <<        | Left bitshift          | let Lbs(self: T, other: T) -> T;
-Rbs    | >>        | Right bitshift         | let Rbs(self: T, other: T) -> T;
-New    | TYPE_NAME | Instantiation          | let New(self: ^T) -> ^T;
-Del    | N/A       | Deletion               | let Del(self: ^T) -> void;
+`Oak`  | `C++`     | Description
+-------|-----------|------------------------
+Less   | <         | Less than
+Great  | >         | Greater than
+Leq    | <=        | Less that or equal
+Greq   | >=        | Greater than or equal
+Eq     | ==        | Equal to
+Neq    | !=        | Not equal to
+And    | &         | Bitwise and
+Andd   | &&        | Boolean and
+Or     | \|        | Bitwise or
+Orr    | \|\|      | Boolean or
+Not    | !         | Boolean negation
+Copy   | =         | Copy constructor
+Del    | ~         | Deletion
+Add    | +         | Addition
+Sub    | -         | Subtraction
+Mult   | *         | Multiplication
+Div    | /         | Division
+Mod    | %         | Modulo / remainder
+AddEq  | +=        | Increment by a number
+SubEq  | -=        | Decrement by a number
+MultEq | *=        | Multiply and assign
+DivEq  | /=        | Divide and assign
+ModEq  | %=        | Modulo and assign
+AndEq  | &=        | Bitwise AND and assign
+OrEq   | \|=       | Bitwise OR and assign
+Lbs    | <<        | Left bitshift
+Rbs    | >>        | Right bitshift
+New    | TYPE_NAME | Instantiation
+Del    | N/A       | Deletion
 
 There is no `Oak` equivalent to `C++`'s increment and decrement
 operators.
@@ -1258,7 +1323,7 @@ unsigned long long  | u128
 long long           | i128
 float               | f32
 double              | f64
-char *              | str
+const char *        | str
 bool                | bool
 T&                  | ^t
 T[]                 | []t
