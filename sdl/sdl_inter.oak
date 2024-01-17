@@ -1,11 +1,44 @@
+////////////////////////////////////////////////////////////////
+
+/*
+The main interfacial file for the Oak SDL library. This
+interfaces with the C/C++ SDL2 library.
+
+Jordan Dehmel, 2023-present
+jdehmel@outlook.com, GPLv3
+*/
+
+////////////////////////////////////////////////////////////////
+
 link!("sdl/sdl_inter.o");
 include!("std/interface.oak");
+
+////////////////////////////////////////////////////////////////
+// Struct definitions
 
 let sdl_window: struct
 {
     width, height: u64,
     internal: hidden_64_bytes,
 }
+
+let sdl_color: struct
+{
+    r, g, b, a: u8,
+}
+
+let sdl_coord: struct
+{
+    x, y: u64,
+}
+
+let sdl_rect: struct
+{
+    x, y, w, h: u64,
+}
+
+////////////////////////////////////////////////////////////////
+// Interfacial functions and/or methods
 
 let ExtInit(self: ^sdl_window) -> void;
 let ExtDel(Self: ^sdl_window) -> void;
@@ -25,11 +58,6 @@ let Copy(self: ^sdl_window, w: u64, h: u64) -> void;
 let sdl_enable_window_fullscreen(self: ^sdl_window) -> void;
 let sdl_disable_window_fullscreen(self: ^sdl_window) -> void;
 let sdl_save(self: ^sdl_window, filepath: []i8) -> void;
-
-let sdl_color: struct
-{
-    r, g, b, a: u8,
-}
 
 let New(self: ^sdl_color) -> void
 {
@@ -82,11 +110,6 @@ let Neq(l: sdl_color, r: sdl_color) -> bool
     return Not(Eq(l, r));
 }
 
-let sdl_coord: struct
-{
-    x, y: u64,
-}
-
 let New(self: ^sdl_coord) -> void
 {
     self.x = to_u64(0);
@@ -105,11 +128,6 @@ let Copy(self: ^sdl_coord, other: sdl_coord) -> void
     self.y = other.y;
 }
 
-let sdl_rect: struct
-{
-    x, y, w, h: u64,
-}
-
 let New(self: ^sdl_rect) -> void
 {
     self.x = to_u64(0);
@@ -118,7 +136,8 @@ let New(self: ^sdl_rect) -> void
     self.h = to_u64(0);
 }
 
-let Copy(self: ^sdl_rect, x: u64, y: u64, w: u64, h: u64) -> void
+let Copy(self: ^sdl_rect, x: u64, y: u64, w: u64, h: u64)
+    -> void
 {
     self.x = x;
     self.y = y;
@@ -152,3 +171,5 @@ let draw_line(window: ^sdl_window, point_a: sdl_coord,
     point_b: sdl_coord, color: sdl_color) -> void;
 let draw_rect(window: ^sdl_window, rect: sdl_rect,
     color: sdl_color) -> void;
+
+////////////////////////////////////////////////////////////////

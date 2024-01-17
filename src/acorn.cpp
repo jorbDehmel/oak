@@ -792,6 +792,21 @@ int main(const int argc, const char *argv[])
 
         std::cout << "Percent of time which was Acorn-attributable: " << percentAcornTime << "%\n\n" << tags::reset;
 
+        std::cout << "Post-compiler macro time usage by file (ns):\n";
+
+        unsigned long long fileSum = 0;
+        for (const auto &p : visitedFiles)
+        {
+            fileSum += p.second;
+        }
+
+        for (const auto &p : visitedFiles)
+        {
+            std::cout << std::setprecision(3) << std::setw(20) << 100.0 * (p.second / (double)fileSum) << "%\t"
+                      << std::setw(15) << p.second << "\t" << p.first << '\n';
+        }
+        std::cout << '\n';
+
         std::vector<std::string> passNames = {
             "syntax check       ", "lexing             ", "macro defs         ",
             "compiler macros    ", "macro calls        ", "rules / dialect    ",
@@ -821,9 +836,9 @@ int main(const int argc, const char *argv[])
                   << std::right << std::setw(15) << reconstructionElapsed << std::setw(23)
                   << (100 * (double)reconstructionElapsed / totalPlusCompilation) << "%\n";
 
-        std::cout << std::left << "\t" << passNames.size() + 2 << "\t" << std::setw(20) << "C via " << C_COMPILER
-                  << std::right << std::setw(15) << compElapsed << std::setw(23)
-                  << (100 * (double)compElapsed / totalPlusCompilation) << "%\n";
+        std::cout << std::left << "\t" << passNames.size() + 2 << "\t"
+                  << "C via " << std::setw(14) << C_COMPILER << std::right << std::setw(15) << compElapsed
+                  << std::setw(23) << (100 * (double)compElapsed / totalPlusCompilation) << "%\n";
 
         std::cout << "Output file: " << out << '\n';
     }

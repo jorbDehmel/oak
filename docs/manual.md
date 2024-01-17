@@ -1,6 +1,6 @@
 
 # The Oak Programming Language
-## Version 0.4.12
+## Version 0.4.13
 
 ![](./logo_trimmed.png)
 
@@ -121,6 +121,32 @@ dereference operator is `*`. In `Oak`, the reference operator is
 ---------------|-----|-------
  Reference     | `&` | `@`
  Dereference   | `*` | `^`
+
+### Keywords For Variable/Function/Class/Enum Creation
+
+In most languages, there are several keywords to denote the
+creation of a function, enumeration, structure, or local
+variable. `Python` has `def` and `class`, rust has `let`,
+`fn`, `struct`, and `enum`, `JavaScript` has `let`, `function`,
+and `var`, etcetera. `Oak`, unlike these languages, has only one
+such keyword: `let`.
+
+```rust
+// Create a new struct
+let name: struct {}
+
+// Create a new enum
+let name_2: enum {}
+
+// Create a new function
+let main() -> i32
+{
+    // Create a new variable
+    let name_3: bool;
+
+    0
+}
+```
 
 ### Array Order
 
@@ -3001,6 +3027,125 @@ included matrices, although there is no corresponding
 self-resizing version of these. The included `set` is a
 specialization of `map` where only the key and hash are stored,
 with no lookup data.
+
+# Advanced Usage / Esoterica
+
+This section outlines niche situations in `Oak` which may
+require further explanation. This information is not required
+for a programmer-level understanding of the language, but
+instead serves as a resource for niche explanations.
+
+## Plural Instantiation - Variables
+
+**Plural instantiation** is the use of a single `let` statement
+to declare several items of the same type. Most modern languages
+support this to some extant, and `Oak` is no exception. For
+instance, the code
+
+```rust
+let a: i32;
+let b: i32;
+let c: i32;
+let d: i32;
+```
+
+Could instead be written
+
+```rust
+let a, b, c, d: i32;
+```
+
+If the above usage of "items" instead of "variables" has caused
+concern in you, you are correct. More will be detailed below.
+
+**Note:** Plural definition is a feature of canonical `Oak`-
+That is to say, it does **not** require the use of any rules.
+
+## Plural Instantiation - Functions
+
+A particularly esoteric-looking feature of `Oak` is
+**function plural instantiation**. When it was stated above that
+most languages support plural instantiation to some extant, this
+was not included.
+
+`Oak` is a language designed around language interfaces, and
+prominently features the "interfacial" file. This is a file
+which provides functions signatures which can be used within
+`Oak` and specifies an object file to provide the definitions.
+In such a case, it may be inconvenient to write out the full
+function signatures of many similar functions. In this case,
+function plural instantiation can help us tremendously.
+
+Consider the following code.
+
+```rust
+let a() -> void;
+let b() -> void;
+let c() -> void;
+let d() -> void;
+let e() -> void;
+let f() -> void;
+let g() -> void;
+```
+
+In `Oak`, this could be shortened to the following, using the
+same principles as variable plural instantiation.
+
+```rust
+let a, b, c, d, e, f, g() -> void;
+```
+
+This saves space, programming time, and compiler time. However,
+this may seem like a trivial adjustment. For a more grounded
+example, consider the following code from an earlier version of
+the `std/math_int_inter.oak` file, which provides all functions
+for interactions with built-in integer data types.
+
+```rust
+let Add(self: u8, other: u8) -> u8;
+let Sub(self: u8, other: u8) -> u8;
+let Mult(self: u8, other: u8) -> u8;
+let Div(self: u8, other: u8) -> u8;
+let Mod(self: u8, other: u8) -> u8;
+let And(self: u8, other: u8) -> u8;
+let Or(self: u8, other: u8) -> u8;
+let Lbs(self: u8, other: u8) -> u8;
+let Rbs(self: u8, other: u8) -> u8;
+
+let Eq(self: u8, other: u8) -> bool;
+let Neq(self: u8, other: u8) -> bool;
+let Less(self: u8, other: u8) -> bool;
+let Great(self: u8, other: u8) -> bool;
+let Leq(self: u8, other: u8) -> bool;
+let Greq(self: u8, other: u8) -> bool;
+
+let New(self: ^u8) -> void;
+let Del(self: ^u8) -> void {}
+
+let Copy(self: ^u8, other: u8) -> u8;
+let AddEq(self: ^u8, other: u8) -> u8;
+let SubEq(self: ^u8, other: u8) -> u8;
+let MultEq(self: ^u8, other: u8) -> u8;
+let DivEq(self: ^u8, other: u8) -> u8;
+let ModEq(self: ^u8, other: u8) -> u8;
+let AndEq(self: ^u8, other: u8) -> u8;
+let OrEq(self: ^u8, other: u8) -> u8;
+```
+
+Using function plural instantiation, this can be changed to the following (much shorter) code.
+
+```rust
+let Add, Sub, Mult, Div, Mod, And, Or, Lbs, Rbs(self: u8, other: u8) -> u8;
+let Eq, Neq, Less, Great, Leq, Greq(self: u8, other: u8) -> bool;
+let New(self: ^u8) -> void;
+let Del(self: ^u8) -> void {}
+let Copy, AddEq, SubEq, MultEq, DivEq, ModEq, AndEq, OrEq(self: ^u8, other: u8) -> u8;
+```
+
+In addition to taking up less space and being more maintainable,
+the above change caused a non-trivial speed boost to all
+compilation involving the `std` package, as function plural
+instantiations save compiler time.
 
 # `Oak` Compiler Structure
 

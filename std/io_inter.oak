@@ -1,6 +1,6 @@
 /*
-Jordan Dehmel, 2023
-GPLv3
+Jordan Dehmel, 2023 - present
+jdehmel@outlook.com, GPLv3
 
 Standard io function definitions for use
 with io.cpp.
@@ -12,11 +12,8 @@ link!("std/io_inter.o");
 // Print to cout
 let print(what: str) -> void;
 let print(what: []i8) -> void;
-
 let print(what: i32) -> void;
 let print(what: f64) -> void;
-
-// Print a char to cout
 let print(what: i8) -> void;
 
 // Flush the cout buffer to screen
@@ -25,17 +22,11 @@ let flush() -> void;
 // Error messages
 let print_err(what: str) -> void;
 
-// Get a char from cin
+// Get from cin
 let get_char() -> i8;
-
-// Get a i128 from cin
 let get_i128() -> i128;
-
-// Get a f64 from cin
 let get_f64() -> f64;
-
-// Read a number of chars from cin into a string
-let read(into: str, length: u128) -> void;
+let read(into: []i8, length: u128) -> void;
 
 // Commonly used prints
 let print(what: u32) -> void

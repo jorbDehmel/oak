@@ -1,5 +1,17 @@
-// Includes and linkages
+/*
+Linkage file for the Oak SDL library, which is an interfacial
+library connected to the C SDL2 library.
+
+Jordan Dehmel, 2023-present
+jdehmel@outlook.com, GPLv3
+*/
+
+// Needed flags
 link!("-L/usr/lib -lSDL2");
 
+// Needed packages and files
 package!("std");
-include!("sdl/sdl_inter.oak", "sdl/event_inter.oak");
+include!(
+    "sdl/sdl_inter.oak",
+    "sdl/event_inter.oak"
+);

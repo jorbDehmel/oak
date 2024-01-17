@@ -1,5 +1,23 @@
+////////////////////////////////////////////////////////////////
+
+/*
+Interfacial file defining the SDL event enum. This represents an
+event happening between something (the user, the OS, etc) and
+the SDL2 C library. This interfacial file allows these events to
+be accessible from Oak.
+
+Jordan Dehmel, 2023-present
+jdehmel@outlook.com, GPLv3
+*/
+
+////////////////////////////////////////////////////////////////
+// Packages and files
+
 link!("sdl/event_inter.o");
 include!("std/unit.oak");
+
+////////////////////////////////////////////////////////////////
+// Struct and enum definitions
 
 let sdl_key_event_data: struct
 {
@@ -28,6 +46,15 @@ let sdl_event: enum
 
     sdl_none: unit,
 }
+
+////////////////////////////////////////////////////////////////
+// Interfacial functions
+
+let sdl_poll_event() -> sdl_event;
+let sdl_keycode_to_str(keycode: i128) -> str;
+
+////////////////////////////////////////////////////////////////
+// Internal method definitions
 
 let Copy(self: ^sdl_event, other: sdl_event) -> void
 {
@@ -65,5 +92,4 @@ let Copy(self: ^sdl_event, other: sdl_event) -> void
     }
 }
 
-let sdl_poll_event() -> sdl_event;
-let sdl_keycode_to_str(keycode: i128) -> str;
+////////////////////////////////////////////////////////////////

@@ -1,4 +1,7 @@
 /*
+Updated for use with Oak SDL2 interface in 2023. Originally
+written in 2022 for use with the SDL2 C/C++ library.
+
 Jordan "Jorb" Dehmel
 jdehmel@outlook.com
 github.com/jorbDehmel
@@ -8,8 +11,6 @@ GPLv3 held by author
 
 #ifndef KEYS_H
 #define KEYS_H
-
-// Updated for use with Oak SDL2 interface 2023, Jordan Dehmel
 
 const int esc = 27;
 const int enter = 13;

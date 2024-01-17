@@ -4,6 +4,11 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.4.13          | 1/16/24  | Fixed plural definition for
+                |          | functions, optimized `std` package
+                |          | and saved nontrivial time in std
+                |          | test suite.
+                |          |
 0.4.12          | 1/13/24  | Fixed package installation bugs,
                 |          | fixes plural declaration notation.
                 |          |

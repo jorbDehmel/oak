@@ -1067,43 +1067,43 @@ sequence __createSequence(std::list<token> &From)
         }
         else if (From.front() == "(")
         {
-            for (auto name : names)
+            // Function definition
+            if (generics.size() == 0)
             {
-                // Function definition
-                if (generics.size() == 0)
+                // Arguments
+                std::vector<token> toAdd;
+                do
                 {
-                    // Arguments
-                    std::vector<token> toAdd;
-                    do
+                    toAdd.push_back(From.front());
+                    sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                    From.pop_front();
+                } while (From.front() != "{" && From.front() != ";");
+
+                auto type = toType(toAdd);
+
+                auto oldTable = table;
+
+                auto argsWithType = getArgs(type);
+                for (std::pair<std::string, Type> p : argsWithType)
+                {
+                    table[p.first].push_back(__multiTableSymbol{sequence(), p.second, false, curFile});
+                }
+
+                bool isSingleArg = true;
+                for (int ptr = 0; ptr < type.size(); ptr++)
+                {
+                    if (type[ptr].info == join)
                     {
-                        toAdd.push_back(From.front());
-                        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-                        From.pop_front();
-                    } while (From.front() != "{" && From.front() != ";");
-
-                    auto type = toType(toAdd);
-
-                    auto oldTable = table;
-
-                    auto argsWithType = getArgs(type);
-                    for (std::pair<std::string, Type> p : argsWithType)
-                    {
-                        table[p.first].push_back(__multiTableSymbol{sequence(), p.second, false, curFile});
+                        isSingleArg = false;
+                        break;
                     }
+                }
 
-                    bool isSingleArg = true;
-                    for (int ptr = 0; ptr < type.size(); ptr++)
-                    {
-                        if (type[ptr].info == join)
-                        {
-                            isSingleArg = false;
-                            break;
-                        }
-                    }
+                sm_assert(currentReturnType == nullType, "Cannot nest function definitions.");
+                currentReturnType = getReturnType(type);
 
-                    sm_assert(currentReturnType == nullType, "Cannot nest function definitions.");
-                    currentReturnType = getReturnType(type);
-
+                for (auto name : names)
+                {
                     // Restrictions upon some types of methods
                     if (name == "New" || name == "Del")
                     {
@@ -1224,11 +1224,14 @@ sequence __createSequence(std::list<token> &From)
 
                     currentReturnType = nullType;
                 }
-                else
-                {
-                    // Templated function definition
+            }
+            else
+            {
+                // Templated function definition
 
-                    std::vector<token> toAdd = {token("let"), token(name)}, returnType;
+                for (auto name : names)
+                {
+                    std::vector<token> returnType, toAdd = {token("let"), token(name)};
                     std::vector<std::string> typeVec;
 
                     while (From.front() != "->")

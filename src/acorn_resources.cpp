@@ -30,7 +30,7 @@ bool ignoreSyntaxErrors = false;
 bool timeAnalysis = false;
 bool isMacroCall = false;
 
-std::set<std::filesystem::path> visitedFiles;
+std::map<std::filesystem::path, unsigned long long> visitedFiles;
 std::set<std::string> cppSources;
 std::set<std::string> objects;
 std::set<std::string> cflags;
@@ -43,7 +43,7 @@ std::string debugTreePrefix = "";
 // Prints the cumulative disk usage of Oak (in human-readable)
 void getDiskUsage()
 {
-    const std::vector<std::string> filesToCheck = {"/usr/bin/acorn", "/usr/include/oak"};
+    const static std::vector<std::string> filesToCheck = {"/usr/bin/acorn", "/usr/include/oak"};
     unsigned long long int totalKB = 0;
 
     for (std::string s : filesToCheck)
@@ -72,6 +72,7 @@ void doFile(const std::string &From)
 
     int curPhase = 0;
 
+    static std::chrono::high_resolution_clock::time_point fileStartTimePoint;
     const static std::set<std::string> compilerMacros = {"include!", "package!", "link!", "flag!"};
 
     std::chrono::_V2::system_clock::time_point start, end;
@@ -123,7 +124,7 @@ void doFile(const std::string &From)
             return;
         }
 
-        visitedFiles.insert(From);
+        visitedFiles[From] = 0;
 
         if (debug)
         {
@@ -541,6 +542,8 @@ void doFile(const std::string &From)
 
             if (debug)
             {
+                fileStartTimePoint = std::chrono::high_resolution_clock::now();
+
                 end = std::chrono::high_resolution_clock::now();
                 phaseTimes[curPhase] += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
                 std::cout << debugTreePrefix << "Compiler macro finished in "
@@ -776,6 +779,10 @@ void doFile(const std::string &From)
 
         if (debug)
         {
+            auto now = std::chrono::high_resolution_clock::now();
+            visitedFiles[From] +=
+                std::chrono::duration_cast<std::chrono::nanoseconds>(now - fileStartTimePoint).count();
+
             debugTreePrefix.pop_back();
             std::cout << debugTreePrefix << "Finished file '" << From << "'\n";
         }

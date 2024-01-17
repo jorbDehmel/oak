@@ -1,8 +1,22 @@
+////////////////////////////////////////////////////////////////
+
+/*
+File for interfacing with Oak. See sdl/even_inter.oak for more
+details.
+
+Jordan Dehmel, 2023-present
+jdehmel@outlook.com, GPLv3
+*/
+
+////////////////////////////////////////////////////////////////
+
 #include "/usr/include/oak/std_oak_header.h"
 #include "keys.h"
 #include <SDL2/SDL.h>
 
+////////////////////////////////////////////////////////////////
 // Struct definitions
+
 struct sdl_key_event_data
 {
     i128 keycode;
@@ -51,12 +65,23 @@ struct sdl_event
     } __data;
 };
 
-void wrap_sdl_key_down_event_FN_PTR_sdl_event_JOIN_sdl_key_event_data_MAPS_void(struct sdl_event *self, struct sdl_key_event_data data);
-void wrap_sdl_key_up_event_FN_PTR_sdl_event_JOIN_sdl_key_event_data_MAPS_void(struct sdl_event *self, struct sdl_key_event_data data);
-void wrap_sdl_mouse_move_event_FN_PTR_sdl_event_JOIN_sdl_mouse_move_event_data_MAPS_void(struct sdl_event *self, struct sdl_mouse_move_event_data data);
-void wrap_sdl_mouse_button_down_event_FN_PTR_sdl_event_JOIN_sdl_mouse_button_event_data_MAPS_void(struct sdl_event *self, struct sdl_mouse_button_event_data data);
-void wrap_sdl_mouse_button_up_event_FN_PTR_sdl_event_JOIN_sdl_mouse_button_event_data_MAPS_void(struct sdl_event *self, struct sdl_mouse_button_event_data data);
+////////////////////////////////////////////////////////////////
+// Interfacial definitions (defined by Oak)
+
+void wrap_sdl_key_down_event_FN_PTR_sdl_event_JOIN_sdl_key_event_data_MAPS_void(
+    struct sdl_event *self, struct sdl_key_event_data data);
+void wrap_sdl_key_up_event_FN_PTR_sdl_event_JOIN_sdl_key_event_data_MAPS_void(
+    struct sdl_event *self, struct sdl_key_event_data data);
+void wrap_sdl_mouse_move_event_FN_PTR_sdl_event_JOIN_sdl_mouse_move_event_data_MAPS_void(
+    struct sdl_event *self, struct sdl_mouse_move_event_data data);
+void wrap_sdl_mouse_button_down_event_FN_PTR_sdl_event_JOIN_sdl_mouse_button_event_data_MAPS_void(
+    struct sdl_event *self, struct sdl_mouse_button_event_data data);
+void wrap_sdl_mouse_button_up_event_FN_PTR_sdl_event_JOIN_sdl_mouse_button_event_data_MAPS_void(
+    struct sdl_event *self, struct sdl_mouse_button_event_data data);
 void wrap_sdl_none_FN_PTR_sdl_event_MAPS_void(struct sdl_event *self);
+
+////////////////////////////////////////////////////////////////
+// Interfacial definitions (defined by C)
 
 struct sdl_event sdl_poll_event_FN_MAPS_sdl_event(void)
 {
@@ -269,3 +294,5 @@ str sdl_keycode_to_str_FN_i128_MAPS_str(i128 keycode)
 
     return "UNKOWN";
 }
+
+////////////////////////////////////////////////////////////////

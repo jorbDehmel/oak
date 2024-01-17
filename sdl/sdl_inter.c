@@ -1,5 +1,19 @@
+////////////////////////////////////////////////////////////////
+
+/*
+Main interfacial file for the SDL Oak library.
+
+Jordan Dehmel, 2023-present
+jdehmel@outlook.com, GPLv3
+*/
+
+////////////////////////////////////////////////////////////////
+
 #include "/usr/include/oak/std_oak_header.h"
 #include <SDL2/SDL.h>
+
+////////////////////////////////////////////////////////////////
+// Struct definitions
 
 struct sdl_window
 {
@@ -23,6 +37,9 @@ struct sdl_rect
 {
     u64 x, y, w, h;
 };
+
+////////////////////////////////////////////////////////////////
+// Interfacial functions defined in C
 
 void sdl_init_FN_MAPS_void(void)
 {
@@ -61,6 +78,9 @@ f64 sdl_tan_FN_f64_MAPS_f64(f64 x)
 {
     return SDL_tan(x);
 }
+
+////////////////////////////////////////////////////////////////
+// Interfacial methods
 
 void ExtInit_FN_PTR_sdl_window_MAPS_void(struct sdl_window *self)
 {
@@ -153,9 +173,4 @@ void sdl_save_FN_PTR_sdl_window_JOIN_ARR_i8_MAPS_void(struct sdl_window *self, i
     SDL_FreeSurface(surf);
 }
 
-///////////////////////////////////// Event stuff /////////////////////////////////////
-
-struct sdl_event
-{
-    u32 type, timestamp;
-};
+////////////////////////////////////////////////////////////////

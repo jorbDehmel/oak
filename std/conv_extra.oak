@@ -1,7 +1,7 @@
 /*
 Lesser used, but still common, conversions for Oak.
-Jordan Dehmel, 2023
-jdehmel@outlook.com
+Jordan Dehmel, 2023 - present
+jdehmel@outlook.com, GPLv3
 */
 
 include!("std/math_int_inter.oak");
@@ -101,7 +101,7 @@ let AddEq(self: ^u128, other: i32) -> void
     ^self += to_u128(other);
 }
 
-// Common decrementations
+// Common decrement operators
 
 let SubEq(self: ^i8, other: i32) -> void
 {

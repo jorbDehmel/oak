@@ -1,5 +1,5 @@
 /*
-Jordan Dehmel, 2023
+Jordan Dehmel, 2023 - present
 Linkage file for the Oak standard package.
 */
 
@@ -7,9 +7,9 @@ include!(
     "std/ns.oak",
     "std/io_inter.oak",
     "std/conv_inter.oak",
+    "std/math_int_inter.oak",
     "std/std_ops.oak",
-    "std/unit.oak",
-    "std/conv_extra.oak"
+    "std/unit.oak"
 );
 
 // Access rules
