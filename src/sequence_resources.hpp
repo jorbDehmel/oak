@@ -49,9 +49,7 @@ class sequencing_error : public std::runtime_error
 };
 
 // Sequence message assert
-#define sm_assert(expression, message)                                                                                 \
-    ((bool)(expression) ? true                                                                                         \
-                        : throw sequencing_error(std::string(message) + " (Failed assertion: '" #expression "')"))
+void sm_assert(const bool &expression, const std::string &message);
 
 // Turn a .oak sequence into a .cpp one
 std::string toC(const sequence &What);

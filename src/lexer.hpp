@@ -209,7 +209,7 @@ class lexer
     bool done() const noexcept;
 
     // If an empty symbol is printed, it is a newline literal
-    std::vector<token> lex(const std::string &What);
+    std::vector<token> lex(const std::string &What, const std::string &filepath = "");
 
   private:
     // Text handling members

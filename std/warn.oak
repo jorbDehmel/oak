@@ -1,0 +1,68 @@
+/*
+Standard warning messages for Oak. Useful in package creation.
+*/
+
+include!("std/io_inter.oak");
+include!("std/color.oak");
+include!("std/string.oak");
+include!("std/printf.oak");
+
+let warn(what: str) -> void
+{
+    begin_yellow_bold();
+    print(what);
+    end_effects();
+}
+
+let warn(what: []i8) -> void
+{
+    begin_yellow_bold();
+    print(what);
+    end_effects();
+}
+
+let warn(what: string) -> void
+{
+    begin_yellow_bold();
+    print(what);
+    end_effects();
+}
+
+let begin_warn() -> void
+{
+    begin_yellow_bold();
+}
+
+let end_warn() -> void
+{
+    end_effects();
+}
+
+// Warning formatted like a normal printf! call
+let warnf!(c: i32, v: []str) -> i32
+{
+    include!("std/io_inter.oak");
+
+    print(
+        "begin_warn();\n"
+        "printf!(\n"
+    );
+
+    let i: i32;
+    while (i < c)
+    {
+        print(v.Get(i));
+
+        if (i + 1 == c)
+        {
+            print("\n");
+        }
+        else
+        {
+            print(",\n");
+        }
+        i += 1;
+    }
+
+    print("end_warn();\n");
+}

@@ -30,7 +30,7 @@ lexer::lexer()
     const static char *alpha = "abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ`";
     const static char *numer = "0123456789";
     const static char *oper = "!%&*=+|/~[]";
-    const static char *singletons = "^@#(){};,";
+    const static char *singletons = "^@#(){};,?";
     const static char *whitespace = " \t\n";
 
     cur_file = "NULL";
@@ -258,6 +258,7 @@ token lexer::single()
 
     out.pos = pos;
     out.line = line;
+    out.file = cur_file;
 
     bool skip = false;
     do
@@ -516,8 +517,13 @@ std::list<token> lexer::str_all(const std::string &from, const std::string &file
     return out;
 }
 
-std::vector<token> lexer::lex(const std::string &What)
+std::vector<token> lexer::lex(const std::string &What, const std::string &filepath)
 {
+    if (filepath != "")
+    {
+        cur_file = filepath;
+    }
+
     str(What);
 
     std::list<token> out;

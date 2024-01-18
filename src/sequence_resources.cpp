@@ -11,6 +11,14 @@ jdehmel@outlook.com
 #include <stdexcept>
 #include <string>
 
+void sm_assert(const bool &expression, const std::string &message)
+{
+    if (!expression)
+    {
+        throw sequencing_error(std::string(message) + " (Failed assertion)");
+    }
+}
+
 void toCInternal(const sequence &What, std::vector<std::string> &out)
 {
     std::string temp;
@@ -1095,8 +1103,8 @@ void printCandidateErrors(const std::vector<__multiTableSymbol> &candidates, con
 
 std::string cleanMacroArgument(const std::string &from)
 {
-    sm_assert(from.size() > 1 && (from.front() == '"' && from.back() == '"') ||
-                  (from.front() == '\'' && from.back() == '\''),
+    sm_assert(from.size() > 1 &&
+                  ((from.front() == '"' && from.back() == '"') || (from.front() == '\'' && from.back() == '\'')),
               "Internal macro arguments must be string-enclosed.");
 
     std::string out;

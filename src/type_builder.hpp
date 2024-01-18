@@ -16,8 +16,6 @@ Underlying class for representing types in Oak source code.
 #include <string>
 #include <vector>
 
-#define DB_INFO __FILE__ << ':' << __LINE__ << ' '
-
 enum TypeInfo
 {
     pointer,  // A pointer to the type specified by next

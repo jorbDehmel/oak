@@ -190,7 +190,7 @@ void doFile(const std::string &From)
         }
 
         lexer dfa_lexer;
-        lexed = dfa_lexer.lex(text);
+        lexed = dfa_lexer.lex(text, From);
         lexedCopy = lexed;
 
         if (debug)
@@ -648,7 +648,7 @@ void doFile(const std::string &From)
                 std::vector<std::string> args = getMacroArgs(lexed, i);
 
                 std::string output = callMacro(name, args, debug);
-                std::vector<token> lexedOutput = dfa_lexer.lex(output);
+                std::vector<token> lexedOutput = dfa_lexer.lex(output, name);
 
                 // Reset preproc defs, as they tend to break w/ macros
                 preprocDefines["prev_file!"] = (oldFile == "" ? "\"NULL\"" : ("\"" + oldFile + "\""));

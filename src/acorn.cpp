@@ -497,7 +497,7 @@ int main(const int argc, const char *argv[])
         // Clean cache if not macro
         if (!isMacroCall && getSize(COMPILED_PATH) > MAX_CACHE_KB)
         {
-            std::cout << tags::yellow_bold << DB_INFO << "Performing partial cache purge\n" << tags::reset;
+            std::cout << tags::yellow_bold << "Performing partial cache purge\n" << tags::reset;
 
             // Purge source .cpp, .hpp, and temp files
             system(("rm -rf " + COMPILED_PATH + "/*.c " + COMPILED_PATH + "/*.h " + COMPILED_PATH + "/*.txt " +
@@ -506,7 +506,7 @@ int main(const int argc, const char *argv[])
 
             if (getSize(COMPILED_PATH) > MAX_CACHE_KB)
             {
-                std::cout << tags::yellow_bold << DB_INFO << "Performing full cache purge\n" << tags::reset;
+                std::cout << tags::yellow_bold << "Performing full cache purge\n" << tags::reset;
 
                 // Purge all cache files
                 system(("rm -rf " + COMPILED_PATH + "/*").c_str());
@@ -538,9 +538,9 @@ int main(const int argc, const char *argv[])
                 std::cout << tags::green_bold << "\nPhase 2: Reconstruction.\n" << tags::reset;
             }
 
-            if (table.count("main") == 0 && compile)
+            if (table.count("main") == 0 && doLink)
             {
-                std::cout << tags::red_bold << "Error! No main function detected while in compilation mode!\n"
+                std::cout << tags::red_bold << "Error! No main function detected while in linking mode!\n"
                           << tags::reset;
                 throw sequencing_error("A compilation unit must contain a main function.");
             }

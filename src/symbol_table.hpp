@@ -28,7 +28,7 @@ class parse_error : public std::runtime_error
     }
 };
 
-#define parse_assert(what) ((bool)(what)) ? true : (throw parse_error("Assertion '" #what "' failed."))
+void parse_assert(const bool &what);
 
 // External definition
 std::string mangle(const std::vector<std::string> &what);

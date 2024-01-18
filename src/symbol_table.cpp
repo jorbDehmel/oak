@@ -14,6 +14,14 @@ GPLv3 held by author
 
 multiSymbolTable table;
 
+void parse_assert(const bool &what)
+{
+    if (!what)
+    {
+        throw parse_error("Parse assertion failed.");
+    }
+}
+
 Type toType(const std::vector<std::string> &WhatIn)
 {
     token templ;

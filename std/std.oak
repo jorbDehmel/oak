@@ -7,7 +7,7 @@ include!(
     "std/ns.oak",
     "std/io_inter.oak",
     "std/conv_inter.oak",
-    "std/math_int_inter.oak",
+    "std/math_inter.oak",
     "std/std_ops.oak",
     "std/unit.oak"
 );

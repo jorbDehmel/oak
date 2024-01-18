@@ -8,12 +8,7 @@ and linked in.
 */
 
 link!("std/math_misc_inter.o");
-
-// Ints
-include!("std/math_int_inter.oak");
-
-// Floats
-include!("std/math_float_inter.oak");
+include!("std/math_inter.oak");
 
 // Bools
 let New(self: ^bool) -> void;

@@ -1,6 +1,6 @@
 
 # The Oak Programming Language
-## Version 0.4.13
+## Version 0.4.14
 
 ![](./logo_trimmed.png)
 

@@ -67,9 +67,6 @@ bin/acorn.out:	dirs build/acorn.o $(OBJS) $(HEADS)
 
 ################################################################
 
-tclean:
-	rm -rf *.out
-
 clean:
 	rm -rf bin/* build/* *.o *.out *.log
 

@@ -36,12 +36,12 @@ sequence createSequence(const std::vector<token> &From)
     // Feed to consumptive version
     while (!temp.empty())
     {
-        out.push_back(__createSequence(temp));
-
         while (!temp.empty() && temp.front() == ";")
         {
             temp.pop_front();
         }
+
+        out.push_back(__createSequence(temp));
     }
 
     if (out.size() == 0)
@@ -103,6 +103,650 @@ sequence __createSequence(std::list<token> &From)
     {
         return out;
     }
+
+    else if (From.front() == "let")
+    {
+        // Get name
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        From.pop_front(); // let
+        sm_assert(!From.empty(), "'let' must be followed by something.");
+
+        std::vector<std::string> names = {From.front()};
+
+        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        From.pop_front();
+
+        while (!From.empty() && From.front() == ",")
+        {
+            From.pop_front();
+
+            sm_assert(!From.empty(), "Ill-formed 'let' statement: Name must follow ','.");
+            names.push_back(From.front());
+
+            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+            From.pop_front();
+        }
+
+        // Gather templating if there is any
+        std::vector<std::string> generics;
+        if (From.front() == "<")
+        {
+            int count = 0;
+
+            do
+            {
+                if (From.front() == "<")
+                {
+                    count++;
+                }
+                else if (From.front() == ">")
+                {
+                    count--;
+                }
+
+                if (From.front() != "<" || count != 1)
+                {
+                    generics.push_back(From.front());
+                }
+
+                From.pop_front();
+            } while (!From.empty() && !(count == 1 && From.front() == ">"));
+
+            // Trim trailing angle bracket
+            if (!From.empty())
+            {
+                From.pop_front();
+            }
+        }
+
+        // Get type
+        if (From.front() == ":")
+        {
+            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+            From.pop_front();
+
+            if (!From.empty() && (From.front() == "struct" || From.front() == "enum"))
+            {
+                for (auto name : names)
+                {
+                    // addStruct takes in the full struct definition, from
+                    // let to end curly bracket. So we must first parse this.
+
+                    std::vector<token> toAdd = {token("let"), token(name)};
+
+                    // Add generics back in here
+                    if (generics.size() != 0)
+                    {
+                        toAdd.push_back(token("<"));
+                        for (int i = 0; i < generics.size(); i++)
+                        {
+                            toAdd.push_back(generics[i]);
+                        }
+                        toAdd.push_back(token(">"));
+                    }
+
+                    toAdd.push_back(token(":"));
+                    std::string front = From.front();
+
+                    int count = 0;
+                    while (count != 0 || (!From.empty() && From.front() != "}" && From.front() != ";"))
+                    {
+                        toAdd.push_back(From.front());
+
+                        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                        From.pop_front();
+                    }
+
+                    toAdd.push_back(From.front());
+
+                    sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                    From.pop_front();
+
+                    bool exempt = false;
+                    for (auto s : generics)
+                    {
+                        if (structData.count(s) != 0 || checkLiteral(s) != nullType || s == "u8" || s == "i8" ||
+                            s == "u16" || s == "i16" || s == "u32" || s == "i32" || s == "u64" || s == "i64" ||
+                            s == "u128" || s == "i128" || s == "str" || s == "bool")
+                        {
+                            exempt = true;
+                            break;
+                        }
+                    }
+
+                    if (generics.size() == 0 || exempt)
+                    {
+                        if (front == "struct")
+                        {
+                            // Non-templated struct
+                            addStruct(toAdd);
+                        }
+                        else if (front == "enum")
+                        {
+                            // Non-templated enum
+                            addEnum(toAdd);
+                        }
+                    }
+                    else
+                    {
+                        // Check for needs / inst block here
+                        std::vector<token> preBlock, postBlock;
+
+                        while (!From.empty() && (From.front() == "pre" || From.front() == "post"))
+                        {
+                            if (!From.empty() && From.front() == "pre")
+                            {
+                                // pop needs
+                                From.pop_front();
+
+                                // pop {
+                                sm_assert(!From.empty() && From.front() == "{",
+                                          "'pre' block must be followed by scope.");
+                                From.pop_front();
+
+                                int count = 1;
+                                while (!From.empty())
+                                {
+                                    if (From.front() == "{")
+                                    {
+                                        count++;
+                                    }
+                                    else if (From.front() == "}")
+                                    {
+                                        count--;
+                                    }
+
+                                    if (count == 0)
+                                    {
+                                        From.pop_front();
+                                        break;
+                                    }
+                                    else
+                                    {
+                                        preBlock.push_back(From.front());
+                                        From.pop_front();
+                                    }
+                                }
+                            }
+                            else if (!From.empty() && From.front() == "post")
+                            {
+                                // pop needs
+                                From.pop_front();
+
+                                // pop {
+                                sm_assert(!From.empty() && From.front() == "{",
+                                          "'post' block must be followed by scope.");
+                                From.pop_front();
+
+                                int count = 1;
+                                while (!From.empty())
+                                {
+                                    if (From.front() == "{")
+                                    {
+                                        count++;
+                                    }
+                                    else if (From.front() == "}")
+                                    {
+                                        count--;
+                                    }
+
+                                    if (count == 0)
+                                    {
+                                        From.pop_front();
+                                        break;
+                                    }
+                                    else
+                                    {
+                                        postBlock.push_back(From.front());
+                                        From.pop_front();
+                                    }
+                                }
+                            }
+                        }
+
+                        addGeneric(toAdd, name, generics, {front}, preBlock, postBlock);
+                    }
+
+                    // This should be left out of toC, as it should only be used
+                    // in the header file during reconstruction.
+                }
+            }
+            else
+            {
+                // Non-struct definition; Local var, not function
+
+                sm_assert(depth != 0, "Global variables are not allowed.");
+                sm_assert(generics.empty(), "Variable declaration must not be templated.");
+
+                for (auto name : names)
+                {
+                    // Scrape entire definition for this
+                    std::vector<token> toAdd = {
+                        token("let"),
+                        token(name),
+                        token(":"),
+                    };
+
+                    while (!From.empty() && From.front() != ";")
+                    {
+                        if (From.front() == "type!")
+                        {
+                            // Case for type!() macro
+
+                            // Scrape entire type!(what) call to a std::vector
+                            std::vector<token> toAnalyze;
+                            int count = 0;
+
+                            From.pop_front();
+                            do
+                            {
+                                if (From.front() == "(")
+                                {
+                                    count++;
+                                }
+                                else if (From.front() == ")")
+                                {
+                                    count--;
+                                }
+
+                                if (!((From.front() == "(" && count == 1) || (From.front() == ")" && count == 0)))
+                                {
+                                    toAnalyze.push_back(From.front());
+                                }
+
+                                From.pop_front();
+                            } while (count != 0);
+
+                            // Garbage to feed to resolveFunction
+                            std::string junk = "";
+                            int pos = 0;
+
+                            // Analyze type of std::vector
+                            Type type = resolveFunction(toAnalyze, pos, junk);
+
+                            // Convert type to lexed std::string vec
+                            lexer dfa_lexer;
+                            std::vector<token> lexedType = dfa_lexer.lex(toStr(&type));
+
+                            // Push lexed vec to front of From
+                            for (auto iter = lexedType.rbegin(); iter != lexedType.rend(); iter++)
+                            {
+                                From.push_front(*iter);
+                            }
+
+                            continue;
+                        }
+
+                        toAdd.push_back(From.front());
+                        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                        From.pop_front();
+
+                        if (!From.empty() && From.front() == "=")
+                        {
+                            throw sequencing_error("Instantiate / assignment combo is not supported.");
+                        }
+                    }
+
+                    // This SHOULD appear during toC.
+                    out.info = code_line;
+                    out.raw = "";
+                    out.type = nullType;
+                    out.items.clear();
+
+                    Type type = toType(toAdd);
+
+                    out.items.push_back(sequence{nullType, std::vector<sequence>(), atom, toStrC(&type, name)});
+
+                    // Insert into table
+                    table[name].push_back(
+                        __multiTableSymbol{sequence{type, std::vector<sequence>(), atom, ""}, type, false, curFile});
+
+                    // Call constructor (pointers do not get constructors)
+                    if (type[0].info != pointer && type[0].info != arr && type[0].info != sarr)
+                    {
+                        // Syntactically necessary
+                        out.items.push_back(sequence{nullType, std::vector<sequence>(), atom, ";"});
+
+                        std::vector<token> newCall = {token("New"), token("("), token("@"), token(name), token(")")};
+                        int garbage = 0;
+
+                        sequence toAppend;
+                        toAppend.info = atom;
+                        toAppend.type = resolveFunction(newCall, garbage, toAppend.raw);
+
+                        out.items.push_back(toAppend);
+                    }
+                    else if (type[0].info != sarr)
+                    {
+                        // Syntactically necessary
+                        out.items.push_back(sequence{nullType, std::vector<sequence>(), atom, ";"});
+
+                        sequence toAppend;
+                        toAppend.info = atom;
+                        toAppend.type = nullType;
+                        toAppend.raw = name + " = 0";
+
+                        out.items.push_back(toAppend);
+                    }
+                    else
+                    {
+                        // Initialize sized array
+                        // Set every byte inside to zero
+
+                        // Syntactically necessary
+                        out.items.push_back(sequence{nullType, std::vector<sequence>(), atom, ";"});
+
+                        sequence toAppend;
+                        toAppend.info = atom;
+                        toAppend.type = nullType;
+
+                        toAppend.raw =
+                            "for (i32 _i = 0; _i < sizeof(" + name + "); _i++) ((u8 *)(&" + name + "))[_i] = 0;";
+
+                        out.items.push_back(toAppend);
+                    }
+
+                    return out;
+                }
+            }
+        }
+        else if (From.front() == "(")
+        {
+            // Function definition
+            if (generics.size() == 0)
+            {
+                // Arguments
+                std::vector<token> toAdd;
+                do
+                {
+                    toAdd.push_back(From.front());
+                    sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                    From.pop_front();
+                } while (From.front() != "{" && From.front() != ";");
+
+                auto type = toType(toAdd);
+
+                auto oldTable = table;
+
+                auto argsWithType = getArgs(type);
+                for (std::pair<std::string, Type> p : argsWithType)
+                {
+                    table[p.first].push_back(__multiTableSymbol{sequence(), p.second, false, curFile});
+                }
+
+                bool isSingleArg = true;
+                for (int ptr = 0; ptr < type.size(); ptr++)
+                {
+                    if (type[ptr].info == join)
+                    {
+                        isSingleArg = false;
+                        break;
+                    }
+                }
+
+                sm_assert(currentReturnType == nullType, "Cannot nest function definitions.");
+                currentReturnType = getReturnType(type);
+
+                for (auto name : names)
+                {
+                    // Restrictions upon some types of methods
+                    if (name == "New" || name == "Del")
+                    {
+                        if (currentReturnType != Type(atomic, "void"))
+                        {
+                            throw std::runtime_error("Illegal method definition! Method '" + name +
+                                                     "' must return void.");
+                        }
+
+                        if (!isSingleArg)
+                        {
+                            throw std::runtime_error("Illegal method definition! Method '" + name +
+                                                     "' must have exactly one argument.");
+                        }
+                    }
+
+                    // Insert explicit symbol
+                    if (From.size() > 0 && From.front() == "{")
+                    {
+                        if (name == "main")
+                        {
+                            sm_assert(table[name].size() == 0, "Function 'main' cannot be overloaded.");
+                            sm_assert(currentReturnType[0].info == atomic &&
+                                          (currentReturnType[0].name == "i32" || currentReturnType[0].name == "void"),
+                                      "Function 'main' must return i32.");
+
+                            if (argsWithType.size() != 0)
+                            {
+                                sm_assert(argsWithType.size() == 2, "'main' must have either 0 or 2 arguments.");
+                                sm_assert(argsWithType[0].second == Type(atomic, "i32"),
+                                          "First argument of 'main' must be i32.");
+                            }
+                        }
+
+                        destroyUnits(name, type, true);
+
+                        table[name].push_back(__multiTableSymbol{sequence{}, type, false, curFile});
+
+                        if (name == "New")
+                        {
+                            // prepend New for all members
+                            std::string structName;
+
+                            // Type *cur = &argsWithType[0].second;
+                            int cur = 0;
+
+                            while (cur < argsWithType[0].second.size() && argsWithType[0].second[cur].info == pointer)
+                            {
+                                cur++;
+                            }
+
+                            structName = argsWithType[0].second[cur].name;
+
+                            for (auto var : structData[structName].members)
+                            {
+                                // Add semicolon
+                                table["New"].back().seq.items.push_back(
+                                    sequence{nullType, std::vector<sequence>(), atom, ";"});
+
+                                sequence toAppend;
+                                toAppend.info = atom;
+                                toAppend.type = nullType;
+                                toAppend.raw = getMemberNew("(*" + argsWithType[0].first + ")", var.first, var.second);
+
+                                table["New"].back().seq.items.push_back(toAppend);
+                            }
+                        }
+
+                        depth++;
+                        table[name].back().seq = __createSequence(From);
+                        depth--;
+
+                        if (name == "Del")
+                        {
+                            // append Del for all members
+                            std::string structName;
+
+                            // Type *cur = &argsWithType[0].second;
+                            int cur = 0;
+
+                            while (cur < argsWithType[0].second.size() && argsWithType[0].second[cur].info == pointer)
+                            {
+                                cur++;
+                            }
+
+                            structName = argsWithType[0].second[cur].name;
+
+                            for (auto var : structData[structName].members)
+                            {
+                                // Add semicolon
+                                table["Del"].back().seq.items.push_back(
+                                    sequence{nullType, std::vector<sequence>(), atom, ";"});
+
+                                sequence toAppend;
+                                toAppend.info = atom;
+                                toAppend.type = nullType;
+                                toAppend.raw = getMemberDel("(*" + argsWithType[0].first + ")", var.first, var.second);
+
+                                table["Del"].back().seq.items.push_back(toAppend);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Casual reference
+                        // IE let to_i32(what: bool) -> i32;
+                        // Destroys all autogen, requires
+                        // actual definition.
+
+                        destroyUnits(name, type, false);
+
+                        // Ensure exactly one unit declaration
+                        table[name].push_back(__multiTableSymbol{sequence{}, type, false, curFile});
+                    }
+
+                    auto destructors = restoreSymbolTable(oldTable);
+                    // insertDestructors(table[name].back().seq, destructors);
+
+                    currentReturnType = nullType;
+                }
+            }
+            else
+            {
+                // Templated function definition
+
+                for (auto name : names)
+                {
+                    std::vector<token> returnType, toAdd = {token("let"), token(name)};
+                    std::vector<std::string> typeVec;
+
+                    while (From.front() != "->")
+                    {
+                        typeVec.push_back(From.front());
+                        toAdd.push_back(From.front());
+
+                        From.pop_front();
+                    }
+
+                    toAdd.push_back(From.front());
+
+                    From.pop_front();
+
+                    while (From.front() != "{" && From.front() != ";")
+                    {
+                        toAdd.push_back(From.front());
+                        returnType.push_back(From.front());
+
+                        From.pop_front();
+                    }
+
+                    sm_assert(From.front() == "{", "Generic functions must be defined at declaration.");
+
+                    // Scrape contents
+                    int count = 0;
+                    do
+                    {
+                        if (From.front() == "{")
+                        {
+                            count++;
+                        }
+                        else if (From.front() == "}")
+                        {
+                            count--;
+                        }
+
+                        toAdd.push_back(From.front());
+
+                        From.pop_front();
+                    } while (count != 0);
+
+                    // Check for needs / inst block here
+                    std::vector<token> preBlock, postBlock;
+
+                    while (!From.empty() && (From.front() == "pre" || From.front() == "post"))
+                    {
+                        if (!From.empty() && From.front() == "pre")
+                        {
+                            // pop needs
+                            From.pop_front();
+
+                            // pop {
+                            sm_assert(!From.empty() && From.front() == "{", "'pre' block must be followed by scope.");
+                            From.pop_front();
+
+                            int count = 1;
+                            while (!From.empty())
+                            {
+                                if (From.front() == "{")
+                                {
+                                    count++;
+                                }
+                                else if (From.front() == "}")
+                                {
+                                    count--;
+                                }
+
+                                if (count == 0)
+                                {
+                                    From.pop_front();
+                                    break;
+                                }
+                                else
+                                {
+                                    preBlock.push_back(From.front());
+                                    From.pop_front();
+                                }
+                            }
+                        }
+                        else if (!From.empty() && From.front() == "post")
+                        {
+                            // pop needs
+                            From.pop_front();
+
+                            // pop {
+                            sm_assert(!From.empty() && From.front() == "{", "'post' block must be followed by scope.");
+                            From.pop_front();
+
+                            int count = 1;
+                            while (!From.empty())
+                            {
+                                if (From.front() == "{")
+                                {
+                                    count++;
+                                }
+                                else if (From.front() == "}")
+                                {
+                                    count--;
+                                }
+
+                                if (count == 0)
+                                {
+                                    From.pop_front();
+                                    break;
+                                }
+                                else
+                                {
+                                    postBlock.push_back(From.front());
+                                    From.pop_front();
+                                }
+                            }
+                        }
+                    }
+
+                    // Insert templated function
+                    // For now, cannot have needs block here
+                    addGeneric(toAdd, name, generics, typeVec, preBlock, postBlock);
+                }
+            }
+        }
+        else
+        {
+            throw sequencing_error("Ill-formed 'let' statement: Must take the form `let a: type` or `let fn() -> "
+                                   "type`. Instead, name is followed by '" +
+                                   From.front().text + "'");
+        }
+
+        return out;
+    } // let
 
     else if (From.front().size() > 1 && From.front().back() == '!')
     {
@@ -247,6 +891,40 @@ sequence __createSequence(std::list<token> &From)
             message += "\n";
 
             throw sequencing_error(message);
+        }
+        else if (From.front() == "c_warn!")
+        {
+            std::string message = curFile + ":" + std::to_string(curLine) + ":c_warn! ";
+
+            int count = 0;
+            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+            From.pop_front();
+
+            do
+            {
+                if (From.front() == "(")
+                {
+                    count++;
+                }
+                else if (From.front() == ")")
+                {
+                    count--;
+                }
+
+                if (!(count == 1 && From.front() == "(") && !(count == 0 && From.front() == ")") && From.front() != ",")
+                {
+                    message += cleanMacroArgument(From.front()) + " ";
+                }
+
+                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                From.pop_front();
+            } while (!From.empty() && count != 0);
+
+            message += "\n";
+
+            std::cout << tags::yellow_bold << message << tags::reset;
+
+            return out;
         }
         else if (From.front() == "c_sys!")
         {
@@ -714,681 +1392,6 @@ sequence __createSequence(std::list<token> &From)
 
         return out;
     }
-    else if (From.front() == "let")
-    {
-        // Get name
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-        From.pop_front(); // let
-        sm_assert(!From.empty(), "'let' must be followed by something.");
-
-        std::vector<std::string> names = {From.front()};
-
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-        From.pop_front();
-
-        while (!From.empty() && From.front() == ",")
-        {
-            From.pop_front();
-
-            sm_assert(!From.empty(), "Ill-formed 'let' statement: Name must follow ','.");
-            names.push_back(From.front());
-
-            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-            From.pop_front();
-        }
-
-        // Gather templating if there is any
-        std::vector<std::string> generics;
-        if (From.front() == "<")
-        {
-            int count = 0;
-
-            do
-            {
-                if (From.front() == "<")
-                {
-                    count++;
-                }
-                else if (From.front() == ">")
-                {
-                    count--;
-                }
-
-                if (From.front() != "<" || count != 1)
-                {
-                    generics.push_back(From.front());
-                }
-
-                From.pop_front();
-            } while (!From.empty() && !(count == 1 && From.front() == ">"));
-
-            // Trim trailing angle bracket
-            if (!From.empty())
-            {
-                From.pop_front();
-            }
-        }
-
-        // Get type
-        if (From.front() == ":")
-        {
-            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-            From.pop_front();
-
-            if (!From.empty() && (From.front() == "struct" || From.front() == "enum"))
-            {
-                for (auto name : names)
-                {
-                    // addStruct takes in the full struct definition, from
-                    // let to end curly bracket. So we must first parse this.
-
-                    std::vector<token> toAdd = {token("let"), token(name)};
-
-                    // Add generics back in here
-                    if (generics.size() != 0)
-                    {
-                        toAdd.push_back(token("<"));
-                        for (int i = 0; i < generics.size(); i++)
-                        {
-                            toAdd.push_back(generics[i]);
-                        }
-                        toAdd.push_back(token(">"));
-                    }
-
-                    toAdd.push_back(token(":"));
-                    std::string front = From.front();
-
-                    int count = 0;
-                    while (count != 0 || (!From.empty() && From.front() != "}" && From.front() != ";"))
-                    {
-                        toAdd.push_back(From.front());
-
-                        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-                        From.pop_front();
-                    }
-
-                    toAdd.push_back(From.front());
-
-                    sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-                    From.pop_front();
-
-                    bool exempt = false;
-                    for (auto s : generics)
-                    {
-                        if (structData.count(s) != 0 || checkLiteral(s) != nullType || s == "u8" || s == "i8" ||
-                            s == "u16" || s == "i16" || s == "u32" || s == "i32" || s == "u64" || s == "i64" ||
-                            s == "u128" || s == "i128" || s == "str" || s == "bool")
-                        {
-                            exempt = true;
-                            break;
-                        }
-                    }
-
-                    if (generics.size() == 0 || exempt)
-                    {
-                        if (front == "struct")
-                        {
-                            // Non-templated struct
-                            addStruct(toAdd);
-                        }
-                        else if (front == "enum")
-                        {
-                            // Non-templated enum
-                            addEnum(toAdd);
-                        }
-                    }
-                    else
-                    {
-                        // Check for needs / inst block here
-                        std::vector<token> preBlock, postBlock;
-
-                        while (!From.empty() && (From.front() == "pre" || From.front() == "post"))
-                        {
-                            if (!From.empty() && From.front() == "pre")
-                            {
-                                // pop needs
-                                From.pop_front();
-
-                                // pop {
-                                sm_assert(!From.empty() && From.front() == "{",
-                                          "'pre' block must be followed by scope.");
-                                From.pop_front();
-
-                                int count = 1;
-                                while (!From.empty())
-                                {
-                                    if (From.front() == "{")
-                                    {
-                                        count++;
-                                    }
-                                    else if (From.front() == "}")
-                                    {
-                                        count--;
-                                    }
-
-                                    if (count == 0)
-                                    {
-                                        From.pop_front();
-                                        break;
-                                    }
-                                    else
-                                    {
-                                        preBlock.push_back(From.front());
-                                        From.pop_front();
-                                    }
-                                }
-                            }
-                            else if (!From.empty() && From.front() == "post")
-                            {
-                                // pop needs
-                                From.pop_front();
-
-                                // pop {
-                                sm_assert(!From.empty() && From.front() == "{",
-                                          "'post' block must be followed by scope.");
-                                From.pop_front();
-
-                                int count = 1;
-                                while (!From.empty())
-                                {
-                                    if (From.front() == "{")
-                                    {
-                                        count++;
-                                    }
-                                    else if (From.front() == "}")
-                                    {
-                                        count--;
-                                    }
-
-                                    if (count == 0)
-                                    {
-                                        From.pop_front();
-                                        break;
-                                    }
-                                    else
-                                    {
-                                        postBlock.push_back(From.front());
-                                        From.pop_front();
-                                    }
-                                }
-                            }
-
-                            while (!From.empty() && From.front().size() > 1 && From.front().substr(0, 2) == "//")
-                            {
-                                From.pop_front();
-                            }
-                        }
-
-                        addGeneric(toAdd, name, generics, {front}, preBlock, postBlock);
-                    }
-
-                    // This should be left out of toC, as it should only be used
-                    // in the header file during reconstruction.
-                }
-            }
-            else
-            {
-                // Non-struct definition; Local var, not function
-
-                sm_assert(depth != 0, "Global variables are not allowed.");
-                sm_assert(generics.empty(), "Variable declaration must not be templated.");
-
-                for (auto name : names)
-                {
-                    // Scrape entire definition for this
-                    std::vector<token> toAdd = {
-                        token("let"),
-                        token(name),
-                        token(":"),
-                    };
-
-                    while (!From.empty() && From.front() != ";")
-                    {
-                        if (From.front() == "type!")
-                        {
-                            // Case for type!() macro
-
-                            // Scrape entire type!(what) call to a std::vector
-                            std::vector<token> toAnalyze;
-                            int count = 0;
-
-                            From.pop_front();
-                            do
-                            {
-                                if (From.front() == "(")
-                                {
-                                    count++;
-                                }
-                                else if (From.front() == ")")
-                                {
-                                    count--;
-                                }
-
-                                if (!((From.front() == "(" && count == 1) || (From.front() == ")" && count == 0)))
-                                {
-                                    toAnalyze.push_back(From.front());
-                                }
-
-                                From.pop_front();
-                            } while (count != 0);
-
-                            // Garbage to feed to resolveFunction
-                            std::string junk = "";
-                            int pos = 0;
-
-                            // Analyze type of std::vector
-                            Type type = resolveFunction(toAnalyze, pos, junk);
-
-                            // Convert type to lexed std::string vec
-                            lexer dfa_lexer;
-                            std::vector<token> lexedType = dfa_lexer.lex(toStr(&type));
-
-                            // Push lexed vec to front of From
-                            for (auto iter = lexedType.rbegin(); iter != lexedType.rend(); iter++)
-                            {
-                                From.push_front(*iter);
-                            }
-
-                            continue;
-                        }
-
-                        toAdd.push_back(From.front());
-                        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-                        From.pop_front();
-
-                        if (!From.empty() && From.front() == "=")
-                        {
-                            throw sequencing_error("Instantiate / assignment combo is not supported.");
-                        }
-                    }
-
-                    // This SHOULD appear during toC.
-                    out.info = code_line;
-                    out.raw = "";
-                    out.type = nullType;
-                    out.items.clear();
-
-                    Type type = toType(toAdd);
-
-                    out.items.push_back(sequence{nullType, std::vector<sequence>(), atom, toStrC(&type, name)});
-
-                    // Insert into table
-                    table[name].push_back(
-                        __multiTableSymbol{sequence{type, std::vector<sequence>(), atom, ""}, type, false, curFile});
-
-                    // Call constructor (pointers do not get constructors)
-                    if (type[0].info != pointer && type[0].info != arr && type[0].info != sarr)
-                    {
-                        // Syntactically necessary
-                        out.items.push_back(sequence{nullType, std::vector<sequence>(), atom, ";"});
-
-                        std::vector<token> newCall = {token("New"), token("("), token("@"), token(name), token(")")};
-                        int garbage = 0;
-
-                        sequence toAppend;
-                        toAppend.info = atom;
-                        toAppend.type = resolveFunction(newCall, garbage, toAppend.raw);
-
-                        out.items.push_back(toAppend);
-                    }
-                    else if (type[0].info != sarr)
-                    {
-                        // Syntactically necessary
-                        out.items.push_back(sequence{nullType, std::vector<sequence>(), atom, ";"});
-
-                        sequence toAppend;
-                        toAppend.info = atom;
-                        toAppend.type = nullType;
-                        toAppend.raw = name + " = 0";
-
-                        out.items.push_back(toAppend);
-                    }
-                    else
-                    {
-                        // Initialize sized array
-                        // Set every byte inside to zero
-
-                        // Syntactically necessary
-                        out.items.push_back(sequence{nullType, std::vector<sequence>(), atom, ";"});
-
-                        sequence toAppend;
-                        toAppend.info = atom;
-                        toAppend.type = nullType;
-
-                        toAppend.raw =
-                            "for (i32 _i = 0; _i < sizeof(" + name + "); _i++) ((u8 *)(&" + name + "))[_i] = 0;";
-
-                        out.items.push_back(toAppend);
-                    }
-
-                    return out;
-                }
-            }
-        }
-        else if (From.front() == "(")
-        {
-            // Function definition
-            if (generics.size() == 0)
-            {
-                // Arguments
-                std::vector<token> toAdd;
-                do
-                {
-                    toAdd.push_back(From.front());
-                    sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-                    From.pop_front();
-                } while (From.front() != "{" && From.front() != ";");
-
-                auto type = toType(toAdd);
-
-                auto oldTable = table;
-
-                auto argsWithType = getArgs(type);
-                for (std::pair<std::string, Type> p : argsWithType)
-                {
-                    table[p.first].push_back(__multiTableSymbol{sequence(), p.second, false, curFile});
-                }
-
-                bool isSingleArg = true;
-                for (int ptr = 0; ptr < type.size(); ptr++)
-                {
-                    if (type[ptr].info == join)
-                    {
-                        isSingleArg = false;
-                        break;
-                    }
-                }
-
-                sm_assert(currentReturnType == nullType, "Cannot nest function definitions.");
-                currentReturnType = getReturnType(type);
-
-                for (auto name : names)
-                {
-                    // Restrictions upon some types of methods
-                    if (name == "New" || name == "Del")
-                    {
-                        if (currentReturnType != Type(atomic, "void"))
-                        {
-                            throw std::runtime_error("Illegal method definition! Method '" + name +
-                                                     "' must return void.");
-                        }
-
-                        if (!isSingleArg)
-                        {
-                            throw std::runtime_error("Illegal method definition! Method '" + name +
-                                                     "' must have exactly one argument.");
-                        }
-                    }
-
-                    // Insert explicit symbol
-                    if (From.size() > 0 && From.front() == "{")
-                    {
-                        if (name == "main")
-                        {
-                            sm_assert(table[name].size() == 0, "Function 'main' cannot be overloaded.");
-                            sm_assert(currentReturnType[0].info == atomic &&
-                                          (currentReturnType[0].name == "i32" || currentReturnType[0].name == "void"),
-                                      "Function 'main' must return i32.");
-
-                            if (argsWithType.size() != 0)
-                            {
-                                sm_assert(argsWithType.size() == 2, "'main' must have either 0 or 2 arguments.");
-                                sm_assert(argsWithType[0].second == Type(atomic, "i32"),
-                                          "First argument of 'main' must be i32.");
-                            }
-                        }
-
-                        destroyUnits(name, type, true);
-
-                        table[name].push_back(__multiTableSymbol{sequence{}, type, false, curFile});
-
-                        if (name == "New")
-                        {
-                            // prepend New for all members
-                            std::string structName;
-
-                            // Type *cur = &argsWithType[0].second;
-                            int cur = 0;
-
-                            while (cur < argsWithType[0].second.size() && argsWithType[0].second[cur].info == pointer)
-                            {
-                                cur++;
-                            }
-
-                            structName = argsWithType[0].second[cur].name;
-
-                            for (auto var : structData[structName].members)
-                            {
-                                // Add semicolon
-                                table["New"].back().seq.items.push_back(
-                                    sequence{nullType, std::vector<sequence>(), atom, ";"});
-
-                                sequence toAppend;
-                                toAppend.info = atom;
-                                toAppend.type = nullType;
-                                toAppend.raw = getMemberNew("(*" + argsWithType[0].first + ")", var.first, var.second);
-
-                                table["New"].back().seq.items.push_back(toAppend);
-                            }
-                        }
-
-                        depth++;
-                        table[name].back().seq = __createSequence(From);
-                        depth--;
-
-                        if (name == "Del")
-                        {
-                            // append Del for all members
-                            std::string structName;
-
-                            // Type *cur = &argsWithType[0].second;
-                            int cur = 0;
-
-                            while (cur < argsWithType[0].second.size() && argsWithType[0].second[cur].info == pointer)
-                            {
-                                cur++;
-                            }
-
-                            structName = argsWithType[0].second[cur].name;
-
-                            for (auto var : structData[structName].members)
-                            {
-                                // Add semicolon
-                                table["Del"].back().seq.items.push_back(
-                                    sequence{nullType, std::vector<sequence>(), atom, ";"});
-
-                                sequence toAppend;
-                                toAppend.info = atom;
-                                toAppend.type = nullType;
-                                toAppend.raw = getMemberDel("(*" + argsWithType[0].first + ")", var.first, var.second);
-
-                                table["Del"].back().seq.items.push_back(toAppend);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        // Casual reference
-                        // IE let to_i32(what: bool) -> i32;
-                        // Destroys all autogen, requires
-                        // actual definition.
-
-                        destroyUnits(name, type, false);
-
-                        // Ensure exactly one unit declaration
-                        table[name].push_back(__multiTableSymbol{sequence{}, type, false, curFile});
-                    }
-
-                    auto destructors = restoreSymbolTable(oldTable);
-                    // insertDestructors(table[name].back().seq, destructors);
-
-                    currentReturnType = nullType;
-                }
-            }
-            else
-            {
-                // Templated function definition
-
-                for (auto name : names)
-                {
-                    std::vector<token> returnType, toAdd = {token("let"), token(name)};
-                    std::vector<std::string> typeVec;
-
-                    while (From.front() != "->")
-                    {
-                        if (From.front().size() < 2 || From.front().substr(0, 2) != "//")
-                        {
-                            typeVec.push_back(From.front());
-                            toAdd.push_back(From.front());
-                        }
-
-                        From.pop_front();
-                    }
-
-                    toAdd.push_back(From.front());
-
-                    From.pop_front();
-
-                    while (From.front() != "{" && From.front() != ";")
-                    {
-                        if (From.front().size() < 2 || From.front().substr(0, 2) != "//")
-                        {
-                            toAdd.push_back(From.front());
-
-                            returnType.push_back(From.front());
-                        }
-
-                        From.pop_front();
-                    }
-
-                    sm_assert(From.front() == "{", "Generic functions must be defined at declaration.");
-
-                    // Scrape contents
-                    int count = 0;
-                    do
-                    {
-                        if (From.front() == "{")
-                        {
-                            count++;
-                        }
-                        else if (From.front() == "}")
-                        {
-                            count--;
-                        }
-
-                        toAdd.push_back(From.front());
-
-                        From.pop_front();
-                    } while (count != 0);
-
-                    // Check for needs / inst block here
-                    std::vector<token> preBlock, postBlock;
-
-                    while (!From.empty() && From.front().size() > 1 && From.front().substr(0, 2) == "//")
-                    {
-                        From.pop_front();
-                    }
-
-                    while (!From.empty() && (From.front() == "pre" || From.front() == "post"))
-                    {
-                        if (!From.empty() && From.front() == "pre")
-                        {
-                            // pop needs
-                            From.pop_front();
-
-                            while (!From.empty() && From.front().size() > 1 && From.front().substr(0, 2) == "//")
-                            {
-                                From.pop_front();
-                            }
-
-                            // pop {
-                            sm_assert(!From.empty() && From.front() == "{", "'pre' block must be followed by scope.");
-                            From.pop_front();
-
-                            int count = 1;
-                            while (!From.empty())
-                            {
-                                if (From.front() == "{")
-                                {
-                                    count++;
-                                }
-                                else if (From.front() == "}")
-                                {
-                                    count--;
-                                }
-
-                                if (count == 0)
-                                {
-                                    From.pop_front();
-                                    break;
-                                }
-                                else
-                                {
-                                    preBlock.push_back(From.front());
-                                    From.pop_front();
-                                }
-                            }
-                        }
-                        else if (!From.empty() && From.front() == "post")
-                        {
-                            // pop needs
-                            From.pop_front();
-
-                            while (!From.empty() && From.front().size() > 1 && From.front().substr(0, 2) == "//")
-                            {
-                                From.pop_front();
-                            }
-
-                            // pop {
-                            sm_assert(!From.empty() && From.front() == "{", "'post' block must be followed by scope.");
-                            From.pop_front();
-
-                            int count = 1;
-                            while (!From.empty())
-                            {
-                                if (From.front() == "{")
-                                {
-                                    count++;
-                                }
-                                else if (From.front() == "}")
-                                {
-                                    count--;
-                                }
-
-                                if (count == 0)
-                                {
-                                    From.pop_front();
-                                    break;
-                                }
-                                else
-                                {
-                                    postBlock.push_back(From.front());
-                                    From.pop_front();
-                                }
-                            }
-                        }
-
-                        while (!From.empty() && From.front().size() > 1 && From.front().substr(0, 2) == "//")
-                        {
-                            From.pop_front();
-                        }
-                    }
-
-                    // Insert templated function
-                    // For now, cannot have needs block here
-                    addGeneric(toAdd, name, generics, typeVec, preBlock, postBlock);
-                }
-            }
-        }
-        else
-        {
-            throw sequencing_error("Ill-formed 'let' statement: Must take the form `let a: type` or `let fn() -> "
-                                   "type`. Instead, name is followed by '" +
-                                   From.front().text + "'");
-        }
-
-        return out;
-    } // let
 
     else if (From.front() == "{")
     {
@@ -1538,15 +1541,13 @@ sequence __createSequence(std::list<token> &From)
 // I know I wrote this, but it still feels like black magic and I don't really understand it
 Type resolveFunctionInternal(const std::vector<token> &What, int &start, std::vector<std::string> &c)
 {
-    while (start < What.size() && What[start].size() > 1 && What[start].substr(0, 2) == "//")
-    {
-        start++;
-    }
-
     if (What.empty() || start >= What.size())
     {
         return nullType;
     }
+
+    // std::cout << "resolveFunctionInternal called on " << What[start].text << " " << What[start].file << ":"
+    //           << What[start].line << '\n';
 
     // Pointer check
     if (What[start] == "@")
@@ -1588,13 +1589,6 @@ Type resolveFunctionInternal(const std::vector<token> &What, int &start, std::ve
     {
         c.push_back(";");
         return nullType;
-    }
-
-    // Special symbol check
-    else if (What[start].size() >= 2 && What[start].substr(0, 2) == "//")
-    {
-        start++;
-        return resolveFunctionInternal(What, start, c);
     }
 
     // Standard case

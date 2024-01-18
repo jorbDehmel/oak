@@ -4,7 +4,7 @@ Jordan Dehmel, 2023 - present
 jdehmel@outlook.com, GPLv3
 */
 
-include!("std/math_int_inter.oak");
+include!("std/math_inter.oak");
 include!("std/conv_inter.oak");
 
 // Common int inits from i32
