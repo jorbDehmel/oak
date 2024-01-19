@@ -42,27 +42,43 @@ let end_warn() -> void
 let warnf!(c: i32, v: []str) -> i32
 {
     include!("std/io_inter.oak");
+    include!("std/math_inter.oak");
 
     print(
         "begin_warn();\n"
+    );
+
+    print(
         "printf!(\n"
     );
 
     let i: i32;
+    i = 1;
     while (i < c)
     {
-        print(v.Get(i));
-
         if (i + 1 == c)
         {
+            print(Get(v, i));
             print("\n");
+        }
+        else if (i == 1)
+        {
+            print("\"");
+            print(Get(v, i));
+            print("\"");
+
+            if (c > 1)
+            {
+                print(",");
+            }
         }
         else
         {
+            print(Get(v, i));
             print(",\n");
         }
         i += 1;
     }
 
-    print("end_warn();\n");
+    print(");\nend_warn();\n");
 }

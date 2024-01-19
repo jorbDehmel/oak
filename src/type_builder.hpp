@@ -103,4 +103,10 @@ casting. The number of changes is recorded in `changes`.
 */
 bool typesAreSameCast(const Type *const A, const Type *const B, int &changes);
 
+/*
+Check if a given single token is a literal. Returns the type of
+the literal if it is, otherwise nullType.
+*/
+Type checkLiteral(const std::string &From);
+
 #endif

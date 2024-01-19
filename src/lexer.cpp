@@ -386,10 +386,61 @@ void join_numbers(std::list<token> &what)
         {
             it++;
 
-            if (it->state == numerical_state)
+            while (it->state == numerical_state)
             {
                 std::string temp = it->text;
                 it--;
+                it->text += temp;
+                it++;
+
+                it = what.erase(it);
+            }
+
+            it--;
+        }
+    }
+}
+
+/*
+Joins successive string literals together. Assumes that
+whitespace is no longer present.
+*/
+void join_strings(std::list<token> &what)
+{
+    // Single quote pass
+    for (auto it = what.begin(); it != what.end(); it++)
+    {
+        if (it->state == string_literal_state_single)
+        {
+            it++;
+
+            while (it->state == string_literal_state_single)
+            {
+                std::string temp = it->text.substr(1);
+                it--;
+                it->text.pop_back();
+                it->text += temp;
+                it++;
+
+                it = what.erase(it);
+            }
+
+            it--;
+        }
+    }
+
+    // Double quote pass
+    for (auto it = what.begin(); it != what.end(); it++)
+    {
+        if (it->state == string_literal_state_double)
+        {
+            it++;
+
+            while (it->state == string_literal_state_double)
+            {
+                std::string temp = it->text.substr(1);
+                it--;
+                it->text.pop_back();
                 it->text += temp;
                 it++;
 
@@ -538,6 +589,7 @@ std::vector<token> lexer::lex(const std::string &What, const std::string &filepa
 
     join_numbers(out);
     join_bitshifts(out);
+    join_strings(out);
 
     std::vector<token> out_vec;
     out_vec.assign(out.begin(), out.end());

@@ -35,14 +35,14 @@ let main() -> i32
     let test: wrapper;
 
     let i: i32 = 0;
-    while (i < 10)
+    while i < 10
     {
-        (test[i] = i);
+        test[i] = i;
         i += 1;
     }
 
     i = 0;
-    while (i < 10)
+    while i < 10
     {
         print(test[i]);
         print("\n");
@@ -50,6 +50,5 @@ let main() -> i32
         i += 1;
     }
 
-    test.Del();
     0
 }

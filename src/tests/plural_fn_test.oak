@@ -1,0 +1,81 @@
+/*
+A test of the limits of plural instantiations in Oak.
+
+Jordan Dehmel, 2024
+jdehmel@outlook.com
+*/
+
+package!("std");
+use_rule!("std");
+
+// Stage 1: Barely esoteric
+let a, b, c() -> void;
+
+// Stage 2: Mildly esoteric
+let d, e, f() -> void
+{
+    print("Hello!\n");
+}
+
+// Stage 3: Esoteric
+let g, h, i: struct
+{
+    data: i32,
+}
+
+let j, k, l: enum
+{
+    none: unit,
+    data: i32,
+}
+
+// Stage 4: More esoteric
+let m, n, o<t>() -> void
+{
+    print("world!\n");
+}
+
+let p, q, r<t>: struct
+{
+    member: t,
+}
+
+let main() -> i32
+{
+    // a, b, and c will give linker errors
+
+    d();
+    e();
+    f();
+
+    let gg: g;
+    let hh: h;
+    let ii: i;
+
+    println<i32>(_: i32);
+    println(gg.data);
+    println(hh.data);
+    println(ii.data);
+
+    let jj: j;
+    let kk: k;
+    let ll: l;
+
+    jj.wrap_none();
+    kk.wrap_none();
+    ll.wrap_none();
+
+    m<i32>();
+    n<i32>();
+    o<i32>();
+
+    m();
+    n();
+    o();
+
+    let pp: p<i32>;
+    let qq: q<i32>;
+    let rr: r<i32>;
+
+    0
+}

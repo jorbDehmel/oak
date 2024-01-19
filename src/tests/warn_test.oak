@@ -1,0 +1,19 @@
+/*
+A test of std/warn.oak for provided warnings.
+
+Jordan Dehmel, 2024
+jdehmel@outlook.com
+*/
+
+package!("std");
+use_rule!("std");
+include!("std/warn.oak");
+
+let main() -> i32
+{
+    warn("This file is deprecated!\n");
+
+    warnf!("This file is deprecated! Use file % instead.\n", 123);
+
+    0
+}

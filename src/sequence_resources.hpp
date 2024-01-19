@@ -69,7 +69,6 @@ std::vector<std::pair<std::string, Type>> getArgs(Type &type);
 
 void debugPrint(const sequence &What, int spaces = 0, std::ostream &to = std::cout);
 
-Type checkLiteral(const std::string &From);
 std::vector<std::pair<std::string, std::string>> restoreSymbolTable(multiSymbolTable &backup);
 
 void addEnum(const std::vector<token> &FromIn);

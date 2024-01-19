@@ -4,6 +4,11 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.4.15          | 1/18/24  | Bug fixes w/ plural definitions,
+                |          | more efficiency boosts.
+                |          | Consolidated std math interfaces,
+                |          | worked on std/smart_string.oak.
+                |          |
 0.4.14          | 1/17/24  | More efficiency boosts.
                 |          |
 0.4.13          | 1/16/24  | Fixed plural definition for

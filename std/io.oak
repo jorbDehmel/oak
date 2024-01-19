@@ -1,3 +1,4 @@
-// Linkage file
+// Linkage file. Use "std/io_inter.oak" instead whenever
+// possible, as it will save the compiler a trip.
 
 include!("std/io_inter.oak");

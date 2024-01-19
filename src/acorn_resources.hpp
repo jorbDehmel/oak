@@ -32,7 +32,7 @@ GPLv3 held by author
 #include "tags.hpp"
 
 // Info globals
-const static std::string VERSION = "0.4.14";
+const static std::string VERSION = "0.4.15";
 const static std::string LICENSE = "GPLv3";
 const static std::string INFO = "jdehmel@outlook.com";
 

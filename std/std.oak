@@ -1,18 +1,23 @@
+////////////////////////////////////////////////////////////////
+
 /*
 Jordan Dehmel, 2023 - present
-Linkage file for the Oak standard package.
+Linkage file for the Oak standard (std) package.
 */
 
+////////////////////////////////////////////////////////////////
+
 include!(
-    "std/ns.oak",
-    "std/io_inter.oak",
-    "std/conv_inter.oak",
-    "std/math_inter.oak",
-    "std/std_ops.oak",
-    "std/unit.oak"
+    "std/io_inter.oak",     // Interface to system I/O
+    "std/math_inter.oak",   // Interface to C atomic operations
+    "std/conv_inter.oak",   // Interface to C type conversions
+    "std/ns.oak",           // Provides namespace rule
+    "std/unit.oak"          // Provides unit (1-byte) struct
 );
 
-// Access rules
+////////////////////////////////////////////////////////////////
+
+// Access rule
 new_rule!(
     "access",
     "$[$;$^$@$,$[$]$($)${$}$] $*p [ $*a ]",
@@ -126,3 +131,5 @@ bundle_rule!(
     "flag",
     "trait"
 );
+
+////////////////////////////////////////////////////////////////

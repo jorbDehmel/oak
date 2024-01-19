@@ -3,7 +3,7 @@
 
 package!("std");
 
-let print_five_times!(argc: i32, argv: ^str) -> i32
+let print_five_times!(argc: i32, argv: []str) -> i32
 {
     include!("std/io_inter.oak");
 

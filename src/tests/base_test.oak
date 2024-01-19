@@ -45,5 +45,11 @@ let main() -> i32
 
     printf!("j: %\n\n", j);
 
+    print(
+        "This demonstrates the merging of "
+        "successive string literals, perhaps even "
+        "over multiple lines.\n\n"
+    );
+
     0
 }

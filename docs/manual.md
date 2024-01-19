@@ -1,6 +1,6 @@
 
 # The Oak Programming Language
-## Version 0.4.14
+## Version 0.4.15
 
 ![](./logo_trimmed.png)
 
@@ -371,7 +371,7 @@ package!("std");
 // Use the standard `Oak` rule set
 use_rule!("std");
 
-let main(argc: i32, argv: ^str) -> i32
+let main(argc: i32, argv: []str) -> i32
 {
     print("This program was started with the command: ");
 
@@ -4044,7 +4044,7 @@ include!("std/panic_inter.oak");
 include!("std/string.oak");
 include!("std/printf.oak");
 
-let main(argc: i32, argv: ^str) -> i32
+let main(argc: i32, argv: []str) -> i32
 {
     // If argc != 3, panic w/ the given message.
     assert!(
@@ -4086,7 +4086,7 @@ use_rule!("std");
 include "std/panic_inter.oak", "std/file_inter.oak",
     "std/string.oak";
 
-let main(argc: i32, argv: ^str) -> i32
+let main(argc: i32, argv: []str) -> i32
 {
     // If argc != 3, panic w/ the given message.
     assert!(
@@ -4133,7 +4133,7 @@ include "std/panic_inter.oak", "std/file_inter.oak",
 include "std/bool.oak";
 use "bool"; // STD Oak dialect notation for use_rule!("bool")
 
-let main(argc: i32, argv: ^str) -> i32
+let main(argc: i32, argv: []str) -> i32
 {
     // If argc != 3, panic w/ the given message.
     assert!(
@@ -4177,7 +4177,7 @@ include "std/panic_inter.oak", "std/file_inter.oak",
 include "std/bool.oak";
 use "bool";
 
-let main(argc: i32, argv: ^str) -> i32
+let main(argc: i32, argv: []str) -> i32
 {
     // If argc != 3, panic w/ the given message.
     assert!(
@@ -4231,7 +4231,7 @@ include "std/panic_inter.oak", "std/file_inter.oak",
 include "std/bool.oak";
 use "bool";
 
-let main(argc: i32, argv: ^str) -> i32
+let main(argc: i32, argv: []str) -> i32
 {
     // If argc != 3, panic w/ the given message.
     assert!(

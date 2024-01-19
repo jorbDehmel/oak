@@ -1,195 +1,339 @@
-// Temporary file for the testing of a rewrite to std/string.oak
+////////////////////////////////////////////////////////////////
+
+/*
+A basic self-resizing heap string for Oak.
+
+As of now, this is experimental, but once refined, it will
+replace the existing std/string.oak.
+
+Jordan Dehmel, 2024
+jdehmel@outlook.com
+*/
+
+////////////////////////////////////////////////////////////////
 
 package!("std");
 use_rule!("std");
-
-include!("std/printf.oak");
 
 let string: struct
 {
     capacity: u128,
     current_length: u128,
-    data: ^i8,
+    data: []i8,
 }
+
+////////////////////////////////////////////////////////////////
 
 let New(self: ^string) -> void
 {
-    self.capacity = 8;
+    self.capacity = 0;
     self.current_length = 0;
-
-    alloc!(self.data, self.capacity);
+    ptrcpy!(self.data, 0);
 }
 
 let Del(self: ^string) -> void
 {
+    if self.capacity != 0
+    {
+        free!(self.data);
+    }
+
     self.capacity = 0;
     self.current_length = 0;
-
-    free_arr!(self.data);
+    ptrcpy!(self.data, 0);
 }
 
-// Doubles the current capacity
-let Upsize(self: ^string) -> void
+////////////////////////////////////////////////////////////////
+
+// Doubles the current capacity. If 0, sets to 8.
+let Expand(self: ^string) -> void
 {
-    printf!("Calling upsize upon %\n", self.capacity);
-
-    let new_data: ^i8;
-    alloc!(new_data, self.capacity);
-
-    for (let i: u128 = to_u128(0); i < self.current_length; i += 1)
+    if self.capacity == 0
     {
-        ^new_data[i] = ^self.data[i];
+        self.capacity = 8;
+        alloc!(self.data, self.capacity);
     }
-
-    free_arr!(self.data);
-    self.capacity *= to_u128(2);
-
-    alloc!(self.data, self.capacity);
-
-    for (let i: u128 = to_u128(0); i < self.current_length; i += 1)
+    else
     {
-        ^self.data[i] = ^new_data[i];
-    }
+        // Get old data
+        let old: ^i8;
+        ptrcpy!(old, self.data);
 
-    free_arr!(new_data);
-}
-
-// Halves the current capacity if possible
-let Downsize(self: ^string) -> void
-{
-    if (self.current_length * to_u128(2) < self.capacity)
-    {
-        let new_data: ^i8;
-        alloc!(new_data, self.capacity / to_u128(2));
-
-        for (let i: u128 = to_u128(0); i < self.current_length; i += 1)
-        {
-            ^new_data[i] = ^self.data[i];
-        }
-
-        free_arr!(self.data);
-        self.capacity /= to_u128(2);
-
+        // Allocate new space
+        self.capacity *= 2;
         alloc!(self.data, self.capacity);
 
-        for (let i: u128 = to_u128(0); i < self.current_length; i += 1)
-        {
-            ^self.data[i] = ^new_data[i];
-        }
+        // Copy over old data
+        strcpy(new, old);
 
-        free_arr!(new_data);
+        // Free old data
+        free!(old);
     }
 }
+
+// Halves the current capacity.
+let Shrink(self: ^string) -> void
+{
+    if self.capacity > 7
+    {
+        // Get old data
+        let old: ^i8;
+        ptrcpy!(old, self.data);
+
+        // Allocate new space
+        self.capacity /= 2;
+        alloc!(self.data, self.capacity);
+
+        // Copy over old data
+        strncpy(self.data, old, self.capacity);
+        ptrarr!(self.data, self.capacity - 1) = 0;
+
+        // Free old data
+        free!(old);
+
+        // Find new size
+        self.current_length = strlen(self.data);
+    }
+}
+
+// If needed, expands to the given size. If the current size is
+// already equal to or larger than the given one, does nothing.
+let reserve(self: ^string, size: u128) -> void
+{
+    if self.capacity < size
+    {
+        // Get old data
+        let old: ^i8;
+        ptrcpy!(old, self.data);
+
+        // Allocate new space
+        self.capacity = size;
+        alloc!(self.data, self.capacity);
+
+        // Copy over old data
+        strcpy(new, old);
+
+        // Free old data
+        free!(old);
+    }
+}
+
+// Sets the current capacity to 0. Equivalent to Del(self)
+let clear(self: ^string) -> void
+{
+    if self.capacity != 0
+    {
+        free!(self.data);
+    }
+
+    self.capacity = 0;
+    self.current_length = 0;
+    ptrcpy!(self.data, 0);
+}
+
+////////////////////////////////////////////////////////////////
 
 let Copy(self: ^string, from: str) -> void
 {
-    printf!("Attempting to copy '%'\n", from);
-
-    self.current_length = to_u128(0);
-
-    // Poll size of from (including null termination)
-    let size: u128;
-    size = 0;
-    while (Get(@from, size) != to_i8(0))
+    let new_size = strlen(from);
+    while self.capacity < new_size
     {
-        size += to_u128(1);
+        self.Expand();
     }
 
-    printf!("Has size %\n", size);
-
-    while (self.capacity < size)
-    {
-        Upsize(self);
-    }
-
-    printf!("Finished upsizing.\n");
-
-    for (let i: u128 = to_u128(0); i < size; i += 1)
-    {
-        Copy(Get(@self.data, i), Get(@from, i));
-    }
-
-    printf!("Done.\n");
+    strcpy(self.data, from);
 }
 
 let Copy(self: ^string, other: string) -> void
 {
-    while (self.capacity < other.current_length)
+    self.reserve(other.capacity);
+    strcpy(self.data, other.data);
+}
+
+let Copy(self: ^string, other: []i8) -> void
+{
+    let new_size = strlen(from);
+    while self.capacity < new_size
     {
-        Upsize(self);
+        self.Expand();
     }
 
-    self.current_length = other.current_length;
-    for (let i: u128 = to_u128(0); i < other.current_length; i += 1)
-    {
-        Copy(Get(@self.data, i), ^Get(@other.data, i));
-    }
+    strcpy(self.data, from);
 }
 
 let AddEq(self: ^string, other: string) -> void
 {
-    // Poll size of from (including null termination)
-    let size: u128 = other.current_length;
+    let new_size = self.current_length + other.current_length;
 
-    while (self.capacity < self.current_length + size)
+    while self.capacity < new_size
     {
-        Upsize(self);
+        self.Expand();
     }
 
-    // Copy over data
-    for (let i: u128 = 0; i < size; i += 1)
+    let i: u128 = 0;
+    while self.current_length + i < new_size
     {
-        Copy(Get(@self.data, (self.current_length + i)), ^Get(@other.data, i));
+        ptrarr!(self.data, self.current_length + i) = ptrarr!(other.data, i);
+        i += 1;
     }
 
-    // Increase size
-    self.current_length += size;
+    self.current_length += i;
 }
 
 let AddEq(self: ^string, other: str) -> void
 {
-    // Poll size of from (including null termination)
-    let size: u128;
-    size = 0;
-    while (Get(@other, size) != to_i8(0))
+    let new_size = self.current_length + strlen(other);
+
+    while self.capacity < new_size
     {
-        size += to_u128(1);
+        self.Expand();
     }
 
-    while (self.capacity < self.current_length + size)
+    let i: u128 = 0;
+    while self.current_length + i < new_size
     {
-        Upsize(self);
+        ptrarr!(self.data, self.current_length + i) = ptrarr!(other, i);
+        i += 1;
     }
 
-    // Copy over data
-    for (let i: u128 = 0; i < size; i += 1)
-    {
-        Copy(Get(@self.data, (self.current_length + i)), Get(@other, i));
-    }
-
-    // Increase size
-    self.current_length += size;
+    self.current_length += i;
 }
 
-let Add(a: string, b: string) -> string
+let AddEq(self: ^string, other: []i8) -> void
 {
-    // Kicks call over to Copy and AddEq
+    let new_size = self.current_length + strlen(other);
 
-    let out: string = a;
-    out += b;
+    while self.capacity < new_size
+    {
+        self.Expand();
+    }
+
+    let i: u128 = 0;
+    while self.current_length + i < new_size
+    {
+        ptrarr!(self.data, self.current_length + i) = ptrarr!(other, i);
+        i += 1;
+    }
+
+    self.current_length += i;
+}
+
+let Add(a: string, b: string) -> string {}
+
+let Add(a: string, b: str) -> string {}
+
+let Add(a: string, b: []i8) -> string {}
+
+let Get(self: ^string, index: u128) -> i8 {}
+
+////////////////////////////////////////////////////////////////
+
+let Eq(a: string, b: string) -> bool
+{
+    strcmp(a.data, b.data) == 0
+}
+
+let Eq(a: string, b: str) -> bool
+{
+    strcmp(a.data, b) == 0
+}
+
+let Eq(a: string, b: []i8) -> bool
+{
+    strcmp(a.data, b) == 0
+}
+
+let Neq(a: string, b: string) -> bool
+{
+    Not(Eq(a, b))
+}
+
+let Neq(a: string, b: str) -> bool
+{
+    Not(Eq(a, b))
+}
+
+let Neq(a: string, b: []i8) -> bool
+{
+    Not(Eq(a, b))
+}
+
+let is_substring_eq(
+    self: ^string,
+    what: str,
+    start: u128,
+    n: u128) -> bool
+{
+}
+
+let is_substring_eq(
+    self: ^string,
+    what: []i8,
+    start: u128,
+    n: u128) -> bool
+{
+}
+
+/*
+Returns true if and only if all the characters from
+self[my_start] to self[my_start + n] match all that characters
+from other[other_start] to other[other_start + n]. If my_start
+or my_start + n are larger than self.current_length, returns
+false. Similarly, returns false if other_start or
+other_start + n is greater than other.current_length.
+*/
+let is_substring_eq(
+    self: ^string,
+    other: string,
+    my_start: u128,
+    other_start: u128,
+    n: u128) -> bool
+{
+}
+
+////////////////////////////////////////////////////////////////
+
+let print(what: string) -> void
+{
+    print(what.data);
+}
+
+/*
+Uses DJB2 by Dan Bernstein
+http://www.cse.yorku.ca/~oz/hash.html
+*/
+let hash(what: ^string) -> u128
+{
+    let out: u128 = 5 381;
+    let cur: i8 = 0;
+
+    let i: u128 = 0;
+    while i < self.size
+    {
+        cur = ptrarr!(self.data, i);
+
+        out *= 33;
+        out += cur;
+
+        i += 1;
+    }
+
+    if out == to_u128(0)
+    {
+        out = 1;
+    }
 
     out
 }
 
-let Get(self: ^string, index: u128) -> i8
+let size(what: ^string) -> u128
 {
-    ^Get(@self.data, index)
+    self.current_length
 }
 
-let print(what: string) -> void
+let empty(what: ^string) -> bool
 {
-    for (let i: u128 = 0; i < what.current_length; i += 1)
-    {
-        print(Get(@what, i));
-    }
+    self.current_length == 0
 }
+
+////////////////////////////////////////////////////////////////

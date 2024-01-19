@@ -2,17 +2,14 @@
 Jordan Dehmel, 2023 - present
 jdehmel@outlook.com, GPLv3
 
-Function signatures for ALL the int and float
-operators for the Oak programming language.
-Abandon all hope, ye who enter here. Only
-esoterica and repetition await you. As far as
-I know, this is the most efficient way to
-represent these signatures, exploiting plural
-definitions in functions.
+Function signatures for ALL the int and float operators for the
+Oak programming language. Abandon all hope, ye who enter here,
+for only esoterica and repetition await you. As far as I know,
+this is the most efficient way to represent these signatures,
+exploiting plural definitions in functions.
 */
 
-link!("std/math_int_inter.o");
-link!("std/math_float_inter.o");
+link!("std/math_inter.o");
 
 // u8
 let Add, Sub, Mult, Div, Mod, And, Or, Lbs, Rbs
@@ -134,13 +131,12 @@ let Del(self: ^f64) -> void {}
 let Copy, AddEq, SubEq, MultEq, DivEq
     (self: ^f64, other: f64) -> f64;
 
-// Long Doubles
-let Add, Sub, Mult, Div
-    (self: f128, other: f128) -> f128;
-let Eq, Neq, Less, Great, Leq, Greq
-    (self: f128, other: f128) -> bool;
-let New(self: ^f128) -> void;
-let Del(self: ^f128) -> void {}
-let Copy, AddEq, SubEq, MultEq, DivEq
-    (self: ^f128, other: f128) -> f128;
+// Bools
+let New(self: ^bool) -> void;
+let Del(self: ^bool) -> void {}
+let Copy, AndEq, OrEq(self: ^bool, other: bool) -> bool;
+let Eq, Neq, Andd, Orr(self: bool, other: bool) -> bool;
+let Not(self: bool) -> bool;
 
+// String literals
+let Eq, Neq(self: str, other: str) -> bool;

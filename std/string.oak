@@ -1,22 +1,67 @@
+////////////////////////////////////////////////////////////////
+
 /*
-Jordan Dehmel, 2023
+Jordan Dehmel, 2023 - present
+jdehmel@outlook.com, GPLv3
 
 Basic non-resizing heap string.
 */
 
+////////////////////////////////////////////////////////////////
+
 package!("std");
 use_rule!("std");
+
 link!("std/string.o");
 
-include!("std/conv_extra.oak");
+include!(
+    "std/conv_extra.oak",
+    "std/cstr.oak"
+);
 
-let strlen(what: str) -> u128;
+////////////////////////////////////////////////////////////////
 
 let string: struct
 {
     data: []i8,
     size: u128,
 }
+
+////////////////////////////////////////////////////////////////
+
+// Extern C function.
+// This returns a raw pointer into the data. Do not modify.
+let c_str(self: ^string) -> str;
+
+/*
+Uses DJB2 by Dan Bernstein
+http://www.cse.yorku.ca/~oz/hash.html
+*/
+let hash(self: ^string) -> u128
+{
+    let out: u128 = 5 381;
+    let cur: i8 = 0;
+
+    let i: u128 = 0;
+    while i < self.size
+    {
+        cur = ptrarr!(self.data, i);
+
+        out *= 33;
+        out += cur;
+
+        i += 1;
+    }
+
+    if out == to_u128(0)
+    {
+        out = 1;
+    }
+
+    out
+}
+
+////////////////////////////////////////////////////////////////
 
 let New(self: ^string) -> void
 {
@@ -47,31 +92,49 @@ let Copy(self: ^string, from: str) -> void
     }
 
     // Poll size of from (including null termination)
-    let size: u128;
-    size = to_u128(0);
-    while (Get(@from, size) != to_i8(0))
-    {
-        size += to_u128(1);
-    }
+    let size = strlen(from);
 
     // Alloc self
     self.size = size;
     alloc!(self.data, (self.size + to_u128(1)));
 
     // Copy data (including null termination)
-    while (size != to_u128(0))
-    {
-        Copy(ptrarr!(self.data, size), Get(from, size));
+    strcpy(self.data, from);
+    Copy(ptrarr!(self.data, self.size), 0);
+}
 
-        size -= to_u128(1);
+let Copy(self: ^string, from: string) -> void
+{
+    // Clear self if needed
+    if (self.size != to_u128(0))
+    {
+        free!(self.data);
+        self.size = to_u128(0);
     }
 
-    Copy(
-        ptrarr!(self.data, to_u128(0)),
-        Get(from, to_u128(0))
-    );
+    // Alloc self
+    self.size = from.size;
 
-    Copy(ptrarr!(self.data, self.size), 0);
+    if (self.size != to_u128(0))
+    {
+        alloc!(self.data, (self.size + to_u128(1)));
+        
+        // Copy data (including null termination)
+        let i: u128;
+        i = self.size;
+        while (i != to_u128(0))
+        {
+            Copy(ptrarr!(self.data, i), ptrarr!(from.data, i));
+
+            i -= to_u128(1);
+        }
+        Copy(
+            ptrarr!(self.data, to_u128(0)),
+            ptrarr!(from.data, to_u128(0))
+        );
+
+        Copy(ptrarr!(self.data, self.size), 0);
+    }
 }
 
 let Del(self: ^string) -> void
@@ -80,19 +143,6 @@ let Del(self: ^string) -> void
     {
         free!(self.data);
         self.size = to_u128(0);
-    }
-}
-
-let clear(self: ^string) -> void
-{
-    let i: u128;
-    i = to_u128(0);
-
-    while (i < self.size)
-    {
-        Copy(ptrarr!(self.data, i), to_i8(0));
-
-        i += to_u128(1);
     }
 }
 
@@ -110,9 +160,9 @@ let Eq(self: string, other: string) -> bool
         let cur: u128;
         cur = to_u128(0);
 
-        while (cur < self.size)
+        while cur < self.size
         {
-            if (ptrarr!(self.data, cur) != ptrarr!(self.data, cur))
+            if Get(self.data, cur) != Get(self.data, cur)
             {
                 out = false;
                 cur = self.size;
@@ -143,40 +193,6 @@ let Neq(self: string, other: string) -> bool
 let Get(self: ^string, index: u128) -> ^i8
 {
     @ptrarr!(self.data, index)
-}
-
-let Copy(self: ^string, from: string) -> void
-{
-    // Clear self if needed
-    if (self.size != to_u128(0))
-    {
-        free!(self.data);
-        self.size = to_u128(0);
-    }
-
-    // Alloc self
-    self.size = from.size;
-
-    if (self.size != to_u128(0))
-    {
-        alloc!(self.data, (self.size + to_u128(1)));
-        
-        // Copy data (including null termination)
-        let i: u128;
-        i = self.size;
-        while (i != to_u128(0))
-        {
-            Copy(ptrarr!(self.data, i), ^Get(@from, i));
-
-            i -= to_u128(1);
-        }
-        Copy(
-            ptrarr!(self.data, to_u128(0)),
-            ^Get(@from, to_u128(0))
-        );
-
-        Copy(ptrarr!(self.data, self.size), 0);
-    }
 }
 
 let Add(a: string, b: string) -> string
@@ -213,11 +229,6 @@ let Add(a: string, b: string) -> string
     out
 }
 
-// Extern C function
-// This returns a raw pointer into the data.
-// Do not modify.
-let c_str(self: ^string) -> str;
-
 let Eq(self: ^string, other: str) -> bool
 {
     let out: bool = (self.c_str()) == other;
@@ -229,6 +240,21 @@ let Neq(self: ^string, other: str) -> bool
     let out: bool = (self.c_str()) != other;
     out
 }
+
+let clear(self: ^string) -> void
+{
+    let i: u128;
+    i = to_u128(0);
+
+    while (i < self.size)
+    {
+        Copy(ptrarr!(self.data, i), to_i8(0));
+
+        i += to_u128(1);
+    }
+}
+
+////////////////////////////////////////////////////////////////
 
 let print(what: string) -> void
 {
@@ -303,30 +329,4 @@ let to_i128(what: ^string) -> i128
 
 }
 
-/*
-Uses DJB2 by Dan Bernstein
-http://www.cse.yorku.ca/~oz/hash.html
-*/
-let hash(self: ^string) -> u128
-{
-    let out: u128 = 5 381;
-    let cur: i8 = 0;
-
-    let i: u128 = 0;
-    while i < self.size
-    {
-        cur = ptrarr!(self.data, i);
-
-        out *= 33;
-        out += cur;
-
-        i += 1;
-    }
-
-    if out == to_u128(0)
-    {
-        out = 1;
-    }
-
-    out
-}
+////////////////////////////////////////////////////////////////
