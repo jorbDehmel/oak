@@ -24,21 +24,13 @@ East, 180 is South, and 270 is West. 360 is North again.
 */
 let turtle::turtle: struct
 {
-    x: i128,
-    y: i128,
-    pen_is_down: bool,
-    orientation: f64,
-    speed: f64,
-    radius: f64,
+    x, y: i128,
+    pen_is_down, is_running: bool,
+    orientation, speed, radius: f64,
 
-    is_running: bool,
-    w: u128,
-    h: u128,
-    delay: u128,
+    w, h, delay: u128,
     window: sdl::window,
-    bg_color: sdl::color,
-    pen_color: sdl::color,
-    turtle_color: sdl::color,
+    bg_color, pen_color, turtle_color: sdl::color,
     pixels: [][]sdl::color,
 }
 

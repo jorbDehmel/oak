@@ -1,0 +1,33 @@
+/*
+Tests the for loop rule for Oak.
+
+Jordan Dehmel, 2024
+jdehmel@outlook.com
+*/
+
+package!("std");
+use_rule!("std");
+
+/*
+let i: Copy(i32, 0);
+
+while ((Less(i, 10)))
+{
+    {
+        println(i);
+    }
+    AddEq(i, 1);
+}
+*/
+
+let main() -> i32
+{
+    println<i32>(_: i32);
+    
+    for (let i: i32 = 0; i < 10; i += 1)
+    {
+        println(i);
+    }
+
+    0
+}
