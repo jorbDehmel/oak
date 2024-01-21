@@ -643,14 +643,33 @@ int main(const int argc, const char *argv[])
                             throw std::runtime_error("Failed to link object files.");
                         }
                     }
-                }
+                    else
+                    {
+                        if (debug)
+                        {
+                            std::cout << tags::green_bold << "\nPhase 4 (compilation-only mode): Combining objects.\n"
+                                      << "(via ld)\n"
+                                      << tags::reset;
+                        }
 
-                /*
-                if (cacheOut != "")
-                {
-                    saveCompilerCache(cacheOut);
+                        // Collate here
+                        std::string command = "ld -r -o " + out + " ";
+                        for (std::string object : objects)
+                        {
+                            command += object + " ";
+                        }
+
+                        if (debug)
+                        {
+                            std::cout << "System call `" << command << "`\n";
+                        }
+
+                        if (system(command.c_str()) != 0)
+                        {
+                            throw std::runtime_error("Failed to combine object files.");
+                        }
+                    }
                 }
-                */
 
                 compEnd = std::chrono::high_resolution_clock::now();
             }

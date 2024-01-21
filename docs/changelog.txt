@@ -4,6 +4,9 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.4.16          | 1/21/24  | Fixed bugs which produced inviable
+                |          | object files using `-c`.
+                |          |
 0.4.15          | 1/18/24  | Bug fixes w/ plural definitions,
                 |          | more efficiency boosts.
                 |          | Consolidated std math interfaces,
