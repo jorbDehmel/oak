@@ -1,7 +1,7 @@
 // A test of array access [] in Oak.
 // Passed Aug 3, 23
 
-package!("fast_std");
+package!("std");
 use_rule!("access");
 use_rule!("std");
 
