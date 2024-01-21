@@ -1,16 +1,14 @@
 package!("std");
 use_rule!("std");
 
-include "std/panic.oak",
+include!("std/panic.oak",
     "std/file.oak",
     "std/string.oak",
     "std/printf.oak",
-    "std/color.oak";
-
-include "extra/regex.oak";
-
-include "std/bool.oak";
-use "bool";
+    "std/color.oak",
+    "extra/regex.oak",
+    "std/bool.oak");
+use_rule!("bool");
 
 let main(argc: i32, argv: []str) -> i32
 {

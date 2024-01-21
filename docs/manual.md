@@ -1098,26 +1098,6 @@ let library::fn() -> void;
 are to be used, they must always be fully qualified. Namespaces
 are **required** when developing non-`std` packages.
 
-### `import`, `include`, `link`, `use`, and `flag` keywords
-
-Without `std`:
-```rust
-package!("std");
-include!("std/opt.oak");
-link!("some_object.o");
-use_rule!("std");
-flag!("-some -compilation -flags");
-```
-
-With `std`:
-```rust
-import "std";
-include "std/opt.oak";
-link "some_object.o";
-use_rule "std";
-flag "-some -compilation -flags";
-```
-
 ## Object Oriented Programming
 
 `Oak` does not have classes, nor does it have internally defined
@@ -4075,16 +4055,14 @@ Got filepath 'file.txt' and pattern 'regex+ pat?tern h*ere'
 
 It works! Now, lets open the given filepath as a `i_file`. This
 requires the use of the `std/file_inter.oak` file, so we will
-also add that to our list of inclusions. Let's also switch to
-the standard `Oak` dialect's notation for `include!` macros.
-Doing this, we get the following code.
+also add that to our list of inclusions.
 
 ```rust
 package!("std");
 use_rule!("std");
 
-include "std/panic_inter.oak", "std/file_inter.oak",
-    "std/string.oak";
+include!("std/panic_inter.oak", "std/file_inter.oak",
+    "std/string.oak");
 
 let main(argc: i32, argv: []str) -> i32
 {
@@ -4127,11 +4105,11 @@ file has been reached.
 package!("std");
 use_rule!("std");
 
-include "std/panic_inter.oak", "std/file_inter.oak",
-    "std/string.oak";
+include!("std/panic_inter.oak", "std/file_inter.oak",
+    "std/string.oak");
 
-include "std/bool.oak";
-use "bool"; // STD Oak dialect notation for use_rule!("bool")
+include!("std/bool.oak");
+use_rule!("bool"); // STD Oak dialect notation for use_rule!("bool")
 
 let main(argc: i32, argv: []str) -> i32
 {
@@ -4171,11 +4149,9 @@ the actual RegEx searching. For this, let's include the
 package!("std");
 use_rule!("std");
 
-include "std/panic_inter.oak", "std/file_inter.oak",
-    "std/string.oak", "extra/regex_inter.oak";
-
-include "std/bool.oak";
-use "bool";
+include!("std/panic_inter.oak", "std/file_inter.oak",
+    "std/string.oak", "extra/regex_inter.oak", "std/bool.oak");
+use_rule!("bool");
 
 let main(argc: i32, argv: []str) -> i32
 {
@@ -4224,12 +4200,10 @@ and output that when we finish.
 package!("std");
 use_rule!("std");
 
-include "std/panic_inter.oak", "std/file_inter.oak",
+include!("std/panic_inter.oak", "std/file_inter.oak",
     "std/string.oak", "std/printf.oak",
-    "extra/regex_inter.oak", "std/color.oak";
-
-include "std/bool.oak";
-use "bool";
+    "extra/regex_inter.oak", "std/color.oak", "std/bool.oak");
+use_rule!("bool");
 
 let main(argc: i32, argv: []str) -> i32
 {
@@ -4761,11 +4735,7 @@ versions of the interfacial structs.
 
 package!("std");
 use_rule!("std");
-
-// This is an alternative to the include! macro
-// This notation comes in the "std" rule
-// The string file is needed here
-include "std/string.oak";
+include!("std/string.oak");
 
 let regex: struct
 {
@@ -4794,8 +4764,7 @@ blocks, we arrive at the following code.
 package!("std");
 use_rule!("std");
 
-include "std/string.oak";
-include "std/interface.oak";
+include!("std/string.oak", "std/interface.oak");
 
 let regex: struct
 {
@@ -4821,8 +4790,7 @@ implementations.
 package!("std");
 use_rule!("std");
 
-include "std/string.oak";
-include "std/interface.oak";
+include!("std/string.oak", "std/interface.oak");
 
 let regex: struct
 {
@@ -4856,11 +4824,8 @@ implementations at link-time. This takes the form of a
 package!("std");
 use_rule!("std");
 
-include "std/string.oak";
-include "std/interface.oak";
-
-// More shorthand for compiler macros via the "std" rule
-link "re/re_inter.o";
+include!("std/string.oak", "std/interface.oak");
+link!("re/re_inter.o");
 
 ```
 
@@ -4879,10 +4844,9 @@ here.
 package!("std");
 use_rule!("std");
 
-include "std/string.oak";
-include "std/interface.oak";
+include!("std/string.oak", "std/interface.oak");
 
-link "re/re_inter.o";
+link!("re/re_inter.o");
 
 let regex: struct
 {
@@ -5074,7 +5038,7 @@ touch re_test.oak   # Create our test file
 package!("std");
 use_rule!("std");
 
-import "re";
+package!("re");
 
 let main() -> i32
 {
@@ -5108,8 +5072,8 @@ look like with these tests implemented.
 package!("std");
 use_rule!("std");
 
-import "re";
-include "std/string.oak";
+package!("re");
+include!("std/string.oak");
 
 let main() -> i32
 {
@@ -5263,11 +5227,11 @@ the following.
 package!("std");
 use_rule!("std");
 
-include "std/string.oak",
+include!("std/string.oak",
         "std/file_inter.oak",
         "extra/regex_inter.oak",
         "std/sock_inter.oak",
-        "std/printf.oak";
+        "std/printf.oak");
 
 let main() -> i32
 {
@@ -5281,10 +5245,10 @@ let main() -> i32
 package!("std");
 use_rule!("std");
 
-include "std/string.oak",
+include!("std/string.oak",
         "std/file_inter.oak",
         "std/sock_inter.oak",
-        "std/printf.oak";
+        "std/printf.oak");
 
 let main() -> i32
 {

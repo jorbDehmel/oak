@@ -9,8 +9,11 @@ package!("std");
 
 let main() -> i32
 {
-    let d: i32;
     let a, b, c: i32;
+
+    a = 1;
+    b = 2;
+    c = 3;
 
     0
 }

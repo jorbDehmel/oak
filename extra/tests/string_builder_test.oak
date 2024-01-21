@@ -1,0 +1,33 @@
+/*
+Tests the extra::string_builder structure for efficient
+concatenation of strings.
+
+Jordan Dehmel, 2024
+jdehmel@outlook.com
+*/
+
+package!("std");
+use_rule!("std");
+include!("extra/string_builder.oak");
+
+let main() -> i32
+{
+    let sb: extra::string_builder;
+
+    sb.push("Hi! ");
+    sb.push("This is a ");
+    sb.push("test of the string builder ");
+    sb.push("class.\nHave");
+    sb.push(" a nice ");
+
+    let last: string = "day!";
+
+    sb.push(last);
+
+    last = sb.collapse();
+
+    print(last);
+    endl();
+
+    0
+}

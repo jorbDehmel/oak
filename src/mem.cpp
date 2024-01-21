@@ -11,17 +11,13 @@ extern std::string toStrC(const Type *What, const std::string &Name = "", const 
 sequence getAllocSequence(Type &type, const std::string &name, const std::string &num)
 {
     // Assumes that name is a pointer to type which already exists in scope
-    // declarations are printed verbatim during reconstruction; ergo...
+    //
 
     sequence out;
     out.info = code_line;
     out.type = nullType;
 
-    // C++
-    // name = new type[len];
-    // C
     // name = (type *)malloc(len * sizeof(type));
-
     out.items.push_back(
         sequence{nullType, std::vector<sequence>(), atom,
                  name + " = (" + toStrC(&type) + " *)malloc(sizeof(" + toStrC(&type) + ") * " + num + ")"});

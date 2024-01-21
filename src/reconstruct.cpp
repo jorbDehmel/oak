@@ -9,6 +9,7 @@ GPLv3 held by author
 #include "reconstruct.hpp"
 #include "sequence_resources.hpp"
 #include <stdexcept>
+#include <string>
 
 std::map<std::string, unsigned long long> atomics = {
     {"u8", 1},  {"i8", 1},  {"u16", 2},   {"i16", 2},   {"u32", 4},
@@ -408,11 +409,11 @@ std::string toStrCFunctionRef(const Type *What, const std::string &Name, const u
 
 std::string toStrC(const Type *What, const std::string &Name, const unsigned int &pos)
 {
-    static std::map<unsigned long long, std::string> toStrCTypeCache;
+    static std::map<std::pair<unsigned long long, std::string>, std::string> toStrCTypeCache;
 
-    if (toStrCTypeCache.count(What->ID) != 0)
+    if (toStrCTypeCache.count(make_pair(What->ID, Name)) != 0)
     {
-        return toStrCTypeCache[What->ID];
+        return toStrCTypeCache[make_pair(What->ID, Name)];
     }
 
     std::string out = "";
@@ -426,7 +427,7 @@ std::string toStrC(const Type *What, const std::string &Name, const unsigned int
             toStrCTypeCache.clear();
         }
 
-        toStrCTypeCache[What->ID] = "";
+        toStrCTypeCache[make_pair(What->ID, Name)] = "";
         return "";
     }
 
@@ -438,7 +439,7 @@ std::string toStrC(const Type *What, const std::string &Name, const unsigned int
         }
 
         out = toStrCFunctionRef(What, Name);
-        toStrCTypeCache[What->ID] = out;
+        toStrCTypeCache[make_pair(What->ID, Name)] = out;
         return out;
     }
 
@@ -497,7 +498,7 @@ std::string toStrC(const Type *What, const std::string &Name, const unsigned int
     {
         toStrCTypeCache.clear();
     }
-    toStrCTypeCache[What->ID] = out;
+    toStrCTypeCache[make_pair(What->ID, Name)] = out;
 
     return out;
 }

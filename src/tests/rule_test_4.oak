@@ -1,10 +1,9 @@
 package!("std");
 use_rule!("std");
 
-// Python-style compile macroa
-import "sdl";
-include "std/bool.oak";
-use "bool";
+package!("sdl");
+include!("std/bool.oak");
+use_rule!("bool");
 
 let fn_which_returns_i32() -> i32
 {
@@ -16,7 +15,7 @@ let test: struct
     data: i32,
 }
 
-// Convenient was to express methods
+// Convenient way to express methods
 let test.New() -> void
 {
     self.data = 0;

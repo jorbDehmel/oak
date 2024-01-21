@@ -2,8 +2,8 @@
 package!("std");
 use_rule!("std");
 
-include "extra/regex.oak";  // Real purposes
-include "std/string.oak";
+include!("extra/regex.oak");  // Real purposes
+include!("std/string.oak");
 
 let main() -> i32
 {

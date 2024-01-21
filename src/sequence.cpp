@@ -74,12 +74,14 @@ sequence __createSequence(std::list<token> &From)
     sequence out;
     out.info = code_line;
 
-    // Misc. Invalid cases
+    // If empty, break
     if (From.empty())
     {
         return out;
     }
-    else if (From.front().line != curLine)
+
+    // Update line if needed
+    if (From.front().line != curLine)
     {
         // Line update special symbol
         curLine = From.front().line;
@@ -96,10 +98,10 @@ sequence __createSequence(std::list<token> &From)
         {
             curLineSymbols.erase(curLineSymbols.begin());
         }
-
-        return __createSequence(From);
     }
-    else if (From.front() == ",")
+
+    // Real cases
+    if (From.front() == ",")
     {
         return out;
     }
@@ -171,6 +173,8 @@ sequence __createSequence(std::list<token> &From)
                 {
                     // addStruct takes in the full struct definition, from
                     // let to end curly bracket. So we must first parse this.
+
+                    // sm_assert(depth == 0, "Structs and enums may only be declared in the global scope.");
 
                     std::vector<token> toAdd = {token("let"), token("NAME_HERE")};
 
@@ -326,84 +330,85 @@ sequence __createSequence(std::list<token> &From)
                 sm_assert(depth != 0, "Global variables are not allowed.");
                 sm_assert(generics.empty(), "Variable declaration must not be templated.");
 
-                for (auto name : names)
+                // Scrape entire definition for this
+                std::vector<token> toAdd = {
+                    token("let"),
+                    token("NAME_HERE"),
+                    token(":"),
+                };
+
+                while (!From.empty() && From.front() != ";")
                 {
-                    // Scrape entire definition for this
-                    std::vector<token> toAdd = {
-                        token("let"),
-                        token(name),
-                        token(":"),
-                    };
-
-                    while (!From.empty() && From.front() != ";")
+                    if (From.front() == "type!")
                     {
-                        if (From.front() == "type!")
+                        // Case for type!() macro
+
+                        // Scrape entire type!(what) call to a std::vector
+                        std::vector<token> toAnalyze;
+                        int count = 0;
+
+                        From.pop_front();
+                        do
                         {
-                            // Case for type!() macro
-
-                            // Scrape entire type!(what) call to a std::vector
-                            std::vector<token> toAnalyze;
-                            int count = 0;
-
-                            From.pop_front();
-                            do
+                            if (From.front() == "(")
                             {
-                                if (From.front() == "(")
-                                {
-                                    count++;
-                                }
-                                else if (From.front() == ")")
-                                {
-                                    count--;
-                                }
-
-                                if (!((From.front() == "(" && count == 1) || (From.front() == ")" && count == 0)))
-                                {
-                                    toAnalyze.push_back(From.front());
-                                }
-
-                                From.pop_front();
-                            } while (count != 0);
-
-                            // Garbage to feed to resolveFunction
-                            std::string junk = "";
-                            int pos = 0;
-
-                            // Analyze type of std::vector
-                            Type type = resolveFunction(toAnalyze, pos, junk);
-
-                            // Convert type to lexed std::string vec
-                            lexer dfa_lexer;
-                            std::vector<token> lexedType = dfa_lexer.lex(toStr(&type));
-
-                            // Push lexed vec to front of From
-                            for (auto iter = lexedType.rbegin(); iter != lexedType.rend(); iter++)
+                                count++;
+                            }
+                            else if (From.front() == ")")
                             {
-                                From.push_front(*iter);
+                                count--;
                             }
 
-                            continue;
-                        }
+                            if (!((From.front() == "(" && count == 1) || (From.front() == ")" && count == 0)))
+                            {
+                                toAnalyze.push_back(From.front());
+                            }
 
-                        toAdd.push_back(From.front());
-                        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
-                        From.pop_front();
+                            From.pop_front();
+                        } while (count != 0);
 
-                        if (!From.empty() && From.front() == "=")
+                        // Garbage to feed to resolveFunction
+                        std::string junk = "";
+                        int pos = 0;
+
+                        // Analyze type of std::vector
+                        Type type = resolveFunction(toAnalyze, pos, junk);
+
+                        // Convert type to lexed std::string vec
+                        lexer dfa_lexer;
+                        std::vector<token> lexedType = dfa_lexer.lex(toStr(&type));
+
+                        // Push lexed vec to front of From
+                        for (auto iter = lexedType.rbegin(); iter != lexedType.rend(); iter++)
                         {
-                            throw sequencing_error("Instantiate / assignment combo is not supported.");
+                            From.push_front(*iter);
                         }
+
+                        continue;
                     }
 
-                    // This SHOULD appear during toC.
-                    out.info = code_line;
-                    out.raw = "";
-                    out.type = nullType;
-                    out.items.clear();
+                    toAdd.push_back(From.front());
+                    sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                    From.pop_front();
 
-                    Type type = toType(toAdd);
+                    if (!From.empty() && From.front() == "=")
+                    {
+                        throw sequencing_error("Instantiate / assignment combo is not supported.");
+                    }
+                }
 
+                // This SHOULD appear during toC.
+                out.info = code_line;
+                out.raw = "";
+                out.type = nullType;
+                out.items.clear();
+
+                Type type = toType(toAdd);
+
+                for (auto name : names)
+                {
                     out.items.push_back(sequence{nullType, std::vector<sequence>(), atom, toStrC(&type, name)});
+                    out.items.push_back(sequence{nullType, std::vector<sequence>(), atom, ";"});
 
                     // Insert into table
                     table[name].push_back(
@@ -423,16 +428,16 @@ sequence __createSequence(std::list<token> &From)
                         toAppend.type = resolveFunction(newCall, garbage, toAppend.raw);
 
                         out.items.push_back(toAppend);
+
+                        // Syntactically necessary
+                        out.items.push_back(sequence{nullType, std::vector<sequence>(), atom, ";"});
                     }
                     else if (type[0].info != sarr)
                     {
-                        // Syntactically necessary
-                        out.items.push_back(sequence{nullType, std::vector<sequence>(), atom, ";"});
-
                         sequence toAppend;
                         toAppend.info = atom;
                         toAppend.type = nullType;
-                        toAppend.raw = name + " = 0";
+                        toAppend.raw = name + "=0;";
 
                         out.items.push_back(toAppend);
                     }
@@ -440,9 +445,6 @@ sequence __createSequence(std::list<token> &From)
                     {
                         // Initialize sized array
                         // Set every byte inside to zero
-
-                        // Syntactically necessary
-                        out.items.push_back(sequence{nullType, std::vector<sequence>(), atom, ";"});
 
                         sequence toAppend;
                         toAppend.info = atom;
@@ -453,9 +455,9 @@ sequence __createSequence(std::list<token> &From)
 
                         out.items.push_back(toAppend);
                     }
-
-                    return out;
                 }
+
+                return out;
             }
         }
         else if (From.front() == "(")
@@ -1763,7 +1765,13 @@ Type resolveFunctionInternal(const std::vector<token> &What, int &start, std::ve
 
         Type oldType = currentReturnType;
         currentReturnType = nullType;
+
+        auto oldDepth = depth;
+        depth = 0;
+
         std::string result = instantiateGeneric(name, generics, typeVec);
+
+        depth = oldDepth;
         currentReturnType = oldType;
 
         start--;

@@ -25,10 +25,17 @@ let stl::queue_node<t>: struct
 post
 {
     to_void_ptr<stl::queue_node<t>>(_: ^stl::queue_node<t>);
+    New<t>(_: ^stl::queue_node<t>);
     Del<t>(_: ^stl::queue_node<t>);
 }
 
 ////////////////////////////////////////////////////////////////
+
+let New<t>(self: ^stl::queue_node<t>) -> void
+{
+    New(self.data);
+    ptrcpy!(self.next, 0);
+}
 
 let Del<t>(self: ^stl::queue_node<t>) -> void
 {
@@ -37,6 +44,8 @@ let Del<t>(self: ^stl::queue_node<t>) -> void
         Del(self.next);
         free!(self.next);
     }
+
+    Del(self.data);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -76,6 +85,10 @@ let Del<t>(self: ^stl::queue<t>) -> void
     {
         Del(self.head);
         free!(self.head);
+
+        ptrcpy!(self.head, 0);
+        ptrcpy!(self.tail, 0);
+        self.size = 0;
     }
 }
 
@@ -109,12 +122,16 @@ let append<t>(self: ^stl::queue<t>, what: t) -> void
     {
         alloc!(self.head);
         ptrcpy!(self.tail, self.head);
+
+        New(self.head);
         self.head.data = what;
     }
     else
     {
         alloc!(self.tail.next);
         ptrcpy!(self.tail, self.tail.next);
+
+        New(self.tail);
         self.tail.data = what;
     }
 }

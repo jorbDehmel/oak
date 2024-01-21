@@ -71,36 +71,6 @@ new_rule!(
 );
 
 new_rule!(
-    "import",
-    "import $*a ;",
-    "package! ( $a ) ;"
-);
-
-new_rule!(
-    "include",
-    "include $*a ;",
-    "include! ( $a ) ;"
-);
-
-new_rule!(
-    "link",
-    "link $*a ;",
-    "link! ( $a ) ;"
-);
-
-new_rule!(
-    "use",
-    "use $*a ;",
-    "use_rule! ( $a ) ;"
-);
-
-new_rule!(
-    "flag",
-    "flag $*a ;",
-    "flag! ( $a ) ;"
-);
-
-new_rule!(
     "trait",
     "trait",
     "struct {}"
@@ -124,11 +94,6 @@ bundle_rule!(
     "auto_init",
     "def_init",
     "for",
-    "import",
-    "include",
-    "link",
-    "use",
-    "flag",
     "trait"
 );
 

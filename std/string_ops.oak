@@ -1,0 +1,189 @@
+////////////////////////////////////////////////////////////////
+
+/*
+Works with the std/string.oak file. Provides some standard
+operations, such as converting to and from atomic data types.
+
+Jordan Dehmel, 2024
+jdehmel@outlook.com
+*/
+
+////////////////////////////////////////////////////////////////
+
+package!("std");
+use_rule!("std");
+include!("std/string.oak");
+
+c_warn!(
+    "std/string_ops.oak is currently under construction.\n"
+    "Some aspects will not work."
+);
+
+////////////////////////////////////////////////////////////////
+
+/*
+Takes in a number 1-10 and returns its ASCII char value.
+*/
+let string_ops::__digit_to_char(digit: u8) -> i8
+{
+    let out: i8 = Get("0", 0);
+    out += digit;
+    out
+}
+
+/*
+The inverse of the above function.
+*/
+let string_ops::__char_to_digit(character: i8) -> u8
+{
+    let reference: i8 = Get("0", 0);
+    let out: u8 = character;
+    out -= reference;
+    out
+}
+
+/*
+Returns log base 10 of the given number.
+*/
+let string_ops::__log_10(what: u128) -> u128
+{
+    let out: u128 = 1;
+    let temp: u128 = what;
+    while temp > 9
+    {
+        out += 1;
+        temp /= 10;
+    }
+    out
+}
+let string_ops::__log_10(what: i128) -> u128
+{
+    let out: u128 = 1;
+    let temp: u128 = what;
+    while temp > 9 || temp < -9
+    {
+        out += 1;
+        temp /= 10;
+    }
+    out
+}
+
+/*
+Takes in a string and returns it reversed.
+*/
+let string_ops::__reverse(what: string) -> string
+{
+    let out: string;
+    out.reserve(what.current_length);
+
+    let i, j: u128;
+    i = 0;
+    j = what.current_length - 1;
+
+    while i < what.current_length
+    {
+        ptrarr!(out.data, j) = ptrarr!(what.data, i);
+
+        i += 1;
+        j -= 1;
+    }
+
+    out
+}
+
+////////////////////////////////////////////////////////////////
+
+let to_string(what: u128) -> string
+{
+    let r: u8 = 0;
+    let t: u128 = what;
+
+    // Construct backwards version, since appending to the end
+    // of the string is cheaper.
+
+    let reversed: string;
+    reversed.reserve(string_ops::__log_10(what));
+
+    while t != to_u128(0)
+    {
+        reversed += string_ops::__digit_to_char(t % 10);
+        t /= to_u128(10);
+    }
+
+    // Reverse the backwards version and return the correct item
+    let out: string = string_ops::__reverse(reversed);
+    out
+}
+
+let to_string(what: i128) -> string
+{
+    let is_negative: bool = (what < to_u128(0));
+
+    let r: u8 = 0;
+    let t: i128 = what;
+
+    // Construct backwards version, since appending to the end
+    // of the string is cheaper.
+
+    let reversed: string;
+
+    if is_negative
+    {
+        reversed.reserve(string_ops::__log_10(what) + 1);
+    }
+    else
+    {
+        reversed.reserve(string_ops::__log_10(what));
+    }
+
+    while t != to_u128(0)
+    {
+        reversed += string_ops::__digit_to_char(t % 10);
+        t /= to_u128(10);
+    }
+
+    if is_negative
+    {
+        reversed += "-";
+    }
+
+    // Reverse the backwards version and return the correct item
+    let out: string = string_ops::__reverse(reversed);
+    out
+}
+
+let to_string(what: f64) -> string {}
+
+let to_string(what: bool) -> string
+{
+    let out: string;
+    if what
+    {
+        out = "true";
+    }
+    else
+    {
+        out = "false";
+    }
+    out
+}
+
+////////////////////////////////////////////////////////////////
+
+let to_i128(what: ^string) -> i128 {}
+let to_u128(what: ^string) -> u128 {}
+let to_f64(what: ^string) -> f64 {}
+
+let to_bool(what: ^string) -> bool
+{
+    if what == "true"
+    {
+        true
+    }
+    else
+    {
+        false
+    }
+}
+
+////////////////////////////////////////////////////////////////

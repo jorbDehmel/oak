@@ -73,7 +73,7 @@ let size(self: ^i_file) -> u128;
 let read(self: ^i_file, size: u128) -> string
 {
     let out: string;
-    Copy(@out, size);
+    reserve(out, size);
 
     let buf: i8;
     buf = to_i8(0);
@@ -83,7 +83,7 @@ let read(self: ^i_file, size: u128) -> string
     while (pos < size)
     {
         buf = read_char(self);
-        Copy(Get(@out, pos), buf);
+        set(out, pos, buf);
 
         pos += to_u128(1);
     }
@@ -93,16 +93,11 @@ let read(self: ^i_file, size: u128) -> string
 
 let write(self: ^o_file, data: string) -> void
 {
-    let buf: i8;
-    buf = to_i8(0);
-
     let pos: u128;
     pos = to_u128(0);
-    while (pos < data.size)
+    while (pos < data.current_length)
     {
-        buf = ^Get(@data, pos);
-        write_char(self, buf);
-
+        write_char(self, Get(data, pos));
         pos += to_u128(1);
     }
 }

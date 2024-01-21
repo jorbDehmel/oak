@@ -17,6 +17,18 @@ let New<t>(self: ^opt<t>) -> void
     wrap_none(self);
 }
 
+let Del<t>(self: ^opt<t>) -> void
+{
+    match (self)
+    {
+        case some(data)
+        {
+            Del(data);
+        }
+        default {}
+    }
+}
+
 let Copy<t>(self: ^opt<t>, other: opt<t>) -> void
 {
     match (other)

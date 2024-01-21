@@ -1,10 +1,10 @@
 package!("std");
 use_rule!("std");
 
-include "std/string.oak";
-include "std/interface.oak";
+include!("std/string.oak");
+include!("std/interface.oak");
 
-link "extra/regex_inter.o";
+link!("extra/regex_inter.o");
 
 let extra::regex: struct
 {

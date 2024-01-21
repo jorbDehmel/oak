@@ -363,12 +363,12 @@ void doFile(const std::string &From)
                             // If local, do that
                             if (std::filesystem::exists(a))
                             {
-                                if (std::filesystem::exists(OAK_DIR_PATH + a))
+                                if (std::filesystem::exists(OAK_DIR_PATH + a) &&
+                                    visitedFiles.count(OAK_DIR_PATH + a) == 0 && visitedFiles.count(a) == 0)
                                 {
-                                    std::cout
-                                        << tags::yellow_bold << "Warning: Including local file '" << a
-                                        << "' over package file of same name.\nThis may not be what you intended.\n"
-                                        << tags::reset;
+                                    std::cout << tags::yellow_bold << "Warning: Including './" << a
+                                              << "' over package file '" << OAK_DIR_PATH << a << "'.\n"
+                                              << tags::reset;
                                 }
 
                                 doFile(a);
@@ -613,6 +613,10 @@ void doFile(const std::string &From)
                     continue;
                 }
                 else if (lexed[i] == "c_sys!")
+                {
+                    continue;
+                }
+                else if (lexed[i] == "c_warn!")
                 {
                     continue;
                 }

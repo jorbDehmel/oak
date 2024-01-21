@@ -7,7 +7,7 @@ Passed Oct 13, 23
 Not part of the standard Oak test suite.
 */
 
-import "std";
+package!("std");
 
 let obj: struct
 {

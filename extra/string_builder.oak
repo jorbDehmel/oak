@@ -1,0 +1,109 @@
+////////////////////////////////////////////////////////////////
+
+/*
+A singly-linked queue of strings which can be collapsed into a
+single string. Similar to C++'s stringStream. Useful for
+constructing large compound strings w/o incurring the repeated
+cost of concatenation. Requires the `stl` and `std` packages.
+
+Jordan Dehmel, 2024
+jdehmel@outlook.com
+*/
+
+////////////////////////////////////////////////////////////////
+
+package!("std");
+use_rule!("std");
+include!("std/string.oak");
+include!("stl/queue.oak");
+
+////////////////////////////////////////////////////////////////
+
+stl::queue<string>;
+let extra::string_builder: struct
+{
+    internal: stl::queue<string>, // Where strings are stored
+    size: u128,                   // Running total of char length
+}
+
+////////////////////////////////////////////////////////////////
+
+let New(self: ^extra::string_builder) -> void
+{
+    New(self.internal);
+    self.size = 0;
+}
+
+let Del(self: ^extra::string_builder) -> void
+{
+    Del(self.internal);
+}
+
+////////////////////////////////////////////////////////////////
+
+/*
+Push a string onto the **end** of the existing string.
+*/
+let push(self: ^extra::string_builder, what: string) -> void
+{
+    push(self.internal, what);
+    self.size += what.current_length;
+}
+
+/*
+Push a string onto the **end** of the existing string.
+*/
+let push(self: ^extra::string_builder, what: str) -> void
+{
+    let to_push: string = what;
+    push(self.internal, to_push);
+    self.size += to_push.current_length;
+}
+
+/*
+Push a string onto the **end** of the existing string.
+*/
+let push(self: ^extra::string_builder, what: []i8) -> void
+{
+    let to_push: string = what;
+    push(self.internal, to_push);
+    self.size += to_push.current_length;
+}
+
+/*
+Clear out the existing string.
+*/
+let clear(self: ^extra::string_builder) -> void
+{
+    Del(self.internal);
+    self.size = 0;
+}
+
+/*
+Collapse the builder into a single string.
+**This erases all data within the builder!**
+*/
+let collapse(self: ^extra::string_builder) -> string
+{
+    // Create output string of correct size
+    let out: string;
+    out.reserve(self.size);
+
+    // Copy over data
+    while Not(empty(self.internal))
+    {
+        let res = front(self.internal);
+
+        out += unwrap(res);
+        pop_front(self.internal);
+
+        Del(res);
+    }
+
+    self.clear();
+
+    // Return output string
+    out
+}
+
+////////////////////////////////////////////////////////////////

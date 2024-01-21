@@ -86,6 +86,10 @@ let Del<t>(self: ^stl::list<t>) -> void
     {
         Del(self.head);
         free!(self.head);
+
+        ptrcpy!(self.head, 0);
+        ptrcpy!(self.tail, 0);
+        self.size = 0;
     }
 }
 

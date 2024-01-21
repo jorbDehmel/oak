@@ -1,30 +1,27 @@
 ////////////////////////////////////////////////////////////////
 
 /*
-Jordan Dehmel, 2023 - present
-jdehmel@outlook.com, GPLv3
+A basic self-resizing heap string for Oak.
 
-Basic non-resizing heap string.
+As of now, this is experimental, but once refined, it will
+replace the existing std/string.oak.
+
+Jordan Dehmel, 2024
+jdehmel@outlook.com
 */
 
 ////////////////////////////////////////////////////////////////
 
 package!("std");
 use_rule!("std");
-
+include!("std/cstr.oak");
 link!("std/string.o");
-
-include!(
-    "std/conv_extra.oak",
-    "std/cstr.oak"
-);
-
-////////////////////////////////////////////////////////////////
 
 let string: struct
 {
+    capacity: u128,
+    current_length: u128,
     data: []i8,
-    size: u128,
 }
 
 ////////////////////////////////////////////////////////////////
@@ -32,6 +29,395 @@ let string: struct
 // Extern C function.
 // This returns a raw pointer into the data. Do not modify.
 let c_str(self: ^string) -> str;
+
+////////////////////////////////////////////////////////////////
+
+let New(self: ^string) -> void
+{
+    self.capacity = to_u128(0);
+    self.current_length = to_u128(0);
+    ptrcpy!(self.data, 0);
+}
+
+let Del(self: ^string) -> void
+{
+    if self.capacity != 0
+    {
+        free!(self.data);
+    }
+
+    self.capacity = 0;
+    self.current_length = 0;
+    ptrcpy!(self.data, 0);
+}
+
+////////////////////////////////////////////////////////////////
+
+// Doubles the current capacity. If 0, sets to 8.
+let Expand(self: ^string) -> void
+{
+    if self.capacity == to_u128(0)
+    {
+        self.capacity = 8;
+        alloc!(self.data, self.capacity);
+    }
+    else
+    {
+        // Get old data
+        let old: []i8;
+        ptrcpy!(old, self.data);
+
+        // Allocate new space
+        self.capacity *= 2;
+        alloc!(self.data, self.capacity);
+
+        // Copy over old data
+        strcpy(self.data, old);
+
+        // Free old data
+        free!(old);
+    }
+}
+
+// Halves the current capacity.
+let Shrink(self: ^string) -> void
+{
+    if self.capacity > to_u128(7)
+    {
+        // Get old data
+        let old: []i8;
+        ptrcpy!(old, self.data);
+
+        // Allocate new space
+        self.capacity /= to_u128(2);
+        alloc!(self.data, self.capacity);
+
+        // Copy over old data
+        strncpy(self.data, old, self.capacity);
+
+        ptrarr!(self.data, self.capacity - 1) = 0;
+
+        // Free old data
+        free!(old);
+
+        // Find new size
+        self.current_length = strlen(self.data);
+    }
+}
+
+// If needed, expands to the given size. If the current size is
+// already equal to or larger than the given one, does nothing.
+let reserve(self: ^string, size: u128) -> void
+{
+    if self.capacity == 0
+    {
+        alloc!(self.data, size);
+        self.capacity = size;
+    }
+    else if size != to_u128(0) && self.capacity < size
+    {
+        // Get old data
+        let old: []i8;
+        ptrcpy!(old, self.data);
+
+        // Allocate new space
+        self.capacity = size;
+        alloc!(self.data, self.capacity);
+
+        // Copy over old data
+        strcpy(self.data, old);
+
+        // Free old data
+        free!(old);
+    }
+}
+
+// Sets the current capacity to 0. Equivalent to Del(self)
+let clear(self: ^string) -> void
+{
+    if self.capacity != 0
+    {
+        free!(self.data);
+    }
+
+    self.capacity = 0;
+    self.current_length = 0;
+    ptrcpy!(self.data, 0);
+}
+
+////////////////////////////////////////////////////////////////
+
+let Copy(self: ^string, from: str) -> void
+{
+    self.current_length = strlen(from) + 1;
+
+    while self.capacity > to_u128(7) && self.capacity > self.current_length * to_u128(2)
+    {
+        self.Shrink();
+    }
+
+    while self.capacity < self.current_length
+    {
+        self.Expand();
+    }
+
+    strncpy(self.data, from, self.current_length);
+}
+
+let Copy(self: ^string, other: string) -> void
+{
+    Del(self);
+
+    self.reserve(other.capacity);
+    strncpy(self.data, other.data, self.capacity);
+    self.current_length = strlen(self.data);
+}
+
+let Copy(self: ^string, other: []i8) -> void
+{
+    self.current_length = strlen(other) + 1;
+
+    while self.capacity > to_u128(7) && self.capacity > self.current_length * to_u128(2)
+    {
+        self.Shrink();
+    }
+    while self.capacity < self.current_length
+    {
+        self.Expand();
+    }
+
+    strncpy(self.data, other, self.current_length);
+}
+
+let AddEq(self: ^string, other: string) -> void
+{
+    let new_size = self.current_length + other.current_length;
+
+    while self.capacity < new_size
+    {
+        self.Expand();
+    }
+
+    let i: u128 = 0;
+    while self.current_length + i < new_size
+    {
+        ptrarr!(self.data, self.current_length + i) = ptrarr!(other.data, i);
+        i += 1;
+    }
+
+    self.current_length = new_size;
+}
+
+let AddEq(self: ^string, other: str) -> void
+{
+    let new_size = self.current_length + strlen(other);
+
+    while self.capacity < new_size
+    {
+        self.Expand();
+    }
+
+    let i: u128 = 0;
+    while self.current_length + i < new_size
+    {
+        ptrarr!(self.data, self.current_length + i) = Get(other, i);
+        i += 1;
+    }
+
+    self.current_length = new_size;
+}
+
+let AddEq(self: ^string, other: []i8) -> void
+{
+    let new_size = self.current_length + strlen(other);
+
+    while self.capacity < new_size
+    {
+        self.Expand();
+    }
+
+    let i: u128 = 0;
+    while self.current_length + i < new_size
+    {
+        ptrarr!(self.data, self.current_length + i) = ptrarr!(other, i);
+        i += 1;
+    }
+
+    self.current_length = new_size;
+}
+
+let AddEq(self: ^string, other: i8) -> void
+{
+    let new_size = self.current_length + 1;
+
+    while self.capacity < new_size
+    {
+        self.Expand();
+    }
+
+    ptrarr!(self.data, self.current_length) = other;
+
+    self.current_length = new_size;
+}
+
+let Add(a: string, b: string) -> string
+{
+    let out: string;
+    out.reserve(a.current_length + b.current_length);
+    out = a;
+    out += b;
+
+    out
+}
+
+let Add(a: string, b: str) -> string
+{
+    let out: string;
+    out.reserve(a.current_length + strlen(b));
+    out = a;
+    out += b;
+
+    out
+}
+
+let Add(a: string, b: []i8) -> string
+{
+    let out: string;
+    out.reserve(a.current_length + strlen(b));
+    out = a;
+    out += b;
+
+    out
+}
+
+let Get(self: ^string, index: u128) -> i8
+{
+    let out: i8;
+
+    if index < self.current_length
+    {
+        out = ptrarr!(self.data, index);
+    }
+
+    out
+}
+
+let set(self: ^string, index: u128, to: i8) -> void
+{
+    if index < self.current_length
+    {
+        Get(self.data, index) = to;
+    }
+}
+
+////////////////////////////////////////////////////////////////
+
+let Eq(a: string, b: string) -> bool
+{
+    strcmp(a.data, b.data) == 0
+}
+
+let Eq(a: string, b: str) -> bool
+{
+    strcmp(a.data, b) == 0
+}
+
+let Eq(a: string, b: []i8) -> bool
+{
+    strcmp(a.data, b) == 0
+}
+
+let Neq(a: string, b: string) -> bool
+{
+    Not(Eq(a, b))
+}
+
+let Neq(a: string, b: str) -> bool
+{
+    Not(Eq(a, b))
+}
+
+let Neq(a: string, b: []i8) -> bool
+{
+    Not(Eq(a, b))
+}
+
+let is_substring_eq(
+    self: ^string,
+    what: str,
+    start: u128,
+    n: u128) -> bool
+{
+    if start + n > self.current_length
+    {
+        return false;
+    }
+    else if n > strlen(what)
+    {
+        return false;
+    }
+
+    let l: []i8;
+    ptrcpy!(l, @ptrarr!(self.data, start));
+    return strncmp(l, what, n) == 0;
+}
+
+let is_substring_eq(
+    self: ^string,
+    what: []i8,
+    start: u128,
+    n: u128) -> bool
+{
+    if start + n > self.current_length
+    {
+        return false;
+    }
+    else if n > strlen(what)
+    {
+        return false;
+    }
+
+    let l: []i8;
+    ptrcpy!(l, @ptrarr!(self.data, start));
+    return strncmp(l, what, n) == 0;
+}
+
+/*
+Returns true if and only if all the characters from
+self[my_start] to self[my_start + n] match all that characters
+from other[other_start] to other[other_start + n]. If my_start
+or my_start + n are larger than self.current_length, returns
+false. Similarly, returns false if other_start or
+other_start + n is greater than other.current_length.
+*/
+let is_substring_eq(
+    self: ^string,
+    other: string,
+    my_start: u128,
+    other_start: u128,
+    n: u128) -> bool
+{
+    if my_start + n > self.current_length
+    {
+        return false;
+    }
+    else if other_start + n > other.current_length
+    {
+        return false;
+    }
+
+    let l, r: []i8;
+    ptrcpy!(l, @ptrarr!(self.data,  my_start));
+    ptrcpy!(r, @ptrarr!(other.data, other_start));
+    return strncmp(l, r, n) == 0;
+}
+
+////////////////////////////////////////////////////////////////
+
+let print(what: string) -> void
+{
+    print(what.data);
+}
 
 /*
 Uses DJB2 by Dan Bernstein
@@ -43,7 +429,7 @@ let hash(self: ^string) -> u128
     let cur: i8 = 0;
 
     let i: u128 = 0;
-    while i < self.size
+    while i < self.current_length
     {
         cur = ptrarr!(self.data, i);
 
@@ -53,280 +439,17 @@ let hash(self: ^string) -> u128
         i += 1;
     }
 
-    if out == to_u128(0)
-    {
-        out = 1;
-    }
-
     out
 }
 
-////////////////////////////////////////////////////////////////
-
-let New(self: ^string) -> void
+let size(self: ^string) -> u128
 {
-    self.size = to_u128(0);
+    self.current_length
 }
 
-let Copy(self: ^string, size: u128) -> void
+let empty(self: ^string) -> bool
 {
-    // Clear self if needed
-    if (self.size != to_u128(0))
-    {
-        free!(self.data);
-        self.size = to_u128(0);
-    }
-
-    self.size = size;
-    alloc!(self.data, (self.size + to_u128(1)));
-    Copy(ptrarr!(self.data, self.size), 0);
-}
-
-let Copy(self: ^string, from: str) -> void
-{
-    // Clear self if needed
-    if (self.size != to_u128(0))
-    {
-        free!(self.data);
-        self.size = to_u128(0);
-    }
-
-    // Poll size of from (including null termination)
-    let size = strlen(from);
-
-    // Alloc self
-    self.size = size;
-    alloc!(self.data, (self.size + to_u128(1)));
-
-    // Copy data (including null termination)
-    strcpy(self.data, from);
-    Copy(ptrarr!(self.data, self.size), 0);
-}
-
-let Copy(self: ^string, from: string) -> void
-{
-    // Clear self if needed
-    if (self.size != to_u128(0))
-    {
-        free!(self.data);
-        self.size = to_u128(0);
-    }
-
-    // Alloc self
-    self.size = from.size;
-
-    if (self.size != to_u128(0))
-    {
-        alloc!(self.data, (self.size + to_u128(1)));
-        
-        // Copy data (including null termination)
-        let i: u128;
-        i = self.size;
-        while (i != to_u128(0))
-        {
-            Copy(ptrarr!(self.data, i), ptrarr!(from.data, i));
-
-            i -= to_u128(1);
-        }
-        Copy(
-            ptrarr!(self.data, to_u128(0)),
-            ptrarr!(from.data, to_u128(0))
-        );
-
-        Copy(ptrarr!(self.data, self.size), 0);
-    }
-}
-
-let Del(self: ^string) -> void
-{
-    if (self.size != to_u128(0))
-    {
-        free!(self.data);
-        self.size = to_u128(0);
-    }
-}
-
-let Eq(self: string, other: string) -> bool
-{
-    let out: bool;
-    out = true;
-
-    if (self.size != other.size)
-    {
-        out = false;
-    }
-    else
-    {
-        let cur: u128;
-        cur = to_u128(0);
-
-        while cur < self.size
-        {
-            if Get(self.data, cur) != Get(self.data, cur)
-            {
-                out = false;
-                cur = self.size;
-            }
-        }
-    }
-
-    out
-}
-
-let Neq(self: string, other: string) -> bool
-{
-    let out: bool;
-    out = Eq(self, other);
-
-    if (out)
-    {
-        out = false;
-    }
-    else
-    {
-        out = true;
-    }
-
-    out
-}
-
-let Get(self: ^string, index: u128) -> ^i8
-{
-    @ptrarr!(self.data, index)
-}
-
-let Add(a: string, b: string) -> string
-{
-    let out: string;
-
-    // Accounts for null termination
-    let size: u128;
-    size = a.size + b.size;
-
-    Copy(@out, size);
-
-    let i: u128;
-    i = to_u128(0);
-
-    while (i < a.size)
-    {
-        Copy(ptrarr!(out.data, i), ptrarr!(a.data, i));
-
-        i += to_u128(1);
-    }
-
-    let b_pos: u128;
-    b_pos = to_u128(0);
-
-    while (b_pos < b.size)
-    {
-        Copy(ptrarr!(out.data, i), ptrarr!(b.data, b_pos));
-
-        b_pos += to_u128(1);
-        i += to_u128(1);
-    }
-
-    out
-}
-
-let Eq(self: ^string, other: str) -> bool
-{
-    let out: bool = (self.c_str()) == other;
-    out
-}
-
-let Neq(self: ^string, other: str) -> bool
-{
-    let out: bool = (self.c_str()) != other;
-    out
-}
-
-let clear(self: ^string) -> void
-{
-    let i: u128;
-    i = to_u128(0);
-
-    while (i < self.size)
-    {
-        Copy(ptrarr!(self.data, i), to_i8(0));
-
-        i += to_u128(1);
-    }
-}
-
-////////////////////////////////////////////////////////////////
-
-let print(what: string) -> void
-{
-    print(c_str(@what));
-}
-
-let to_i128(what: ^string) -> i128
-{
-    let out: i128 = 0;
-    let is_negative: bool = false;
-
-    if what.size != to_u128(0)
-    {
-        let i: u128 = 0;
-        if ^Get(what, to_u128(0)) == "-"
-        {
-            is_negative = true;
-            i += 1;
-        }
-
-        while i < what.size
-        {
-            out *= to_i128(10);
-
-            if ^Get(what, i) == "1"
-            {
-                out += 1;
-            }
-            else if ^Get(what, i) == "2"
-            {
-                out += 2;   
-            }
-            else if ^Get(what, i) == "3"
-            {
-                out += 3;
-            }
-            else if ^Get(what, i) == "4"
-            {
-                out += 4;
-            }
-            else if ^Get(what, i) == "5"
-            {
-                out += 5;
-            }
-            else if ^Get(what, i) == "6"
-            {
-                out += 6;
-            }
-            else if ^Get(what, i) == "7"
-            {
-                out += 7;
-            }
-            else if ^Get(what, i) == "8"
-            {
-                out += 8;
-            }
-            else if ^Get(what, i) == "9"
-            {
-                out += 9;
-            }
-
-            i += 1;
-        }
-    }
-
-    if is_negative
-    {
-        out *= to_i128(-1);
-    }
-
-    out
-
+    self.current_length == 0
 }
 
 ////////////////////////////////////////////////////////////////

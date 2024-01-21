@@ -10,9 +10,10 @@ GPLv3 held by author
 #include <stdexcept>
 
 // The pre-inserted ones are used by the compiler- Not literal macros
-std::set<std::string> compiled = {"include!",  "link!",     "package!",  "alloc!",       "free!",   "free_arr!",
-                                  "new_rule!", "use_rule!", "rem_rule!", "bundle_rule!", "erase!",  "c_print!",
-                                  "c_panic!",  "type!",     "size!",     "ptrcpy!",      "ptrarr!", "raw_c!"};
+std::set<std::string> compiled = {"include!",  "link!",     "package!",  "alloc!",    "free!",
+                                  "free_arr!", "new_rule!", "use_rule!", "rem_rule!", "bundle_rule!",
+                                  "erase!",    "c_print!",  "c_warn!",   "c_panic!",  "type!",
+                                  "size!",     "ptrcpy!",   "ptrarr!",   "raw_c!"};
 std::map<std::string, std::string> macros;
 std::map<std::string, std::string> macroSourceFiles;
 
