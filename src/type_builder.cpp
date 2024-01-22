@@ -7,6 +7,7 @@ jdehmel@outlook.com
 #include "type_builder.hpp"
 #include "sequence.hpp"
 #include "sequence_resources.hpp"
+#include <climits>
 
 std::set<std::string> deps;
 std::map<std::string, __structLookupData> structData;
@@ -571,23 +572,62 @@ Type checkLiteral(const std::string &From)
     {
         if (From.find(".") == std::string::npos)
         {
-            // Int
+            long long val;
+            unsigned long long uval;
+            bool viable = true;
 
-            // Check size
-            long long val = stoll(From);
+            try
+            {
+                val = stoll(From);
+            }
+            catch (...)
+            {
+                viable = false;
+            }
 
-            if (std::abs(val) <= __INT_MAX__)
+            if (viable)
             {
-                return Type(atomic, "i32");
+                if (INT_MIN <= val && val <= INT_MAX)
+                {
+                    return Type(atomic, "i32");
+                }
+                else if (LONG_MIN <= val && val <= LONG_MIN)
+                {
+                    return Type(atomic, "i64");
+                }
+                else if (LONG_LONG_MIN <= val && val <= LONG_LONG_MAX)
+                {
+                    return Type(atomic, "i128");
+                }
             }
-            else if (std::abs(val) <= __LONG_MAX__)
+
+            viable = true;
+            try
             {
-                return Type(atomic, "i64");
+                uval = stoull(From);
             }
-            else
+            catch (...)
             {
-                return Type(atomic, "i128");
+                viable = false;
             }
+
+            if (viable)
+            {
+                if (uval <= UINT_MAX)
+                {
+                    return Type(atomic, "u32");
+                }
+                else if (uval <= ULONG_MAX)
+                {
+                    return Type(atomic, "u64");
+                }
+                else if (uval <= ULONG_LONG_MAX)
+                {
+                    return Type(atomic, "u128");
+                }
+            }
+
+            throw sequencing_error("Invalid numerical literal '" + From + "'- Out of range of i128 and u128.");
         }
         else
         {

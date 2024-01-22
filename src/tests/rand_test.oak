@@ -1,0 +1,26 @@
+/*
+Tests the std/rand.oak file
+
+Jordan Dehmel, 2024
+jdehmel@outlook.com
+*/
+
+package!("std");
+use_rule!("std");
+include!("std/rand.oak");
+
+let main() -> i32
+{
+    seed_rand();
+
+    print(rand());
+    endl();
+
+    print(rand(0, 10));
+    endl();
+
+    print(rand(0.0, 10.0));
+    endl();
+
+    0
+}

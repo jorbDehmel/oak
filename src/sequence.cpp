@@ -2176,6 +2176,8 @@ Type resolveFunctionInternal(const std::vector<token> &What, int &start, std::ve
 
         // Literal check
         Type litType = checkLiteral(What[start]);
+        std::string litSuffix = "";
+
         if (litType == nullType)
         {
             // Is not a literal
@@ -2189,9 +2191,30 @@ Type resolveFunctionInternal(const std::vector<token> &What, int &start, std::ve
         {
             // Is a literal
             type = litType;
+
+            if (litType == Type(atomic, "u32"))
+            {
+                litSuffix = "U";
+            }
+            else if (litType == Type(atomic, "i64"))
+            {
+                litSuffix = "UL";
+            }
+            else if (litType == Type(atomic, "u64"))
+            {
+                litSuffix = "UL";
+            }
+            else if (litType == Type(atomic, "i128"))
+            {
+                litSuffix = "ULL";
+            }
+            else if (litType == Type(atomic, "u128"))
+            {
+                litSuffix = "ULL";
+            }
         }
 
-        c.push_back(What[start]);
+        c.push_back(What[start] + litSuffix);
     }
 
     // if member access, resolve that

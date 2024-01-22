@@ -63,19 +63,24 @@ new_rule!(
     "let $a : type! ( $b ) ; $a = $b ;"
 );
 
-// For loop rule
+// For loop rules
 new_rule!(
     "for_1",
     "for ( let $*a : $*b = $*c ; $*d ; $*e ) $~ $<${$}$> $>f",
-    "let $a : $b ; $a = $c ; while ( $d ) { $f $e ; }"
+    "{ let $a : $b ; $a = $c ; while ( $d ) { $f $e ; } }"
 );
-
 new_rule!(
     "for_2",
+    "for ( let $a = $*c ; $*d ; $*e ) $~ $<${$}$> $>f",
+    "{ let $a : type! ( $c ) ; $a = $c ; while ( $d ) { $f $e ; } }"
+);
+new_rule!(
+    "for_3",
     "for ( $*a ; $*b ; $*c ) $~ $<${$}$> $>g",
-    "$a ; while ( $b ) { $g $c ; }"
+    "{ $a ; while ( $b ) { $g $c ; } }"
 );
 
+// Trait rule
 new_rule!(
     "trait",
     "trait",
@@ -101,6 +106,7 @@ bundle_rule!(
     "def_init",
     "for_1",
     "for_2",
+    "for_3",
     "trait"
 );
 

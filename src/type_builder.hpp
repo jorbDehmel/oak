@@ -11,6 +11,7 @@ Underlying class for representing types in Oak source code.
 
 #include <array>
 #include <iostream>
+#include <limits.h>
 #include <map>
 #include <set>
 #include <string>

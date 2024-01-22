@@ -1,0 +1,33 @@
+/*
+Defines the limits of common data types. These are equivalent to
+<limits.h>. Note: u128 and i128 are NOT guaranteed to hold more
+than u64 and i64! Thus, their limits are defined identically
+here.
+
+Jordan Dehmel, 2024
+jdehmel@outlook.com
+*/
+
+let u8_min!   = 0;
+let u16_min!  = 0;
+let u32_min!  = 0;
+let u64_min!  = 0;
+let u128_min! = u64_min!;
+
+let u8_max!   = 0x FF;
+let u16_max!  = 0x FFFF;
+let u32_max!  = 0x FFFF FFFF;
+let u64_max!  = 0x FFFF FFFF FFFF FFFF;
+let u128_max! = u64_max!;
+
+let i8_min!   = -128;
+let i16_min!  = -32 768;
+let i32_min!  = -2 147 483 648;
+let i64_min!  = -9 223 372 036 854 775 808;
+let i128_min! = i64_min!;
+
+let i8_max!   = 127;
+let i16_max!  = 32 767;
+let i32_max!  = 2 147 483 647;
+let i64_max!  = 9 223 372 036 854 775 807;
+let i128_max! = i64_max!;

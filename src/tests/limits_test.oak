@@ -1,0 +1,21 @@
+package!("std");
+use_rule!("std");
+include!("std/limits.oak");
+include!("std/printf.oak");
+
+let main() -> i32
+{
+    printf!("%\t%\n", u8_min!, u8_max!);
+    printf!("%\t%\n", u16_min!, u16_max!);
+    printf!("%\t%\n", u32_min!, u32_max!);
+    printf!("%\t%\n", u64_min!, u64_max!);
+    printf!("%\t%\n", u128_min!, u128_max!);
+
+    printf!("%\t%\n", i8_min!, i8_max!);
+    printf!("%\t%\n", i16_min!, i16_max!);
+    printf!("%\t%\n", i32_min!, i32_max!);
+    printf!("%\t%\n", i64_min!, i64_max!);
+    printf!("%\t%\n", i128_min!, i128_max!);
+    
+    0
+}

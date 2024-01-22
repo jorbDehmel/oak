@@ -1,3 +1,5 @@
+////////////////////////////////////////////////////////////////
+
 /*
 Jordan Dehmel, 2023 - present
 jdehmel@outlook.com, GPLv3
@@ -6,15 +8,30 @@ Standard io function definitions for use
 with io.cpp.
 */
 
+////////////////////////////////////////////////////////////////
+
 include!("std/conv_inter.oak");
 link!("std/io_inter.o");
+
+////////////////////////////////////////////////////////////////
 
 // Print to cout
 let print(what: str) -> void;
 let print(what: []i8) -> void;
-let print(what: i32) -> void;
-let print(what: f64) -> void;
+
 let print(what: i8) -> void;
+let print(what: u8) -> void;
+let print(what: i16) -> void;
+let print(what: u16) -> void;
+let print(what: i32) -> void;
+let print(what: u32) -> void;
+let print(what: i64) -> void;
+let print(what: u64) -> void;
+let print(what: i128) -> void;
+let print(what: u128) -> void;
+
+let print(what: f32) -> void;
+let print(what: f64) -> void;
 
 // Flush the cout buffer to screen
 let flush() -> void;
@@ -28,36 +45,7 @@ let get_i128() -> i128;
 let get_f64() -> f64;
 let read(into: []i8, length: u128) -> void;
 
-// Commonly used prints
-let print(what: u32) -> void
-{
-    print(to_i32(what));
-}
-
-let print(what: i64) -> void
-{
-    print(to_i32(what));
-}
-
-let print(what: u64) -> void
-{
-    print(to_i32(what));
-}
-
-let print(what: i128) -> void
-{
-    print(to_i32(what));
-}
-
-let print(what: u128) -> void
-{
-    print(to_i32(what));
-}
-
-let print(what: f32) -> void
-{
-    print(to_f64(what));
-}
+////////////////////////////////////////////////////////////////
 
 let print(what: bool) -> void
 {
@@ -81,3 +69,5 @@ let endl() -> void
 {
     print("\n");
 }
+
+////////////////////////////////////////////////////////////////

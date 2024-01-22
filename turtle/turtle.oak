@@ -75,22 +75,16 @@ let New(self: ^turtle::turtle) -> void
 
     // Initialize pixels array
     alloc!(self.pixels, self.h);
-    let i: u128 = 0;
 
     flush();
-    while i < self.h
+    for (let i: u128 = 0; i < self.h; i += 1)
     {
         alloc!(ptrarr!(self.pixels, i), self.w);
 
-        let j: u128 = 0;
-        while j < self.w
+        for (let j: u128 = 0; j < self.w; j += 1)
         {
             ptrarr!(ptrarr!(self.pixels, i), j) = self.bg_color;
-
-            j += 1;
         }
-
-        i += 1;
     }
 }
 
@@ -223,11 +217,9 @@ let refresh(self: ^turtle::turtle) -> void
         // Draw pixels
         let point: sdl::coord;
 
-        point.y = 0;
-        while point.y < to_u64(self.h)
+        for (point.y = 0; point.y < to_u64(self.h); point.y += 1)
         {
-            point.x = 0;
-            while point.x < to_u64(self.w)
+            for (point.x = 0; point.x < to_u64(self.w); point.x += 1)
             {
                 if self.is_filled(point.x, point.y)
                 {
@@ -243,11 +235,7 @@ let refresh(self: ^turtle::turtle) -> void
                         )
                     );
                 }
-
-                point.x += 1;
             }
-
-            point.y += 1;
         }
 
         // Draw self (rotated triangle)
@@ -320,18 +308,12 @@ Clear the canvas of any pen marks.
 */
 let clear(self: ^turtle::turtle) -> void
 {
-    let y: u128 = 0;
-    while y < self.h
+    for (let y: u128 = 0; y < self.h; y += 1)
     {
-        let x: u128 = 0;
-        while x < self.w
+        for (let x: u128 = 0; x < self.w; x += 1)
         {
             ptrarr!(ptrarr!(self.pixels, y), x) = self.bg_color;
-
-            x += 1;
         }
-
-        y += 1;
     }
 
     self.refresh();
@@ -351,8 +333,7 @@ let left(self: ^turtle::turtle, by: f64) -> void
 
     let start_orientation = self.orientation;
 
-    let frame: i32 = 0;
-    while frame < frames
+    for (let frame: i32 = 0; frame < frames; frame += 1)
     {
         self.orientation += dt;
 
@@ -366,8 +347,6 @@ let left(self: ^turtle::turtle, by: f64) -> void
         }
 
         self.refresh();
-
-        frame += 1;
     }
 
     // Ensure accurate rotation
@@ -393,8 +372,7 @@ let right(self: ^turtle::turtle, by: f64) -> void
 
     let start_orientation = self.orientation;
 
-    let frame: i32 = 0;
-    while frame < frames
+    for (let frame: i32 = 0; frame < frames; frame += 1)
     {
         self.orientation -= dt;
 
@@ -408,8 +386,6 @@ let right(self: ^turtle::turtle, by: f64) -> void
         }
 
         self.refresh();
-
-        frame += 1;
     }
 
     // Ensure accurate rotation
@@ -441,8 +417,7 @@ let forward(self: ^turtle::turtle, by: i128) -> void
     let real_x: f64 = i_to_f(self.x);
     let real_y: f64 = i_to_f(self.y);
 
-    let frame: i32 = 0;
-    while frame < frames
+    for (let frame: i32 = 0; frame < frames; frame += 1)
     {
         real_x += dx;
         real_y += dy;
@@ -469,8 +444,6 @@ let forward(self: ^turtle::turtle, by: i128) -> void
         }
 
         self.refresh();
-
-        frame += 1;
     }
 }
 
@@ -498,8 +471,7 @@ let set_position(self: ^turtle::turtle, x: i128, y: i128)
     let real_x: f64 = i_to_f(self.x);
     let real_y: f64 = i_to_f(self.y);
 
-    let frame: i32 = 0;
-    while frame < frames
+    for (let frame: i32 = 0; frame < frames; frame += 1)
     {
         real_x += dx;
         real_y += dy;
@@ -526,8 +498,6 @@ let set_position(self: ^turtle::turtle, x: i128, y: i128)
         }
 
         self.refresh();
-
-        frame += 1;
     }
 }
 
@@ -539,8 +509,7 @@ let set_orientation(self: ^turtle::turtle, to: f64) -> void
     let frames: i32 = floor(to / self.speed);
     let dt: f64 = to_f64(to) / to_f64(frames);
 
-    let frame: i32 = 0;
-    while frame < frames
+    for (let frame: i32 = 0; frame < frames; frame += 1)
     {
         self.orientation += dt;
 
@@ -554,8 +523,6 @@ let set_orientation(self: ^turtle::turtle, to: f64) -> void
         }
 
         self.refresh();
-
-        frame += 1;
     }
 
     self.orientation = to;
@@ -577,8 +544,7 @@ let backward(self: ^turtle::turtle, by: i128) -> void
     let real_x: f64 = i_to_f(self.x);
     let real_y: f64 = i_to_f(self.y);
 
-    let frame: i32 = 0;
-    while frame < frames
+    for (let frame: i32 = 0; frame < frames; frame += 1)
     {
         real_x -= dx;
         real_y -= dy;
@@ -605,8 +571,6 @@ let backward(self: ^turtle::turtle, by: i128) -> void
         }
 
         self.refresh();
-
-        frame += 1;
     }
 }
 
