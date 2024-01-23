@@ -133,6 +133,11 @@ let set<t>(self: ^stl::arr<t>, x: u128, from: t) -> void
 
 ////////////////////////////////////////////////////////////////
 
+/*
+Trait which defines some extra math functions for a stl::arr.
+These are not viable functions for non-numerical types, so they
+are not included in the standard stl::arr.
+*/
 let stl::math_arr<t>: trait
 pre
 {
@@ -144,6 +149,7 @@ post
 {
     Mult<t>(_: ^stl::arr<t>, _: stl::arr<t>);
     sum<t>(_: ^stl::arr<t>);
+    partial_sums<t>(_: ^stl::arr<t>);
     diff<t>(_: ^stl::arr<t>);
 }
 
@@ -185,11 +191,35 @@ let sum<t>(self: ^stl::arr<t>) -> t
 }
 
 /*
+Return the partial sums of the array.
+*/
+let partial_sums<t>(self: ^stl::arr<t>) -> stl::arr<t>
+{
+    // Set everything up
+    assert!(self.l > 0);
+    let out: stl::arr<t>;
+    out = self.l;
+
+    // Initialize w/ default value for t (probably 0)
+    let sum: t;
+
+    // Iterate over items in self.data, create sum array
+    for (let i: u128 = 0; i < self.l; i += 1)
+    {
+        sum += Get(self.data, i);
+        out.set(i, sum);
+    }
+
+    out
+}
+
+/*
 For all i where i + 1 < out.l:
 out.diff[i] = out[i + 1] - out[i]
 */
 let diff<t>(self: ^stl::arr<t>) -> stl::arr<t>
 {
+    assert!(self.l > 0)
     let out: stl::arr<t>;
 
     // Allocate correct size
@@ -205,6 +235,5 @@ let diff<t>(self: ^stl::arr<t>) -> stl::arr<t>
 
     out
 }
-
 
 ////////////////////////////////////////////////////////////////
