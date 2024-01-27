@@ -4,6 +4,9 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.4.17          | 1/27/24  | Absorbed `pre` into `trait`, bug
+                |          | fixes around traits.
+                |          |
 0.4.16          | 1/21/24  | Fixed bugs which produced inviable
                 |          | object files using `-c`.
                 |          |

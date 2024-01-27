@@ -1,8 +1,8 @@
 ////////////////////////////////////////////////////////////////
 
 /*
-A static sized 2D arr for Oak. The 1D version can be found
-in stl/arr.oak.
+A static sized 1D arr for Oak. The 2D version can be found
+in stl/matrix.oak.
 
 Jordan Dehmel, 2024
 jdehmel@outlook.com
@@ -139,7 +139,6 @@ These are not viable functions for non-numerical types, so they
 are not included in the standard stl::arr.
 */
 let stl::math_arr<t>: trait
-pre
 {
     Add<t>(_: t, _: t);
     Sub<t>(_: t, _: t);
@@ -219,7 +218,7 @@ out.diff[i] = out[i + 1] - out[i]
 */
 let diff<t>(self: ^stl::arr<t>) -> stl::arr<t>
 {
-    assert!(self.l > 0)
+    assert!(self.l > 0);
     let out: stl::arr<t>;
 
     // Allocate correct size

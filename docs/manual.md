@@ -1,6 +1,6 @@
 
 # The Oak Programming Language
-## Version 0.4.16
+## Version 0.4.17
 
 ![](./logo_trimmed.png)
 
@@ -2673,11 +2673,7 @@ are shown below.
 
 Without traits:
 ```rust
-let item<t>: struct
-{
-    ,
-}
-pre
+let item<t>: struct {} pre
 {
     // These things must be true for this to work
 }
@@ -2693,8 +2689,8 @@ With traits:
 package!("std");
 use_rule!("std");
 
+// `trait` is shorthand for `struct {} pre`
 let item<t>: trait
-pre
 {
     // These things must be true for this to work
 }

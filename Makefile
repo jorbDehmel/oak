@@ -24,6 +24,9 @@ reinstall:
 
 test:
 	$(MAKE_SRC) test
+	cd extra && acorn -TT ; cd ..
+	cd stl && acorn -TT ; cd ..
+	cd turtle && acorn -TT ; cd ..
 
 docs: README.md docs/manual.md docs/source_code_guidelines.md
 	pandoc README.md -o README.pdf
