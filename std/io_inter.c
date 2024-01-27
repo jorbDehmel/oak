@@ -31,12 +31,12 @@ void print_FN_ARR_i8_MAPS_void(i8 what[])
 
 void print_FN_i8_MAPS_void(i8 what)
 {
-    printf("%hhi", what);
+    printf("%c", what);
 }
 
 void print_FN_u8_MAPS_void(u8 what)
 {
-    printf("%hhu", what);
+    printf("%c", what);
 }
 
 void print_FN_i16_MAPS_void(i16 what)
