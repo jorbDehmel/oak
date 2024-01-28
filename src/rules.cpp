@@ -54,6 +54,11 @@ std::vector<std::string> getMacroArgs(std::vector<token> &lexed, const int &i)
         }
         else
         {
+            if (cur != "")
+            {
+                cur.push_back(' ');
+            }
+
             cur += lexed[i];
         }
 

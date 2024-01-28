@@ -13,3 +13,4 @@ vgcore.*
 *.pdf
 *.cache
 *.bmp
+*.tlog

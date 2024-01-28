@@ -169,7 +169,8 @@ let Copy(self: ^string, other: string) -> void
     Del(self);
 
     self.reserve(other.capacity);
-    strncpy(self.data, other.data, self.capacity);
+    strncpy(self.data, other.data, other.current_length);
+    Get(self.data, other.current_length) = 0;
     self.current_length = strlen(self.data);
 }
 

@@ -1,0 +1,38 @@
+/home/jorb/Programs/oak/src
+hi
+./tests/comp_test.oak:8:c_sys! `pwd && echo hi`
+./tests/comp_test.oak:13:c_print! you're mother hahah lol 
+.oak_build/_dev_null.c:464:80: warning: incompatible pointer types passing 'char (*)[2]' to parameter of type 'str *' (aka 'const char *const *') [-Wincompatible-pointer-types]
+Copy_FN_PTR_i8_JOIN_i8_MAPS_i8(&(reference), (Get_FN_PTR_str_JOIN_u128_MAPS_i8(&("0"), (0))));
+                                                                               ^~~~~~
+.oak_build/_dev_null.h:243:42: note: passing argument to parameter 'self' here
+i8 Get_FN_PTR_str_JOIN_u128_MAPS_i8(str* self, u128 index);
+                                         ^
+.oak_build/_dev_null.c:472:74: warning: incompatible pointer types passing 'char (*)[2]' to parameter of type 'str *' (aka 'const char *const *') [-Wincompatible-pointer-types]
+Copy_FN_PTR_i8_JOIN_i8_MAPS_i8(&(out), (Get_FN_PTR_str_JOIN_u128_MAPS_i8(&("0"), (0))));
+                                                                         ^~~~~~
+.oak_build/_dev_null.h:243:42: note: passing argument to parameter 'self' here
+i8 Get_FN_PTR_str_JOIN_u128_MAPS_i8(str* self, u128 index);
+                                         ^
+.oak_build/_dev_null.c:514:3: warning: non-void function does not return a value [-Wreturn-type]
+} }f64 to_f64_FN_i32_MAPS_f64(i32 what)
+  ^
+.oak_build/_dev_null.c:519:1: warning: non-void function does not return a value [-Wreturn-type]
+}i128 to_i128_FN_PTR_string_MAPS_i128(struct string* what)
+^
+.oak_build/_dev_null.c:521:1: warning: non-void function does not return a value [-Wreturn-type]
+}i32 to_i32_FN_f64_MAPS_i32(f64 what)
+^
+.oak_build/_dev_null.c:563:1: warning: non-void function does not return a value [-Wreturn-type]
+}struct string to_string_FN_bool_MAPS_string(bool what)
+^
+.oak_build/_dev_null.c:573:1: warning: non-void function does not return a value [-Wreturn-type]
+}void write_FN_PTR_o_file_JOIN_string_MAPS_void(struct o_file* self, struct string data)
+^
+7 warnings generated.
+[1;33m/usr/include/oak/std/string_ops.oak:17:c_warn! std/string_ops.oak is currently under construction.
+Some aspects will not work. 
+[0;0m./tests/printf_test.oak:68:c_print! Warning: Unused printf! argument(s). 
+[1;33mWarning! Match statement does not handle option(s) of enum 'result_GEN_i32_JOIN_i32_ENDGEN':
+	none
+[0;0m

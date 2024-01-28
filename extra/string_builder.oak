@@ -87,7 +87,7 @@ let collapse(self: ^extra::string_builder) -> string
 {
     // Create output string of correct size
     let out: string;
-    out.reserve(self.size);
+    out.reserve(self.size + 1);
 
     // Copy over data
     while Not(empty(self.internal))
@@ -99,6 +99,8 @@ let collapse(self: ^extra::string_builder) -> string
 
         Del(res);
     }
+
+    Get(out.data, self.size) = 0;
 
     self.clear();
 

@@ -1,0 +1,18 @@
+/*
+Ensures that the lexer is not mistaking Neq operations for
+pro proc macros.
+*/
+
+package!("std");
+include!("std/panic.oak");
+use_rule!("std");
+
+let main() -> i32
+{
+    let item: i128;
+    item = 5;
+
+    assert!(item != 9);
+
+    0
+}

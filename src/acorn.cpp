@@ -151,7 +151,7 @@ int main(const int argc, const char *argv[])
 
                         if (eraseTemp)
                         {
-                            system("rm -rf .oak_build");
+                            system("rm -rf .oak_build ; rm *.log");
                         }
                     }
                     else if (cur == "--quit")
@@ -324,7 +324,7 @@ int main(const int argc, const char *argv[])
 
                             if (eraseTemp)
                             {
-                                system("rm -rf .oak_build");
+                                system("rm -rf .oak_build ; rm *.log");
                             }
 
                             break;
@@ -674,18 +674,6 @@ int main(const int argc, const char *argv[])
                 compEnd = std::chrono::high_resolution_clock::now();
             }
 
-            if (eraseTemp)
-            {
-                if (system("rm -rf .oak_build") != 0)
-                {
-                    std::cout << "rm -rf .oak_build\n";
-
-                    std::cout << tags::yellow_bold << "Warning! Failed to erase './.oak_build/'.\n"
-                              << "If left unfixed, this could cause problems.\n"
-                              << tags::reset;
-                }
-            }
-
             // Manual generation if requested
             if (manual)
             {
@@ -924,11 +912,11 @@ int main(const int argc, const char *argv[])
             start = std::chrono::high_resolution_clock::now();
             if (execute)
             {
-                result = system(("acorn -o a.out --execute " + test + " >> test_suite.log 2>&1").c_str());
+                result = system(("acorn -o a.out --execute " + test + " >> test_suite.tlog 2>&1").c_str());
             }
             else
             {
-                result = system(("acorn -o /dev/null " + test + " >> test_suite.log 2>&1").c_str());
+                result = system(("acorn -o /dev/null " + test + " >> test_suite.tlog 2>&1").c_str());
             }
             end = std::chrono::high_resolution_clock::now();
 
@@ -980,7 +968,7 @@ int main(const int argc, const char *argv[])
             std::cout << tags::reset;
         }
 
-        std::cout << "\nAny compiler is in ./test_suite.log.\n";
+        std::cout << "\nAny compiler is in ./test_suite.tlog.\n";
     }
 
     if (prettify)
@@ -994,6 +982,11 @@ int main(const int argc, const char *argv[])
         {
             throw sequencing_error("Failed to prettify output header files.");
         }
+    }
+
+    if (eraseTemp)
+    {
+        system("rm -rf .oak_build ; rm *.log ;");
     }
 
     return 0;
