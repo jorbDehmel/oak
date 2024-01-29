@@ -8,7 +8,9 @@ GPLv3 held by author
 
 #include "packages.hpp"
 #include "tags.hpp"
+#include <filesystem>
 #include <stdexcept>
+namespace fs = std::filesystem;
 
 #define pm_assert(expression, message)                                                                                 \
     ((bool)(expression) ? true : throw package_error(message " (Failed assertion: '" #expression "')"))
@@ -40,7 +42,7 @@ void install(const std::string &What)
     if (installCommand == "")
     {
         // Get os-release info
-        system("cat /etc/os-release | grep ^ID= > .oak_build/temp.txt");
+        pm_assert(system("cat /etc/os-release | grep ^ID= > .oak_build/temp.txt") == 0, "Failed to poll OS name");
 
         std::ifstream osName(".oak_build/temp.txt");
         pm_assert(osName.is_open(), "Failed to poll OS name");
@@ -96,9 +98,7 @@ void install(const std::string &What)
             }
         }
 
-        std::string command = installCommand + " " + What;
-        std::cout << command << '\n';
-
+        std::string command = installCommand + " " + What + " 2>&1 > /dev/null";
         result = system(command.c_str());
 
         if (result != 0)
@@ -282,6 +282,8 @@ Imagine using a compiled language for scripting; Couldn't be me
 */
 void downloadPackage(const std::string &URLArg, const bool &Reinstall, const std::string &Path)
 {
+    std::cout << tags::violet_bold << "\nInstalling Oak package '" << URLArg << "'\n\n" << tags::reset;
+
     std::string URL = URLArg;
 
     // Check if package is already installed
@@ -295,7 +297,8 @@ void downloadPackage(const std::string &URLArg, const bool &Reinstall, const std
             }
             else
             {
-                std::cout << tags::yellow_bold << "Package '" << p.first << "' was already installed.\n" << tags::reset;
+                std::cout << tags::yellow_bold << "Package '" << p.first << "' was already installed and loaded.\n"
+                          << tags::reset;
                 return;
             }
         }
@@ -304,26 +307,21 @@ void downloadPackage(const std::string &URLArg, const bool &Reinstall, const std
     // Create temp location
     std::string tempFolderName = PACKAGE_TEMP_LOCATION + "oak_tmp_" + std::to_string(time(NULL));
 
-    if (system(("mkdir -p " + PACKAGE_TEMP_LOCATION).c_str()) != 0)
-        throw std::runtime_error("Failed to create packages directory. Ensure you have sufficient privileges.");
-
     // Clone package using git
-    try
+    if (fs::exists(URL))
     {
         // Local file
-        if (system(("cp -r " + URL + " " + tempFolderName).c_str()) != 0)
-        {
-            throw package_error("Local copy failed; Is not a filepath.");
-        }
+        fs::create_directories(tempFolderName);
+        fs::copy(URL + "/", tempFolderName, fs::copy_options::recursive);
     }
-    catch (package_error &e)
+    else
     {
-        std::cout << tags::yellow_bold << e.what() << '\n' << "Attempting git copy...\n" << tags::reset;
+        std::cout << tags::yellow_bold << "Local copy failed.\nAttempting git copy...\n" << tags::reset;
 
         try
         {
             // URL
-            if (system((std::string(CLONE_COMMAND) + URL + " " + tempFolderName + " > /dev/null && file " +
+            if (system((std::string(CLONE_COMMAND) + URL + " " + tempFolderName + "  2>&1 > /dev/null && file " +
                         tempFolderName + "/*.oak > /dev/null")
                            .c_str()) != 0)
             {
@@ -397,7 +395,7 @@ void downloadPackage(const std::string &URLArg, const bool &Reinstall, const std
             path = ".";
         }
 
-        while (system(("[ -f " + tempFolderName + "/" + path + "/" + INFO_FILE + " ]").c_str()) != 0)
+        while (!fs::exists(tempFolderName + "/" + path + "/" + INFO_FILE))
         {
             std::cout << tags::yellow_bold << "Failed to locate info file.\n"
                       << "Enter the path within the folder to install from [default .]: " << tags::reset;
@@ -407,14 +405,15 @@ void downloadPackage(const std::string &URLArg, const bool &Reinstall, const std
                 path = ".";
             }
 
-            pm_assert(path.find("..") == std::string::npos, "Illegal path: May not contain '..'");
+            pm_assert(path.find("..") == std::string::npos && path[0] != '/',
+                      "Illegal path: May not contain '..' or begin with '/'.");
         }
 
         // At this point, info file must exist
 
         bool needsMake = false;
-        needsMake = (system(("[ -f " + tempFolderName + "/" + path + "/Makefile ]").c_str()) == 0 ||
-                     system(("[ -f " + tempFolderName + "/" + path + "/makefile ]").c_str()) == 0);
+        needsMake = fs::exists(tempFolderName + "/" + path + "/Makefile") ||
+                    fs::exists(tempFolderName + "/" + path + "/makefile");
 
         // Read info file
         packageInfo info = loadPackageInfo(tempFolderName + "/" + path + "/" + INFO_FILE);
@@ -430,14 +429,19 @@ void downloadPackage(const std::string &URLArg, const bool &Reinstall, const std
         // Prepare destination
         std::string destFolderName = PACKAGE_INCLUDE_PATH + info.name;
 
-        if (system(("sudo rm -rf " + destFolderName).c_str()) != 0)
+        try
         {
-            throw std::runtime_error("Failed to clear old package files.");
-        }
+            if (fs::exists(destFolderName))
+            {
+                fs::remove_all(destFolderName);
+            }
 
-        if (system(("sudo mkdir -p " + destFolderName).c_str()) != 0)
+            fs::create_directories(destFolderName);
+        }
+        catch (fs::filesystem_error &e)
         {
-            throw std::runtime_error("Failed to create package folder in /usr/include/oak; Check user permissions.");
+            std::cout << tags::red_bold << e.what() << ": Retry as sudo/admin.\n" << tags::reset;
+            throw package_error("Failed to create package file(s).");
         }
 
         // Install system deps
@@ -476,9 +480,11 @@ void downloadPackage(const std::string &URLArg, const bool &Reinstall, const std
         // Make package if needed
         if (needsMake)
         {
-            if (system(("make -C " + tempFolderName + "/" + path).c_str()) != 0)
+            if (system(("make -C " + tempFolderName + "/" + path +
+                        "  2>&1 > oak_package_makefile.log && rm oak_package_makefile.log")
+                           .c_str()) != 0)
             {
-                throw package_error("Make failure; See cout for details.");
+                throw package_error("Make failure; See oak_package_makefile.log for details.");
             }
         }
 
@@ -490,8 +496,7 @@ void downloadPackage(const std::string &URLArg, const bool &Reinstall, const std
         system(("sudo cp " + tempFolderName + "/" + path + "/*.txt " + destFolderName).c_str());
 
         // Clean up garbage; Doesn't really matter if this fails
-        std::cout << "sudo rm -rf " << PACKAGE_TEMP_LOCATION << '\n';
-        if (system(("sudo rm -rf " + PACKAGE_TEMP_LOCATION).c_str()) != 0)
+        if (fs::remove_all(PACKAGE_TEMP_LOCATION) == 0)
         {
             std::cout << tags::yellow_bold << "Warning: Failed to erase trash folder '" << PACKAGE_TEMP_LOCATION
                       << "'.\n"
@@ -503,7 +508,7 @@ void downloadPackage(const std::string &URLArg, const bool &Reinstall, const std
     {
         // Clean up garbage
 
-        if (system(("sudo rm -rf " + PACKAGE_TEMP_LOCATION).c_str()) != 0)
+        if (fs::remove_all(PACKAGE_TEMP_LOCATION) == 0)
         {
             std::cout << tags::yellow_bold << "Warning: Failed to erase trash folder '" << PACKAGE_TEMP_LOCATION
                       << "'.\n"
@@ -522,7 +527,7 @@ std::vector<std::string> getPackageFiles(const std::string &Name)
     // If package is not already loaded
     if (packages.count(Name) == 0)
     {
-        if (system(("[ -d /usr/include/oak/" + Name + " ]").c_str()) == 0)
+        if (fs::exists("/usr/include/oak/" + Name))
         {
             // Installed, but not loaded; Load and continue
             loadPackageInfo("/usr/include/oak/" + Name + "/" + INFO_FILE);

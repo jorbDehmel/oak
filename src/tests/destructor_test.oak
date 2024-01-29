@@ -5,7 +5,10 @@ Test to make sure destructors are being called at return.
 package!("std");
 use_rule!("std");
 
-let a: struct {}
+let a: struct
+{
+    __internal: i32,
+}
 
 let a.New() -> void
 {

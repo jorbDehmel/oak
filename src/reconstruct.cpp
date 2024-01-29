@@ -10,12 +10,13 @@ GPLv3 held by author
 #include "sequence_resources.hpp"
 #include <stdexcept>
 #include <string>
+namespace fs = std::filesystem;
 
 std::map<std::string, unsigned long long> atomics = {
-    {"u8", 1},  {"i8", 1},  {"u16", 2},   {"i16", 2},   {"u32", 4},
-    {"i32", 4}, {"u64", 8}, {"i64", 8},   {"u128", 16}, {"i128", 16},
-    {"f32", 4}, {"f64", 8}, {"f128", 16}, {"bool", 1},  {"str", sizeof(void *)},
-    {"void", 1}};
+    {"u8", 1},   {"i8", 1},     {"u16", 2},   {"i16", 2},   {"u32", 4},
+    {"i32", 4},  {"u64", 8},    {"i64", 8},   {"u128", 16}, {"i128", 16},
+    {"f32", 4},  {"f64", 8},    {"f128", 16}, {"bool", 1},  {"str", sizeof(void *)},
+    {"void", 1}, {"struct", 1}, {"enum", 1}};
 
 // Removes illegal characters
 std::string purifyStr(const std::string &What)
@@ -176,7 +177,7 @@ std::pair<std::string, std::string> save(const std::stringstream &header, const 
 
     rootName = purifyStr(rootName);
 
-    smartSystem("mkdir -p .oak_build");
+    fs::create_directory(".oak_build");
 
     headerName = ".oak_build/" + rootName + ".h";
     bodyName = ".oak_build/" + rootName + ".c";

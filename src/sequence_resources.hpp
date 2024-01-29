@@ -37,7 +37,7 @@ extern unsigned long long int curLine;
 extern std::string curFile;
 
 // For error trace
-extern std::vector<std::string> curLineSymbols;
+extern std::vector<token> curLineSymbols;
 
 // Extension of runtime error for Oak sequencing
 class sequencing_error : public std::runtime_error

@@ -5,41 +5,33 @@ jdehmel@outlook.com
 */
 
 #include "sizer.hpp"
+#include <filesystem>
 #include <stdexcept>
+namespace fs = std::filesystem;
 
+// Get size of file or path in kilobytes (recursive)
 unsigned long long int getSize(const std::string &FilePath)
 {
-#if (defined(_WIN32) || defined(_WIN64) || defined(__APPLE__))
-    cout << "Cannot call the getSize function outside of Linux.\n";
-    return 0;
-#endif
-
-    // Run command
-    if (system(("du -s " + FilePath + " > sizer_temp.txt 2> /dev/null").c_str()) != 0)
+    if (!fs::exists(FilePath))
     {
-        system("rm -f sizer_temp.txt");
-
-        // If file does not exist, 0 bytes
         return 0;
     }
-
-    // Load file
-    std::ifstream inp("sizer_temp.txt");
-    if (!inp.is_open())
+    else if (fs::is_directory(FilePath))
     {
-        throw std::runtime_error("Filed to size file '" + FilePath + "'");
+        unsigned long long int out = 0;
+        for (auto &item : fs::directory_iterator(FilePath))
+        {
+            out += getSize(item.path().string());
+        }
+        return out;
     }
-
-    unsigned long long int kb;
-    inp >> kb;
-
-    inp.close();
-
-    system("rm -f sizer_temp.txt");
-
-    return kb;
+    else
+    {
+        return fs::file_size(FilePath) / 1'000;
+    }
 }
 
+// Karl Marx gave the people eleven zeppelins, yo
 std::string humanReadable(const unsigned long long int &Size)
 {
     if (Size < 1'000)
@@ -62,11 +54,14 @@ std::string humanReadable(const unsigned long long int &Size)
         // in tb
         return std::to_string(Size / 1'000'000'000.0) + "T";
     }
-    else
+    else if (Size < 1'000'000'000'000'000)
     {
         // in pb
-        return std::to_string(Size / 1'000'000'000.0) + "P";
+        return std::to_string(Size / 1'000'000'000'000.0) + "P";
     }
-
-    return "UNKNOWN SIZE";
+    else
+    {
+        // in eb
+        return std::to_string(Size / 1'000'000'000'000'000.0) + "E";
+    }
 }

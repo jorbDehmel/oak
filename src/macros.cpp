@@ -7,7 +7,9 @@ GPLv3 held by author
 */
 
 #include "macros.hpp"
+#include <filesystem>
 #include <stdexcept>
+namespace fs = std::filesystem;
 
 // The pre-inserted ones are used by the compiler- Not literal macros
 std::set<std::string> compiled = {"include!",  "link!",     "package!",  "alloc!",    "free!",
@@ -26,7 +28,7 @@ long long getAgeOfFile(const std::string &filepath)
         return ageCache[filepath];
     }
 
-    smartSystem("mkdir -p .oak_build");
+    fs::create_directory(".oak_build");
     if (system(("stat -Lc %Y " + filepath + " > .oak_build/age_temp.txt 2> /dev/null").c_str()) != 0)
     {
         return -1;
@@ -95,10 +97,7 @@ void compileMacro(const std::string &Name, bool debug)
         return;
     }
 
-    if (system(("mkdir -p " + COMPILED_PATH).c_str()) != 0)
-    {
-        throw std::runtime_error("Failed to create temp folder " + COMPILED_PATH);
-    }
+    fs::create_directory(COMPILED_PATH);
 
     std::ofstream macroFile(srcPath);
     if (!macroFile.is_open())

@@ -12,6 +12,7 @@ Package loading for Oak.
 #define PACKAGES_HPP
 
 #include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <map>

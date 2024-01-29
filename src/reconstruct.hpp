@@ -13,6 +13,7 @@ agnostic with respect to input (as much as possible).
 #ifndef RECONSTRUCT_HPP
 #define RECONSTRUCT_HPP
 
+#include <filesystem>
 #include <fstream>
 #include <set>
 #include <sstream>

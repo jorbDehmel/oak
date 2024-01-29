@@ -32,13 +32,13 @@ install: bin/acorn.out std_oak_header.h
 	sudo cp packages_list.txt /usr/include/oak
 
 	sudo cp bin/acorn.out /usr/bin/acorn
-	$(MAKE) packages
 
 packages:
 	sudo rm -rf /usr/include/oak/sdl /usr/include/oak/extra \
 		/usr/include/oak/stl /usr/include/oak/turtle \
 		/usr/include/oak/std
-	acorn -S ../std -S ../sdl -S ../extra -S ../stl -S ../turtle -e
+	sudo acorn -S ../std -S ../sdl -S ../extra -S ../stl -S \
+		../turtle -e
 
 uninstall:
 	sudo rm -rf /usr/bin/acorn /usr/include/oak \

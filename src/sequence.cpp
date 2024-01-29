@@ -13,7 +13,7 @@ GPLv3 held by author
 #include "tags.hpp"
 #include "type_builder.hpp"
 
-std::vector<std::string> curLineSymbols;
+std::vector<token> curLineSymbols;
 static Type currentReturnType;
 
 unsigned long long int curLine = 1;

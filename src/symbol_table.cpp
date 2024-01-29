@@ -212,6 +212,10 @@ Type toType(const std::vector<token> &WhatIn)
             sm_assert(structData.count(what.name) != 0 || enumData.count(what.name) || atomics.count(what.name) != 0 ||
                           what.name == "struct" || what.name == "enum",
                       "Type '" + what.name + "' does not exist.");
+            sm_assert(atomics.count(what.name) != 0 || structData[what.name].members.size() != 0 ||
+                          enumData[what.name].options.size() != 0,
+                      "Non-atomic struct with zero members may not be instantiated. You are likely trying to "
+                      "instantiate a unit generic (used for traits), which is not valid usage.");
         }
     }
 

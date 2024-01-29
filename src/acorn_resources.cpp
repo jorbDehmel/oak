@@ -7,18 +7,8 @@ GPLv3 held by author
 */
 
 #include "acorn_resources.hpp"
-#include "lexer.hpp"
-#include "packages.hpp"
-#include "rules.hpp"
-#include "sequence.hpp"
-#include "sequence_resources.hpp"
-#include "tags.hpp"
-#include <bits/chrono.h>
 #include <chrono>
-#include <filesystem>
-#include <ratio>
-#include <stdexcept>
-#include <string>
+namespace fs = std::filesystem;
 
 // settings
 bool debug = false;
@@ -30,7 +20,7 @@ bool ignoreSyntaxErrors = false;
 bool timeAnalysis = false;
 bool isMacroCall = false;
 
-std::map<std::filesystem::path, unsigned long long> visitedFiles;
+std::map<fs::path, unsigned long long> visitedFiles;
 std::set<std::string> cppSources;
 std::set<std::string> objects;
 std::set<std::string> cflags;
@@ -68,14 +58,14 @@ void doFile(const std::string &From)
         }
     }
 
-    system("mkdir -p .oak_build");
+    fs::create_directory(".oak_build");
 
     int curPhase = 0;
 
     static std::chrono::high_resolution_clock::time_point fileStartTimePoint;
     const static std::set<std::string> compilerMacros = {"include!", "package!", "link!", "flag!"};
 
-    std::chrono::_V2::system_clock::time_point start, end;
+    std::chrono::high_resolution_clock::time_point start, end;
 
     // Clear active rules
     activeRules.clear();
@@ -361,10 +351,10 @@ void doFile(const std::string &From)
                         for (std::string a : args)
                         {
                             // If local, do that
-                            if (std::filesystem::exists(a))
+                            if (fs::exists(a))
                             {
-                                if (std::filesystem::exists(OAK_DIR_PATH + a) &&
-                                    visitedFiles.count(OAK_DIR_PATH + a) == 0 && visitedFiles.count(a) == 0)
+                                if (fs::exists(OAK_DIR_PATH + a) && visitedFiles.count(OAK_DIR_PATH + a) == 0 &&
+                                    visitedFiles.count(a) == 0)
                                 {
                                     std::cout << tags::yellow_bold << "Warning: Including './" << a
                                               << "' over package file '" << OAK_DIR_PATH << a << "'.\n"
@@ -402,9 +392,9 @@ void doFile(const std::string &From)
                                 std::cout << debugTreePrefix << "Inserting object " << a << '\n';
                             }
 
-                            if (std::filesystem::exists(a) || a[0] == '-')
+                            if (fs::exists(a) || a[0] == '-')
                             {
-                                if (std::filesystem::exists(OAK_DIR_PATH + a))
+                                if (fs::exists(OAK_DIR_PATH + a))
                                 {
                                     std::cout << tags::yellow_bold << "Warning: Including local file '" << a
                                               << "' over package file of same name.\n"
@@ -885,7 +875,7 @@ void makePackage(const std::string &RawName)
     }
 
     // mkdir NAME
-    smartSystem("mkdir -p " + name);
+    fs::create_directory(name);
 
     // touch NAME/oak_package_info.txt
     std::ofstream info(name + "/oak_package_info.txt");
@@ -920,19 +910,6 @@ void makePackage(const std::string &RawName)
         throw package_error("Could not open main include file in newly created package folder.");
     }
     include.close();
-
-    std::ofstream ignore(name + "/.gitignore");
-    if (!ignore.is_open())
-    {
-        throw package_error("Could not open git ignore file in newly created package folder.");
-    }
-    ignore.close();
-
-    // git init
-    if (system(("git init " + name + " > /dev/null").c_str()) != 0)
-    {
-        throw package_error("Failed to initialize git repo.");
-    }
 
     return;
 }

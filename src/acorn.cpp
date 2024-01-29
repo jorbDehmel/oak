@@ -19,18 +19,19 @@ GPLv3 held by author
 #include <iomanip>
 #include <ratio>
 #include <stdexcept>
+namespace fs = std::filesystem;
 
 // Dummy wrapper function for updating
 void update()
 {
-    system("cp /usr/include/oak/update.sh /tmp/update.sh");
+    fs::copy_file("/usr/include/oak/update.sh", "/tmp/update.sh");
     system("sudo bash /tmp/update.sh &");
 }
 
 // Dummy wrapper function for uninstalling
 void uninstall()
 {
-    system("cp /usr/include/oak/uninstall.sh /tmp/uninstall.sh");
+    fs::copy_file("/usr/include/oak/uninstall.sh", "/tmp/uninstall.sh");
     system("sudo bash /tmp/uninstall.sh &");
 }
 
@@ -61,9 +62,9 @@ int main(const int argc, const char *argv[])
     auto start = std::chrono::high_resolution_clock::now(), end = start, compStart = start, compEnd = start;
     unsigned long long int oakElapsed = 0, reconstructionElapsed = 0;
 
-    if (!std::filesystem::exists(".oak_build"))
+    if (!fs::exists(".oak_build"))
     {
-        system("mkdir -p .oak_build");
+        fs::create_directory(".oak_build");
     }
 
     std::vector<std::string> files;
@@ -151,7 +152,8 @@ int main(const int argc, const char *argv[])
 
                         if (eraseTemp)
                         {
-                            system("rm -rf .oak_build ; rm *.log");
+                            fs::remove_all(".oak_build");
+                            fs::remove_all("*.log");
                         }
                     }
                     else if (cur == "--quit")
@@ -324,7 +326,8 @@ int main(const int argc, const char *argv[])
 
                             if (eraseTemp)
                             {
-                                system("rm -rf .oak_build ; rm *.log");
+                                fs::remove_all(".oak_build");
+                                fs::remove_all("*.log");
                             }
 
                             break;
@@ -413,12 +416,7 @@ int main(const int argc, const char *argv[])
                                 throw std::runtime_error("-R must be followed by a package name");
                             }
 
-                            if (system((std::string("sudo rm -rf /usr/include/oak/") + argv[i + 1]).c_str()) != 0)
-                            {
-                                std::cout << tags::red_bold << "Warning! Failed to remove package '" << argv[i + 1]
-                                          << "'\n"
-                                          << tags::reset;
-                            }
+                            fs::remove_all(std::string("/usr/include/oak/") + argv[i + 1]);
 
                             i++;
 
@@ -500,16 +498,17 @@ int main(const int argc, const char *argv[])
             std::cout << tags::yellow_bold << "Performing partial cache purge\n" << tags::reset;
 
             // Purge source .cpp, .hpp, and temp files
-            system(("rm -rf " + COMPILED_PATH + "/*.c " + COMPILED_PATH + "/*.h " + COMPILED_PATH + "/*.txt " +
-                    COMPILED_PATH + "/*.oak")
-                       .c_str());
+            fs::remove_all(COMPILED_PATH + "/*.c");
+            fs::remove_all(COMPILED_PATH + "/*.h");
+            fs::remove_all(COMPILED_PATH + "/*.txt");
+            fs::remove_all(COMPILED_PATH + "/*.oak");
 
             if (getSize(COMPILED_PATH) > MAX_CACHE_KB)
             {
                 std::cout << tags::yellow_bold << "Performing full cache purge\n" << tags::reset;
 
                 // Purge all cache files
-                system(("rm -rf " + COMPILED_PATH + "/*").c_str());
+                fs::remove_all(COMPILED_PATH + "/*");
             }
         }
 
@@ -563,13 +562,10 @@ int main(const int argc, const char *argv[])
 
             if (noSave)
             {
-                int result = system((std::string("rm ") + names.first + " " + names.second).c_str());
+                fs::remove_all(names.first);
+                fs::remove_all(names.second);
 
-                if (result != 0)
-                {
-                    std::cout << tags::yellow_bold << "Warning: Could not erase generated files.\n" << tags::reset;
-                }
-                else if (debug)
+                if (debug)
                 {
                     std::cout << "Erased output files.\n";
                 }
@@ -580,7 +576,7 @@ int main(const int argc, const char *argv[])
 
                 if (compile)
                 {
-                    smartSystem("mkdir -p .oak_build");
+                    fs::create_directory(".oak_build");
 
                     if (debug)
                     {
@@ -701,17 +697,23 @@ int main(const int argc, const char *argv[])
             std::cout << "Elapsed Oak ns: " << oakElapsed;
         }
 
-        std::cout << tags::red_bold << "\n" << curFile << ":" << curLine << "\n";
+        std::cout << tags::red_bold << "\n" << curFile << ":" << curLine;
 
         if (curLineSymbols.size() != 0)
         {
+            std::cout << "\t(" << curLineSymbols[0].file << ":" << curLineSymbols[0].line << ")\n";
+
             std::cout << tags::violet_bold << "In code line: `";
 
             for (auto s : curLineSymbols)
             {
-                std::cout << s << ' ';
+                std::cout << s.text << ' ';
             }
             std::cout << "`\n";
+        }
+        else
+        {
+            std::cout << '\n';
         }
 
         std::cout << tags::red_bold << "\nAn error occurred with message:\n" << e.what() << "\n" << tags::reset;
@@ -869,6 +871,14 @@ int main(const int argc, const char *argv[])
     // Run test suite ./tests/*
     if (test)
     {
+        if (!fs::exists("tests") || !fs::is_directory("tests"))
+        {
+            std::cout << tags::red_bold
+                      << "Cannot run test suite when './tests' does not exist or is not a directory.\n"
+                      << tags::reset;
+            return 15;
+        }
+
         int good = 0, bad = 0, result;
         unsigned long long ms, totalMs = 0;
         std::chrono::_V2::high_resolution_clock::time_point start, end;
@@ -878,37 +888,20 @@ int main(const int argc, const char *argv[])
         std::vector<std::string> failed;
 
         // Get all files to run
-        result = system("mkdir -p .oak_build && ls ./tests/*.oak > .oak_build/test_suite_temp.txt");
-        file.open(".oak_build/test_suite_temp.txt");
-        if (result != 0 || !file.is_open())
-        {
-            std::cout << tags::red_bold << "Error: Failed to find test suite `./tests/`.\n" << tags::reset;
+        fs::create_directory(".oak_build");
+        fs::remove_all("test_suite.log");
 
-            return 7;
-        }
-
-        while (!file.eof())
-        {
-            getline(file, line);
-
-            if (line != "")
-            {
-                files.push_back(line);
-            }
-        }
-
-        file.close();
-
-        system("rm test_suite.log");
-        std::cout << tags::violet_bold << "Running " << files.size() << " tests...\n" << tags::reset;
-
-        std::cout << "[compiling, " << (execute ? "" : "NOT ") << "executing," << (testFail ? "" : " NOT")
-                  << " halting on failure]\n";
+        std::cout << tags::violet_bold << "Running " << files.size() << " tests...\n"
+                  << tags::reset << "[compiling, " << (execute ? "" : "NOT ") << "executing,"
+                  << (testFail ? "" : " NOT") << " halting on failure]\n";
 
         // Iterate through files
         int i = 1;
-        for (auto test : files)
+        for (auto test_iter : fs::directory_iterator("./tests"))
         {
+            std::string test = test_iter.path().string();
+            files.push_back(test);
+
             start = std::chrono::high_resolution_clock::now();
             if (execute)
             {
@@ -923,8 +916,9 @@ int main(const int argc, const char *argv[])
             ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
             totalMs += ms;
 
-            std::cout << "[" << i << "/" << files.size() << "]\t[" << (result == 0 ? tags::green : tags::red) << result
-                      << tags::reset << "]" << std::right << std::setw(8) << ms << " ms\t" << std::left << test << "\n";
+            std::cout << "[" << i << "/" << files.size() << "]\t[" << (result == 0 ? tags::green : tags::red)
+                      << std::left << std::setw(4) << result << tags::reset << "]" << std::right << std::setw(8) << ms
+                      << " ms\t" << std::left << test << "\n";
             if (result == 0)
             {
                 good++;
@@ -973,12 +967,12 @@ int main(const int argc, const char *argv[])
 
     if (prettify)
     {
-        if (system((PRETTIFIER + " .oak_build/*.c").c_str()) != 0)
+        if (system((PRETTIFIER + " .oak_build/*.c 2>&1 >/dev/null").c_str()) != 0)
         {
             throw sequencing_error("Failed to prettify output source files.");
         }
 
-        if (system((PRETTIFIER + " .oak_build/*.h").c_str()) != 0)
+        if (system((PRETTIFIER + " .oak_build/*.h 2>&1 >/dev/null").c_str()) != 0)
         {
             throw sequencing_error("Failed to prettify output header files.");
         }
@@ -986,7 +980,8 @@ int main(const int argc, const char *argv[])
 
     if (eraseTemp)
     {
-        system("rm -rf .oak_build ; rm *.log ;");
+        fs::remove_all(".oak_build");
+        fs::remove_all("*.log");
     }
 
     return 0;

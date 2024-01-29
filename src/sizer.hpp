@@ -14,6 +14,7 @@ compiler frontend.
 
 #include "symbol_table.hpp"
 
+#include <filesystem>
 #include <fstream>
 #include <string>
 
