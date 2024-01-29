@@ -2590,10 +2590,23 @@ as discussed thus far has no way to instantiate a group of
 generic methods when a generic data structure is instantiated.
 This is where the `pre` and `post` keywords come in. A `pre`
 keyword means that the following code block will need to be run
-before a template is instantiated. `post` is the same, but it is
-run after the instantiation. Failure in either of these code
-blocks means that the template is invalid, but is not treated as
-a compiler error.
+without error in order for a given template to be valid. It can
+be thought of as the requirements that a generic type will need
+to fulfill for a certain code block to be valid using it. The
+`post` block runs after a generic instantiation, and denotes
+which functions and/or types should "come with" a given
+template. For instance, if the template denotes a data
+structure, the `post` blocks would ensure that the constructor,
+destructor, setters, getters, etcetera, are all instantiated
+along with the struct. This is most similar to the methods
+defined within a class definition in `C++`.
+
+Failure in either of these code blocks means that the template
+is invalid, but is not treated as a compiler error. This means
+that, if there are multiple templates which may match a given
+instantiation call, the instantiator will choose the first one
+which does not have any contradictions in its `pre` or `post`
+blocks.
 
 ```rust
 let list<t>: struct
@@ -2617,9 +2630,8 @@ let main() -> i32
 
 ```
 
-`Oak` as discussed so far necessitates lines 7 and 8. These tell
-the compiler to instantiate the generic functions `New` and
-`Del` for use with `t = i32`. However, this is obviously
+`Oak` as discussed so far necessitates the lines instantiating
+the constructor and destructor. However, this is obviously
 cumbersome to an end user. Thus, we introduce the `post` block.
 
 ```rust
@@ -2661,12 +2673,14 @@ needed for use with the struct.
 ## `trait`s
 
 Traits are a shorthand for instantiating many functions at once
-without specifying a type. Usually, `pre` and `post` blocks can
-only be used when instantiating a function, enumeration or
-struct. However, this may not always be wanted. For instance,
-the `stl::arr` type does not provide any dot product function.
-This, along with several other math functions, can be created at
-once by instantiating `stl::math_arr`. Internally, this is a
+without instantiating a `struct`. They can be used in `pre`
+blocks to ensure that a given generic type meets a certain set
+of requirements. Usually, `pre` and `post` blocks can only be
+used when instantiating a function, enumeration or struct.
+However, this may not always be wanted. For instance, the
+`stl::arr` type does not provide any dot product function. This,
+along with several other math functions, can be created at once
+by instantiating `stl::math_arr`. Internally, this is a
 zero-member struct with the associated functions contained in
 `pre` and `post` blocks. This can be notated in two ways, which
 are shown below.
@@ -2697,11 +2711,36 @@ let item<t>: trait
 post
 {
     // Some functions to instantiate when this trait is called
+    // on a given generic `t`.
 }
 ```
 
 **Note:** Traits **must** be generic. They, along with all zero
 member structs or enums, may never be instantiated.
+
+```rust
+// This causes an error: Traits must be generic.
+let some_thing: trait
+{
+    // ...
+}
+
+// This does not cause an error, since the trait is generic.
+let some_thing<t>: trait
+{
+    // ...
+}
+
+let main() -> i32
+{
+    // This is ILLEGAL! Traits may not be instantiated!
+    // They are to be used only for requirements.
+    let some_instance: some_thing<i32>;
+    
+    0
+}
+
+```
 
 ## Explicit, Implicit / Casual, and Autogen Function Definitions
 

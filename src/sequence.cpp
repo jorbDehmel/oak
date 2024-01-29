@@ -407,6 +407,17 @@ sequence __createSequence(std::list<token> &From)
 
                 for (auto name : names)
                 {
+                    // Ensure this is a safe name
+                    const static std::set<std::string> keywords = {"let",   "if",    "else", "pre",    "post",
+                                                                   "while", "match", "case", "default"};
+
+                    sm_assert(keywords.count(name) == 0,
+                              "Variable name conflicts w/ canonical Oak keyword '" + name + "'");
+                    sm_assert(structData.count(name) == 0 && atomics.count(name) == 0,
+                              "Variable name conflicts w/ existing struct name '" + name + "'");
+                    sm_assert(enumData.count(name) == 0,
+                              "Variable name conflicts w/ existing enum name '" + name + "'");
+
                     out.items.push_back(sequence{nullType, std::vector<sequence>(), atom, toStrC(&type, name)});
                     out.items.push_back(sequence{nullType, std::vector<sequence>(), atom, ";"});
 
@@ -2181,6 +2192,12 @@ Type resolveFunctionInternal(const std::vector<token> &What, int &start, std::ve
         if (litType == nullType)
         {
             // Is not a literal
+
+            // Some common issues
+            sm_assert(What[start] != "let", "Invalid use of `let` keyword. This is most likely a rule issue.");
+            sm_assert(What[start] != "pre", "`pre` may only be used on generic definitions.");
+            sm_assert(What[start] != "post", "`post` may only be used on generic definitions.");
+
             sm_assert(table.count(What[start]) != 0, "No definitions exist for symbol '" + What[start].text + "'.");
             auto candidates = table[What[start]];
             sm_assert(candidates.size() != 0, "No definitions exist for symbol '" + What[start].text + "'.");

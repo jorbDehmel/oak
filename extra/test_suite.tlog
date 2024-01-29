@@ -14,4 +14,9 @@ Failure in file './tests/bitset_test.oak': Non-atomic struct with zero members m
 [1;31m
 An error occurred with message:
 Failure in file './tests/bitset_test.oak': Non-atomic struct with zero members may not be instantiated. You are likely trying to instantiate a unit generic (used for traits), which is not valid usage. (Failed assertion)
+[0;0mElapsed Oak ns: 598015218[1;31m
+:1
+[1;31m
+An error occurred with message:
+Failed to link object files.
 [0;0m
