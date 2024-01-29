@@ -328,7 +328,7 @@ let expand<k>(self: ^stl::set<k>) -> void
 
             // Create vars
             let h: u128;
-            let k: u128;
+            let cur_key: u128;
             let sentinel: bool;
             let cur: ^stl::set_node<k>;
 
@@ -336,13 +336,13 @@ let expand<k>(self: ^stl::set<k>) -> void
             sentinel = true;
             
             // Get initial guess
-            k = h % self.size;
+            cur_key = h % self.size;
 
             // Continue until found or empty
             while sentinel
             {
                 // Get
-                ptrcpy!(cur, @Get(self.data, k));
+                ptrcpy!(cur, @Get(self.data, cur_key));
 
                 // If found
                 if cur.key == key
@@ -366,10 +366,10 @@ let expand<k>(self: ^stl::set<k>) -> void
                 // Else, advance
                 else
                 {
-                    k += 1;
-                    if k >= self.size
+                    cur_key += 1;
+                    if cur_key >= self.size
                     {
-                        k %= self.size;
+                        cur_key %= self.size;
                     }
                 }
             }
