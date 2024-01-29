@@ -52,6 +52,9 @@ let Del(self: ^o_file) -> void
 let open(self: ^i_file, name: str) -> void;
 let open(self: ^o_file, name: str) -> void;
 
+let open(self: ^i_file, name: []i8) -> void;
+let open(self: ^o_file, name: []i8) -> void;
+
 let close(self: ^i_file) -> void;
 let close(self: ^o_file) -> void;
 
@@ -73,20 +76,18 @@ let size(self: ^i_file) -> u128;
 let read(self: ^i_file, size: u128) -> string
 {
     let out: string;
-    reserve(out, size);
-
-    let buf: i8;
-    buf = to_i8(0);
+    reserve(out, size + to_u128(1));
 
     let pos: u128;
     pos = to_u128(0);
     while (pos < size)
     {
-        buf = read_char(self);
-        set(out, pos, buf);
-
+        Get(out.data, pos) = read_char(self);
         pos += to_u128(1);
     }
+
+    Get(out.data, pos) = 0;
+    out.current_length = pos + 1;
 
     out
 }

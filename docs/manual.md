@@ -1,6 +1,6 @@
 
 # The Oak Programming Language
-## Version 0.4.18
+## Version 0.4.19
 
 ![](./logo_trimmed.png)
 
@@ -2699,6 +2699,9 @@ post
     // Some functions to instantiate when this trait is called
 }
 ```
+
+**Note:** Traits **must** be generic. They, along with all zero
+member structs or enums, may never be instantiated.
 
 ## Explicit, Implicit / Casual, and Autogen Function Definitions
 

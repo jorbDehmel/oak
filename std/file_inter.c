@@ -75,6 +75,24 @@ void open_FN_PTR_o_file_JOIN_str_MAPS_void(struct o_file *self, str name)
     self->raw = fopen(name, "w");
 }
 
+void open_FN_PTR_i_file_JOIN_ARR_i8_MAPS_void(struct i_file *self, i8 name[])
+{
+    // Ensure no file is left open
+    ExtDel_FN_PTR_i_file_MAPS_void(self);
+
+    // Open file in write mode
+    self->raw = fopen(name, "r");
+}
+
+void open_FN_PTR_o_file_JOIN_ARR_i8_MAPS_void(struct o_file *self, i8 name[])
+{
+    // Ensure no file is left open
+    ExtDel_FN_PTR_o_file_MAPS_void(self);
+
+    // Open file in write mode
+    self->raw = fopen(name, "w");
+}
+
 void close_FN_PTR_i_file_MAPS_void(struct i_file *self)
 {
     ExtDel_FN_PTR_i_file_MAPS_void(self);
