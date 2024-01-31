@@ -47,7 +47,7 @@ const static int number_chars = UCHAR_MAX;
 A more involved token structure. Meant to be a drop-in
 replacement for strings, which were the earlier token structs.
 */
-class token
+class Token
 {
   public:
     std::string text;
@@ -56,17 +56,17 @@ class token
     unsigned int line, pos;
     std::string file;
 
-    token() : text(""), state(alpha_state), line(-1), pos(-1), file("NULL")
+    Token() : text(""), state(alpha_state), line(-1), pos(-1), file("NULL")
     {
     }
 
-    token(const std::string &other) : text(other), state(alpha_state), line(-1), pos(-1), file("NULL")
+    Token(const std::string &other) : text(other), state(alpha_state), line(-1), pos(-1), file("NULL")
     {
     }
 
     // Miscellaneous string-equivalence operators
 
-    inline const token &operator=(const token &other) noexcept
+    inline const Token &operator=(const Token &other) noexcept
     {
         text = other.text;
         state = other.state;
@@ -82,23 +82,23 @@ class token
         return text;
     }
 
-    inline token operator+(const std::string &other) const noexcept
+    inline Token operator+(const std::string &other) const noexcept
     {
-        token out = *this;
+        Token out = *this;
         out.text += other;
         return out;
     }
 
-    inline token operator+(const char *other) const noexcept
+    inline Token operator+(const char *other) const noexcept
     {
-        token out = *this;
+        Token out = *this;
         out.text += other;
         return out;
     }
 
-    inline token operator+(const token &other) const noexcept
+    inline Token operator+(const Token &other) const noexcept
     {
-        token out = *this;
+        Token out = *this;
         out.text += other.text;
         return out;
     }
@@ -164,7 +164,7 @@ Erase all in-line comments (beginning with '// ') and multi-line
 comments (such as this one) from an Oak token stream. This is
 in-place.
 */
-void erase_comments(std::list<token> &what);
+void erase_comments(std::list<Token> &what);
 
 /*
 Erase all whitespace tokens from an Oak token stream. This is
@@ -172,7 +172,7 @@ specifically anything tagged by the lexer as whitespace. This
 is spaces, tabs, and newlines (as well as any conglomerations of
 these).
 */
-void erase_whitespace(std::list<token> &what);
+void erase_whitespace(std::list<Token> &what);
 
 /*
 Takes a text, yields a token stream. Uses a global static DFA,
@@ -197,19 +197,19 @@ class lexer
     void str(const std::string &from, const std::string &filepath) noexcept;
 
     // Load a full token stream from a given string
-    std::list<token> str_all(const std::string &from) noexcept;
+    std::list<Token> str_all(const std::string &from) noexcept;
 
     // Load a full token stream from a given string (w/ file)
-    std::list<token> str_all(const std::string &from, const std::string &filepath) noexcept;
+    std::list<Token> str_all(const std::string &from, const std::string &filepath) noexcept;
 
     // Yield a single token
-    token single();
+    Token single();
 
     // Returns true when exhausted
     bool done() const noexcept;
 
     // If an empty symbol is printed, it is a newline literal
-    std::vector<token> lex(const std::string &What, const std::string &filepath = "");
+    std::vector<Token> lex(const std::string &What, const std::string &filepath = "");
 
   private:
     // Text handling members
@@ -221,8 +221,5 @@ class lexer
     bool is_responsible = false;
     lexer_state state;
 };
-
-// Throws an error upon failure
-void smartSystem(const std::string &What);
 
 #endif

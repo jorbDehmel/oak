@@ -9,20 +9,21 @@ jdehmel@outlook.com
 #include "sequence_resources.hpp"
 #include <climits>
 
+// Externals
 std::set<std::string> deps;
-std::map<std::string, __structLookupData> structData;
+std::map<std::string, StructLookupData> structData;
 std::vector<std::string> structOrder;
 
 unsigned long long currentID = 1;
 
-typeNode &typeNode::operator=(const typeNode &other)
+TypeNode &TypeNode::operator=(const TypeNode &other)
 {
     info = other.info;
     name = other.name;
     return *this;
 }
 
-bool typeNode::operator==(const typeNode &other) const
+bool TypeNode::operator==(const TypeNode &other) const
 {
     if (info != other.info)
     {
@@ -80,7 +81,7 @@ Type::Type(const Type &What, const int &startingAt)
 Type::Type()
 {
     internal.clear();
-    internal.push_back(typeNode{nullType.internal[0].info, nullType.internal[0].name});
+    internal.push_back(TypeNode{nullType.internal[0].info, nullType.internal[0].name});
     ID = currentID++;
     return;
 }
@@ -152,7 +153,7 @@ Type &Type::operator=(const Type &Other)
     return *this;
 }
 
-Type &Type::operator=(const typeNode &Other)
+Type &Type::operator=(const TypeNode &Other)
 {
     internal.clear();
     internal.push_back(Other);
@@ -640,7 +641,7 @@ Type checkLiteral(const std::string &From)
     return nullType;
 }
 
-typeNode &Type::operator[](const int &Index) const
+TypeNode &Type::operator[](const int &Index) const
 {
-    return (typeNode &)internal[Index];
+    return (TypeNode &)internal[Index];
 }

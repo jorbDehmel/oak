@@ -9,17 +9,17 @@ jdehmel@outlook.com
 #define rm_assert(expression, message)                                                                                 \
     ((bool)(expression) ? true : throw rule_error(message " (Failed assertion: '" #expression "')"))
 
-std::map<std::string, rule> rules;
+std::map<std::string, Rule> rules;
 std::vector<std::string> activeRules, dialectRules;
 std::map<std::string, std::vector<std::string>> bundles;
-std::map<std::string, void (*)(std::vector<token> &, int &, rule &)> engines;
+std::map<std::string, void (*)(std::vector<Token> &, int &, Rule &)> engines;
 
 bool doRuleLogFile = false;
 std::ofstream ruleLogFile;
 
 // I is the point in Lexed at which a macro name was found
 // CONSUMPTIVE!
-std::vector<std::string> getMacroArgs(std::vector<token> &lexed, const int &i)
+std::vector<std::string> getMacroArgs(std::vector<Token> &lexed, const int &i)
 {
     std::vector<std::string> out;
 
@@ -68,7 +68,7 @@ std::vector<std::string> getMacroArgs(std::vector<token> &lexed, const int &i)
     return out;
 }
 
-void doRules(std::vector<token> &From)
+void doRules(std::vector<Token> &From)
 {
     if (doRuleLogFile)
     {
@@ -100,7 +100,7 @@ void doRules(std::vector<token> &From)
             rm_assert(args.size() == 3 || args.size() == 4, "new_rule! requires three or four arguments.");
 
             std::string name = args[0];
-            rule toAdd;
+            Rule toAdd;
 
             if (args.size() == 3)
             {
@@ -228,9 +228,7 @@ void doRules(std::vector<token> &From)
         {
             for (int ruleIndex = 0; ruleIndex < dialectRules.size() + activeRules.size(); ruleIndex++)
             {
-                // cout << "On rule " << ruleIndex << '\n';
-
-                rule curRule;
+                Rule curRule;
                 if (ruleIndex < dialectRules.size())
                 {
                     if (rules.count(dialectRules[ruleIndex]) == 0)
@@ -332,7 +330,7 @@ void loadDialectFile(const std::string &File)
 
             std::string name;
             std::string inputStr, outputStr;
-            rule toAdd;
+            Rule toAdd;
 
             name = "dialect_rule_" + std::to_string(dialectRules.size());
 
@@ -404,7 +402,7 @@ void loadDialectFile(const std::string &File)
     return;
 }
 
-void doRuleAcorn(std::vector<token> &From, int &i, rule &curRule)
+void doRuleAcorn(std::vector<Token> &From, int &i, Rule &curRule)
 {
     int posInFrom = i;
     std::vector<std::string> memory;
@@ -747,9 +745,9 @@ void doRuleAcorn(std::vector<token> &From, int &i, rule &curRule)
         // Variable table is already built at this point
 
         // Get new contents
-        std::vector<token> newContents;
+        std::vector<Token> newContents;
 
-        token templ = From[i];
+        Token templ = From[i];
         templ.text = "NULL";
 
         for (int sIndex = 0; sIndex < curRule.outputPattern.size(); sIndex++)
@@ -761,7 +759,7 @@ void doRuleAcorn(std::vector<token> &From, int &i, rule &curRule)
                 std::string raw = ruleVars[s];
 
                 lexer dfa_lexer;
-                std::vector<token> lexed = dfa_lexer.lex(raw);
+                std::vector<Token> lexed = dfa_lexer.lex(raw);
                 for (auto s : lexed)
                 {
                     newContents.push_back(s);
@@ -779,7 +777,7 @@ void doRuleAcorn(std::vector<token> &From, int &i, rule &curRule)
                 {
                     lexer dfa_lexer;
                     std::string raw = ruleVars[toInsert];
-                    std::vector<token> lexed = dfa_lexer.lex(raw);
+                    std::vector<Token> lexed = dfa_lexer.lex(raw);
 
                     toInsert = "";
                     for (auto str : lexed)
@@ -854,7 +852,7 @@ void doRuleAcorn(std::vector<token> &From, int &i, rule &curRule)
     ruleVars.clear();
 }
 
-void addEngine(const std::string &name, void (*hook)(std::vector<token> &, int &, rule &))
+void addEngine(const std::string &name, void (*hook)(std::vector<Token> &, int &, Rule &))
 {
     engines[name] = hook;
     return;

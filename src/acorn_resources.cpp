@@ -28,7 +28,7 @@ std::set<std::string> cflags;
 std::map<std::string, std::string> preprocDefines;
 std::vector<unsigned long long> phaseTimes;
 
-std::string debugTreePrefix = "";
+static std::string debugTreePrefix = "";
 
 // Prints the cumulative disk usage of Oak (in human-readable)
 void getDiskUsage()
@@ -76,7 +76,7 @@ void doFile(const std::string &From)
     curLine = 1;
     curFile = From;
 
-    std::vector<token> lexed, lexedCopy;
+    std::vector<Token> lexed, lexedCopy;
 
     try
     {
@@ -642,7 +642,7 @@ void doFile(const std::string &From)
                 std::vector<std::string> args = getMacroArgs(lexed, i);
 
                 std::string output = callMacro(name, args, debug);
-                std::vector<token> lexedOutput = dfa_lexer.lex(output, name);
+                std::vector<Token> lexedOutput = dfa_lexer.lex(output, name);
 
                 // Reset preproc defs, as they tend to break w/ macros
                 preprocDefines["prev_file!"] = (oldFile == "" ? "\"NULL\"" : ("\"" + oldFile + "\""));
@@ -697,7 +697,7 @@ void doFile(const std::string &From)
             preprocDefines["line!"] = std::to_string(lexed[i].line);
             if (preprocDefines.count(lexed[i]) != 0)
             {
-                std::vector<token> lexedDef = dfa_lexer.lex(preprocDefines[lexed[i]]);
+                std::vector<Token> lexedDef = dfa_lexer.lex(preprocDefines[lexed[i]]);
                 lexed.erase(lexed.begin() + i);
 
                 for (int j = lexedDef.size() - 1; j >= 0; j--)
@@ -743,7 +743,7 @@ void doFile(const std::string &From)
             start = std::chrono::high_resolution_clock::now();
         }
 
-        sequence fileSeq = createSequence(lexed);
+        ASTNode fileSeq = createSequence(lexed);
 
         if (debug)
         {
@@ -787,7 +787,7 @@ void doFile(const std::string &From)
 
         std::string name = purifyStr(From) + ".oak.log";
         std::cout << "Dump saved in " << name << "\n";
-        dump(lexed, name, From, curLine, sequence(), lexedCopy, e.what());
+        dump(lexed, name, From, curLine, ASTNode(), lexedCopy, e.what());
 
         throw std::runtime_error("Failure in file '" + From + "': " + e.what());
     }
@@ -797,7 +797,7 @@ void doFile(const std::string &From)
 
         std::string name = purifyStr(From) + ".oak.log";
         std::cout << "Dump saved in " << name << "\n";
-        dump(lexed, name, From, curLine, sequence(), lexedCopy, e.what());
+        dump(lexed, name, From, curLine, ASTNode(), lexedCopy, e.what());
 
         throw std::runtime_error("Failure in file '" + From + "': " + e.what());
     }
@@ -807,7 +807,7 @@ void doFile(const std::string &From)
 
         std::string name = purifyStr(From) + ".oak.log";
         std::cout << "Dump saved in " << name << "\n";
-        dump(lexed, name, From, curLine, sequence(), lexedCopy, e.what());
+        dump(lexed, name, From, curLine, ASTNode(), lexedCopy, e.what());
 
         throw std::runtime_error("Failure in file '" + From + "': " + e.what());
     }
@@ -817,7 +817,7 @@ void doFile(const std::string &From)
 
         std::string name = purifyStr(From) + ".oak.log";
         std::cout << "Dump saved in " << name << "\n";
-        dump(lexed, name, From, curLine, sequence(), lexedCopy, e.what());
+        dump(lexed, name, From, curLine, ASTNode(), lexedCopy, e.what());
 
         throw std::runtime_error("Failure in file '" + From + "': " + e.what());
     }
@@ -827,7 +827,7 @@ void doFile(const std::string &From)
 
         std::string name = purifyStr(From) + ".oak.log";
         std::cout << "Dump saved in " << name << "\n";
-        dump(lexed, name, From, curLine, sequence(), lexedCopy, e.what());
+        dump(lexed, name, From, curLine, ASTNode(), lexedCopy, e.what());
 
         throw std::runtime_error("Failure in file '" + From + "': " + e.what());
     }
@@ -837,7 +837,7 @@ void doFile(const std::string &From)
 
         std::string name = purifyStr(From) + ".oak.log";
         std::cout << "Dump saved in " << name << "\n";
-        dump(lexed, name, From, curLine, sequence(), lexedCopy, e.what());
+        dump(lexed, name, From, curLine, ASTNode(), lexedCopy, e.what());
 
         throw std::runtime_error("Failure in file '" + From + "': " + e.what());
     }
@@ -847,7 +847,7 @@ void doFile(const std::string &From)
 
         std::string name = purifyStr(From) + ".oak.log";
         std::cout << "Dump saved in " << name << "\n";
-        dump(lexed, name, From, curLine, sequence(), lexedCopy, e.what());
+        dump(lexed, name, From, curLine, ASTNode(), lexedCopy, e.what());
 
         throw std::runtime_error("Failure in file '" + From + "': " + e.what());
     }
@@ -855,7 +855,7 @@ void doFile(const std::string &From)
     {
         std::string name = purifyStr(From) + ".oak.log";
         std::cout << "Dump saved in " << name << "\n";
-        dump(lexed, name, From, curLine, sequence(), lexedCopy);
+        dump(lexed, name, From, curLine, ASTNode(), lexedCopy);
 
         throw std::runtime_error("Unknown failure in file '" + From + "'");
     }
@@ -1047,18 +1047,12 @@ void ensureSyntax(const std::string &text, const bool &fatal)
                             errorCount++;
                         }
                     }
-                    else if (c == ' ')
+                    else if (stringMarker == ' ')
                     {
                         // Do actual checks here
                         if (c == '{')
                         {
                             bracketDepth++;
-
-                            if (curLineVec.size() != 0)
-                            {
-                                printSyntaxError("Symbol '{' must occupy its own line", curLineVec, curLine);
-                                errorCount++;
-                            }
                         }
                         else if (c == '}')
                         {
@@ -1067,12 +1061,6 @@ void ensureSyntax(const std::string &text, const bool &fatal)
                             if (bracketDepth < 0)
                             {
                                 printSyntaxError("Unmatched close curly bracket", curLineVec, curLine);
-                                errorCount++;
-                            }
-
-                            if (curLineVec.size() != 0)
-                            {
-                                printSyntaxError("Symbol '}' must occupy its own line", curLineVec, curLine);
                                 errorCount++;
                             }
                         }
@@ -1098,11 +1086,22 @@ void ensureSyntax(const std::string &text, const bool &fatal)
                             errorCount++;
                         }
                     }
+                    else
+                    {
+                        // Inside a string literal
+                        if (c == '\n')
+                        {
+                            printSyntaxError("String literal may not cross multiple lines. Use two successive string "
+                                             "literals instead.",
+                                             curLineVec, curLine);
+                            errorCount++;
+                        }
+                    }
                 }
 
                 if (stringMarker != ' ')
                 {
-                    printSyntaxError("Unclosed std::string", curLineVec, curLine);
+                    printSyntaxError("Unclosed string", curLineVec, curLine);
                     errorCount++;
                 }
             }

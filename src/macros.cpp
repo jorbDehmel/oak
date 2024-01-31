@@ -19,7 +19,7 @@ std::set<std::string> compiled = {"include!",  "link!",     "package!",  "alloc!
 std::map<std::string, std::string> macros;
 std::map<std::string, std::string> macroSourceFiles;
 
-long long getAgeOfFile(const std::string &filepath)
+long long getFileLastModification(const std::string &filepath)
 {
     static std::map<std::string, long long> ageCache;
 
@@ -28,22 +28,13 @@ long long getAgeOfFile(const std::string &filepath)
         return ageCache[filepath];
     }
 
-    fs::create_directory(".oak_build");
-    if (system(("stat -Lc %Y " + filepath + " > .oak_build/age_temp.txt 2> /dev/null").c_str()) != 0)
-    {
-        return -1;
-    }
-
-    std::ifstream file(".oak_build/age_temp.txt");
-    if (!file.is_open())
-    {
-        return -1;
-    }
-
+    // Get age (theoretically system independent)
     long long out = -1;
-    file >> out;
 
-    file.close();
+    if (fs::exists(filepath))
+    {
+        out = fs::last_write_time(filepath).time_since_epoch().count();
+    }
 
     if (ageCache.size() > 200)
     {
@@ -58,8 +49,8 @@ long long getAgeOfFile(const std::string &filepath)
 // OR if either file is nonexistant
 bool isSourceNewer(const std::string &source, const std::string &dest)
 {
-    long long sourceAge = getAgeOfFile(source);
-    long long destAge = getAgeOfFile(dest);
+    long long sourceAge = getFileLastModification(source);
+    long long destAge = getFileLastModification(dest);
 
     if (sourceAge == -1 || destAge == -1)
     {

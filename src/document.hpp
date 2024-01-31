@@ -19,6 +19,8 @@ of an Oak source file
 #include <string>
 #include <vector>
 
-void generate(const std::vector<std::string> &Files, const std::string &Output);
+// Generate a single `.md` file from the given file(s). Saves at
+// the provided filepath.
+void generate(const std::vector<std::string> &files, const std::string &output);
 
 #endif

@@ -5,7 +5,7 @@
 static bool is_initialized = false;
 static lexer_state **dfa = nullptr;
 
-std::string to_string(token &what)
+std::string to_string(Token &what)
 {
     if (what.text == " ")
     {
@@ -250,11 +250,11 @@ void lexer::file(const std::string &filepath)
     f.close();
 }
 
-token lexer::single()
+Token lexer::single()
 {
     // Assume we are in null_state right now
     lexer_state prev_state = delim_state;
-    token out;
+    Token out;
 
     out.pos = pos;
     out.line = line;
@@ -333,7 +333,7 @@ bool lexer::done() const noexcept
     return pos >= text.size();
 }
 
-void erase_comments(std::list<token> &what)
+void erase_comments(std::list<Token> &what)
 {
     int count = 0;
     for (auto it = what.begin(); it != what.end(); it++)
@@ -366,7 +366,7 @@ void erase_comments(std::list<token> &what)
     }
 }
 
-void erase_whitespace(std::list<token> &what)
+void erase_whitespace(std::list<Token> &what)
 {
     for (auto it = what.begin(); it != what.end(); it++)
     {
@@ -378,7 +378,7 @@ void erase_whitespace(std::list<token> &what)
     }
 }
 
-void join_numbers(std::list<token> &what)
+void join_numbers(std::list<Token> &what)
 {
     for (auto it = what.begin(); it != what.end(); it++)
     {
@@ -405,7 +405,7 @@ void join_numbers(std::list<token> &what)
 Joins successive string literals together. Assumes that
 whitespace is no longer present.
 */
-void join_strings(std::list<token> &what)
+void join_strings(std::list<Token> &what)
 {
     // Single quote pass
     for (auto it = what.begin(); it != what.end(); it++)
@@ -452,7 +452,7 @@ void join_strings(std::list<token> &what)
     }
 }
 
-void join_bitshifts(std::list<token> &what)
+void join_bitshifts(std::list<Token> &what)
 {
     for (auto it = what.begin(); it != what.end(); it++)
     {
@@ -535,13 +535,13 @@ void lexer::str(const std::string &from, const std::string &filepath) noexcept
     cur_file = filepath;
 }
 
-std::list<token> lexer::str_all(const std::string &from) noexcept
+std::list<Token> lexer::str_all(const std::string &from) noexcept
 {
     pos = 0;
     line = 1;
     text = from;
 
-    std::list<token> out;
+    std::list<Token> out;
 
     while (!done())
     {
@@ -551,14 +551,14 @@ std::list<token> lexer::str_all(const std::string &from) noexcept
     return out;
 }
 
-std::list<token> lexer::str_all(const std::string &from, const std::string &filepath) noexcept
+std::list<Token> lexer::str_all(const std::string &from, const std::string &filepath) noexcept
 {
     pos = 0;
     line = 1;
     text = from;
     cur_file = filepath;
 
-    std::list<token> out;
+    std::list<Token> out;
 
     while (!done())
     {
@@ -568,7 +568,7 @@ std::list<token> lexer::str_all(const std::string &from, const std::string &file
     return out;
 }
 
-std::vector<token> lexer::lex(const std::string &What, const std::string &filepath)
+std::vector<Token> lexer::lex(const std::string &What, const std::string &filepath)
 {
     if (filepath != "")
     {
@@ -577,7 +577,7 @@ std::vector<token> lexer::lex(const std::string &What, const std::string &filepa
 
     str(What);
 
-    std::list<token> out;
+    std::list<Token> out;
 
     while (!done())
     {
@@ -591,20 +591,7 @@ std::vector<token> lexer::lex(const std::string &What, const std::string &filepa
     join_bitshifts(out);
     join_strings(out);
 
-    std::vector<token> out_vec;
+    std::vector<Token> out_vec;
     out_vec.assign(out.begin(), out.end());
     return out_vec;
-}
-
-// Throws an error upon failure
-void smartSystem(const std::string &What)
-{
-    int result = system(What.c_str());
-
-    if (result != 0)
-    {
-        throw std::runtime_error("System call `" + What + "` failed with code " + std::to_string(result));
-    }
-
-    return;
 }

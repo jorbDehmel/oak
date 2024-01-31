@@ -42,7 +42,7 @@ void queryPackage(const std::string &name)
     // loadPackageInfo
     try
     {
-        packageInfo info = loadPackageInfo(filepath);
+        PackageInfo info = loadPackageInfo(filepath);
 
         // Print output
         std::cout << tags::green << info << '\n' << tags::reset;
@@ -74,7 +74,10 @@ int main(const int argc, const char *argv[])
     bool prettify = false;
 
     bool execute = false;
+    bool compile = true;
+    bool doLink = true;
     bool test = false;
+    bool manual = false;
     bool testFail = false;
 
     try
@@ -547,7 +550,7 @@ int main(const int argc, const char *argv[])
             auto reconstructionStart = std::chrono::high_resolution_clock::now();
 
             std::pair<std::string, std::string> names = reconstructAndSave(out);
-            cppSources.insert(names.second);
+            std::string toCompileFrom = names.second;
 
             end = std::chrono::high_resolution_clock::now();
             oakElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
@@ -592,22 +595,19 @@ int main(const int argc, const char *argv[])
                         rootCommand += flag + " ";
                     }
 
-                    for (std::string source : cppSources)
+                    std::string command = rootCommand + toCompileFrom + " -o " + toCompileFrom + ".o";
+
+                    if (debug)
                     {
-                        std::string command = rootCommand + source + " -o " + source + ".o";
-
-                        if (debug)
-                        {
-                            std::cout << "System call `" << command << "`\n";
-                        }
-
-                        if (system(command.c_str()) != 0)
-                        {
-                            throw std::runtime_error("Failed to compile translated C files");
-                        }
-
-                        objects.insert(source + ".o");
+                        std::cout << "System call `" << command << "`\n";
                     }
+
+                    if (system(command.c_str()) != 0)
+                    {
+                        throw std::runtime_error("Failed to compile translated C files");
+                    }
+
+                    objects.insert(toCompileFrom + ".o");
 
                     if (doLink)
                     {
@@ -884,32 +884,50 @@ int main(const int argc, const char *argv[])
         std::chrono::_V2::high_resolution_clock::time_point start, end;
         std::ifstream file;
         std::string line;
-        std::vector<std::string> files;
+        std::set<std::string> files;
         std::vector<std::string> failed;
 
         // Get all files to run
         fs::create_directory(".oak_build");
         fs::remove_all("test_suite.log");
 
+        // Build file vector
+        for (auto test_iter : fs::directory_iterator("./tests"))
+        {
+            files.insert(test_iter.path().string());
+        }
+
         std::cout << tags::violet_bold << "Running " << files.size() << " tests...\n"
                   << tags::reset << "[compiling, " << (execute ? "" : "NOT ") << "executing,"
                   << (testFail ? "" : " NOT") << " halting on failure]\n";
 
+        // Check for ansi2txt
+        std::string cleaner = "";
+        if (system("ansi2txt < /dev/null") == 0)
+        {
+            cleaner = " | ansi2txt ";
+        }
+        else
+        {
+            std::cout << tags::yellow
+                      << "Warning: `ansi2txt` is not installed, so output logs will look bad. Install `colorized-logs` "
+                         "to silence this warning.\n"
+                      << tags::reset;
+        }
+
         // Iterate through files
         int i = 1;
-        for (auto test_iter : fs::directory_iterator("./tests"))
+        for (auto test : files)
         {
-            std::string test = test_iter.path().string();
-            files.push_back(test);
-
+            system(("echo " + test + " >> test_suite.tlog").c_str());
             start = std::chrono::high_resolution_clock::now();
             if (execute)
             {
-                result = system(("acorn -o a.out --execute " + test + " >> test_suite.tlog 2>&1").c_str());
+                result = system(("acorn -o a.out --execute " + test + cleaner + " >> test_suite.tlog 2>&1").c_str());
             }
             else
             {
-                result = system(("acorn -o /dev/null " + test + " >> test_suite.tlog 2>&1").c_str());
+                result = system(("acorn -o /dev/null " + test + cleaner + " >> test_suite.tlog 2>&1").c_str());
             }
             end = std::chrono::high_resolution_clock::now();
 
@@ -950,7 +968,7 @@ int main(const int argc, const char *argv[])
 
         std::cout << tags::reset << "Total:\t\t" << good + bad << '\n'
                   << "ms:\t\t" << totalMs << '\n'
-                  << "ms per test:\t" << (totalMs) / (double)(good + bad) << '\n';
+                  << "mean test ms:\t" << (totalMs) / (double)(good + bad) << '\n';
 
         if (bad != 0)
         {
@@ -962,7 +980,7 @@ int main(const int argc, const char *argv[])
             std::cout << tags::reset;
         }
 
-        std::cout << "\nAny compiler is in ./test_suite.tlog.\n";
+        std::cout << "\nAny output is in ./test_suite.tlog.\n";
     }
 
     if (prettify)

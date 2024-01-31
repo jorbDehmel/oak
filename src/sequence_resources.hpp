@@ -1,5 +1,5 @@
 /*
-Lightens the compiler load for sequence.cpp by breaking 1 4000
+Lightens the compiler load for ASTNode.cpp by breaking 1 4000
 line file into 2 2000 line files (this is marginally better for
 makefiles).
 
@@ -31,13 +31,11 @@ jdehmel@outlook.com
 
 #include "tags.hpp"
 
-// Globals
+// External non-constant globals
 extern const std::set<std::string> specials;
 extern unsigned long long int curLine;
 extern std::string curFile;
-
-// For error trace
-extern std::vector<token> curLineSymbols;
+extern std::vector<Token> curLineSymbols;
 
 // Extension of runtime error for Oak sequencing
 class sequencing_error : public std::runtime_error
@@ -48,40 +46,47 @@ class sequencing_error : public std::runtime_error
     }
 };
 
-// Sequence message assert
+// ASTNode message assert
 void sm_assert(const bool &expression, const std::string &message);
 
-// Turn a .oak sequence into a .cpp one
-std::string toC(const sequence &What);
+// Turn a .oak AST into a .cpp one.
+std::string toC(const ASTNode &what);
 
+// Clean the input to a compiler macro.
 std::string cleanMacroArgument(const std::string &from);
 
-// Destroy all unit, temp, or autogen definitions matching a given type.
-// Can throw errors if doThrow is true.
-// Mostly used for New and Del, Oak ~0.0.14
+// Destroy all unit, temp, or autogen definitions matching a
+// given type. Can throw errors if doThrow is true.
 void destroyUnits(const std::string &name, const Type &type, const bool &doThrow);
 
-// Get the return type from a Type (of a function signature)
-Type getReturnType(const Type &T);
+// Get the return type from a Type (of a function signature).
+Type getReturnType(const Type &what);
 
 // Gets the arguments from a Type, given that it is a function
 std::vector<std::pair<std::string, Type>> getArgs(Type &type);
 
-void debugPrint(const sequence &What, int spaces = 0, std::ostream &to = std::cout);
+// Print the AST in a pretty-ish way.
+void debugPrint(const ASTNode &what, int spaces = 0, std::ostream &to = std::cout);
 
-std::vector<std::pair<std::string, std::string>> restoreSymbolTable(multiSymbolTable &backup);
+// Restore the symbol table to a previous state. Only erases
+// instance variables.
+std::vector<std::pair<std::string, std::string>> restoreSymbolTable(MultiSymbolTable &backup);
 
-void addEnum(const std::vector<token> &FromIn);
+// Adds an enumeration into the type symbol table.
+void addEnum(const std::vector<Token> &fromIn);
 
-// Dump data to file
-void dump(const std::vector<token> &Lexed, const std::string &Where, const std::string &FileName, const int &Line,
-          const sequence &FileSeq, const std::vector<token> LexedBackup, const std::string &ErrorMsg = "");
+// Dump data to file. Mostly used for debugging purposes.
+void dump(const std::vector<Token> &lexed, const std::string &where, const std::string &fileName, const int &line,
+          const ASTNode &fileSeq, const std::vector<Token> lexedBackup, const std::string &errorMsg = "");
 
+// Get a valid constructor call for a given struct member var.
 std::string getMemberNew(const std::string &selfName, const std::string &varName, const Type &varType);
+
+// Get a valid destructor call for a given struct member var.
 std::string getMemberDel(const std::string &selfName, const std::string &varName, const Type &varType);
 
-// Inserts destructors at all appropriate places in a sequence
-void insertDestructors(sequence &what, const std::vector<std::pair<std::string, std::string>> &destructors);
+// Inserts destructors at all appropriate places in a ASTNode.
+void insertDestructors(ASTNode &what, const std::vector<std::pair<std::string, std::string>> &destructors);
 
 ////////////////////////////////////////////////////////////////
 
@@ -107,7 +112,7 @@ std::vector<int> getReferenceCandidates(const std::vector<std::vector<Type>> &ca
                                         const std::vector<Type> &argTypes);
 
 // Prints the reason why each candidate was rejected
-void printCandidateErrors(const std::vector<__multiTableSymbol> &candidates, const std::vector<Type> &argTypes,
+void printCandidateErrors(const std::vector<MultiTableSymbol> &candidates, const std::vector<Type> &argTypes,
                           const std::string &name);
 
 ////////////////////////////////////////////////////////////////

@@ -12,7 +12,7 @@ GPLv3 held by author
 #include "sequence_resources.hpp"
 #include <stdexcept>
 
-multiSymbolTable table;
+MultiSymbolTable table;
 
 void parse_assert(const bool &what)
 {
@@ -24,13 +24,13 @@ void parse_assert(const bool &what)
 
 Type toType(const std::vector<std::string> &WhatIn)
 {
-    token templ;
+    Token templ;
     templ.file = curFile;
     templ.line = curLine;
     templ.pos = 0;
     templ.state = alpha_state;
 
-    std::vector<token> temp;
+    std::vector<Token> temp;
     temp.reserve(WhatIn.size());
 
     for (const auto &item : WhatIn)
@@ -42,15 +42,15 @@ Type toType(const std::vector<std::string> &WhatIn)
 }
 
 // Converts lexed symbols into a type
-Type toType(const std::vector<token> &WhatIn)
+Type toType(const std::vector<Token> &WhatIn)
 {
     if (WhatIn.size() == 0)
     {
         return Type(atomic, "NULL");
     }
 
-    std::vector<token> What;
-    for (token s : WhatIn)
+    std::vector<Token> What;
+    for (Token s : WhatIn)
     {
         What.push_back(s);
     }
@@ -223,7 +223,7 @@ Type toType(const std::vector<token> &WhatIn)
 }
 
 // Can throw errors (IE malformed definitions)
-void addStruct(const std::vector<token> &From)
+void addStruct(const std::vector<Token> &From)
 {
     // Assert the expression can be properly-formed
     parse_assert(From.size() >= 4);
@@ -297,10 +297,10 @@ void addStruct(const std::vector<token> &From)
     t.append(maps);
     t.append(atomic, "void");
 
-    sequence s;
+    ASTNode s;
     s.info = code_scope;
     s.type = Type(atomic, "void");
-    s.items.push_back(sequence{});
+    s.items.push_back(ASTNode{});
     s.items.back().info = atom;
     s.items.back().raw = "//AUTOGEN";
 
@@ -308,8 +308,8 @@ void addStruct(const std::vector<token> &From)
     table["New"];
     table["Del"];
 
-    table["New"].push_back(__multiTableSymbol{s, t});
-    table["Del"].push_back(__multiTableSymbol{s, t});
+    table["New"].push_back(MultiTableSymbol{s, t});
+    table["Del"].push_back(MultiTableSymbol{s, t});
 
     parse_assert(i < From.size() && From[i] == ":");
     i++;
@@ -323,7 +323,7 @@ void addStruct(const std::vector<token> &From)
         {
             // name : type ,
             // name , name2 , name3 : type < std::string , hi > , name4 : type2 ,
-            std::vector<token> names, lexedType;
+            std::vector<Token> names, lexedType;
 
             while (i + 1 < From.size() && From[i + 1] == ",")
             {
@@ -384,9 +384,9 @@ void addStruct(const std::vector<token> &From)
                 structData[name].order.push_back(varName);
 
                 // Add semicolon
-                table["New"].back().seq.items.push_back(sequence{nullType, std::vector<sequence>(), atom, ";"});
+                table["New"].back().seq.items.push_back(ASTNode{nullType, std::vector<ASTNode>(), atom, ";"});
 
-                sequence toAppend;
+                ASTNode toAppend;
                 toAppend.info = atom;
                 toAppend.type = nullType;
                 toAppend.raw = getMemberNew("(*what)", varName, toAdd);
@@ -409,11 +409,11 @@ in the original table. However, skips all functions.
 If not contradicted by the above rules, bases off of
 the current table (not backup).
 */
-std::vector<std::pair<std::string, std::string>> restoreSymbolTable(multiSymbolTable &backup)
+std::vector<std::pair<std::string, std::string>> restoreSymbolTable(MultiSymbolTable &backup)
 {
     std::vector<std::pair<std::string, std::string>> out;
 
-    multiSymbolTable newTable;
+    MultiSymbolTable newTable;
     for (auto p : table)
     {
         for (auto s : p.second)

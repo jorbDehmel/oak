@@ -14,10 +14,10 @@ To be called by sequencing
 
 #include "symbol_table.hpp"
 
-// Returns the sequence which allocates an array of size num and type type.
-sequence getAllocSequence(Type &type, const std::string &name, const std::string &num = "1");
+// Returns the ASTNode which allocates an array of size num and type type.
+ASTNode getAllocSequence(Type &type, const std::string &name, const std::string &num = "1");
 
-// Returns the sequence which frees the referenced memory
-sequence getFreeSequence(const std::string &name, const bool &isArr = false);
+// Returns the ASTNode which frees the referenced memory
+ASTNode getFreeSequence(const std::string &name, const bool &isArr = false);
 
 #endif

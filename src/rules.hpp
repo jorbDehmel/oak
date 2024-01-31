@@ -21,6 +21,7 @@ Defines preprocessor rules for Oak
 
 #include "lexer.hpp"
 
+// An error which may arise during the processing of rules.
 class rule_error : public std::runtime_error
 {
   public:
@@ -29,24 +30,22 @@ class rule_error : public std::runtime_error
     }
 };
 
-struct rule
+// Contains information about a given rule.
+struct Rule
 {
-    std::vector<token> inputPattern;
-    std::vector<token> outputPattern;
+    std::vector<Token> inputPattern;
+    std::vector<Token> outputPattern;
 
-    // The function to call
-    void (*doRule)(std::vector<token> &, int &, rule &);
+    // The engine hook to call.
+    void (*doRule)(std::vector<Token> &, int &, Rule &);
 };
 
 // Maps a string engine ID to its corresponding engine function.
-extern std::map<std::string, void (*)(std::vector<token> &, int &, rule &)> engines;
-
-// Add a new engine
-void addEngine(const std::string &name, void (*hook)(std::vector<std::string> &, int &, rule &));
+extern std::map<std::string, void (*)(std::vector<Token> &, int &, Rule &)> engines;
 
 extern bool doRuleLogFile;
 extern std::ofstream ruleLogFile;
-extern std::map<std::string, rule> rules;
+extern std::map<std::string, Rule> rules;
 
 extern std::string curFile;
 
@@ -56,17 +55,20 @@ extern bool dialectLock;
 
 extern std::map<std::string, std::vector<std::string>> bundles;
 
-// I is the point in Lexed at which a macro name was found
-// CONSUMPTIVE!
-std::vector<std::string> getMacroArgs(std::vector<token> &lexed, const int &i);
+// Add a new rule engine.
+void addEngine(const std::string &name, void (*hook)(std::vector<std::string> &, int &, Rule &));
 
-// Active rules should already be present in their vector
-void doRules(std::vector<token> &From);
+// `i` is the point in Lexed at which a macro name was found.
+// CONSUMPTIVE on `lexed`.
+std::vector<std::string> getMacroArgs(std::vector<Token> &lexed, const int &i);
 
-// Load a dialect file
-void loadDialectFile(const std::string &File);
+// Does all active rules on a given token stream.
+void doRules(std::vector<Token> &from);
 
-// Internal pass-through for Sapling rule engine
-void doRuleAcorn(std::vector<token> &tokens, int &i, rule &toDo);
+// Load a dialect file.
+void loadDialectFile(const std::string &file);
+
+// Internal pass-through for Sapling rule engine.
+void doRuleAcorn(std::vector<Token> &tokens, int &i, Rule &toDo);
 
 #endif

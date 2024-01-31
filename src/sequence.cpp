@@ -13,7 +13,7 @@ GPLv3 held by author
 #include "tags.hpp"
 #include "type_builder.hpp"
 
-std::vector<token> curLineSymbols;
+std::vector<Token> curLineSymbols;
 static Type currentReturnType;
 
 unsigned long long int curLine = 1;
@@ -23,15 +23,15 @@ std::string curFile = "";
 unsigned long long int depth = 0;
 
 // Internal consumptive version: Erases from std::vector, so not safe for frontend
-sequence __createSequence(std::list<token> &From);
+ASTNode __createSequence(std::list<Token> &From);
 
-sequence createSequence(const std::vector<token> &From)
+ASTNode createSequence(const std::vector<Token> &From)
 {
     // Clone to feed into the consumptive version
-    std::list<token> temp;
+    std::list<Token> temp;
     temp.assign(From.begin(), From.end());
 
-    std::vector<sequence> out;
+    std::vector<ASTNode> out;
 
     // Feed to consumptive version
     while (!temp.empty())
@@ -46,7 +46,7 @@ sequence createSequence(const std::vector<token> &From)
 
     if (out.size() == 0)
     {
-        return sequence{};
+        return ASTNode{};
     }
     else if (out.size() == 1)
     {
@@ -54,7 +54,7 @@ sequence createSequence(const std::vector<token> &From)
     }
     else
     {
-        sequence outSeq;
+        ASTNode outSeq;
         outSeq.info = code_scope;
         outSeq.type = nullType;
 
@@ -67,11 +67,11 @@ sequence createSequence(const std::vector<token> &From)
 }
 
 // Internal consumptive version: Erases from std::vector, so not safe for frontend
-sequence __createSequence(std::list<token> &From)
+ASTNode __createSequence(std::list<Token> &From)
 {
     static std::string prevMatchTypeStr = "NULL";
 
-    sequence out;
+    ASTNode out;
     out.info = code_line;
 
     // If empty, break
@@ -176,20 +176,20 @@ sequence __createSequence(std::list<token> &From)
 
                     // sm_assert(depth == 0, "Structs and enums may only be declared in the global scope.");
 
-                    std::vector<token> toAdd = {token("let"), token("NAME_HERE")};
+                    std::vector<Token> toAdd = {Token("let"), Token("NAME_HERE")};
 
                     // Add generics back in here
                     if (generics.size() != 0)
                     {
-                        toAdd.push_back(token("<"));
+                        toAdd.push_back(Token("<"));
                         for (int i = 0; i < generics.size(); i++)
                         {
                             toAdd.push_back(generics[i]);
                         }
-                        toAdd.push_back(token(">"));
+                        toAdd.push_back(Token(">"));
                     }
 
-                    toAdd.push_back(token(":"));
+                    toAdd.push_back(Token(":"));
                     std::string front = From.front();
 
                     int count = 0;
@@ -238,7 +238,7 @@ sequence __createSequence(std::list<token> &From)
                     else
                     {
                         // Check for needs / inst block here
-                        std::vector<token> preBlock, postBlock;
+                        std::vector<Token> preBlock, postBlock;
 
                         while (!From.empty() && (From.front() == "pre" || From.front() == "post"))
                         {
@@ -331,10 +331,10 @@ sequence __createSequence(std::list<token> &From)
                 sm_assert(generics.empty(), "Variable declaration must not be templated.");
 
                 // Scrape entire definition for this
-                std::vector<token> toAdd = {
-                    token("let"),
-                    token("NAME_HERE"),
-                    token(":"),
+                std::vector<Token> toAdd = {
+                    Token("let"),
+                    Token("NAME_HERE"),
+                    Token(":"),
                 };
 
                 while (!From.empty() && From.front() != ";")
@@ -344,7 +344,7 @@ sequence __createSequence(std::list<token> &From)
                         // Case for type!() macro
 
                         // Scrape entire type!(what) call to a std::vector
-                        std::vector<token> toAnalyze;
+                        std::vector<Token> toAnalyze;
                         int count = 0;
 
                         From.pop_front();
@@ -376,7 +376,7 @@ sequence __createSequence(std::list<token> &From)
 
                         // Convert type to lexed std::string vec
                         lexer dfa_lexer;
-                        std::vector<token> lexedType = dfa_lexer.lex(toStr(&type));
+                        std::vector<Token> lexedType = dfa_lexer.lex(toStr(&type));
 
                         // Push lexed vec to front of From
                         for (auto iter = lexedType.rbegin(); iter != lexedType.rend(); iter++)
@@ -418,34 +418,34 @@ sequence __createSequence(std::list<token> &From)
                     sm_assert(enumData.count(name) == 0,
                               "Variable name conflicts w/ existing enum name '" + name + "'");
 
-                    out.items.push_back(sequence{nullType, std::vector<sequence>(), atom, toStrC(&type, name)});
-                    out.items.push_back(sequence{nullType, std::vector<sequence>(), atom, ";"});
+                    out.items.push_back(ASTNode{nullType, std::vector<ASTNode>(), atom, toStrC(&type, name)});
+                    out.items.push_back(ASTNode{nullType, std::vector<ASTNode>(), atom, ";"});
 
                     // Insert into table
                     table[name].push_back(
-                        __multiTableSymbol{sequence{type, std::vector<sequence>(), atom, ""}, type, false, curFile});
+                        MultiTableSymbol{ASTNode{type, std::vector<ASTNode>(), atom, ""}, type, false, curFile});
 
                     // Call constructor (pointers do not get constructors)
                     if (type[0].info != pointer && type[0].info != arr && type[0].info != sarr)
                     {
                         // Syntactically necessary
-                        out.items.push_back(sequence{nullType, std::vector<sequence>(), atom, ";"});
+                        out.items.push_back(ASTNode{nullType, std::vector<ASTNode>(), atom, ";"});
 
-                        std::vector<token> newCall = {token("New"), token("("), token("@"), token(name), token(")")};
+                        std::vector<Token> newCall = {Token("New"), Token("("), Token("@"), Token(name), Token(")")};
                         int garbage = 0;
 
-                        sequence toAppend;
+                        ASTNode toAppend;
                         toAppend.info = atom;
                         toAppend.type = resolveFunction(newCall, garbage, toAppend.raw);
 
                         out.items.push_back(toAppend);
 
                         // Syntactically necessary
-                        out.items.push_back(sequence{nullType, std::vector<sequence>(), atom, ";"});
+                        out.items.push_back(ASTNode{nullType, std::vector<ASTNode>(), atom, ";"});
                     }
                     else if (type[0].info != sarr)
                     {
-                        sequence toAppend;
+                        ASTNode toAppend;
                         toAppend.info = atom;
                         toAppend.type = nullType;
                         toAppend.raw = name + "=0;";
@@ -457,7 +457,7 @@ sequence __createSequence(std::list<token> &From)
                         // Initialize sized array
                         // Set every byte inside to zero
 
-                        sequence toAppend;
+                        ASTNode toAppend;
                         toAppend.info = atom;
                         toAppend.type = nullType;
 
@@ -477,7 +477,7 @@ sequence __createSequence(std::list<token> &From)
             if (generics.size() == 0)
             {
                 // Arguments
-                std::vector<token> argList;
+                std::vector<Token> argList;
                 do
                 {
                     argList.push_back(From.front());
@@ -492,7 +492,7 @@ sequence __createSequence(std::list<token> &From)
                 auto argsWithType = getArgs(type);
                 for (std::pair<std::string, Type> p : argsWithType)
                 {
-                    table[p.first].push_back(__multiTableSymbol{sequence(), p.second, false, curFile});
+                    table[p.first].push_back(MultiTableSymbol{ASTNode(), p.second, false, curFile});
                 }
 
                 bool isSingleArg = true;
@@ -510,7 +510,7 @@ sequence __createSequence(std::list<token> &From)
 
                 // Scrape contents
                 int count = 0;
-                std::list<token> toAdd;
+                std::list<Token> toAdd;
 
                 if (From.front() != ";")
                 {
@@ -587,7 +587,7 @@ sequence __createSequence(std::list<token> &From)
                     {
                         destroyUnits(name, type, true);
 
-                        table[name].push_back(__multiTableSymbol{sequence{}, type, false, curFile});
+                        table[name].push_back(MultiTableSymbol{ASTNode{}, type, false, curFile});
 
                         if (name == "New")
                         {
@@ -608,9 +608,9 @@ sequence __createSequence(std::list<token> &From)
                             {
                                 // Add semicolon
                                 table["New"].back().seq.items.push_back(
-                                    sequence{nullType, std::vector<sequence>(), atom, ";"});
+                                    ASTNode{nullType, std::vector<ASTNode>(), atom, ";"});
 
-                                sequence toAppend;
+                                ASTNode toAppend;
                                 toAppend.info = atom;
                                 toAppend.type = nullType;
                                 toAppend.raw = getMemberNew("(*" + argsWithType[0].first + ")", var.first, var.second);
@@ -620,7 +620,7 @@ sequence __createSequence(std::list<token> &From)
                         }
 
                         depth++;
-                        std::list<token> temp;
+                        std::list<Token> temp;
                         temp.assign(toAdd.begin(), toAdd.end());
                         table[name].back().seq = __createSequence(temp);
                         depth--;
@@ -644,9 +644,9 @@ sequence __createSequence(std::list<token> &From)
                             {
                                 // Add semicolon
                                 table["Del"].back().seq.items.push_back(
-                                    sequence{nullType, std::vector<sequence>(), atom, ";"});
+                                    ASTNode{nullType, std::vector<ASTNode>(), atom, ";"});
 
-                                sequence toAppend;
+                                ASTNode toAppend;
                                 toAppend.info = atom;
                                 toAppend.type = nullType;
                                 toAppend.raw = getMemberDel("(*" + argsWithType[0].first + ")", var.first, var.second);
@@ -665,7 +665,7 @@ sequence __createSequence(std::list<token> &From)
                         destroyUnits(name, type, false);
 
                         // Ensure exactly one unit declaration
-                        table[name].push_back(__multiTableSymbol{sequence{}, type, false, curFile});
+                        table[name].push_back(MultiTableSymbol{ASTNode{}, type, false, curFile});
                     }
 
                     auto destructors = restoreSymbolTable(oldTable);
@@ -678,7 +678,7 @@ sequence __createSequence(std::list<token> &From)
             {
                 // Templated function definition
 
-                std::vector<token> returnType, toAdd = {token("let"), token("NAME_HERE")};
+                std::vector<Token> returnType, toAdd = {Token("let"), Token("NAME_HERE")};
                 std::vector<std::string> typeVec;
 
                 while (From.front() != "->")
@@ -722,7 +722,7 @@ sequence __createSequence(std::list<token> &From)
                 } while (count != 0);
 
                 // Check for needs / inst block here
-                std::vector<token> preBlock, postBlock;
+                std::vector<Token> preBlock, postBlock;
 
                 while (!From.empty() && (From.front() == "pre" || From.front() == "post"))
                 {
@@ -1044,7 +1044,7 @@ sequence __createSequence(std::list<token> &From)
             int count = 0;
             sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
             From.pop_front();
-            std::list<token> contents;
+            std::list<Token> contents;
 
             do
             {
@@ -1068,7 +1068,7 @@ sequence __createSequence(std::list<token> &From)
 
             std::string num = "1";
 
-            sequence temp = __createSequence(contents);
+            ASTNode temp = __createSequence(contents);
             std::string name = toC(temp);
 
             while (contents.front() == ",")
@@ -1076,7 +1076,7 @@ sequence __createSequence(std::list<token> &From)
                 contents.pop_front();
             }
 
-            sequence numSeq = __createSequence(contents);
+            ASTNode numSeq = __createSequence(contents);
             num = toC(numSeq);
 
             Type tempType = temp.type;
@@ -1089,7 +1089,7 @@ sequence __createSequence(std::list<token> &From)
             if (numType == nullType)
             {
                 num = "1";
-                numType = typeNode{atomic, "u128"};
+                numType = TypeNode{atomic, "u128"};
             }
 
             sm_assert(tempType.size() > 0 && (tempType[0].info == arr || (tempType[0].info == pointer && num == "1")),
@@ -1107,7 +1107,7 @@ sequence __createSequence(std::list<token> &From)
             int count = 0;
             sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
             From.pop_front();
-            std::list<token> contents;
+            std::list<Token> contents;
 
             do
             {
@@ -1129,7 +1129,7 @@ sequence __createSequence(std::list<token> &From)
                 From.pop_front();
             } while (!From.empty() && count != 0);
 
-            sequence temp = __createSequence(contents);
+            ASTNode temp = __createSequence(contents);
             std::string name = toC(temp);
 
             Type tempType = temp.type;
@@ -1146,7 +1146,7 @@ sequence __createSequence(std::list<token> &From)
             int count = 0;
             sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
             From.pop_front();
-            std::list<token> contents;
+            std::list<Token> contents;
 
             do
             {
@@ -1168,7 +1168,7 @@ sequence __createSequence(std::list<token> &From)
                 From.pop_front();
             } while (!From.empty() && count != 0);
 
-            sequence lhsSeq = __createSequence(contents);
+            ASTNode lhsSeq = __createSequence(contents);
             std::string lhs = toC(lhsSeq);
 
             while (contents.front() == ",")
@@ -1176,7 +1176,7 @@ sequence __createSequence(std::list<token> &From)
                 contents.pop_front();
             }
 
-            sequence rhsSeq = __createSequence(contents);
+            ASTNode rhsSeq = __createSequence(contents);
             std::string rhs = toC(rhsSeq);
 
             sm_assert(lhsSeq.type[0].info == pointer || lhsSeq.type[0].info == arr,
@@ -1188,7 +1188,7 @@ sequence __createSequence(std::list<token> &From)
             out.type = nullType;
             out.items.clear();
 
-            out.items.push_back(sequence{nullType, std::vector<sequence>(), atom, lhs + " = (void*)(" + rhs + ")"});
+            out.items.push_back(ASTNode{nullType, std::vector<ASTNode>(), atom, lhs + " = (void*)(" + rhs + ")"});
 
             return out;
         }
@@ -1197,7 +1197,7 @@ sequence __createSequence(std::list<token> &From)
             int count = 0;
             sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
             From.pop_front();
-            std::list<token> contents;
+            std::list<Token> contents;
 
             do
             {
@@ -1219,7 +1219,7 @@ sequence __createSequence(std::list<token> &From)
                 From.pop_front();
             } while (!From.empty() && count != 0);
 
-            sequence lhsSeq = __createSequence(contents);
+            ASTNode lhsSeq = __createSequence(contents);
             std::string lhs = toC(lhsSeq);
 
             while (contents.front() == ",")
@@ -1227,7 +1227,7 @@ sequence __createSequence(std::list<token> &From)
                 contents.pop_front();
             }
 
-            sequence rhsSeq = __createSequence(contents);
+            ASTNode rhsSeq = __createSequence(contents);
             std::string rhs = toC(rhsSeq);
 
             sm_assert(lhsSeq.type[0].info == pointer || lhsSeq.type[0].info == arr || lhsSeq.type[0].info == sarr,
@@ -1326,7 +1326,7 @@ sequence __createSequence(std::list<token> &From)
         From.pop_front();
 
         sm_assert(!From.empty(), "'case' must be followed by enumeration option name.");
-        out.items.push_back(sequence{nullType, std::vector<sequence>{}, atom, From.front()});
+        out.items.push_back(ASTNode{nullType, std::vector<ASTNode>{}, atom, From.front()});
         std::string optionName = From.front();
 
         sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
@@ -1343,16 +1343,16 @@ sequence __createSequence(std::list<token> &From)
         if (From.front() != ")")
         {
             captureName = From.front();
-            out.items.push_back(sequence{nullType, std::vector<sequence>{}, atom, From.front()});
+            out.items.push_back(ASTNode{nullType, std::vector<ASTNode>{}, atom, From.front()});
             From.pop_front();
 
-            table[captureName].push_back(__multiTableSymbol{sequence{}, pointer, false, curFile});
+            table[captureName].push_back(MultiTableSymbol{ASTNode{}, pointer, false, curFile});
             table[captureName].back().type.append(enumData[prevMatchTypeStr].options[optionName]);
         }
         else
         {
             // Padding so that this spot will always refer to the capture variable
-            out.items.push_back(sequence{nullType, std::vector<sequence>{}, atom, "NULL"});
+            out.items.push_back(ASTNode{nullType, std::vector<ASTNode>{}, atom, "NULL"});
         }
 
         sm_assert(!From.empty() && From.front() == ")", "Capture parenthesis must contain at most one symbol.");
@@ -1416,7 +1416,7 @@ sequence __createSequence(std::list<token> &From)
         }
         else if (out.items.back().info == code_line)
         {
-            out.items.back().items.push_back(sequence{nullType, std::vector<sequence>(), atom, ";"});
+            out.items.back().items.push_back(ASTNode{nullType, std::vector<ASTNode>(), atom, ";"});
         }
 
         return out;
@@ -1440,7 +1440,7 @@ sequence __createSequence(std::list<token> &From)
         // Takes a code scope / code line
         out.info = code_line;
         out.type = nullType;
-        out.items.push_back(sequence{nullType, std::vector<sequence>(), keyword, "return"});
+        out.items.push_back(ASTNode{nullType, std::vector<ASTNode>(), keyword, "return"});
 
         sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
         From.pop_front();
@@ -1469,7 +1469,7 @@ sequence __createSequence(std::list<token> &From)
 
         // Code scope.
         int count = 1;
-        std::list<token> curVec;
+        std::list<Token> curVec;
         while (true)
         {
             if (From.empty())
@@ -1534,7 +1534,7 @@ sequence __createSequence(std::list<token> &From)
         {
             for (const auto &p : destructors)
             {
-                out.items.push_back(sequence{nullType, std::vector<sequence>(), atom, p.second + ";"});
+                out.items.push_back(ASTNode{nullType, std::vector<ASTNode>(), atom, p.second + ";"});
             }
         }
 
@@ -1568,12 +1568,12 @@ sequence __createSequence(std::list<token> &From)
     // Non-special case; code line.
     // Function calls and template instantiation may occur within.
 
-    sequence temp;
+    ASTNode temp;
     temp.info = atom;
 
     int i = 0;
 
-    std::vector<token> tempVec;
+    std::vector<Token> tempVec;
     for (auto i : From)
     {
         tempVec.push_back(i);
@@ -1603,7 +1603,7 @@ sequence __createSequence(std::list<token> &From)
 
 // This should only be called after method replacement
 // I know I wrote this, but it still feels like black magic and I don't really understand it
-Type resolveFunctionInternal(const std::vector<token> &What, int &start, std::vector<std::string> &c)
+Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::vector<std::string> &c)
 {
     if (What.empty() || start >= What.size())
     {
@@ -1664,7 +1664,7 @@ Type resolveFunctionInternal(const std::vector<token> &What, int &start, std::ve
     // Parenthesis
     if (What[start] == "(")
     {
-        std::vector<token> toUse;
+        std::vector<Token> toUse;
         int count = 0;
         do
         {
@@ -1826,7 +1826,7 @@ Type resolveFunctionInternal(const std::vector<token> &What, int &start, std::ve
         // Case for size!() macro
 
         // Scrape entire size!(what) call to a std::vector
-        std::vector<token> toAnalyze;
+        std::vector<Token> toAnalyze;
         int count = 0;
 
         start++;
@@ -1869,7 +1869,7 @@ Type resolveFunctionInternal(const std::vector<token> &What, int &start, std::ve
         // Otherwise unspecified macro
 
         // Scrape entire call to a std::vector
-        std::list<token> toAnalyze = {token(What[start]), token("(")};
+        std::list<Token> toAnalyze = {Token(What[start]), Token("(")};
         int count = 0;
 
         start++;
@@ -1891,10 +1891,10 @@ Type resolveFunctionInternal(const std::vector<token> &What, int &start, std::ve
 
             start++;
         } while (count != 0 && start < What.size());
-        toAnalyze.push_back(token(")"));
+        toAnalyze.push_back(Token(")"));
 
         // Analyze type of collected
-        sequence s = __createSequence(toAnalyze);
+        ASTNode s = __createSequence(toAnalyze);
 
         c.push_back(toC(s));
 
@@ -1905,8 +1905,8 @@ Type resolveFunctionInternal(const std::vector<token> &What, int &start, std::ve
     if (What.size() > start + 1 && What[start + 1] == "(")
     {
         // get args within parenthesis
-        std::vector<token> curArg;
-        std::vector<std::vector<token>> args;
+        std::vector<Token> curArg;
+        std::vector<std::vector<Token>> args;
 
         int count = 0, templCount = 0;
         start++;
@@ -1971,7 +1971,7 @@ Type resolveFunctionInternal(const std::vector<token> &What, int &start, std::ve
 
         std::vector<Type> argTypes;
         std::vector<std::string> argStrs;
-        for (std::vector<token> arg : args)
+        for (std::vector<Token> arg : args)
         {
             int trash = 0;
             std::string cur;
@@ -2007,7 +2007,7 @@ Type resolveFunctionInternal(const std::vector<token> &What, int &start, std::ve
             sm_assert(table.count(name) != 0, "Function call '" + name + "' has no registered symbols.");
             sm_assert(table[name].size() != 0, "Function call '" + name + "' has no registered symbols.");
 
-            std::vector<__multiTableSymbol> candidates = table[name];
+            std::vector<MultiTableSymbol> candidates = table[name];
 
             // Construct candArgs
             std::vector<std::vector<Type>> candArgs;
@@ -2297,7 +2297,7 @@ Type resolveFunctionInternal(const std::vector<token> &What, int &start, std::ve
     return type;
 }
 
-Type resolveFunction(const std::vector<token> &What, int &start, std::string &c)
+Type resolveFunction(const std::vector<Token> &What, int &start, std::string &c)
 {
     std::vector<std::string> cVec;
 

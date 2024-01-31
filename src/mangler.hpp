@@ -23,11 +23,13 @@ std::string mangleStruct(const std::string &name, const std::vector<std::vector<
 std::string mangleEnum(const std::string &name,
                        const std::vector<std::vector<std::string>> &generics = std::vector<std::vector<std::string>>());
 
-// Used for translation-time variable uniqueness in the face
-// of overloaded names. Not immediately useful, but necessary
-// for future lower-level (C or LLVM IR) translations.
+// Fully qualify a type in a canonical way.
 std::string mangleType(const Type &type);
+
+// Fully qualify a symbol in a canonical way.
 std::string mangleSymb(const std::string &name, Type &type);
+
+// Fully qualify a symbol in a canonical way.
 std::string mangleSymb(const std::string &name, const std::string &typeStr);
 
 #endif

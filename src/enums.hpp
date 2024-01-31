@@ -20,10 +20,8 @@ is whether it says 'struct' or 'enum'.
 
 #include "type_builder.hpp"
 
-// Used in type sizing later
-const static char enumTypeStr[] = "i32";
-
-struct __enumLookupData
+// Used in the `enumData` map (part of the type symbol table).
+struct EnumLookupData
 {
     std::map<std::string, Type> options;
     std::vector<std::string> order;
@@ -31,6 +29,7 @@ struct __enumLookupData
     bool erased = false;
 };
 
-extern std::map<std::string, __enumLookupData> enumData;
+// External non-constant global.
+extern std::map<std::string, EnumLookupData> enumData;
 
 #endif

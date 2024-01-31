@@ -19,7 +19,7 @@ void sm_assert(const bool &expression, const std::string &message)
     }
 }
 
-void toCInternal(const sequence &What, std::vector<std::string> &out)
+void toCInternal(const ASTNode &What, std::vector<std::string> &out)
 {
     std::string temp;
 
@@ -49,9 +49,10 @@ void toCInternal(const sequence &What, std::vector<std::string> &out)
             }
             else if (What.items[i].type == nullType)
             {
-                temp = toC(What.items[i]);
+                int old_size = out.size();
+                toCInternal(What.items[i], out);
 
-                if (temp != "" && temp != ";")
+                if (out.size() != old_size && !(old_size + 1 == out.size() && out.back() == ";"))
                 {
                     out.push_back(temp);
                     out.push_back(";");
@@ -259,7 +260,7 @@ void toCInternal(const sequence &What, std::vector<std::string> &out)
 } // toCInternal
 
 // Turn a .oak sequence into a .cpp one
-std::string toC(const sequence &What)
+std::string toC(const ASTNode &What)
 {
     std::vector<std::string> out;
     toCInternal(What, out);
@@ -447,7 +448,7 @@ std::vector<std::pair<std::string, Type>> getArgs(Type &type)
 }
 
 // Can throw errors (IE malformed definitions)
-void addEnum(const std::vector<token> &From)
+void addEnum(const std::vector<Token> &From)
 {
     // Assert the expression can be properly-formed
     parse_assert(From.size() >= 4);
@@ -524,10 +525,10 @@ void addEnum(const std::vector<token> &From)
     t.append(maps);
     t.append(atomic, "void");
 
-    sequence s;
+    ASTNode s;
     s.info = code_scope;
     s.type = Type(atomic, "void");
-    s.items.push_back(sequence{});
+    s.items.push_back(ASTNode{});
     s.items.back().info = atom;
     s.items.back().raw = "//AUTOGEN";
 
@@ -535,8 +536,8 @@ void addEnum(const std::vector<token> &From)
     table["New"];
     table["Del"];
 
-    table["New"].push_back(__multiTableSymbol{s, t, false, curFile});
-    table["Del"].push_back(__multiTableSymbol{s, t, false, curFile});
+    table["New"].push_back(MultiTableSymbol{s, t, false, curFile});
+    table["Del"].push_back(MultiTableSymbol{s, t, false, curFile});
 
     parse_assert(From[i] == ":");
     i++;
@@ -551,7 +552,7 @@ void addEnum(const std::vector<token> &From)
             // name : type ,
             // name , name2 , name3 : type < string , hi > , name4 : type2 ,
             std::vector<std::string> names;
-            std::vector<token> lexedType;
+            std::vector<Token> lexedType;
 
             while (i + 1 < From.size() && From[i + 1] == ",")
             {
@@ -618,7 +619,7 @@ void addEnum(const std::vector<token> &From)
         throw parse_error("Malformed enum definition; Expected ';' or '{'.");
     }
 
-    __enumLookupData &cur = enumData[name];
+    EnumLookupData &cur = enumData[name];
     std::string enumTypeStr = name;
     for (auto optionName : cur.order)
     {
@@ -637,7 +638,7 @@ void addEnum(const std::vector<token> &From)
             constructorType.append(maps);
             constructorType.append(atomic, "void");
 
-            table["wrap_" + optionName].push_back(__multiTableSymbol{sequence{}, constructorType, false, curFile});
+            table["wrap_" + optionName].push_back(MultiTableSymbol{ASTNode{}, constructorType, false, curFile});
         }
         else
         {
@@ -657,7 +658,7 @@ void addEnum(const std::vector<token> &From)
             constructorType.append(maps);
             constructorType.append(atomic, "void");
 
-            table["wrap_" + optionName].push_back(__multiTableSymbol{sequence{}, constructorType, false, curFile});
+            table["wrap_" + optionName].push_back(MultiTableSymbol{ASTNode{}, constructorType, false, curFile});
         }
     }
 
@@ -665,8 +666,8 @@ void addEnum(const std::vector<token> &From)
 }
 
 // Dump data to file
-void dump(const std::vector<token> &Lexed, const std::string &Where, const std::string &FileName, const int &Line,
-          const sequence &FileSeq, const std::vector<token> LexedBackup, const std::string &ErrorMsg)
+void dump(const std::vector<Token> &Lexed, const std::string &Where, const std::string &FileName, const int &Line,
+          const ASTNode &FileSeq, const std::vector<Token> LexedBackup, const std::string &ErrorMsg)
 {
     std::string sep = "";
     for (int i = 0; i < 50; i++)
@@ -1002,7 +1003,7 @@ std::vector<int> getReferenceCandidates(const std::vector<std::vector<Type>> &ca
 ////////////////////////////////////////////////////////////////
 
 // Prints the reason why each candidate was rejected
-void printCandidateErrors(const std::vector<__multiTableSymbol> &candidates, const std::vector<Type> &argTypes,
+void printCandidateErrors(const std::vector<MultiTableSymbol> &candidates, const std::vector<Type> &argTypes,
                           const std::string &name)
 {
     std::cout << "--------------------------------------------------\n";
@@ -1184,7 +1185,7 @@ void destroyUnits(const std::string &name, const Type &type, const bool &doThrow
 }
 
 // Actually used in dump files, not just for debugging.
-void debugPrint(const sequence &What, int spaces, std::ostream &to)
+void debugPrint(const ASTNode &What, int spaces, std::ostream &to)
 {
     for (int i = 0; i < spaces; i++)
     {
@@ -1302,7 +1303,7 @@ std::string getMemberDel(const std::string &selfName, const std::string &varName
 }
 
 // Returns an item to insert before a given sequence
-std::string insertDestructorsRecursive(sequence &what,
+std::string insertDestructorsRecursive(ASTNode &what,
                                        const std::vector<std::pair<std::string, std::string>> &destructors)
 {
     if ((what.info == code_line || what.info == atom) && what.type != nullType)
@@ -1359,7 +1360,7 @@ std::string insertDestructorsRecursive(sequence &what,
             {
                 // Insert the thing returned
 
-                what.items.insert(what.items.begin() + i, sequence{nullType, std::vector<sequence>(), atom, out});
+                what.items.insert(what.items.begin() + i, ASTNode{nullType, std::vector<ASTNode>(), atom, out});
                 i++;
             }
         }
@@ -1373,7 +1374,7 @@ std::string insertDestructorsRecursive(sequence &what,
 // Insert destructors before any return statement that DOES NOT return the item in question
 // Recursive
 // Will only be called upon exiting a function
-void insertDestructors(sequence &what, const std::vector<std::pair<std::string, std::string>> &destructors)
+void insertDestructors(ASTNode &what, const std::vector<std::pair<std::string, std::string>> &destructors)
 {
     insertDestructorsRecursive(what, destructors);
 }

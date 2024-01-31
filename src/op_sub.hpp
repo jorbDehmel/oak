@@ -21,6 +21,6 @@ Should be done after macros
 Takes entire lexed token stream. After call, no operators
 should remain.
 */
-void operatorSub(std::vector<token> &From);
+void operatorSub(std::vector<Token> &from);
 
 #endif

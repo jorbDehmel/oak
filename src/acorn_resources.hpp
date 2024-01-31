@@ -25,14 +25,25 @@ GPLv3 held by author
 #include "reconstruct.hpp"
 #include "rules.hpp"
 #include "sequence.hpp"
+#include "sizer.hpp"
 #include "symbol_table.hpp"
 #include "type_builder.hpp"
 
-#include "sizer.hpp"
 #include "tags.hpp"
 
-// Info globals
-const static std::string VERSION = "0.4.19";
+// External settings (non-constant)
+extern bool debug, doLink, alwaysDump, ignoreSyntaxErrors, isMacroCall;
+extern std::set<std::string> objects, cflags;
+extern std::map<std::string, std::string> preprocDefines;
+extern std::vector<unsigned long long> phaseTimes;
+
+// Maps used filepaths to their post-compiler macro compile
+// times, if debug is on.
+// Otherwise, maps them to zero.
+extern std::map<std::filesystem::path, unsigned long long> visitedFiles;
+
+// Info: global constants
+const static std::string VERSION = "0.4.20";
 const static std::string LICENSE = "GPLv3";
 const static std::string INFO = "jdehmel@outlook.com";
 
@@ -42,16 +53,11 @@ const static std::string OAK_DIR_PATH = "/usr/include/oak/";
 // Underlying compilers and linkers allowing Acorn to function
 const static std::string C_COMPILER = "clang"; // This should be a C compiler- like clang or gcc
 const static std::string LINKER = "clang++";   // This should be a C++ compiler- like clang++ or g++
-const static std::string PRETTIFIER = "clang-format --style=Microsoft -i ";
+const static std::string PRETTIFIER =
+    "clang-format --style=Microsoft -i "; // This should be a formatter (like clang-format)
 
 // Max allowable size of .acorn_build in kilobytes
 const static unsigned long long MAX_CACHE_KB = 2000;
-
-/*
-Remaining options:
- - "bfgjktyz"
- - "BCFGHIJKLNPVWXYZ"
-*/
 
 const static std::string helpText = "Acorn - Oak Standard Translator\n"
                                     "For the Oak programming language\n"
@@ -89,21 +95,22 @@ const static std::string helpText = "Acorn - Oak Standard Translator\n"
                                     " -w    | --new       | Create a new package\n"
                                     " -x    | --syntax    | Ignore syntax errors\n";
 
-extern bool debug, compile, doLink, alwaysDump, manual, ignoreSyntaxErrors, isMacroCall;
-extern std::set<std::string> cppSources, objects, cflags;
-extern std::map<std::string, std::string> preprocDefines;
-extern std::vector<unsigned long long> phaseTimes;
-
-// Maps used filepaths to their post-compiler macro compile times, if debug is on.
-// Otherwise, maps them to zero.
-extern std::map<std::filesystem::path, unsigned long long> visitedFiles;
-
-// Prints the cumulative disk usage of Oak (in human-readable)
+// Prints the cumulative disk usage of Oak (human-readable).
 void getDiskUsage();
 
-void doFile(const std::string &From);
+// The most important function in the compiler; Actually loads,
+// lexes, does rules, does AST-analysis and reconstruction. This
+// is the core of the compiler.
+void doFile(const std::string &filepath);
 
-void makePackage(const std::string &Name);
+// Creates a factory-settings package with the given name in the
+// current directory. Sets up everything you need.
+void makePackage(const std::string &name);
+
+// Ensures that the text passed adheres to basic style-based
+// syntactical requirements (IE line width limits, matching
+// parenthesis). If fatal, does not allow recovery. Otherwise,
+// does.
 void ensureSyntax(const std::string &text, const bool &fatal = true);
 
 #endif

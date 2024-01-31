@@ -8,31 +8,31 @@ jdehmel@outlook.com
 
 extern std::string toStrC(const Type *What, const std::string &Name = "", const unsigned int &pos = 0);
 
-sequence getAllocSequence(Type &type, const std::string &name, const std::string &num)
+ASTNode getAllocSequence(Type &type, const std::string &name, const std::string &num)
 {
     // Assumes that name is a pointer to type which already exists in scope
     //
 
-    sequence out;
+    ASTNode out;
     out.info = code_line;
     out.type = nullType;
 
     // name = (type *)malloc(len * sizeof(type));
     out.items.push_back(
-        sequence{nullType, std::vector<sequence>(), atom,
-                 name + " = (" + toStrC(&type) + " *)malloc(sizeof(" + toStrC(&type) + ") * " + num + ")"});
+        ASTNode{nullType, std::vector<ASTNode>(), atom,
+                name + " = (" + toStrC(&type) + " *)malloc(sizeof(" + toStrC(&type) + ") * " + num + ")"});
 
     return out;
 }
 
-sequence getFreeSequence(const std::string &name, const bool &isArr)
+ASTNode getFreeSequence(const std::string &name, const bool &isArr)
 {
-    sequence out;
+    ASTNode out;
     out.info = code_line;
     out.type = nullType;
     out.items.clear();
 
-    out.items.push_back(sequence{nullType, std::vector<sequence>(), atom, "free(" + name + ")"});
+    out.items.push_back(ASTNode{nullType, std::vector<ASTNode>(), atom, "free(" + name + ")"});
 
     return out;
 }

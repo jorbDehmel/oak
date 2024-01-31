@@ -2,11 +2,11 @@
 Jordan Dehmel, 2023 - present
 jdehmel@outlook.com, GPLv3
 
-Function signatures for ALL the int and float operators for the
-Oak programming language. Abandon all hope, ye who enter here,
-for only esoterica and repetition await you. As far as I know,
-this is the most efficient way to represent these signatures,
-exploiting plural definitions in functions.
+Function signatures for all atomic operators for the Oak
+programming language. As far as I know, this is the most
+efficient way to represent these signatures, exploiting plural
+definitions in functions. This will likely be the most expensive
+file in most low-level programs.
 */
 
 link!("std/math_inter.o");

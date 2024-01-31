@@ -21,7 +21,7 @@ const static std::set<std::string> operators = {
 // Moves pre and post to include the operands to a binary
 // operator
 // Assumes that pre = i - 1, post = i + 1, i = index of bin op
-void getOperands(std::vector<token> &from, int &pre, int &post, const bool &useLine = false)
+void getOperands(std::vector<Token> &from, int &pre, int &post, const bool &useLine = false)
 {
     /*
     Example cases:
@@ -171,7 +171,7 @@ void getOperands(std::vector<token> &from, int &pre, int &post, const bool &useL
 }
 
 // Substitute a single operation as identified
-void doSub(std::vector<token> &from, int &pos, const std::string &name)
+void doSub(std::vector<Token> &from, int &pos, const std::string &name)
 {
     int pre = pos - 1, post = pos + 1;
     bool fullLine = false;
@@ -218,7 +218,7 @@ void doSub(std::vector<token> &from, int &pos, const std::string &name)
     toAdd.push_back(")");
 
     // Erase old (all items pre <= i < post)
-    token templ = from[pre];
+    Token templ = from[pre];
     for (int i = pre; i < post; i++)
     {
         from.erase(from.begin() + pre);
@@ -235,7 +235,7 @@ void doSub(std::vector<token> &from, int &pos, const std::string &name)
     return;
 }
 
-void operatorSub(std::vector<token> &From)
+void operatorSub(std::vector<Token> &From)
 {
     // Level 2: Multiplication, division and modulo
     for (int i = 0; i < From.size(); i++)

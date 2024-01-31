@@ -24,24 +24,32 @@ source code.
 #include "symbol_table.hpp"
 #include "tags.hpp"
 
-const static std::string COMPILED_PATH = ".oak_build/";
-const static std::string COMPILER_COMMAND = "acorn";
-
+// Extern non-constant globals
 extern std::set<std::string> compiled;
 extern std::map<std::string, std::string> macros;
 extern std::map<std::string, std::string> macroSourceFiles;
 
-// USES SYSTEM CALLS
-std::string callMacro(const std::string &Name, const std::vector<std::string> &Args, bool debug);
-void compileMacro(const std::string &Name, bool debug);
+const static std::string COMPILED_PATH = ".oak_build/";
+const static std::string COMPILER_COMMAND = "acorn";
 
-// Misnomer: This returns the create time in seconds after epoch
-// Is costly the first time, but uses caching
-long long getAgeOfFile(const std::string &filepath);
+// USES SYSTEM CALLS. Ensures a given macro exists, then calls
+// it with the given arguments. If debug is true, specifies such
+// in the call.
+std::string callMacro(const std::string &name, const std::vector<std::string> &args, bool debug);
 
-// Returns true if the source file is newer than the destination one
-// OR if either file is nonexistant
-// Is costly the first time, but uses caching
+// USES SYSTEM CALLS. If source code exists for `name` but it is
+// not yet compiled, calls another instance of the compiler on
+// its contents. Note: The sub-instance of the compiler runs in
+// a special macro-compilation mode which inhibits its outputs
+// and syntax constraints.
+void compileMacro(const std::string &name, bool debug);
+
+// Returns the given file's last modification time, in seconds
+// after the epoch.
+long long getFileLastModification(const std::string &filepath);
+
+// Returns true if the source file is newer than the destination
+// one OR if either file is nonexistant.
 bool isSourceNewer(const std::string &source, const std::string &dest);
 
 #endif

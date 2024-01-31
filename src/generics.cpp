@@ -12,10 +12,10 @@ Jordan Dehmel, 2023
 
 // External definition of createSequence, defined in sequence.cpp
 // This avoids circular dependencies
-extern sequence createSequence(const std::vector<token> &From);
+extern ASTNode createSequence(const std::vector<Token> &From);
 
 // A pair of <name, number_of_generics> maps to a vector of symbols within
-std::map<std::string, std::vector<genericInfo>> generics;
+std::map<std::string, std::vector<GenericInfo>> generics;
 
 // Returns true if template substitution would make the two typeVecs the same
 bool checkTypeVec(const std::vector<std::string> &candidateTypeVec, const std::vector<std::string> &genericTypeVec,
@@ -127,7 +127,7 @@ bool checkTypeVec(const std::vector<std::string> &candidateTypeVec, const std::v
 Takes a type and a vector of candidates. Returns true if the
 type is a prefix of any of the candidates.
 */
-bool typeIsPrefixOfAny(const Type &t, const std::vector<__multiTableSymbol> &candidates)
+bool typeIsPrefixOfAny(const Type &t, const std::vector<MultiTableSymbol> &candidates)
 {
     std::vector<bool> isViable;
     for (int i = 0; i < candidates.size(); i++)
@@ -198,7 +198,7 @@ bool checkInstances(const std::vector<std::vector<std::string>> &a, const std::v
 
 // Skips all error checking; DO NOT FEED THIS THINGS THAT MAY ALREADY HAVE INSTANCES
 // Returns true if it was successful
-std::string __instantiateGeneric(const std::string &what, genericInfo &info,
+std::string __instantiateGeneric(const std::string &what, GenericInfo &info,
                                  const std::vector<std::vector<std::string>> &genericSubs)
 {
     // Build substitution table
@@ -208,7 +208,7 @@ std::string __instantiateGeneric(const std::string &what, genericInfo &info,
         substitutions[info.genericNames[i]] = genericSubs[i];
     }
 
-    std::vector<token> copy;
+    std::vector<Token> copy;
 
     // Needs block (pre, so no functions)
     if (info.preBlock.size() != 0)
@@ -454,11 +454,11 @@ std::string instantiateGeneric(const std::string &what, const std::vector<std::v
     return mangleStr;
 }
 
-void addGeneric(const std::vector<token> &what, const std::string &name, const std::vector<std::string> &genericsList,
-                const std::vector<std::string> &typeVec, const std::vector<token> &preBlock,
-                const std::vector<token> &postBlock)
+void addGeneric(const std::vector<Token> &what, const std::string &name, const std::vector<std::string> &genericsList,
+                const std::vector<std::string> &typeVec, const std::vector<Token> &preBlock,
+                const std::vector<Token> &postBlock)
 {
-    genericInfo toAdd;
+    GenericInfo toAdd;
     toAdd.originFile = curFile;
 
     for (auto a : genericsList)

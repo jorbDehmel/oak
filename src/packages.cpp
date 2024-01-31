@@ -15,9 +15,9 @@ namespace fs = std::filesystem;
 #define pm_assert(expression, message)                                                                                 \
     ((bool)(expression) ? true : throw package_error(message " (Failed assertion: '" #expression "')"))
 
-std::map<std::string, packageInfo> packages;
+std::map<std::string, PackageInfo> packages;
 
-std::ostream &operator<<(std::ostream &strm, const packageInfo &info)
+std::ostream &operator<<(std::ostream &strm, const PackageInfo &info)
 {
     strm << "Package '" << info.name << "'\n"
          << "Version '" << info.version << "'\n"
@@ -130,12 +130,12 @@ void cleanString(std::string &What)
     return;
 }
 
-packageInfo loadPackageInfo(const std::string &Filepath)
+PackageInfo loadPackageInfo(const std::string &Filepath)
 {
     std::ifstream inp(Filepath);
     pm_assert(inp.is_open(), "Failed to load file '" + Filepath + "'");
 
-    packageInfo toAdd;
+    PackageInfo toAdd;
 
     std::string name, content, garbage;
     while (!inp.eof())
@@ -255,7 +255,7 @@ packageInfo loadPackageInfo(const std::string &Filepath)
     return toAdd;
 }
 
-void savePackageInfo(const packageInfo &Info, const std::string &Filepath)
+void savePackageInfo(const PackageInfo &Info, const std::string &Filepath)
 {
     std::ofstream out(Filepath);
     pm_assert(out.is_open(), "Failed to open file '" + Filepath + "'");
@@ -416,7 +416,7 @@ void downloadPackage(const std::string &URLArg, const bool &Reinstall, const std
                     fs::exists(tempFolderName + "/" + path + "/makefile");
 
         // Read info file
-        packageInfo info = loadPackageInfo(tempFolderName + "/" + path + "/" + INFO_FILE);
+        PackageInfo info = loadPackageInfo(tempFolderName + "/" + path + "/" + INFO_FILE);
 
         std::cout << tags::green << "Loaded package from " << URL << "\n" << info << '\n' << tags::reset << std::flush;
 
@@ -540,7 +540,7 @@ std::vector<std::string> getPackageFiles(const std::string &Name)
     }
 
     // Loaded and installed
-    packageInfo info = packages[Name];
+    PackageInfo info = packages[Name];
     std::vector<std::string> out;
     std::string cur, toSplit = info.toInclude;
 

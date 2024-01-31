@@ -8,4 +8,4 @@ GPLv3 held by author
 
 #include "enums.hpp"
 
-std::map<std::string, __enumLookupData> enumData;
+std::map<std::string, EnumLookupData> enumData;

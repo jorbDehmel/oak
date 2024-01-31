@@ -120,7 +120,7 @@ void reconstruct(const std::string &Name, std::stringstream &header, std::string
         {
             std::string name = entry.first;
 
-            for (__multiTableSymbol s : entry.second)
+            for (MultiTableSymbol s : entry.second)
             {
                 try
                 {
@@ -336,7 +336,7 @@ std::string toStrCFunctionRef(const Type *What, const std::string &Name, const u
     // Then some number of args, possibly containing maps
     do
     {
-        typeNode &cur = (*What)[i];
+        TypeNode &cur = (*What)[i];
 
         if (cur.info == function)
         {
@@ -521,7 +521,7 @@ std::string enumToC(const std::string &name)
         throw std::runtime_error(std::string(__FILE__) + ":" + std::to_string(__LINE__) + " Error in enumeration toC.");
     }
 
-    __enumLookupData &cur = enumData[name];
+    EnumLookupData &cur = enumData[name];
 
     std::string out = "struct " + name + " {\nenum {\n";
 

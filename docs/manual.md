@@ -1,6 +1,6 @@
 
 # The Oak Programming Language
-## Version 0.4.19
+## Version 0.4.20
 
 ![](./logo_trimmed.png)
 
@@ -74,7 +74,7 @@ system.
 
 To install, open a terminal in this folder and run
 `make install`. This will compile and install `Oak`, as well as
-the standard `Oak` package. To uninstall, call `acorn -A`. To
+the standard `Oak` packages. To uninstall, call `acorn -A`. To
 update, call `acorn -a`.
 
 ## Versions of `Oak`
@@ -109,11 +109,11 @@ demos via `make test` or `acorn -T`.
 This section outlines things which make `Oak` syntax unlike
 other common syntaxes. As mentioned above, this document
 requires a moderate understanding of `C`/`C++` syntax, and thus
-we will mostly focus on differences of this.
+we will mostly focus on differences from these languages.
 
 ### Reference and Dereference Operators
 
-In `C++` and `Rust`, the reference operator is `&` and the 
+In `C`, `C++` and `Rust`, the reference operator is `&` and the 
 dereference operator is `*`. In `Oak`, the reference operator is
 `@` and the dereference operator is `^`.
 
@@ -167,9 +167,13 @@ let misc_2: []^[]^^^[][][]f64;
 ```
 
 A sized array looks like this: `[size_here]i32`, where
-`size_here` is a compile-time positive integer constant. An
-unsized array, on the other hand, looks like this: `[]i32`.
-Unsized arrays are assigned via the `alloc!` macro.
+`size_here` is a compile-time positive integer constant (IE `2`
+would be valid, but `n` would not, even if `n` is a positive
+integer at run-time). An unsized array, on the other hand, looks
+like this: `[]i32`. Unsized arrays are assigned via the `alloc!`
+macro. Only unsized arrays may be passed as arguments to
+functions. Upon being passed as an argument, a sized array is
+implicitely converted into an unsized one.
 
 ### Modern Generics / Templates
 
@@ -188,7 +192,7 @@ In `Oak`, the template line `template <class T>` is replaced by
 simply `<t>` (generic names must be lowercase).
 
 ```rust
-let foobar<t>(what: T) -> void
+let foobar<t>(what: t) -> void
 {
     // ... 
 }
@@ -222,9 +226,9 @@ does not have any form of member protection. This means that all
 struct member variables are always `public`. For a demonstration
 of why this is the case, see `extra/tests/mischief.oak`.
 
-**Note:** Informal private members are denoted as in `Python`,
-with two underscores as a prefix. This is the same for local
-helper functions in libraries.
+**Note:** Informal private members are denoted with two
+underscores as a prefix. This is the same for local helper
+functions in libraries.
 
 ```rust
 let library_name::public_fn() -> void {}
@@ -239,7 +243,9 @@ let library_name::struct_name: struct
 
 These members are **not actually private**, but are informally
 treated as such. That is to say, you *shouldn't* modify them,
-but you still *can*.
+but you still *can*. This is actually the case in all languages
+with pointers; Any data of any contiguous structure can be
+accessed by sufficient pointer arithmetic.
 
 ### Class Methods
 
@@ -261,6 +267,11 @@ a.b();
 b(a);
 ```
 
+For a given function to be considered a proper method on `t`,
+the first argument should be `self: ^t`. This is not a strict
+limitation, however, and method notation can be used to pass
+the preceding object as a parameter to any arbitrary function.
+
 ### Mutability
 
 `Oak` does not have the `const` keyword. Instead, everything is
@@ -273,17 +284,32 @@ address of something. Thus, `^i32` in `Oak` is equivalent to
 
 In `Oak`, a variable is declared as follows.
 
-`let NAME: TYPE;`
+```rust
+let name: type_here;
+```
 
 For instance, a boolean named  `a` would be declared:
 
-`let a: bool;`
+```rust
+let a: bool;
+```
 
 You should read the `:` operator as "be of type". Thus, the
 above statement reads "let a be of type bool". Functions are
 declared as follows.
 
-`let NAME(ARG_1: ARG_1_TYPE, ...) -> RETURN_TYPE;`
+```rust
+let NAME(ARG_1: ARG_1_TYPE, ...) -> RETURN_TYPE;
+```
+
+For instance, the statement
+
+```rust
+let main(c: i32, v: [][]i8) -> i32;
+```
+
+Should be read "let main be a function mapping an `i32` and an
+array of arrays of `i8`s to a single `i32`".
 
 For instance, a function that in `C++` would be declared
 `bool isBiggerThanFive(int a);` would in `Oak` be declared
@@ -319,11 +345,7 @@ Void functions will only return at the end of their code scopes.
 Pointers are `^` (IE a pointer to a bool is `^bool`). The "get
 address" operator is @.
 
-Syntax is fluid and user-modifiable in `Oak`. For more
-information about this aspect, see the `Preproc Rules` section
-below.
-
-The `:`, `let` and `->` operators come from mathematics. For
+The `:`, `let` and `->` operators all come from mathematics. For
 instance, the mathematical statement
 
 $$
@@ -639,12 +661,14 @@ Sized arrays are **not** pointers- They are the actual
 contiguous memory positions which unsized arrays point to.
 **Their memory is initialized with the native `New` function.**
 
-## Formatting
+## Formatting and Pet Peeves
 
 This section lists guidelines / rules for writing `Oak` code.
 Deviation from the following is considered **non-canonical**
 `Oak` formatting, and is unadvised. Deviation, in fact, could
 easily be considered an error by the compiler.
+
+### Code Scopes
 
 Code scopes go like this:
 
@@ -686,12 +710,78 @@ functions. They will usually not use the `return` keyword.
 let a_times_b(a: i32, b: i32) -> i32 { a * b }
 ```
 
+**Note:** A single-line function is valid if and only if it does
+not violate the 96 character line width limit imposed by
+`acorn`. If it does violate this limit, it must be broken
+across multiple lines like a usual function.
+
+### Inline Whitespace
+
+Inline operators should usually be wrapped by whitespace. For
+example, take the following code:
+
+```rust
+// Valid:
+a = b + c;
+
+// Invalid:
+a=b+c;
+
+// Valid:
+a = b[c] + d * c;
+
+// Invalid:
+a = b [c] + d * c;
+a = b[ c ] + d * c;
+
+// Valid:
+a = b(c) * d.e();
+
+// Invalid:
+a = b( c ) * d . e( );
+
+// Valid:
+let a(b: i32) -> c;
+let a(
+    b: i32
+    ) -> c;
+let a (b: i32) -> c; // Not recommended, but valid.
+
+// Invalid:
+let a( b: i32 ) -> c;
+let a(b:i32)->c;
+let a(b :i32) ->c;
+
+```
+
+### Binary Operator Wrapping
+
+Binary operands, when they must wrap over multiple lines, should
+go at the beginning of the next line. For example, examine the
+following code.
+
+```rust
+// Valid:
+a = (b * c)
+    + (d * e)
+    / (f * g);
+
+// Invalid:
+a = (b * c) +
+    (d * e) /
+    (f * g);
+```
+
+### Return Statements
+
 Ensure you always have some sort of return statement (except
 `-> void` functions), even when it is unreachable. Principles
 take precedent over literal compiler interpretation.
 
+### Naming Scheme
+
 `Oak` exclusively uses underscored variable names. Camelcase
-variable names should never be used, and capitalized variables
+variable names should never be used, and capitalized names
 are reserved for special cases.
 
 ```rust
@@ -700,10 +790,11 @@ let long_variable_name_with_multiple_words: i32;
 
 // Bad
 let longVariableNameWithMultipleWords: i32;
+
+// Still bad, needs underscores
 let longvariablenamewithmultiplewords: i32;
 
-// Only allowed for methods which use dynamic allocation
-// or for operator method aliases
+// Reserved for operator alias functions (IE Add, New, AddEq)
 let LongVariableNameWithMultipleWords: i32;
 
 // Why? No?!?
@@ -720,6 +811,8 @@ These naming conventions are also extended to package names
 they are on) and file names. Unlike standard practice in `C++`
 and most other languages, generics types (see later) should
 still be lower-underscore-case.
+
+### Commenting
 
 Single-line comments should start with "`// `" (slash, slash,
 space), and multi-line comments should start with `/*`
@@ -773,8 +866,8 @@ code scope) will be included in automatic manual generation via
 extension all comments should as well.
 
 Any sequence starting with `#` is ignored completely. This is to
-allow for shebangs. This symbol should **never** be used for
-commenting.
+allow for shebangs, and to leave room for future preprocessor
+growth. This symbol should **never** be used for commenting.
 
 ```rust
 // This is fine:
@@ -784,6 +877,8 @@ commenting.
 # Hello!
 ```
 
+### Whitespace and Line Wrapping
+
 Tabbing should follow standard `C++` rules. Tabs and
 quadruple-spaces are both acceptable, but double-spaces are not.
 Not using tabbing is not acceptable.
@@ -792,15 +887,22 @@ No line of `Oak` should be longer than 96 standard-width chars
 wide. Since newlines are erased by the lexer, one can be
 inserted at any point without disturbing syntax.
 
+### Spelling
+
 If possible you should use a spellchecker when writing code.
 If a variable name does not pass a spell checker, it is **not**
 considered a valid name and should be changed.
 
+### Globals
+
 Global variables are illegal. Anything achieved by globals can
 be done better by passing arguments.
 
-All `Oak` should be as minimalist as possible, and should be
-split into as many files as it makes sense to do.
+### File Splitting and Package Naming
+
+All `Oak` code should be as minimalist as possible, and should
+be split into as many files as it makes sense to do. That being
+said, there is no hard line limit for any file in `Oak`.
 
 Variable, package, and file names may be abbreviated within the
 sake of reason. An abbreviation is disallowed if it conflicts
@@ -809,10 +911,7 @@ extracted from it (for instance, the abbreviation `regex` is
 fine, but `re` is not, because `re` could realistically refer to
 anything).
 
-Interfacial files should take the form `NAME_inter.oak` and
-`NAME_inter.other_language_suffix_here` (see later for more
-information on formatting `Oak` interface files). For instance,
-`sdl_inter.oak` and `sdl_inter.cpp`.
+### Wrapping Long Function Names
 
 If multiple lines are required within a function call, the
 following lines should be tabbed exactly one further than the
@@ -820,7 +919,7 @@ beginning line. Whenever possible, you should include exactly
 one argument per line in such a case.
 
 ```rust
-// Proper formatting:
+// This is fine:
 let long_function_name(long_argument_name_one: i32,
     long_argument_name_two: i32,
     long_argument_name_three: i32,
@@ -842,21 +941,6 @@ let long_function_name(
 
 ```
 
-`Oak` code can technically be written using unicode encoding,
-but ASCII is recommended for any programmer whose spoken
-language can be expressed within it.
-
-**Note: `Oak` is hypothetically especially translatable to**
-**other human languages due to the preprocessor rule system.**
-It is trivial to implement a dialect file which replaces all
-`Oak` keywords with any spoken language's equivalent versions,
-and still fairly easy to translate the `std` package. For
-example, an `Oak` program written in Hindi would experience a
-translation process as follows:
-
-`oak_hindi_dialect.oak -> oak_canonical_dialect.oak`
-` -> c_version.cpp -> executable.exe`
-
 ## Unicode
 
 Unicode works perfectly fine in `Oak`, although the later was
@@ -865,6 +949,18 @@ should have no troubles.
 
 If `Oak` reports unicode characters as illegal, please report it
 as a bug.
+
+**Note:** Although written in English, `Oak` is hypothetically
+especially translatable to other natural languages due to the
+preprocessor rule system. It is trivial to implement a dialect
+file which replaces all `Oak` keywords with any spoken
+language's equivalent versions, and still fairly easy to 
+translate the `std` package. For example, an `Oak` program
+written in Hindi would experience a translation process as
+follows:
+
+`oak_hindi_dialect.oak -> oak_canonical_dialect.oak`
+` -> c_version.cpp -> executable.exe`
 
 ## Main Functions
 
@@ -5190,314 +5286,6 @@ It works!
 
 The techniques used herein can easily be adapted to create a
 wide variety of interfacial files.
-
-## A Server and Client Using Sockets, RegEx, and File IO
-
-Difficulty: Hard
-
-This example covers:
-- Terminal input and output
-- Regular expressions
-- File input and output
-- Socket programming
-
-This example requires:
-- An understanding of `Oak` syntax
-- A Linux terminal
-- An `acorn` compiler installation
-- A `boost` `C++` library installation
-- A basic understanding of regular expressions
-- A basic understanding of socket programming
-
-In this example, we will be using the `Oak` standard library to
-create a file server and client. The client will be able to make
-requests to the server, and the server will send back some file
-matching the request. Let's start by creating the necessary
-files.
-
-```bash
-# Create Oak files for the file server and client
-touch file_server.oak file_client.oak
-```
-
-We'll add a skeleton into each.
-
-```rust
-// file_server.oak
-package!("std");
-use_rule!("std");
-
-let main() -> i32
-{
-    0
-}
-
-```
-
-```rust
-// file_client.oak
-package!("std");
-use_rule!("std");
-
-let main() -> i32
-{
-    0
-}
-
-```
-
-We want our file server to take in a request for a given file
-in the form of a regular expression, and send back the first
-file which matches it. Thus, it will need the `string`,
-`file_inter`, `regex_inter`, and `sock_inter` `Oak` files, all
-of which are found in the `std` package (although not included
-by default).
-
-The client program will only need to make requests and save
-files, so it will only need `string`, `file`, and `sock_inter`.
-
-Additionally, we will include `std/printf.oak` in both files for
-convenient printing. Now, the skeleton files should look like
-the following.
-
-```rust
-// file_server.oak
-package!("std");
-use_rule!("std");
-
-include!("std/string.oak",
-        "std/file_inter.oak",
-        "extra/regex_inter.oak",
-        "std/sock_inter.oak",
-        "std/printf.oak");
-
-let main() -> i32
-{
-    0
-}
-
-```
-
-```rust
-// file_client.oak
-package!("std");
-use_rule!("std");
-
-include!("std/string.oak",
-        "std/file_inter.oak",
-        "std/sock_inter.oak",
-        "std/printf.oak");
-
-let main() -> i32
-{
-    0
-}
-
-```
-
-Now, let's focus on the server side of things. When not
-connected to a client, the server should listen for one. When
-one arrives, it should wait for a command from it. Upon hearing
-a command from the client, it should search for a file matching
-the given regular expression. If not found, it should send back
-an error message. Otherwise, it should send the file.
-
-When sending a file, we will first have the server send the size
-of the file. The client will echo back this size to indicate
-that it has received it. Then, the server will send the file.
-The `Oak` socket interface is always TCP, so the file will be
-broken apart automatically. Requests will work in the same way-
-size, then message.
-
-An error opening the file will be indicated by sending a size of
-zero.
-
-The above outline roughly translates to the code below.
-
-```rust
-// file_server.oak
-package!("std");
-use_rule!("std");
-
-include!("std/string.oak",
-        "std/file_inter.oak",
-        "extra/regex_inter.oak",
-        "std/sock_inter.oak",
-        "std/printf.oak",
-        "std/conv_extra.oak");
-
-// Sizes will be sent using this many chars
-let size_chars! = to_u128(8);
-
-// Handle a single request
-let do_request(server: ^server_sock, request: string) -> void;
-
-let main() -> i32
-{
-    let is_listening = true;
-
-    // Create empty server socket
-    let server: server_sock;
-
-    // Initialize server socket to localhost on port 1234
-    // Save result of initialization into result
-    let result = server = ("127.0.0.1", to_u16(1234));
-
-    let size_str: string;
-    let size: u128;
-    let request: string;
-
-    while is_listening
-    {
-        // Listen for a connection
-        // save connection status in result
-        result = server.listen();
-
-        size_str = server.recv(size_chars!);
-        size = to_u128(to_i128(size_str));
-
-        if size != to_u128(0)
-        {
-            request = server.recv(size);
-
-            if request == "quit"
-            {
-                is_listening = false;
-            }
-            else
-            {
-                do_request(server, request);
-            }
-        }
-        else
-        {
-            is_listening = false;
-        }
-    }
-    
-    0
-}
-
-```
-
-Great! Now we've got the basic outline of our server. However,
-we still need to define `do_request`. A request should be a
-regular expression, and our `do_request` function should send
-the first file it finds matching this description over the
-server socket. Once we have the exact filename to send, this
-won't be so hard. However, how do we find the first filename
-that matches the given regular expression? Let's do this the
-"hacky" way, using the `std/sys_inter.oak` file.
-
-We will tell the system to save a list of all local files to a
-temporary `.txt` file, then read that file in. From this, we can
-iterate through until we find a filename which matches the given
-regular expression. Then, we will load the matched file into
-memory and send it over the socket. After this, we must remember
-to delete our temporary `.txt` file. Let's create a skeleton of
-our `do_request` function.
-
-```rust
-// file_server.oak
-// (code above hidden)
-
-// This line will be integrated into the earlier include! block
-include!("std/sys_inter.oak");
-
-// Handle a single request
-let do_request(server: ^server_sock, request: string) -> void
-{
-    // Make system call to list all files in this directory
-
-    // Open file where the above output was saved
-
-    // Iterate over lines in this file
-    //      If the current line matches request
-    //          Load this file
-    //          Send this file
-    //          Break
-
-    // If no matches were found
-    //      Send error signal
-    
-    // Delete temporary text file
-}
-
-// (code below hidden)
-
-```
-
-The `Linux` command we will be using to save a list of all local
-files to a temporary text file is `ls > temp.txt`. After this,
-`temp.txt` will contain all the files in the current directory.
-
-```rust
-// file_server.oak
-// (code above hidden)
-
-include!("std/panic_inter.oak");
-include!("std/bool.oak");
-use_rule!("bool");
-
-// Handle a single request
-// Assumes the server is running on Linux
-let do_request(server: ^server_sock, request: string) -> void
-{
-    // Make system call to list all files in this directory
-    let result = sys("ls > temp.txt");
-    assert!(result == 0);
-
-    let pattern: regex = request;
-
-    // Open file where the above output was saved
-    let file: i_file;
-    file.open("temp.txt");
-
-    let line: string;
-    let found: bool = false;
-
-    // Iterate over lines in this file
-    while !file.eof() && !found
-    {
-        // Read a line of at most 256 chars
-        line = file.getline(256);
-
-        // If the current line matches request
-        if (line.regex_match(pattern))
-        {
-            // Load this file
-            let to_send: i_file;
-            to_send.open(line);
-
-            let contents: string;
-            contents = to_send.read(to_send.size());
-
-            // Send this file
-            server.send();
-            server.send(contents);
-
-            to_send.close();
-            
-            // Break
-            found = true;
-        }
-    }
-
-    file.close();
-
-    // If no matches were found
-    if !found
-    {
-        // Send error signal
-    }
-    
-    // Delete temporary text file
-    sys("rm temp.txt");
-}
-
-// (code below hidden)
-
-```
 
 # Appendix
 
