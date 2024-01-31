@@ -852,7 +852,7 @@ int main(const int argc, const char *argv[])
         std::cout << "Output file: " << out << '\n';
     }
 
-    if (execute)
+    if (execute && !test)
     {
         if (out[0] != '/' && out[0] != '~' && out[0] != '.')
         {
