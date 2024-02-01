@@ -887,6 +887,13 @@ No line of `Oak` should be longer than 96 standard-width chars
 wide. Since newlines are erased by the lexer, one can be
 inserted at any point without disturbing syntax.
 
+**Note:** Although the maximal line width is 96 standard-width
+characters, it is advised to keep a width of at most 64 whenever
+possible. This is enough to contain most code with minimal
+retooling, but allows the average screen to keep two `Oak` files
+open at once. Additionally, this is the maximal width of
+(subjectively) properly zoomed code on a classroom projector.
+
 ### Spelling
 
 If possible you should use a spellchecker when writing code.
@@ -5308,6 +5315,7 @@ Code | Meaning
  3   | Unknown error caught
  7   | Failed to create test suite file
  10  | Aborted Acorn update or install
+ 15  | Failed to begin test suite
 
 Most compile-time errors will have meaningful descriptions in
 their outputs, and thus do not return different values.
