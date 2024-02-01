@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Basics of this hook by Dr. Ram Basnet at Colorado Mesa University
+
+# If the current branch is not main, all pushes are fine.
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+if [[ $current_branch != "main" ]]; then
+    exit 0
+fi
+
+# If the current branch *is* main, we have to ensure that
+# all test cases pass.
+echo "Ensuring changes are valid before pushing to main..."
+make install packages test
+
+if [[ $? != 0 ]]; then
+    echo "All test cases must pass in order to push to main.\n"
+    exit 1
+fi
+
+exit 0
