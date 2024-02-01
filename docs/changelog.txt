@@ -4,6 +4,9 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.4.21          | 2/1/24   | Added the `C` keyword collision
+                |          | avoidance pass to rectify names.
+                |          |
 0.4.20          | 1/31/24  | Reformatting to remove capitalized
                 |          | parameter names, added
                 |          | documentation. No major functional

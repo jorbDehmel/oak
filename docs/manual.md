@@ -1,6 +1,6 @@
 
 # The Oak Programming Language
-## Version 0.4.20
+## Version 0.4.21
 
 ![](./logo_trimmed.png)
 
@@ -2958,11 +2958,11 @@ instance, the `std/interface.oak` file provides erased structs
 of various sizes for use in struct interfaces. These items can 
 never be accessed, but still take up space within a struct.
 
-## Test Suites
+## Test Suites and Unit Testing
 
 A test suite is a set of unit tests that `acorn` will compile
 and optionally execute in order to test the validity of a build.
-A test suite is created by creating a folder named `tests`, and
+A test suite is created by creating a folder named `tests` and
 putting any number of `*.oak` files within it. After this
 structure has been imposed, `acorn -T` will compile the entire
 test suite and report on any failures it discovers. Similarly,
@@ -2985,10 +2985,12 @@ demonstrations.
 
 Test suite executables are not individually saved. Each test
 is compiled into `a.out`, which is overwritten by the next test.
+There should be no artifacts remaining after the conclusion of
+a test suite.
 
 ## Advanced Language Augmentation Via `raw_c!` Macro
 
-The `raw_c!` macro completely bypasses the `Oak` compiler and
+The `raw_c!` macro completely bypasses the `Oak` translater and
 directly inserts its arguments as `C` code. This can be used for
 more advanced language development features which may require
 efficiency or capabilities beyond that of `Oak`.
@@ -3029,6 +3031,16 @@ minimalism.
 - default
 - pre
 - post
+- return
+
+**Note:** In the case that a variable, function, or type name
+collides with a `C` keyword, the offending symbol will have the
+suffix `__KWA` (kew word avoidance) appended to it. This happens
+during the preprocessor definition insertion pass of the
+translator. This is rarely of note, except when an interfacial
+function, enum or struct name conflicts with a `C` keyword. In
+this case, the modified name will need to be known in order to
+properly write the interfacial file.
 
 **Note:** There is nothing stopping a rule or dialect from
 adding more keywords. For instance, the `bool` rules add the
@@ -3293,6 +3305,9 @@ this proved too costly and largely unnecessary. It is plausible
 that `acorn` one day switches to `LLVM IR` instead of `C`, but
 this is not immediately probable and should not be expected.
 
+Due to the highly modifiable nature of `Oak`, it not likely that
+it ever compiles directly to assembly or binary language.
+
 ## Compiler Frontend and `acorn`
 
 The `acorn` resource is a wrapper for the underlying `Oak`
@@ -3487,6 +3502,22 @@ essentially works as a specialized traversal of the syntax tree
 where each node is replaced by its `C` statement. This `C` code
 is then written to an output file and compiled via an external
 `C` compiler. If so desired, a `C++` linker can also be called.
+
+## Typing and the Type Symbol Table
+
+`Oak` is statically typed- That is to say, any instance variable
+must have exactly one type, functions must have exactly one
+definition per name/type combination, and at most one struct or
+enum type must be associated with a given name. It is also
+required that variable names do not conflict with type names
+(for instance, `i32` would be an invalid variable name).
+
+New types are created via either a `let name: struct` or a
+`let name: enum` statement. Any other non-macro non-templated
+use of the `let` keyword represents the instantiation of a given
+type.
+
+## The Variable Symbol Table
 
 ## Templating and the Template Instantiation Unit
 

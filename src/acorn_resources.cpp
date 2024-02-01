@@ -30,6 +30,64 @@ std::vector<unsigned long long> phaseTimes;
 
 static std::string debugTreePrefix = "";
 
+const static std::set<std::string> oakKeywords = {"if",    "else",  "let",    "case", "default",
+                                                  "match", "while", "return", "pre",  "post"};
+const static std::set<std::string> cKeywords = {"alignas",
+                                                "alignof",
+                                                "auto",
+                                                "break",
+                                                "case",
+                                                "const",
+                                                "constexpr",
+                                                "continue",
+                                                "default",
+                                                "do",
+                                                "else",
+                                                "extern",
+                                                "for",
+                                                "goto",
+                                                "if",
+                                                "inline",
+                                                "nullptr",
+                                                "register",
+                                                "restrict",
+                                                "return",
+                                                "signed",
+                                                "sizeof",
+                                                "static",
+                                                "static_assert",
+                                                "switch",
+                                                "thread_local",
+                                                "typedef",
+                                                "typeof",
+                                                "typeof_unqual",
+                                                "union",
+                                                "unsigned",
+                                                "volatile",
+                                                "while",
+                                                "_Alignas",
+                                                "_Alignof",
+                                                "_Atomic",
+                                                "_BitInt",
+                                                "_Bool",
+                                                "_Complex",
+                                                "_Decimal128",
+                                                "_Decimal32",
+                                                "_Decimal64",
+                                                "_Generic",
+                                                "_Imaginary",
+                                                "_Noreturn",
+                                                "_Static_assert",
+                                                "_Thread_local",
+                                                "_Pragma",
+                                                "asm",
+                                                "fortran",
+                                                "int",
+                                                "char",
+                                                "float",
+                                                "double",
+                                                "long"};
+
 // Prints the cumulative disk usage of Oak (in human-readable)
 void getDiskUsage()
 {
@@ -710,6 +768,17 @@ void doFile(const std::string &From)
             else if (lexed[i].size() > 1 && lexed[i].back() == '!' && (i + 1 >= lexed.size() || lexed[i + 1] != "("))
             {
                 throw sequencing_error("Unknown preprocessor definition '" + lexed[i].text + "'");
+            }
+        }
+
+        // Clean out any C keywords
+        for (int i = 0; i < lexed.size(); i++)
+        {
+            if (cKeywords.count(lexed[i]) != 0 && oakKeywords.count(lexed[i]) == 0)
+            {
+                // Is a c keyword but not an oak keyword: replace it.
+                // The `__KWA` suffix stands for `key word avoidance`.
+                lexed[i].text += "__KWA";
             }
         }
 

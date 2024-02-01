@@ -1,0 +1,22 @@
+/*
+Tests Oak's C keyword reconciliation pass.
+*/
+
+package!("std");
+use_rule!("std");
+
+let structure: struct
+{
+    const: u128,
+    unsigned: f64,
+    sizeof: i128,
+}
+
+let main() -> i32
+{
+    let item: structure;
+
+    print(item.const);
+    print(item.unsigned);
+    print(item.sizeof);
+}

@@ -43,7 +43,7 @@ extern std::vector<unsigned long long> phaseTimes;
 extern std::map<std::filesystem::path, unsigned long long> visitedFiles;
 
 // Info: global constants
-const static std::string VERSION = "0.4.20";
+const static std::string VERSION = "0.4.21";
 const static std::string LICENSE = "GPLv3";
 const static std::string INFO = "jdehmel@outlook.com";
 
