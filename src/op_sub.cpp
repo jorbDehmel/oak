@@ -10,9 +10,7 @@ Only binary operators are supported in Oak by default: Unaries
 and the ternary must be added via rules, if at all.
 */
 
-#include "op_sub.hpp"
-#include "tags.hpp"
-#include "type_builder.hpp"
+#include "oakc_fns.hpp"
 
 const static std::set<std::string> operators = {
     "+",  "-",  "/", "*", "%",  "=",  "-=", "+=", "/=", "*=", "%=", "&=", "|=", "<<", ">>",

@@ -1,4 +1,23 @@
 /*
+Front end for the Acorn Oak compiler.
+
+File structure:
+```
+lexer.hpp
+   |
+   v
+oakc_structs.hpp
+   |
+   v
+options.hpp
+   |
+   v
+oakc_fns.hpp
+   |
+   v
+<compiler frontend>   <---
+```
+
 Jordan Dehmel
 jdehmel@outlook.com
 github.com/jorbDehmel
@@ -6,20 +25,7 @@ github.com/jorbDehmel
 GPLv3 held by author
 */
 
-#include "acorn_resources.hpp"
-#include "macros.hpp"
-#include "packages.hpp"
-#include "sequence.hpp"
-#include "sequence_resources.hpp"
-#include "tags.hpp"
-#include <bits/chrono.h>
-#include <chrono>
-#include <cstdlib>
-#include <filesystem>
-#include <iomanip>
-#include <ratio>
-#include <stdexcept>
-namespace fs = std::filesystem;
+#include "oakc_fns.hpp"
 
 // Dummy wrapper function for updating
 void update()

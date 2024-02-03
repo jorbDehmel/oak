@@ -4,13 +4,7 @@ Jordan Dehmel
 jdehmel@outlook.com
 */
 
-#include "sequence_resources.hpp"
-#include "options.hpp"
-#include "symbol_table.hpp"
-#include "type_builder.hpp"
-#include <codecvt>
-#include <stdexcept>
-#include <string>
+#include "oakc_fns.hpp"
 
 void sm_assert(const bool &expression, const std::string &message)
 {
@@ -1133,7 +1127,7 @@ void dump(const std::vector<Token> &Lexed, const std::string &Where, const std::
 
     file << sep << "// Generics:\n";
 
-    printGenericDumpInfo(file);
+    printGenericDumpInfo(file, settings);
 
     file << sep << "// Full anatomy:\n";
 

@@ -1,6 +1,11 @@
+/*
+Implementations for oakc / Acorn's DFA lexer.
+
+Jordan Dehmel, 2024
+jdehmel@outlook.com
+*/
+
 #include "lexer.hpp"
-#include "tags.hpp"
-#include <stdexcept>
 
 static bool is_initialized = false;
 static lexer_state **dfa = nullptr;

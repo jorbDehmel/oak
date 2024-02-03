@@ -6,11 +6,7 @@ github.com/jorbDehmel
 GPLv3 held by author
 */
 
-#include "packages.hpp"
-#include "tags.hpp"
-#include <filesystem>
-#include <stdexcept>
-namespace fs = std::filesystem;
+#include "oakc_fns.hpp"
 
 #define pm_assert(expression, message)                                                                                 \
     ((bool)(expression) ? true : throw package_error(message " (Failed assertion: '" #expression "')"))

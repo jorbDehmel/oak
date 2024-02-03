@@ -6,10 +6,7 @@ github.com/jorbDehmel
 GPLv3 held by author
 */
 
-#include "acorn_resources.hpp"
-#include "macros.hpp"
-#include <chrono>
-namespace fs = std::filesystem;
+#include "oakc_fns.hpp"
 
 static std::string debugTreePrefix = "";
 

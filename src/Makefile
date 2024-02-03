@@ -6,18 +6,14 @@
 
 CC := clang++
 
-OBJS := build/lexer.o build/symbol_table.o \
-	build/type_builder.o build/reconstruct.o build/macros.o \
-	build/sequence.o build/packages.o build/sizer.o \
-	build/op_sub.o build/mem.o build/acorn_resources.o \
-	build/document.o build/rules.o build/mangler.o \
-	build/generics.o build/sequence_resources.o
+OBJS := build/acorn_resources.o \
+	build/fn_resources.o build/generics.o build/lexer.o \
+	build/op_sub.o build/packages.o build/reconstruct.o \
+	build/rules.o build/sequence_resources.o build/sequence.o \
+	build/type_builder.o
 
-HEADS := lexer.hpp reconstruct.hpp symbol_table.hpp \
-	type_builder.hpp macros.hpp tags.hpp sequence.hpp \
-	packages.hpp sizer.hpp op_sub.hpp acorn_resources.hpp \
-	document.hpp rules.hpp mangler.hpp generics.hpp \
-	sequence_resources.hpp rule_structs.hpp options.hpp
+HEADS := lexer.hpp oakc_fns.hpp oakc_structs.hpp options.hpp \
+	tags.hpp
 
 FLAGS := -pedantic -Wall -O3
 

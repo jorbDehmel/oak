@@ -6,14 +6,7 @@ github.com/jorbDehmel
 GPLv3 held by author
 */
 
-#include "reconstruct.hpp"
-#include "options.hpp"
-#include "sequence_resources.hpp"
-#include "symbol_table.hpp"
-#include "tags.hpp"
-#include <stdexcept>
-#include <string>
-namespace fs = std::filesystem;
+#include "oakc_fns.hpp"
 
 // Removes illegal characters
 std::string purifyStr(const std::string &What)

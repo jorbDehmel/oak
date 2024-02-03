@@ -1,6 +1,23 @@
 /*
 DFA-powered lexer for Oak.
 
+File structure:
+```
+lexer.hpp   <---
+   |
+   v
+oakc_structs.hpp
+   |
+   v
+options.hpp
+   |
+   v
+oakc_fns.hpp
+   |
+   v
+<compiler frontend>
+```
+
 Jordan Dehmel, 2024
 jdehmel@outlook.com
 */
@@ -8,6 +25,7 @@ jdehmel@outlook.com
 #ifndef LEXER_HPP
 #define LEXER_HPP
 
+#include "tags.hpp"
 #include <fstream>
 #include <iostream>
 #include <limits.h>

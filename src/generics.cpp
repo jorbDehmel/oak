@@ -5,19 +5,8 @@ Oak ~0.0.12
 Jordan Dehmel, 2023
 */
 
-#include "generics.hpp"
+#include "oakc_fns.hpp"
 #include "options.hpp"
-#include "symbol_table.hpp"
-#include "tags.hpp"
-#include "type_builder.hpp"
-
-// External definitions to avoid circular dependencies
-extern ASTNode createSequence(const std::vector<Token> &From, AcornSettings &settings);
-extern Type toType(const std::vector<Token> &whatIn, AcornSettings &settings);
-extern Type toType(const std::vector<std::string> &what, AcornSettings &settings);
-
-// A pair of <name, number_of_generics> maps to a vector of symbols within
-static std::map<std::string, std::list<GenericInfo>> generics;
 
 // Returns true if template substitution would make the two typeVecs the same
 bool checkTypeVec(const std::vector<std::string> &candidateTypeVec, const std::vector<std::string> &genericTypeVec,
@@ -334,7 +323,7 @@ std::string instantiateGeneric(const std::string &what, const std::vector<std::v
     if (!didInstantiate)
     {
         // Ensure it exists
-        if (generics.count(what) == 0)
+        if (settings.generics.count(what) == 0)
         {
             std::cout << tags::red_bold << "During attempt to instantiate template '" << what << "' w/ generics:\n";
 
@@ -352,7 +341,7 @@ std::string instantiateGeneric(const std::string &what, const std::vector<std::v
             throw generic_error("Error: No template exists with which to instantiate template '" + what + "'.");
         }
 
-        for (auto &candidate : generics[what])
+        for (auto &candidate : settings.generics[what])
         {
             settings.curFile = candidate.originFile;
 
@@ -432,7 +421,7 @@ std::string instantiateGeneric(const std::string &what, const std::vector<std::v
         std::cout << "Against:\n\n";
 
         int i = 0;
-        for (auto item : generics[what])
+        for (auto item : settings.generics[what])
         {
             std::cout << what << " w/ type ";
             for (auto b : item.typeVec)
@@ -484,7 +473,7 @@ void addGeneric(const std::vector<Token> &what, const std::string &name, const s
 
     // ENSURE IT DOESN'T ALREADY EXIST HERE; If it does, return w/o error
     bool doesExist = false;
-    for (auto candidate : generics[name])
+    for (auto candidate : settings.generics[name])
     {
         if (candidate.genericNames.size() == genericsList.size())
         {
@@ -508,7 +497,7 @@ void addGeneric(const std::vector<Token> &what, const std::string &name, const s
 
     if (!doesExist)
     {
-        generics[name].push_front(toAdd);
+        settings.generics[name].push_front(toAdd);
     }
     else
     {
@@ -523,9 +512,9 @@ void addGeneric(const std::vector<Token> &what, const std::string &name, const s
     return;
 }
 
-void printGenericDumpInfo(std::ostream &file)
+void printGenericDumpInfo(std::ostream &file, AcornSettings &settings)
 {
-    for (auto p : generics)
+    for (auto p : settings.generics)
     {
         file << "Identifier: '" << p.first << "'\n";
 

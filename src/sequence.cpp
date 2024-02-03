@@ -6,12 +6,7 @@ github.com/jorbDehmel
 GPLv3 held by author
 */
 
-#include "sequence.hpp"
-#include "options.hpp"
-#include "type_builder.hpp"
-
-std::vector<Token> curLineSymbols;
-static Type currentReturnType;
+#include "oakc_fns.hpp"
 
 // The current depth of createSequence
 unsigned long long int depth = 0;
@@ -79,18 +74,18 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
     {
         // Line update special symbol
         settings.curLine = From.front().line;
-        curLineSymbols.clear();
+        settings.curLineSymbols.clear();
         if (From.size() != 0)
         {
             for (auto it = From.begin(); it != From.end() && it->line == settings.curLine; it++)
             {
-                curLineSymbols.push_back(*it);
+                settings.curLineSymbols.push_back(*it);
             }
         }
 
-        if (curLineSymbols.size() != 0)
+        if (settings.curLineSymbols.size() != 0)
         {
-            curLineSymbols.erase(curLineSymbols.begin());
+            settings.curLineSymbols.erase(settings.curLineSymbols.begin());
         }
     }
 
@@ -499,8 +494,8 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                     }
                 }
 
-                sm_assert(currentReturnType == nullType, "Cannot nest function definitions.");
-                currentReturnType = getReturnType(type);
+                sm_assert(settings.currentReturnType == nullType, "Cannot nest function definitions.");
+                settings.currentReturnType = getReturnType(type);
 
                 // Scrape contents
                 int count = 0;
@@ -530,7 +525,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                     // Restrictions upon some types of methods
                     if (name == "New" || name == "Del")
                     {
-                        if (currentReturnType != Type(atomic, "void"))
+                        if (settings.currentReturnType != Type(atomic, "void"))
                         {
                             throw std::runtime_error("Illegal method definition! Method '" + name +
                                                      "' must return void.");
@@ -547,8 +542,9 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                     if (name == "main" && !From.empty() && !toAdd.empty())
                     {
                         sm_assert(settings.table[name].size() == 0, "Function 'main' cannot be overloaded.");
-                        sm_assert(currentReturnType[0].info == atomic &&
-                                      (currentReturnType[0].name == "i32" || currentReturnType[0].name == "void"),
+                        sm_assert(settings.currentReturnType[0].info == atomic &&
+                                      (settings.currentReturnType[0].name == "i32" ||
+                                       settings.currentReturnType[0].name == "void"),
                                   "Function 'main' must return i32.");
 
                         if (argsWithType.size() != 0)
@@ -667,7 +663,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                     auto destructors = restoreSymbolTable(oldTable, settings.table);
                     // insertDestructors(table[name].back().seq, destructors);
 
-                    currentReturnType = nullType;
+                    settings.currentReturnType = nullType;
                 }
             }
             else
@@ -1446,9 +1442,9 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
         out.items.push_back(__createSequence(From, settings));
 
         int garbage = 0;
-        sm_assert(typesAreSameCast(&out.items.back().type, &currentReturnType, garbage),
+        sm_assert(typesAreSameCast(&out.items.back().type, &settings.currentReturnType, garbage),
                   "Cannot return '" + toStr(&out.items.back().type) + "' from a function w/ return type '" +
-                      toStr(&currentReturnType) + "'");
+                      toStr(&settings.currentReturnType) + "'");
 
         return out;
     }
@@ -1526,7 +1522,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
 
         // If a void function, call all destructors
         // (otherwise, these calls will have been handled elsewhere)
-        if (currentReturnType == Type(atomic, "void"))
+        if (settings.currentReturnType == Type(atomic, "void"))
         {
             for (const auto &p : destructors)
             {
@@ -1552,9 +1548,9 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
             if (out.items[i].type != nullType)
             {
                 int garbage = 0;
-                sm_assert(typesAreSameCast(&out.items[i].type, &currentReturnType, garbage),
+                sm_assert(typesAreSameCast(&out.items[i].type, &settings.currentReturnType, garbage),
                           "Cannot return '" + toStr(&out.items[i].type) + "' from a function w/ return type '" +
-                              toStr(&currentReturnType) + "'");
+                              toStr(&settings.currentReturnType) + "'");
             }
         }
 
@@ -1771,8 +1767,8 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
             typeVec.push_back("struct");
         }
 
-        Type oldType = currentReturnType;
-        currentReturnType = nullType;
+        Type oldType = settings.currentReturnType;
+        settings.currentReturnType = nullType;
 
         auto oldDepth = depth;
         depth = 0;
@@ -1780,7 +1776,7 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
         std::string result = instantiateGeneric(name, generics, typeVec, settings);
 
         depth = oldDepth;
-        currentReturnType = oldType;
+        settings.currentReturnType = oldType;
 
         start--;
 

@@ -4,9 +4,7 @@ Jordan Dehmel
 jdehmel@outlook.com
 */
 
-#include "rules.hpp"
-#include "options.hpp"
-#include "rule_structs.hpp"
+#include "oakc_fns.hpp"
 
 #define rm_assert(expression, message)                                                                                 \
     ((bool)(expression) ? true : throw rule_error(message " (Failed assertion: '" #expression "')"))

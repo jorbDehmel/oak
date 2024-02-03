@@ -4,10 +4,7 @@ Jordan Dehmel
 jdehmel@outlook.com
 */
 
-#include "type_builder.hpp"
-#include "sequence.hpp"
-#include "sequence_resources.hpp"
-#include <climits>
+#include "oakc_fns.hpp"
 
 // Externals
 // std::map<std::string, StructLookupData> structData;
