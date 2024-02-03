@@ -1,6 +1,6 @@
 
 # The Oak Programming Language
-## Version 0.4.22
+## Version 0.4.23
 
 ![](./logo_trimmed.png)
 
@@ -1556,6 +1556,41 @@ let long_string! = "hello! This is a very long string which it"
 let split_string! = "we can also" "do this";
 
 ```
+
+Additionally, `Oak` has type-specifying suffixes for decimal
+numerical literals.
+
+```rust
+let main() -> i32
+{
+    let a: u8;
+    
+    a = 123u8;
+    a = 5u8;
+    a = 15 u8;
+
+    let b: u128;
+
+    b = 56 u128;
+
+    let c: f64;
+
+    c = 12 f64;
+
+    let d: f32;
+
+    d = 12345.0f32;
+
+    0
+}
+```
+
+As shown above, type suffixes can also be seperated from their
+literals by any amount of whitespace.
+
+**Note:** Hexadecimal and binary literals do not have type
+suffixes, because their type is purely dictated by how long
+they are (in nybbles or bytes, respectively).
 
 ## Generics
 

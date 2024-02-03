@@ -11,11 +11,7 @@ GPLv3 held by author
 */
 
 #include "oakc_fns.hpp"
-
-const std::string rule = "---";
-const std::string headerStart = "# ";
-const std::string fileStart = "## ";
-const std::string fnStart = "### ";
+#include "options.hpp"
 
 void generate(const std::vector<std::string> &Files, const std::string &Output)
 {
@@ -48,7 +44,7 @@ void generate(const std::vector<std::string> &Files, const std::string &Output)
     for (auto fileName : Files)
     {
         // Insert header
-        out << rule << '\n' << fileStart << fileName << "\n\n";
+        out << hline << '\n' << fileStart << fileName << "\n\n";
 
         std::map<std::string, std::string> data;
         std::vector<std::string> lines;
@@ -147,7 +143,7 @@ void generate(const std::vector<std::string> &Files, const std::string &Output)
     auto end = std::chrono::high_resolution_clock::now();
     unsigned long long elapsedNS = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 
-    out << rule << "\n\n"
+    out << hline << "\n\n"
         << "Generation took " << elapsedNS << " ns, about " << ((double)elapsedNS / Files.size()) << " ns / file.\n";
 
     out.close();
@@ -168,13 +164,11 @@ void addMacro(const std::string &name, const std::string &contents, AcornSetting
     settings.macroSourceFiles[name] = settings.curFile;
 }
 
-long long getFileLastModification(const std::string &filepath)
+long long getFileLastModification(const std::string &filepath, AcornSettings &settings)
 {
-    static std::map<std::string, long long> ageCache;
-
-    if (ageCache.count(filepath) != 0)
+    if (settings.ageCache.count(filepath) != 0)
     {
-        return ageCache[filepath];
+        return settings.ageCache[filepath];
     }
 
     // Get age (theoretically system independent)
@@ -185,21 +179,21 @@ long long getFileLastModification(const std::string &filepath)
         out = fs::last_write_time(filepath).time_since_epoch().count();
     }
 
-    if (ageCache.size() > 200)
+    if (settings.ageCache.size() > 200)
     {
-        ageCache.clear();
+        settings.ageCache.clear();
     }
-    ageCache[filepath] = out;
+    settings.ageCache[filepath] = out;
 
     return out;
 }
 
 // Returns true if the source file is newer than the destination one
 // OR if either file is nonexistant
-bool isSourceNewer(const std::string &source, const std::string &dest)
+bool isSourceNewer(const std::string &source, const std::string &dest, AcornSettings &settings)
 {
-    long long sourceAge = getFileLastModification(source);
-    long long destAge = getFileLastModification(dest);
+    long long sourceAge = getFileLastModification(source, settings);
+    long long destAge = getFileLastModification(dest, settings);
 
     if (sourceAge == -1 || destAge == -1)
     {
@@ -232,7 +226,7 @@ void compileMacro(const std::string &Name, AcornSettings &settings)
     std::string binPath = COMPILED_PATH + rootName + ".out";
 
     // Check ages, makefile-style
-    if (!isSourceNewer(settings.macroSourceFiles[Name], binPath))
+    if (!isSourceNewer(settings.macroSourceFiles[Name], binPath, settings))
     {
         return;
     }
@@ -578,7 +572,7 @@ std::string mangle(const std::vector<std::string> &what)
     return out;
 }
 
-ASTNode getAllocSequence(Type &type, const std::string &name, const std::string &num)
+ASTNode getAllocSequence(Type &type, const std::string &name, AcornSettings &settings, const std::string &num)
 {
     // Assumes that name is a pointer to type which already exists in scope
     //
@@ -588,14 +582,14 @@ ASTNode getAllocSequence(Type &type, const std::string &name, const std::string 
     out.type = nullType;
 
     // name = (type *)malloc(len * sizeof(type));
-    out.items.push_back(
-        ASTNode{nullType, std::vector<ASTNode>(), atom,
-                name + " = (" + toStrC(&type) + " *)malloc(sizeof(" + toStrC(&type) + ") * " + num + ")"});
+    out.items.push_back(ASTNode{nullType, std::vector<ASTNode>(), atom,
+                                name + " = (" + toStrC(&type, settings) + " *)malloc(sizeof(" +
+                                    toStrC(&type, settings) + ") * " + num + ")"});
 
     return out;
 }
 
-ASTNode getFreeSequence(const std::string &name, const bool &isArr)
+ASTNode getFreeSequence(const std::string &name, AcornSettings &settings)
 {
     ASTNode out;
     out.info = code_line;

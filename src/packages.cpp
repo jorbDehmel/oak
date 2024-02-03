@@ -7,11 +7,10 @@ GPLv3 held by author
 */
 
 #include "oakc_fns.hpp"
+#include "options.hpp"
 
 #define pm_assert(expression, message)                                                                                 \
     ((bool)(expression) ? true : throw package_error(message " (Failed assertion: '" #expression "')"))
-
-std::map<std::string, PackageInfo> packages;
 
 std::ostream &operator<<(std::ostream &strm, const PackageInfo &info)
 {
@@ -30,12 +29,11 @@ std::ostream &operator<<(std::ostream &strm, const PackageInfo &info)
     return strm;
 }
 
-void install(const std::string &What)
+void install(const std::string &What, AcornSettings &settings)
 {
-    static std::string installCommand = "";
     std::string line;
 
-    if (installCommand == "")
+    if (settings.installCommand == "")
     {
         // Get os-release info
         pm_assert(system("cat /etc/os-release | grep ^ID= > .oak_build/temp.txt") == 0, "Failed to poll OS name");
@@ -57,22 +55,22 @@ void install(const std::string &What)
 
         if (line == "arch")
         {
-            installCommand = "sudo pacman --needed -S ";
+            settings.installCommand = "sudo pacman --needed -S ";
         }
         else if (line == "ubuntu")
         {
-            installCommand = "sudo apt-get install ";
+            settings.installCommand = "sudo apt-get install ";
         }
         else if (line == "fedora")
         {
-            installCommand = "sudo dnf install ";
+            settings.installCommand = "sudo dnf install ";
         }
     }
 
     int result = -1;
     while (result != 0)
     {
-        if (installCommand == "")
+        if (settings.installCommand == "")
         {
             std::cout << tags::yellow_bold
                       << "Local Linux installation command could not be automatically detected\n"
@@ -84,8 +82,8 @@ void install(const std::string &What)
                          "To manually install these instead, enter 'MANUAL'.\n"
                       << "Command: " << tags::reset;
 
-            getline(std::cin, installCommand);
-            if (installCommand == "MANUAL")
+            getline(std::cin, settings.installCommand);
+            if (settings.installCommand == "MANUAL")
             {
                 std::cout << tags::yellow_bold << "Skipping automatic installation. Be sure to manually install\n"
                           << "package(s) '" << What << "' or things may break!\n"
@@ -94,7 +92,7 @@ void install(const std::string &What)
             }
         }
 
-        std::string command = installCommand + " " + What + " 2>&1 > /dev/null";
+        std::string command = settings.installCommand + " " + What + " 2>&1 > /dev/null";
         result = system(command.c_str());
 
         if (result != 0)
@@ -103,7 +101,7 @@ void install(const std::string &What)
                       << "Note: If this is persistant, enter 'MANUAL' to skip this step. However, be\n"
                       << "sure to install the requested package(s) ('" << What << "') manually.\n"
                       << tags::reset;
-            installCommand = "";
+            settings.installCommand = "";
         }
     }
 
@@ -126,7 +124,7 @@ void cleanString(std::string &What)
     return;
 }
 
-PackageInfo loadPackageInfo(const std::string &Filepath)
+PackageInfo loadPackageInfo(const std::string &Filepath, AcornSettings &settings)
 {
     std::ifstream inp(Filepath);
     pm_assert(inp.is_open(), "Failed to load file '" + Filepath + "'");
@@ -247,7 +245,7 @@ PackageInfo loadPackageInfo(const std::string &Filepath)
         throw package_error("Malformed package file '" + Filepath + "': Must inclue SOURCE field.");
     }
 
-    packages[toAdd.name] = toAdd;
+    settings.packages[toAdd.name] = toAdd;
     return toAdd;
 }
 
@@ -276,18 +274,19 @@ void savePackageInfo(const PackageInfo &Info, const std::string &Filepath)
 /*
 Imagine using a compiled language for scripting; Couldn't be me
 */
-void downloadPackage(const std::string &URLArg, const bool &Reinstall, const std::string &Path)
+void downloadPackage(const std::string &URLArg, AcornSettings &settings, const bool &reinstall,
+                     const std::string &pathInput)
 {
     std::cout << tags::violet_bold << "\nInstalling Oak package '" << URLArg << "'\n\n" << tags::reset;
 
     std::string URL = URLArg;
 
     // Check if package is already installed
-    for (auto p : packages)
+    for (auto p : settings.packages)
     {
         if (p.second.source == URLArg || p.second.name == URLArg)
         {
-            if (Reinstall)
+            if (reinstall)
             {
                 URL = p.second.source;
             }
@@ -364,7 +363,7 @@ void downloadPackage(const std::string &URLArg, const bool &Reinstall, const std
                     std::cout << "Package '" << name << "' found in /usr/include/oak/packages_list.txt w/ repo URL of '"
                               << source << "'\n";
 
-                    downloadPackage(source, Reinstall, path);
+                    downloadPackage(source, settings, reinstall, path);
                     return;
                 }
             }
@@ -385,7 +384,7 @@ void downloadPackage(const std::string &URLArg, const bool &Reinstall, const std
 
     try
     {
-        std::string path = Path;
+        std::string path = pathInput;
         if (path == "")
         {
             path = ".";
@@ -412,7 +411,7 @@ void downloadPackage(const std::string &URLArg, const bool &Reinstall, const std
                     fs::exists(tempFolderName + "/" + path + "/makefile");
 
         // Read info file
-        PackageInfo info = loadPackageInfo(tempFolderName + "/" + path + "/" + INFO_FILE);
+        PackageInfo info = loadPackageInfo(tempFolderName + "/" + path + "/" + INFO_FILE, settings);
 
         std::cout << tags::green << "Loaded package from " << URL << "\n" << info << '\n' << tags::reset << std::flush;
 
@@ -443,7 +442,7 @@ void downloadPackage(const std::string &URLArg, const bool &Reinstall, const std
         // Install system deps
         if (info.sysDeps != "")
         {
-            install(info.sysDeps);
+            install(info.sysDeps, settings);
         }
 
         // Install Oak deps
@@ -455,9 +454,9 @@ void downloadPackage(const std::string &URLArg, const bool &Reinstall, const std
             {
                 if (c == ' ')
                 {
-                    if (packages.count(current) == 0)
+                    if (settings.packages.count(current) == 0)
                     {
-                        downloadPackage(current);
+                        downloadPackage(current, settings);
                     }
                     current = "";
                 }
@@ -467,9 +466,9 @@ void downloadPackage(const std::string &URLArg, const bool &Reinstall, const std
                 }
             }
 
-            if (current != "" && packages.count(current) == 0)
+            if (current != "" && settings.packages.count(current) == 0)
             {
-                downloadPackage(current);
+                downloadPackage(current, settings);
             }
         }
 
@@ -518,15 +517,15 @@ void downloadPackage(const std::string &URLArg, const bool &Reinstall, const std
     return;
 }
 
-std::vector<std::string> getPackageFiles(const std::string &Name)
+std::vector<std::string> getPackageFiles(const std::string &Name, AcornSettings &settings)
 {
     // If package is not already loaded
-    if (packages.count(Name) == 0)
+    if (settings.packages.count(Name) == 0)
     {
         if (fs::exists("/usr/include/oak/" + Name))
         {
             // Installed, but not loaded; Load and continue
-            loadPackageInfo("/usr/include/oak/" + Name + "/" + INFO_FILE);
+            loadPackageInfo("/usr/include/oak/" + Name + "/" + INFO_FILE, settings);
         }
         else
         {
@@ -536,7 +535,7 @@ std::vector<std::string> getPackageFiles(const std::string &Name)
     }
 
     // Loaded and installed
-    PackageInfo info = packages[Name];
+    PackageInfo info = settings.packages[Name];
     std::vector<std::string> out;
     std::string cur, toSplit = info.toInclude;
 

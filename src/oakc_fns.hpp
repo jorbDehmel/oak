@@ -6,19 +6,15 @@ These can all basically be considered methods of the
 
 File structure:
 ```
-lexer.hpp
-   |
-   v
-oakc_structs.hpp
-   |
-   v
-options.hpp
-   |
-   v
-oakc_fns.hpp   <---
-   |
-   v
-<compiler frontend>
+    lexer.hpp
+    |
+    oakc_structs.hpp
+    |
+    options.hpp
+    |
+    oakc_fns.hpp   <---
+    |
+    <compiler frontend>
 ```
 
 Jordan Dehmel, 2024
@@ -90,11 +86,11 @@ void compileMacro(const std::string &Name, AcornSettings &settings);
 
 // Returns the given file's last modification time, in seconds
 // after the epoch.
-long long getFileLastModification(const std::string &filepath);
+long long getFileLastModification(const std::string &filepath, AcornSettings &settings);
 
 // Returns true if the source file is newer than the destination
 // one OR if either file is nonexistant.
-bool isSourceNewer(const std::string &source, const std::string &dest);
+bool isSourceNewer(const std::string &source, const std::string &dest, AcornSettings &settings);
 
 // Returns true if and only if the given macro already exists.
 bool hasMacro(const std::string &name, AcornSettings &settings) noexcept;
@@ -123,10 +119,10 @@ std::string mangleSymb(const std::string &name, Type &type);
 std::string mangleSymb(const std::string &name, const std::string &typeStr);
 
 // Returns the ASTNode which allocates an array of size num and type type.
-ASTNode getAllocSequence(Type &type, const std::string &name, const std::string &num = "1");
+ASTNode getAllocSequence(Type &type, const std::string &name, AcornSettings &settings, const std::string &num = "1");
 
 // Returns the ASTNode which frees the referenced memory
-ASTNode getFreeSequence(const std::string &name, const bool &isArr = false);
+ASTNode getFreeSequence(const std::string &name, AcornSettings &settings);
 
 /*
 Takes entire lexed token stream. After call, no operators
@@ -135,14 +131,14 @@ should remain.
 void operatorSub(std::vector<Token> &from);
 
 // Installs a given SYSTEM package; NOT an Oak one.
-void install(const std::string &what);
+void install(const std::string &what, AcornSettings &settings);
 
 // Output package information to an output stream in a pretty
 // way.
 std::ostream &operator<<(std::ostream &strm, const PackageInfo &info);
 
 // Loads a package info file.
-PackageInfo loadPackageInfo(const std::string &filepath);
+PackageInfo loadPackageInfo(const std::string &Filepath, AcornSettings &settings);
 
 // Loads all packages which are currently known about.
 void loadAllPackages();
@@ -151,11 +147,12 @@ void loadAllPackages();
 void savePackageInfo(const PackageInfo &info, const std::string &filepath);
 
 // Downloads a package from a URL via git.
-void downloadPackage(const std::string &url, const bool &reinstall = false, const std::string &path = "");
+void downloadPackage(const std::string &url, AcornSettings &settings, const bool &reinstall = false,
+                     const std::string &path = "");
 
 // Get the include!() -ed files of a package given name and
 // possibly URL.
-std::vector<std::string> getPackageFiles(const std::string &name);
+std::vector<std::string> getPackageFiles(const std::string &Name, AcornSettings &settings);
 
 // Removes illegal characters.
 std::string purifyStr(const std::string &what);
@@ -174,14 +171,17 @@ std::pair<std::string, std::string> reconstructAndSave(const std::string &Name, 
 
 // Return the C format-version of a type, to be followed by
 // symbol name.
-std::string toStrC(const Type *what, const std::string &name = "", const unsigned int &pos = 0);
+std::string toStrC(const Type *What, AcornSettings &settings, const std::string &Name = "",
+                   const unsigned int &pos = 0);
 
 // Return the C format-version of a function, INCLUDING symbol
 // name.
-std::string toStrCFunction(const Type *what, const std::string &name, const unsigned int &pos = 0);
+std::string toStrCFunction(const Type *what, AcornSettings &settings, const std::string &name,
+                           const unsigned int &pos = 0);
 
 // Other type of C function; IE bool (*what)(const bool &What);.
-std::string toStrCFunctionRef(const Type *what, const std::string &name, const unsigned int &pos = 0);
+std::string toStrCFunctionRef(const Type *what, AcornSettings &settings, const std::string &name,
+                              const unsigned int &pos = 0);
 
 // Return the C version of an Oak `enum`. These are heavily
 // involved, more so than structs or variables.
@@ -224,10 +224,10 @@ std::string cleanMacroArgument(const std::string &from);
 void destroyUnits(const std::string &name, const Type &type, const bool &doThrow, AcornSettings &settings);
 
 // Get the return type from a Type (of a function signature).
-Type getReturnType(const Type &what);
+Type getReturnType(const Type &T, AcornSettings &settings);
 
 // Gets the arguments from a Type, given that it is a function
-std::vector<std::pair<std::string, Type>> getArgs(Type &type);
+std::vector<std::pair<std::string, Type>> getArgs(Type &type, AcornSettings &settings);
 
 // Print the AST in a pretty-ish way.
 void debugPrint(const ASTNode &what, int spaces = 0, std::ostream &to = std::cout);
@@ -281,7 +281,7 @@ std::vector<int> getReferenceCandidates(const std::vector<std::vector<Type>> &ca
 
 // Prints the reason why each candidate was rejected
 void printCandidateErrors(const std::vector<MultiTableSymbol> &candidates, const std::vector<Type> &argTypes,
-                          const std::string &name);
+                          const std::string &name, AcornSettings &settings);
 
 // Creates a sequence from a lexed string.
 // Return type is deduced naturally from the contents.

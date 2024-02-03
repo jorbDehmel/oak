@@ -7,6 +7,7 @@ GPLv3 held by author
 */
 
 #include "oakc_fns.hpp"
+#include "options.hpp"
 
 // Removes illegal characters
 std::string purifyStr(const std::string &What)
@@ -86,7 +87,7 @@ void reconstruct(const std::string &Name, AcornSettings &settings, std::stringst
 
         for (auto m : settings.structData[name].order)
         {
-            header << toStrC(&settings.structData[name].members[m], m) << ";\n";
+            header << toStrC(&settings.structData[name].members[m], settings, m) << ";\n";
         }
 
         header << "};\n";
@@ -103,7 +104,7 @@ void reconstruct(const std::string &Name, AcornSettings &settings, std::stringst
         {
             try
             {
-                std::string toAdd = toStrCFunction(&s.type, name);
+                std::string toAdd = toStrCFunction(&s.type, settings, name);
 
                 header << toAdd << ";\n";
 
@@ -169,7 +170,7 @@ std::pair<std::string, std::string> save(const std::stringstream &header, const 
 }
 
 // This is separate due to complexity
-std::string toStrCFunction(const Type *What, const std::string &Name, const unsigned int &pos)
+std::string toStrCFunction(const Type *What, AcornSettings &settings, const std::string &Name, const unsigned int &pos)
 {
     parse_assert(What != nullptr);
     parse_assert(What->size() > 0);
@@ -213,7 +214,7 @@ std::string toStrCFunction(const Type *What, const std::string &Name, const unsi
                 arguments += ", ";
             }
 
-            arguments += toStrC(&temp, name);
+            arguments += toStrC(&temp, settings, name);
         }
 
         else if (What->operator[](i).info == maps)
@@ -241,7 +242,7 @@ std::string toStrCFunction(const Type *What, const std::string &Name, const unsi
     }
 
     // Next, after maps, we will have the return type.
-    std::string returnType = toStrC(What, "", i);
+    std::string returnType = toStrC(What, settings, "", i);
 
     if (returnType == "")
     {
@@ -269,7 +270,8 @@ std::string toStrCFunction(const Type *What, const std::string &Name, const unsi
     return out;
 }
 
-std::string toStrCFunctionRef(const Type *What, const std::string &Name, const unsigned int &pos)
+std::string toStrCFunctionRef(const Type *What, AcornSettings &settings, const std::string &Name,
+                              const unsigned int &pos)
 {
     // pointer -> function -> ARGS -> maps -> RETURN_TYPE
     // RETURN_TYPE (*Name)(ARGS);
@@ -318,7 +320,7 @@ std::string toStrCFunctionRef(const Type *What, const std::string &Name, const u
                 arguments += ", ";
             }
 
-            arguments += toStrC(&argType);
+            arguments += toStrC(&argType, settings);
 
             // Erase current argType
             argType = nullType;
@@ -340,7 +342,7 @@ std::string toStrCFunctionRef(const Type *What, const std::string &Name, const u
             arguments += ", ";
         }
 
-        arguments += toStrC(&argType);
+        arguments += toStrC(&argType, settings);
     }
 
     // Then the maps corresponding to the opening function
@@ -353,7 +355,7 @@ std::string toStrCFunctionRef(const Type *What, const std::string &Name, const u
     }
     else
     {
-        returnType = toStrC(What, "", i);
+        returnType = toStrC(What, settings, "", i);
     }
 
     if (arguments.empty())
@@ -367,13 +369,15 @@ std::string toStrCFunctionRef(const Type *What, const std::string &Name, const u
     return out;
 }
 
-std::string toStrC(const Type *What, const std::string &Name, const unsigned int &pos)
+std::string toStrC(const Type *What, AcornSettings &settings, const std::string &Name, const unsigned int &pos)
 {
-    static std::map<std::pair<unsigned long long, std::string>, std::string> toStrCTypeCache;
-
-    if (toStrCTypeCache.count(make_pair(What->ID, Name)) != 0)
+    if (settings.toStrCTypeCache.count(make_pair(What->ID, Name)) != 0)
     {
-        return toStrCTypeCache[make_pair(What->ID, Name)];
+        return settings.toStrCTypeCache[make_pair(What->ID, Name)];
+    }
+    if (settings.toStrCTypeCache.size() > 1000)
+    {
+        settings.toStrCTypeCache.clear();
     }
 
     std::string out = "";
@@ -382,24 +386,14 @@ std::string toStrC(const Type *What, const std::string &Name, const unsigned int
     // Safety check
     if (What == nullptr || What->size() == 0 || pos >= What->size())
     {
-        if (toStrCTypeCache.size() > 1000)
-        {
-            toStrCTypeCache.clear();
-        }
-
-        toStrCTypeCache[make_pair(What->ID, Name)] = "";
+        settings.toStrCTypeCache[make_pair(What->ID, Name)] = "";
         return "";
     }
 
     if ((*What)[pos].info == pointer && What->size() > 1 && (*What)[pos + 1].info == function)
     {
-        if (toStrCTypeCache.size() > 1000)
-        {
-            toStrCTypeCache.clear();
-        }
-
-        out = toStrCFunctionRef(What, Name);
-        toStrCTypeCache[make_pair(What->ID, Name)] = out;
+        out = toStrCFunctionRef(What, settings, Name);
+        settings.toStrCTypeCache[make_pair(What->ID, Name)] = out;
         return out;
     }
 
@@ -412,32 +406,32 @@ std::string toStrC(const Type *What, const std::string &Name, const unsigned int
         }
 
         out += (*What)[pos].name;
-        out += toStrC(What, "", pos + 1);
+        out += toStrC(What, settings, "", pos + 1);
         break;
     case join:
         out += ",";
-        out += toStrC(What, "", pos + 1);
+        out += toStrC(What, settings, "", pos + 1);
         break;
     case arr:
     case pointer:
         sm_assert(pos + 1 >= What->size() || (*What)[pos + 1].info != sarr,
                   "Cannot point to a sized array [n]. Use a regular array [] instead.");
-        out += toStrC(What, "", pos + 1);
+        out += toStrC(What, settings, "", pos + 1);
         out += "*";
         break;
     case sarr:
         // Sized array- goes after in C
-        out += toStrC(What, "", pos + 1);
+        out += toStrC(What, settings, "", pos + 1);
         suffix = "[" + (*What)[pos].name + "]" + suffix;
         break;
     case var_name:
-        out += toStrC(What, Name, pos + 1);
+        out += toStrC(What, settings, Name, pos + 1);
         out += (*What)[pos].name;
         break;
 
     case function:
     case maps:
-        out += toStrC(What, "", pos + 1);
+        out += toStrC(What, settings, "", pos + 1);
         break;
 
     default:
@@ -454,22 +448,16 @@ std::string toStrC(const Type *What, const std::string &Name, const unsigned int
         out += suffix;
     }
 
-    if (toStrCTypeCache.size() > 1000)
-    {
-        toStrCTypeCache.clear();
-    }
-    toStrCTypeCache[make_pair(What->ID, Name)] = out;
+    settings.toStrCTypeCache[make_pair(What->ID, Name)] = out;
 
     return out;
 }
 
 std::string enumToC(const std::string &name, AcornSettings &settings)
 {
-    static std::map<std::string, std::string> toStrCEnumCache;
-
-    if (toStrCEnumCache.count(name) != 0)
+    if (settings.toStrCEnumCache.count(name) != 0)
     {
-        return toStrCEnumCache[name];
+        return settings.toStrCEnumCache[name];
     }
 
     // Basic error checking; Should NOT constitute the entirety
@@ -495,7 +483,7 @@ std::string enumToC(const std::string &name, AcornSettings &settings)
     // types
     for (auto name : cur.order)
     {
-        out += toStrC(&cur.options[name]) + " " + name + "_data" + ";\n";
+        out += toStrC(&cur.options[name], settings) + " " + name + "_data" + ";\n";
     }
 
     out += "\n} __data;\n};\n";
@@ -506,7 +494,7 @@ std::string enumToC(const std::string &name, AcornSettings &settings)
     std::string enumTypeStr = name;
     for (auto optionName : cur.order)
     {
-        std::string optionTypeStr = toStrC(&cur.options[optionName]);
+        std::string optionTypeStr = toStrC(&cur.options[optionName], settings);
 
         if (cur.options[optionName][0].info == atomic && cur.options[optionName][0].name == "unit")
         {
@@ -532,11 +520,11 @@ std::string enumToC(const std::string &name, AcornSettings &settings)
         }
     }
 
-    if (toStrCEnumCache.size() > 1000)
+    if (settings.toStrCEnumCache.size() > 1000)
     {
-        toStrCEnumCache.clear();
+        settings.toStrCEnumCache.clear();
     }
-    toStrCEnumCache[name] = out;
+    settings.toStrCEnumCache[name] = out;
 
     return out;
 }

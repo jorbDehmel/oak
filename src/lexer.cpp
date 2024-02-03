@@ -7,8 +7,8 @@ jdehmel@outlook.com
 
 #include "lexer.hpp"
 
-static bool is_initialized = false;
-static lexer_state **dfa = nullptr;
+bool Lexer::is_initialized = false;
+LexerState **Lexer::dfa = nullptr;
 
 std::string to_string(Token &what)
 {
@@ -30,13 +30,13 @@ std::string to_string(Token &what)
     }
 }
 
-lexer::lexer()
+Lexer::Lexer()
 {
-    const static char *alpha = "abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ`";
-    const static char *numer = "0123456789";
-    const static char *oper = "!%&*=+|/~[]";
-    const static char *singletons = "^@#(){};,?";
-    const static char *whitespace = " \t\n";
+    const char *alpha = "abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ`";
+    const char *numer = "0123456789";
+    const char *oper = "!%&*=+|/~[]";
+    const char *singletons = "^@#(){};,?";
+    const char *whitespace = " \t\n";
 
     cur_file = "NULL";
 
@@ -47,20 +47,20 @@ lexer::lexer()
     state = delim_state;
 
     // Initialize singleton members
-    if (is_initialized)
+    if (Lexer::is_initialized)
     {
         is_responsible = false;
         return;
     }
 
     is_responsible = true;
-    is_initialized = true;
+    Lexer::is_initialized = true;
 
     // Initialize DFA
-    dfa = new lexer_state *[number_states];
+    dfa = new LexerState *[number_states];
     for (int i = 0; i < number_states; i++)
     {
-        dfa[i] = new lexer_state[number_chars];
+        dfa[i] = new LexerState[number_chars];
 
         // Set default to deliminator state
         for (int j = 0; j < number_chars; j++)
@@ -162,11 +162,11 @@ lexer::lexer()
     {
         if (i != string_literal_state_double)
         {
-            dfa[(lexer_state)i][(unsigned int)'\''] = delim_state;
+            dfa[(LexerState)i][(unsigned int)'\''] = delim_state;
         }
         if (i != string_literal_state_single)
         {
-            dfa[(lexer_state)i][(unsigned int)'"'] = delim_state;
+            dfa[(LexerState)i][(unsigned int)'"'] = delim_state;
         }
     }
 
@@ -205,7 +205,7 @@ lexer::lexer()
     dfa[colon_state][(unsigned int)':'] = colon_state;
 }
 
-lexer::~lexer()
+Lexer::~Lexer()
 {
     if (!is_responsible)
     {
@@ -222,14 +222,14 @@ lexer::~lexer()
     is_initialized = false;
 }
 
-void lexer::str(const std::string &from) noexcept
+void Lexer::str(const std::string &from) noexcept
 {
     pos = 0;
     line = 1;
     text = from;
 }
 
-void lexer::file(const std::string &filepath)
+void Lexer::file(const std::string &filepath)
 {
     pos = 0;
     line = 1;
@@ -255,10 +255,10 @@ void lexer::file(const std::string &filepath)
     f.close();
 }
 
-Token lexer::single()
+Token Lexer::single()
 {
     // Assume we are in null_state right now
-    lexer_state prev_state = delim_state;
+    LexerState prev_state = delim_state;
     Token out;
 
     out.pos = pos;
@@ -333,7 +333,7 @@ Token lexer::single()
     return out;
 }
 
-bool lexer::done() const noexcept
+bool Lexer::done() const noexcept
 {
     return pos >= text.size();
 }
@@ -392,6 +392,18 @@ void join_numbers(std::list<Token> &what)
             it++;
 
             while (it->state == numerical_state)
+            {
+                std::string temp = it->text;
+                it--;
+                it->text += temp;
+                it++;
+
+                it = what.erase(it);
+            }
+
+            // Join numerical type-suffixes
+            if (*it == "u8" || *it == "u16" || *it == "u32" || *it == "u64" || *it == "u128" || *it == "i8" ||
+                *it == "i16" || *it == "i32" || *it == "i64" || *it == "i128" || *it == "f32" || *it == "f64")
             {
                 std::string temp = it->text;
                 it--;
@@ -532,7 +544,7 @@ void join_bitshifts(std::list<Token> &what)
     }
 }
 
-void lexer::str(const std::string &from, const std::string &filepath) noexcept
+void Lexer::str(const std::string &from, const std::string &filepath) noexcept
 {
     pos = 0;
     line = 1;
@@ -540,7 +552,7 @@ void lexer::str(const std::string &from, const std::string &filepath) noexcept
     cur_file = filepath;
 }
 
-std::list<Token> lexer::str_all(const std::string &from) noexcept
+std::list<Token> Lexer::str_all(const std::string &from) noexcept
 {
     pos = 0;
     line = 1;
@@ -556,7 +568,7 @@ std::list<Token> lexer::str_all(const std::string &from) noexcept
     return out;
 }
 
-std::list<Token> lexer::str_all(const std::string &from, const std::string &filepath) noexcept
+std::list<Token> Lexer::str_all(const std::string &from, const std::string &filepath) noexcept
 {
     pos = 0;
     line = 1;
@@ -573,7 +585,7 @@ std::list<Token> lexer::str_all(const std::string &from, const std::string &file
     return out;
 }
 
-std::vector<Token> lexer::lex(const std::string &What, const std::string &filepath)
+std::vector<Token> Lexer::lex(const std::string &What, const std::string &filepath)
 {
     if (filepath != "")
     {

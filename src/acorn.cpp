@@ -3,19 +3,15 @@ Front end for the Acorn Oak compiler.
 
 File structure:
 ```
-lexer.hpp
-   |
-   v
-oakc_structs.hpp
-   |
-   v
-options.hpp
-   |
-   v
-oakc_fns.hpp
-   |
-   v
-<compiler frontend>   <---
+    lexer.hpp
+    |
+    oakc_structs.hpp
+    |
+    options.hpp
+    |
+    oakc_fns.hpp
+    |
+    <compiler frontend>   <---
 ```
 
 Jordan Dehmel
@@ -26,6 +22,7 @@ GPLv3 held by author
 */
 
 #include "oakc_fns.hpp"
+#include "options.hpp"
 
 // Dummy wrapper function for updating
 void update()
@@ -41,14 +38,14 @@ void uninstall()
     system("sudo bash /tmp/uninstall.sh &");
 }
 
-void queryPackage(const std::string &name)
+void queryPackage(const std::string &name, AcornSettings &settings)
 {
     std::string filepath = "/usr/include/oak/" + name + "/oak_package_info.txt";
 
     // loadPackageInfo
     try
     {
-        PackageInfo info = loadPackageInfo(filepath);
+        PackageInfo info = loadPackageInfo(filepath, settings);
 
         // Print output
         std::cout << tags::green << info << '\n' << tags::reset;
@@ -111,7 +108,7 @@ int main(const int argc, const char *argv[])
                             throw std::runtime_error("--install must be followed by a package name");
                         }
 
-                        queryPackage(argv[i + 1]);
+                        queryPackage(argv[i + 1], settings);
 
                         i++;
                     }
@@ -204,7 +201,7 @@ int main(const int argc, const char *argv[])
                             throw std::runtime_error("--install must be followed by a package name");
                         }
 
-                        downloadPackage(argv[1 + 1]);
+                        downloadPackage(argv[1 + 1], settings);
 
                         i++;
                     }
@@ -215,7 +212,7 @@ int main(const int argc, const char *argv[])
                             throw std::runtime_error("--reinstall must be followed by a package name");
                         }
 
-                        downloadPackage(argv[1 + 1], true);
+                        downloadPackage(argv[1 + 1], settings, true);
 
                         i++;
                     }
@@ -396,7 +393,7 @@ int main(const int argc, const char *argv[])
                                 throw std::runtime_error("--install must be followed by a package name");
                             }
 
-                            queryPackage(argv[i + 1]);
+                            queryPackage(argv[i + 1], settings);
                             i++;
 
                             break;
@@ -406,7 +403,7 @@ int main(const int argc, const char *argv[])
                                 throw std::runtime_error("-r must be followed by a package name");
                             }
 
-                            downloadPackage(argv[i + 1], true);
+                            downloadPackage(argv[i + 1], settings, true);
 
                             i++;
                             break;
@@ -431,7 +428,7 @@ int main(const int argc, const char *argv[])
                                 throw std::runtime_error("-S must be followed by a package name");
                             }
 
-                            downloadPackage(argv[i + 1]);
+                            downloadPackage(argv[i + 1], settings);
 
                             i++;
                             break;
@@ -901,20 +898,6 @@ int main(const int argc, const char *argv[])
                   << tags::reset << "[compiling, " << (settings.execute ? "" : "NOT ") << "executing,"
                   << (settings.testFail ? "" : " NOT") << " halting on failure]\n";
 
-        // Check for ansi2txt
-        std::string cleaner = "";
-        if (system("ansi2txt < /dev/null") == 0)
-        {
-            cleaner = " | ansi2txt ";
-        }
-        else
-        {
-            std::cout << tags::yellow
-                      << "Warning: `ansi2txt` is not installed, so output logs will look bad. Install `colorized-logs` "
-                         "to silence this warning.\n"
-                      << tags::reset;
-        }
-
         // Iterate through files
         int i = 1;
         unsigned long long min = -1ull, max = 0ull;
@@ -928,12 +911,11 @@ int main(const int argc, const char *argv[])
             start = std::chrono::high_resolution_clock::now();
             if (settings.execute)
             {
-                result = system(
-                    ("acorn -o a.out --settings.execute " + test + cleaner + " >> test_suite.tlog 2>&1").c_str());
+                result = system(("acorn -o a.out --execute " + test + " >> test_suite.tlog 2>&1").c_str());
             }
             else
             {
-                result = system(("acorn -o /dev/null " + test + cleaner + " >> test_suite.tlog 2>&1").c_str());
+                result = system(("acorn -o /dev/null " + test + " >> test_suite.tlog 2>&1").c_str());
             }
             end = std::chrono::high_resolution_clock::now();
             ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
@@ -1008,6 +990,25 @@ int main(const int argc, const char *argv[])
         }
 
         std::cout << "\nAny output is in ./test_suite.tlog.\n";
+
+        // Check for ansi2txt
+        if (system("ansi2txt < /dev/null") == 0)
+        {
+            // Clean log file
+            int result = system("ansi2txt < test_suite.tlog > tmp.tlog && mv tmp.tlog test_suite.tlog");
+
+            if (result != 0)
+            {
+                std::cout << tags::yellow << "Warning: Failed to clean logs. They may be corrupted!\n" << tags::reset;
+            }
+        }
+        else
+        {
+            std::cout << tags::yellow
+                      << "Warning: `ansi2txt` is not installed, so output logs will look bad. Install `colorized-logs` "
+                         "to silence this warning.\n"
+                      << tags::reset;
+        }
     }
 
     if (settings.prettify)

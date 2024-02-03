@@ -5,6 +5,7 @@ jdehmel@outlook.com
 */
 
 #include "oakc_fns.hpp"
+#include "options.hpp"
 
 void sm_assert(const bool &expression, const std::string &message)
 {
@@ -295,7 +296,7 @@ void toCInternal(const ASTNode &What, std::vector<std::string> &out, AcornSettin
             // Remaining items are case or defaults.
 
             Type type = What.items[0].type;
-            std::string typeStr = toStrC(&type);
+            std::string typeStr = toStrC(&type, settings);
 
             if (typeStr.substr(0, 7) == "struct ")
             {
@@ -474,13 +475,11 @@ std::string toC(const ASTNode &What, AcornSettings &settings)
 }
 
 // Get the return type from a Type (of a function signature)
-Type getReturnType(const Type &T)
+Type getReturnType(const Type &T, AcornSettings &settings)
 {
-    static std::map<unsigned long long, Type> getReturnTypeCache;
-
-    if (getReturnTypeCache.count(T.ID) != 0)
+    if (settings.getReturnTypeCache.count(T.ID) != 0)
     {
-        return getReturnTypeCache[T.ID];
+        return settings.getReturnTypeCache[T.ID];
     }
 
     Type temp(T);
@@ -501,31 +500,29 @@ Type getReturnType(const Type &T)
             {
                 Type out(temp, cur + 1);
 
-                getReturnTypeCache[T.ID] = out;
+                settings.getReturnTypeCache[T.ID] = out;
 
                 return out;
             }
         }
     }
 
-    if (getReturnTypeCache.size() > 1000)
+    if (settings.getReturnTypeCache.size() > 1000)
     {
-        getReturnTypeCache.clear();
+        settings.getReturnTypeCache.clear();
     }
 
-    getReturnTypeCache[T.ID] = T;
+    settings.getReturnTypeCache[T.ID] = T;
 
     return T;
 }
 
-std::vector<std::pair<std::string, Type>> getArgs(Type &type)
+std::vector<std::pair<std::string, Type>> getArgs(Type &type, AcornSettings &settings)
 {
-    static std::map<unsigned long long, std::vector<std::pair<std::string, Type>>> cache;
-
     // Check cache for existing value
-    if (cache.count(type.ID) != 0)
+    if (settings.cache.count(type.ID) != 0)
     {
-        return cache[type.ID];
+        return settings.cache[type.ID];
     }
 
     // Get everything between final function and maps
@@ -628,12 +625,12 @@ std::vector<std::pair<std::string, Type>> getArgs(Type &type)
     }
 
     // Copy into cache
-    if (cache.size() > 1000)
+    if (settings.cache.size() > 1000)
     {
-        cache.clear();
+        settings.cache.clear();
     }
 
-    cache[type.ID] = out;
+    settings.cache[type.ID] = out;
 
     // Return
     return out;
@@ -1367,7 +1364,7 @@ std::vector<int> getReferenceCandidates(const std::vector<std::vector<Type>> &ca
 
 // Prints the reason why each candidate was rejected
 void printCandidateErrors(const std::vector<MultiTableSymbol> &candidates, const std::vector<Type> &argTypes,
-                          const std::string &name)
+                          const std::string &name, AcornSettings &settings)
 {
     std::cout << "--------------------------------------------------\n";
 
@@ -1380,7 +1377,7 @@ void printCandidateErrors(const std::vector<MultiTableSymbol> &candidates, const
             curType.pop_front();
         }
 
-        auto args = getArgs(item.type);
+        auto args = getArgs(item.type, settings);
         candArgs.push_back(std::vector<Type>());
 
         for (auto arg : args)

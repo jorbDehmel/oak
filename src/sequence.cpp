@@ -7,6 +7,7 @@ GPLv3 held by author
 */
 
 #include "oakc_fns.hpp"
+#include "oakc_structs.hpp"
 
 // The current depth of createSequence
 unsigned long long int depth = 0;
@@ -58,8 +59,6 @@ ASTNode createSequence(const std::vector<Token> &From, AcornSettings &settings)
 // Internal consumptive version: Erases from std::vector, so not safe for frontend
 ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
 {
-    static std::string prevMatchTypeStr = "NULL";
-
     ASTNode out;
     out.info = code_line;
 
@@ -364,7 +363,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                         Type type = resolveFunction(toAnalyze, pos, junk, settings);
 
                         // Convert type to lexed std::string vec
-                        lexer dfa_lexer;
+                        Lexer dfa_lexer;
                         std::vector<Token> lexedType = dfa_lexer.lex(toStr(&type));
 
                         // Push lexed vec to front of From
@@ -397,17 +396,15 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                 for (auto name : names)
                 {
                     // Ensure this is a safe name
-                    const static std::set<std::string> keywords = {"let",   "if",    "else", "pre",    "post",
-                                                                   "while", "match", "case", "default"};
-
-                    sm_assert(keywords.count(name) == 0,
+                    sm_assert(oakKeywords.count(name) == 0,
                               "Variable name conflicts w/ canonical Oak keyword '" + name + "'");
                     sm_assert(settings.structData.count(name) == 0 && atomics.count(name) == 0,
                               "Variable name conflicts w/ existing struct name '" + name + "'");
                     sm_assert(settings.enumData.count(name) == 0,
                               "Variable name conflicts w/ existing enum name '" + name + "'");
+                    sm_assert(checkLiteral(name) == nullType, "Variable name cannot be a valid literal.");
 
-                    out.items.push_back(ASTNode{nullType, std::vector<ASTNode>(), atom, toStrC(&type, name)});
+                    out.items.push_back(ASTNode{nullType, std::vector<ASTNode>(), atom, toStrC(&type, settings, name)});
                     out.items.push_back(ASTNode{nullType, std::vector<ASTNode>(), atom, ";"});
 
                     // Insert into table
@@ -478,7 +475,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
 
                 auto oldTable = settings.table;
 
-                auto argsWithType = getArgs(type);
+                auto argsWithType = getArgs(type, settings);
                 for (std::pair<std::string, Type> p : argsWithType)
                 {
                     settings.table[p.first].push_back(MultiTableSymbol{ASTNode(), p.second, false, settings.curFile});
@@ -495,7 +492,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                 }
 
                 sm_assert(settings.currentReturnType == nullType, "Cannot nest function definitions.");
-                settings.currentReturnType = getReturnType(type);
+                settings.currentReturnType = getReturnType(type, settings);
 
                 // Scrape contents
                 int count = 0;
@@ -1090,7 +1087,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
             sm_assert(numType[0].info == atomic && numType[0].name == "u128",
                       "'alloc!' takes 'u128', not '" + toStr(&numType) + "'.");
 
-            out = getAllocSequence(temp.type, name, num);
+            out = getAllocSequence(temp.type, name, settings, num);
 
             return out;
         }
@@ -1129,7 +1126,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                       "'free!' takes an unsized array or pointer.");
             temp.type.pop_front();
 
-            out = getFreeSequence(name, false);
+            out = getFreeSequence(name, settings);
 
             return out;
         }
@@ -1274,13 +1271,13 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                   out.raw + " statement argument must be enum. Instead, '" + toStr(&out.items[0].type) + "'");
         sm_assert(!From.empty(), "Missing statement after " + out.raw + "");
 
-        std::string old = prevMatchTypeStr;
-        prevMatchTypeStr = out.items[0].type[0].name;
+        std::string old = settings.prevMatchTypeStr;
+        settings.prevMatchTypeStr = out.items[0].type[0].name;
 
         // This is for the code chunk
         out.items.push_back(__createSequence(From, settings));
 
-        prevMatchTypeStr = old;
+        settings.prevMatchTypeStr = old;
 
         // Ensure internal safety
         for (int j = 1; j < out.items.size(); j++)
@@ -1307,7 +1304,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
     else if (From.front() == "case")
     {
         // case NAME() {}
-        sm_assert(prevMatchTypeStr != "NULL", "'case' statement must occur within a 'match' statement.");
+        sm_assert(settings.prevMatchTypeStr != "NULL", "'case' statement must occur within a 'match' statement.");
 
         // Takes a code scope / code line
         out.info = enum_keyword;
@@ -1339,7 +1336,8 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
             From.pop_front();
 
             settings.table[captureName].push_back(MultiTableSymbol{ASTNode{}, pointer, false, settings.curFile});
-            settings.table[captureName].back().type.append(settings.enumData[prevMatchTypeStr].options[optionName]);
+            settings.table[captureName].back().type.append(
+                settings.enumData[settings.prevMatchTypeStr].options[optionName]);
         }
         else
         {
@@ -1851,7 +1849,7 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
 
         // Append size
         c.push_back("sizeof(");
-        c.push_back(toStrC(&type));
+        c.push_back(toStrC(&type, settings));
         c.push_back(")");
 
         return Type(atomic, "u128");
@@ -2012,7 +2010,7 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
                     curType.pop_front();
                 }
 
-                auto args = getArgs(item.type);
+                auto args = getArgs(item.type, settings);
                 candArgs.push_back(std::vector<Type>());
 
                 for (auto arg : args)
@@ -2049,7 +2047,7 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
                           << "' on return type alone.\n"
                           << tags::reset;
 
-                printCandidateErrors(candidates, argTypes, name);
+                printCandidateErrors(candidates, argTypes, name, settings);
 
                 throw sequencing_error("Cannot override function call '" + name + "' on return type alone");
             }
@@ -2071,13 +2069,13 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
                 std::cout << tags::red_bold << "Error: No viable candidates for function call '" << name << "'.\n"
                           << tags::reset;
 
-                printCandidateErrors(candidates, argTypes, name);
+                printCandidateErrors(candidates, argTypes, name, settings);
 
                 throw sequencing_error("No viable candidates for function call '" + name + "'");
             }
 
             // Use candidate at front; This is highest-priority one
-            type = getReturnType(candidates[validCandidates[0]].type);
+            type = getReturnType(candidates[validCandidates[0]].type, settings);
 
             if (candidates[validCandidates[0]].type[0].info == pointer)
             {
@@ -2102,7 +2100,7 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
                 int numDeref = 0;
                 // determine actual number here
 
-                auto candArgs = getArgs(candidates[validCandidates[0]].type);
+                auto candArgs = getArgs(candidates[validCandidates[0]].type, settings);
 
                 // Type *candCursor = &candArgs[j].second;
                 // Type *argCursor = &argTypes[j];
@@ -2180,7 +2178,7 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
 
         // Literal check
         Type litType = checkLiteral(What[start]);
-        std::string litSuffix = "";
+        std::string litName = What[start];
 
         if (litType == nullType)
         {
@@ -2203,29 +2201,35 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
             // Is a literal
             type = litType;
 
+            if (litName.size() >= litType[0].name.size() &&
+                litName.substr(litName.size() - litType[0].name.size()) == litType[0].name)
+            {
+                litName.erase(litName.size() - litType[0].name.size());
+            }
+
             if (litType == Type(atomic, "u32"))
             {
-                litSuffix = "U";
+                litName += "U";
             }
             else if (litType == Type(atomic, "i64"))
             {
-                litSuffix = "UL";
+                litName += "UL";
             }
             else if (litType == Type(atomic, "u64"))
             {
-                litSuffix = "UL";
+                litName += "UL";
             }
             else if (litType == Type(atomic, "i128"))
             {
-                litSuffix = "ULL";
+                litName += "ULL";
             }
             else if (litType == Type(atomic, "u128"))
             {
-                litSuffix = "ULL";
+                litName += "ULL";
             }
         }
 
-        c.push_back(What[start] + litSuffix);
+        c.push_back(litName);
     }
 
     // if member access, resolve that
