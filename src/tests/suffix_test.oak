@@ -1,0 +1,24 @@
+/*
+Tests type-specifying literal suffixes for numbers.
+
+Jordan Dehmel, 2024
+jdehmel@outlook.com
+*/
+
+package!("std");
+use_rule!("std");
+
+let main() -> i32
+{
+    let a: u128 = 123 u128;
+
+    let b: u8 = 5u8;
+
+    let c: u32 = 0xff 00 12 34;
+
+    let d: f64 = 2 f64;
+
+    print(a);
+
+    0
+}

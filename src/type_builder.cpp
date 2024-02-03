@@ -5,6 +5,8 @@ jdehmel@outlook.com
 */
 
 #include "oakc_fns.hpp"
+#include "oakc_structs.hpp"
+#include <string>
 
 // Externals
 // std::map<std::string, StructLookupData> structData;
@@ -340,10 +342,6 @@ casting. The number of changes is recorded in `changes`.
 */
 bool typesAreSameCast(const Type *const A, const Type *const B, int &changes)
 {
-    const static std::set<std::string> intLiterals = {"u8",  "i8",  "u16", "i16",  "u32",
-                                                      "i32", "u64", "i64", "u128", "i128"};
-    const static std::set<std::string> floatLiterals = {"f32", "f64", "f128"};
-
     unsigned int left, right;
     bool castIsLegal = true;
     left = right = 0;
@@ -503,7 +501,7 @@ Type checkLiteral(const std::string &From)
             throw sequencing_error("Binary '" + From + "' cannot fit in integer literal.");
         }
     }
-    else if (From.size() > 2 && From.substr(0, 2) == "0x")
+    else if (From.size() >= 2 && From.substr(0, 2) == "0x")
     {
         // Ensure validity
         for (int i = 2; i < From.size(); i++)
@@ -553,83 +551,156 @@ Type checkLiteral(const std::string &From)
         }
     }
 
-    // Check as numbers
-    bool canBeNumber = true;
-    for (char c : From)
-    {
-        if (!('0' <= c && c <= '9') && c != '-' && c != '.')
-        {
-            canBeNumber = false;
-            break;
-        }
-    }
+    // Check as numbers w/o prefixes
+    bool canBeNumber = (('0' <= From[0] && From[0] <= '9') || From[0] == '-');
 
     if (canBeNumber)
     {
-        if (From.find(".") == std::string::npos)
+        int i = 0;
+        for (char c : From)
         {
-            long long val;
-            unsigned long long uval;
-            bool viable = true;
+            if (c == 'u')
+            {
+                // Unsigned literal suffix or invalid notation
+                const char *suffix = &From.c_str()[i];
+                if (strcmp(suffix, "u8") == 0)
+                {
+                    return Type(atomic, suffix);
+                }
+                else if (strcmp(suffix, "u16") == 0)
+                {
+                    return Type(atomic, suffix);
+                }
+                else if (strcmp(suffix, "u32") == 0)
+                {
+                    return Type(atomic, suffix);
+                }
+                else if (strcmp(suffix, "u64") == 0)
+                {
+                    return Type(atomic, suffix);
+                }
+                else if (strcmp(suffix, "u128") == 0)
+                {
+                    return Type(atomic, suffix);
+                }
 
-            try
-            {
-                val = stoll(From);
+                throw sequencing_error("Invalid type-specifying suffix '" + std::string(suffix) + "'");
             }
-            catch (...)
+            else if (c == 'i')
             {
-                viable = false;
+                // Signed literal suffix or invalid notation
+                const char *suffix = &From.c_str()[i];
+                if (strcmp(suffix, "i8") == 0)
+                {
+                    return Type(atomic, suffix);
+                }
+                else if (strcmp(suffix, "i16") == 0)
+                {
+                    return Type(atomic, suffix);
+                }
+                else if (strcmp(suffix, "i32") == 0)
+                {
+                    return Type(atomic, suffix);
+                }
+                else if (strcmp(suffix, "i64") == 0)
+                {
+                    return Type(atomic, suffix);
+                }
+                else if (strcmp(suffix, "i128") == 0)
+                {
+                    return Type(atomic, suffix);
+                }
+
+                throw sequencing_error("Invalid type-specifying suffix '" + std::string(suffix) + "'");
+            }
+            else if (c == 'f')
+            {
+                // Float literal suffix or invalid notation
+                // Unsigned literal suffix or invalid notation
+                const char *suffix = &From.c_str()[i];
+                if (strcmp(suffix, "f32") == 0)
+                {
+                    return Type(atomic, suffix);
+                }
+                else if (strcmp(suffix, "f64") == 0)
+                {
+                    return Type(atomic, suffix);
+                }
+
+                throw sequencing_error("Invalid type-specifying suffix '" + std::string(suffix) + "'");
             }
 
-            if (viable)
+            // Must be floating point to use '.'
+            else if (c == '.')
             {
-                if (INT_MIN <= val && val <= INT_MAX)
-                {
-                    return Type(atomic, "i32");
-                }
-                else if (LONG_MIN <= val && val <= LONG_MIN)
-                {
-                    return Type(atomic, "i64");
-                }
-                else if (LONG_LONG_MIN <= val && val <= LONG_LONG_MAX)
-                {
-                    return Type(atomic, "i128");
-                }
+                // Float
+                return Type(atomic, "f64");
             }
 
-            viable = true;
-            try
+            if (!('0' <= c && c <= '9') && c != '-')
             {
-                uval = stoull(From);
-            }
-            catch (...)
-            {
-                viable = false;
+                return nullType;
             }
 
-            if (viable)
-            {
-                if (uval <= UINT_MAX)
-                {
-                    return Type(atomic, "u32");
-                }
-                else if (uval <= ULONG_MAX)
-                {
-                    return Type(atomic, "u64");
-                }
-                else if (uval <= ULONG_LONG_MAX)
-                {
-                    return Type(atomic, "u128");
-                }
-            }
-
-            throw sequencing_error("Invalid numerical literal '" + From + "'- Out of range of i128 and u128.");
+            i++;
         }
-        else
+
+        long long val;
+        unsigned long long uval;
+        bool viable = true;
+
+        try
         {
-            // Float
-            return Type(atomic, "f64");
+            val = stoll(From);
         }
+        catch (...)
+        {
+            viable = false;
+        }
+
+        if (viable)
+        {
+            if (INT_MIN <= val && val <= INT_MAX)
+            {
+                return Type(atomic, "i32");
+            }
+            else if (LONG_MIN <= val && val <= LONG_MIN)
+            {
+                return Type(atomic, "i64");
+            }
+            else if (LONG_LONG_MIN <= val && val <= LONG_LONG_MAX)
+            {
+                return Type(atomic, "i128");
+            }
+        }
+
+        viable = true;
+        try
+        {
+            uval = stoull(From);
+        }
+        catch (...)
+        {
+            viable = false;
+        }
+
+        if (viable)
+        {
+            if (uval <= UINT_MAX)
+            {
+                return Type(atomic, "u32");
+            }
+            else if (uval <= ULONG_MAX)
+            {
+                return Type(atomic, "u64");
+            }
+            else if (uval <= ULONG_LONG_MAX)
+            {
+                return Type(atomic, "u128");
+            }
+        }
+
+        throw sequencing_error("Invalid numerical literal '" + From + "'- Out of range of i128 and u128.");
     }
 
     // Default: Not a literal

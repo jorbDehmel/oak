@@ -12,10 +12,6 @@ and the ternary must be added via rules, if at all.
 
 #include "oakc_fns.hpp"
 
-const static std::set<std::string> operators = {
-    "+",  "-",  "/", "*", "%",  "=",  "-=", "+=", "/=", "*=", "%=", "&=", "|=", "<<", ">>",
-    "&&", "||", "<", ">", "==", "!=", "<=", ">=", "&",  "|",  ",",  "(",  ")",  ";"};
-
 // Moves pre and post to include the operands to a binary
 // operator
 // Assumes that pre = i - 1, post = i + 1, i = index of bin op

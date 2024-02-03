@@ -8,70 +8,10 @@ GPLv3 held by author
 
 #include "oakc_fns.hpp"
 
-static std::string debugTreePrefix = "";
-
-const static std::set<std::string> oakKeywords = {"if",    "else",  "let",    "case", "default",
-                                                  "match", "while", "return", "pre",  "post"};
-const static std::set<std::string> cKeywords = {"alignas",
-                                                "alignof",
-                                                "auto",
-                                                "break",
-                                                "case",
-                                                "const",
-                                                "constexpr",
-                                                "continue",
-                                                "default",
-                                                "do",
-                                                "else",
-                                                "extern",
-                                                "for",
-                                                "goto",
-                                                "if",
-                                                "inline",
-                                                "nullptr",
-                                                "register",
-                                                "restrict",
-                                                "return",
-                                                "signed",
-                                                "sizeof",
-                                                "static",
-                                                "static_assert",
-                                                "switch",
-                                                "thread_local",
-                                                "typedef",
-                                                "typeof",
-                                                "typeof_unqual",
-                                                "union",
-                                                "unsigned",
-                                                "volatile",
-                                                "while",
-                                                "_Alignas",
-                                                "_Alignof",
-                                                "_Atomic",
-                                                "_BitInt",
-                                                "_Bool",
-                                                "_Complex",
-                                                "_Decimal128",
-                                                "_Decimal32",
-                                                "_Decimal64",
-                                                "_Generic",
-                                                "_Imaginary",
-                                                "_Noreturn",
-                                                "_Static_assert",
-                                                "_Thread_local",
-                                                "_Pragma",
-                                                "asm",
-                                                "fortran",
-                                                "int",
-                                                "char",
-                                                "float",
-                                                "double",
-                                                "long"};
-
 // Prints the cumulative disk usage of Oak (in human-readable)
 void getDiskUsage()
 {
-    const static std::vector<std::string> filesToCheck = {"/usr/bin/acorn", "/usr/include/oak"};
+    const std::vector<std::string> filesToCheck = {"/usr/bin/acorn", "/usr/include/oak"};
     unsigned long long int totalKB = 0;
 
     for (std::string s : filesToCheck)
@@ -100,9 +40,7 @@ void doFile(const std::string &From, AcornSettings &settings)
 
     int curPhase = 0;
 
-    static std::chrono::high_resolution_clock::time_point fileStartTimePoint;
-    const static std::set<std::string> compilerMacros = {"include!", "package!", "link!", "flag!"};
-
+    std::chrono::high_resolution_clock::time_point fileStartTimePoint;
     std::chrono::high_resolution_clock::time_point start, end;
 
     // Clear active rules
@@ -145,7 +83,7 @@ void doFile(const std::string &From, AcornSettings &settings)
         {
             if (settings.debug)
             {
-                std::cout << debugTreePrefix << "Skipping repeated file '" << From << "'\n";
+                std::cout << settings.debugTreePrefix << "Skipping repeated file '" << From << "'\n";
             }
             settings.curFile = oldFile;
             settings.curLine = oldLineNum;
@@ -156,8 +94,8 @@ void doFile(const std::string &From, AcornSettings &settings)
 
         if (settings.debug)
         {
-            std::cout << debugTreePrefix << "Loading file '" << From << "'\n";
-            debugTreePrefix.append("|");
+            std::cout << settings.debugTreePrefix << "Loading file '" << From << "'\n";
+            settings.debugTreePrefix.append("|");
         }
 
         // A: Load file
@@ -193,7 +131,7 @@ void doFile(const std::string &From, AcornSettings &settings)
 
         if (settings.debug)
         {
-            std::cout << debugTreePrefix << "Syntax check\n";
+            std::cout << settings.debugTreePrefix << "Syntax check\n";
             start = std::chrono::high_resolution_clock::now();
         }
 
@@ -213,11 +151,11 @@ void doFile(const std::string &From, AcornSettings &settings)
         // C: Lex
         if (settings.debug)
         {
-            std::cout << debugTreePrefix << "Lexing\n";
+            std::cout << settings.debugTreePrefix << "Lexing\n";
             start = std::chrono::high_resolution_clock::now();
         }
 
-        lexer dfa_lexer;
+        Lexer dfa_lexer;
         lexed = dfa_lexer.lex(text, From);
         lexedCopy = lexed;
 
@@ -233,7 +171,7 @@ void doFile(const std::string &From, AcornSettings &settings)
         // This erases them from lexed
         if (settings.debug)
         {
-            std::cout << debugTreePrefix << "Macro definitions\n";
+            std::cout << settings.debugTreePrefix << "Macro definitions\n";
             start = std::chrono::high_resolution_clock::now();
         }
 
@@ -357,7 +295,7 @@ void doFile(const std::string &From, AcornSettings &settings)
             if (settings.debug)
             {
                 curPhase = compilerMacroPos;
-                std::cout << debugTreePrefix << "Compiler macro\n";
+                std::cout << settings.debugTreePrefix << "Compiler macro\n";
                 start = std::chrono::high_resolution_clock::now();
             }
 
@@ -429,7 +367,7 @@ void doFile(const std::string &From, AcornSettings &settings)
                         {
                             if (settings.debug)
                             {
-                                std::cout << debugTreePrefix << "Inserting object " << a << '\n';
+                                std::cout << settings.debugTreePrefix << "Inserting object " << a << '\n';
                             }
 
                             if (fs::exists(a) || a[0] == '-')
@@ -471,7 +409,7 @@ void doFile(const std::string &From, AcornSettings &settings)
                         {
                             if (settings.debug)
                             {
-                                std::cout << debugTreePrefix << "Appending flag " << a << '\n';
+                                std::cout << settings.debugTreePrefix << "Appending flag " << a << '\n';
                             }
 
                             settings.cflags.insert(a);
@@ -502,13 +440,13 @@ void doFile(const std::string &From, AcornSettings &settings)
 
                         for (std::string a : args)
                         {
-                            files = getPackageFiles(a);
+                            files = getPackageFiles(a, settings);
 
                             for (std::string f : files)
                             {
                                 if (settings.debug)
                                 {
-                                    std::cout << debugTreePrefix << "Loading package file '" << f << "'...\n";
+                                    std::cout << settings.debugTreePrefix << "Loading package file '" << f << "'...\n";
                                 }
 
                                 // Backup dialect rules; These do NOT
@@ -577,7 +515,7 @@ void doFile(const std::string &From, AcornSettings &settings)
                 end = std::chrono::high_resolution_clock::now();
                 settings.phaseTimes[curPhase] +=
                     std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-                std::cout << debugTreePrefix << "Compiler macro finished in "
+                std::cout << settings.debugTreePrefix << "Compiler macro finished in "
                           << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns\n";
                 curPhase = compilerMacroPos + 1;
             }
@@ -585,7 +523,7 @@ void doFile(const std::string &From, AcornSettings &settings)
             // E: Rules
             if (settings.debug)
             {
-                std::cout << debugTreePrefix << "Rules\n";
+                std::cout << settings.debugTreePrefix << "Rules\n";
                 start = std::chrono::high_resolution_clock::now();
             }
 
@@ -614,7 +552,7 @@ void doFile(const std::string &From, AcornSettings &settings)
         // G: Scan for macro calls and handle them
         if (settings.debug)
         {
-            std::cout << debugTreePrefix << "Macro calls\n";
+            std::cout << settings.debugTreePrefix << "Macro calls\n";
             start = std::chrono::high_resolution_clock::now();
         }
 
@@ -730,7 +668,7 @@ void doFile(const std::string &From, AcornSettings &settings)
 
         if (settings.debug)
         {
-            std::cout << debugTreePrefix << "Preproc definitions\n";
+            std::cout << settings.debugTreePrefix << "Preproc definitions\n";
             start = std::chrono::high_resolution_clock::now();
         }
 
@@ -776,7 +714,7 @@ void doFile(const std::string &From, AcornSettings &settings)
         // I: Operator substitution (within parenthesis and between commas)
         if (settings.debug)
         {
-            std::cout << debugTreePrefix << "Operator substitution\n";
+            std::cout << settings.debugTreePrefix << "Operator substitution\n";
             start = std::chrono::high_resolution_clock::now();
         }
 
@@ -792,7 +730,7 @@ void doFile(const std::string &From, AcornSettings &settings)
         // J: Sequencing
         if (settings.debug)
         {
-            std::cout << debugTreePrefix << "Sequencing (AST & translation)\n";
+            std::cout << settings.debugTreePrefix << "Sequencing (AST & translation)\n";
             start = std::chrono::high_resolution_clock::now();
         }
 
@@ -818,7 +756,7 @@ void doFile(const std::string &From, AcornSettings &settings)
 
             if (settings.debug)
             {
-                std::cout << debugTreePrefix << "Saving dump file '" << name << "'\n";
+                std::cout << settings.debugTreePrefix << "Saving dump file '" << name << "'\n";
             }
 
             dump(lexed, name, From, settings.curLine, fileSeq, lexedCopy, "alwaysDump is true (not an error).",
@@ -831,8 +769,8 @@ void doFile(const std::string &From, AcornSettings &settings)
             settings.visitedFiles[From] +=
                 std::chrono::duration_cast<std::chrono::nanoseconds>(now - fileStartTimePoint).count();
 
-            debugTreePrefix.pop_back();
-            std::cout << debugTreePrefix << "Finished file '" << From << "'\n";
+            settings.debugTreePrefix.pop_back();
+            std::cout << settings.debugTreePrefix << "Finished file '" << From << "'\n";
         }
     }
     catch (rule_error &e)

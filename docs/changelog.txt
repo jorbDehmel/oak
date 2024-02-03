@@ -4,6 +4,10 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.4.23          | 2/3/24   | Fixed bug which was causing all
+                |          | test suites to succeed, no matter
+                |          | what. Also added type suffixes.
+                |          |
 0.4.22          | 2/3/24   | Consolidated source code to make
                 |          | the include paths more sensible.
                 |          | Now primed for full compiler

@@ -37,7 +37,7 @@ jdehmel@outlook.com
 /*
 States for use in the lexer DFA later on.
 */
-enum lexer_state
+enum LexerState
 {
     delim_state = 0,
     numerical_state,
@@ -70,7 +70,7 @@ class Token
   public:
     std::string text;
 
-    lexer_state state;
+    LexerState state;
     unsigned int line, pos;
     std::string file;
 
@@ -198,12 +198,12 @@ which is compiled and cleaned up by the first instance. Thus,
 this instance should live as long as the compiler to avoid
 unnecessary re-initializations.
 */
-class lexer
+class Lexer
 {
   public:
     // If this is the first instance, compile (and delete) DFA
-    lexer();
-    ~lexer();
+    Lexer();
+    ~Lexer();
 
     // Load from a string
     void str(const std::string &from) noexcept;
@@ -237,7 +237,10 @@ class lexer
 
     // DFA handling members
     bool is_responsible = false;
-    lexer_state state;
+    LexerState state;
+
+    static bool is_initialized;
+    static LexerState **dfa;
 };
 
 #endif

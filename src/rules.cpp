@@ -107,7 +107,7 @@ void doRules(std::vector<Token> &From, AcornSettings &settings)
                 toAdd.engineName = args[3];
             }
 
-            lexer dfa_lexer;
+            Lexer dfa_lexer;
             toAdd.inputPattern = dfa_lexer.lex(args[1]);
             toAdd.outputPattern = dfa_lexer.lex(args[2]);
 
@@ -274,9 +274,7 @@ void doRules(std::vector<Token> &From, AcornSettings &settings)
 
 void loadDialectFile(const std::string &File, AcornSettings &settings)
 {
-    static bool dialectLock = false;
-
-    if (dialectLock)
+    if (settings.dialectLock)
     {
         return;
     }
@@ -359,7 +357,7 @@ void loadDialectFile(const std::string &File, AcornSettings &settings)
             outputStr = outputStr.substr(1, outputStr.size() - 2);
 
             // Lex patterns
-            lexer dfa_lexer;
+            Lexer dfa_lexer;
             rm_assert(inputStr != "", "Input rule must be non-empty.");
             toAdd.inputPattern = dfa_lexer.lex(inputStr);
 
@@ -391,7 +389,7 @@ void loadDialectFile(const std::string &File, AcornSettings &settings)
         {
             // Set the current dialect as final
             // (no more can ever be loaded in this translation)
-            dialectLock = true;
+            settings.dialectLock = true;
             break;
         }
         else
@@ -761,7 +759,7 @@ void doRuleAcorn(std::vector<Token> &From, int &i, Rule &curRule, AcornSettings 
             {
                 std::string raw = ruleVars[s];
 
-                lexer dfa_lexer;
+                Lexer dfa_lexer;
                 std::vector<Token> lexed = dfa_lexer.lex(raw);
                 for (auto s : lexed)
                 {
@@ -778,7 +776,7 @@ void doRuleAcorn(std::vector<Token> &From, int &i, Rule &curRule, AcornSettings 
 
                 if (ruleVars.count(toInsert) != 0)
                 {
-                    lexer dfa_lexer;
+                    Lexer dfa_lexer;
                     std::string raw = ruleVars[toInsert];
                     std::vector<Token> lexed = dfa_lexer.lex(raw);
 

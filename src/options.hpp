@@ -3,26 +3,19 @@ Defines the AcornSettings struct, which contains all non-const
 globals needed by the compiler. This file also contains all
 constant globals needed by the compiler.
 
-IMPORTANT: Some subsystems use local caches!
-
 File structure:
 ```
-<lexer dependencies>
-   |
-   v
-lexer.hpp
-   |
-   v
-oakc_structs.hpp
-   |
-   v
-options.hpp   <---
-   |
-   v
-oakc_fns.hpp
-   |
-   v
-<compiler frontend>
+    <lexer dependencies>
+    |
+    lexer.hpp
+    |
+    oakc_structs.hpp
+    |
+    options.hpp   <---
+    |
+    oakc_fns.hpp
+    |
+    <compiler frontend>
 ```
 
 Jordan Dehmel, 2024
@@ -44,7 +37,7 @@ jdehmel@outlook.com
 namespace fs = std::filesystem;
 
 // The current version of Oak.
-const static std::string VERSION = "0.4.22";
+const static std::string VERSION = "0.4.23";
 
 // The license that this version of Oak uses.
 const static std::string LICENSE = "GPLv3";
@@ -140,6 +133,85 @@ const static std::map<std::string, unsigned long long> atomics = {
 // Where to look for the standard `oak` header file. This is
 // included at the top of all target `C` files.
 const static std::string OAK_HEADER_PATH = "/usr/include/oak/std_oak_header.h";
+
+// Used for keyword collision avoidance. All `Oak` keywords.
+const static std::set<std::string> oakKeywords = {"if",    "else",  "let",    "case", "default",
+                                                  "match", "while", "return", "pre",  "post"};
+
+// Used for keyword collision avoidance. "All" `C` keywords.
+const static std::set<std::string> cKeywords = {"alignas",
+                                                "alignof",
+                                                "auto",
+                                                "break",
+                                                "case",
+                                                "const",
+                                                "constexpr",
+                                                "continue",
+                                                "default",
+                                                "do",
+                                                "else",
+                                                "extern",
+                                                "for",
+                                                "goto",
+                                                "if",
+                                                "inline",
+                                                "nullptr",
+                                                "register",
+                                                "restrict",
+                                                "return",
+                                                "signed",
+                                                "sizeof",
+                                                "static",
+                                                "static_assert",
+                                                "switch",
+                                                "thread_local",
+                                                "typedef",
+                                                "typeof",
+                                                "typeof_unqual",
+                                                "union",
+                                                "unsigned",
+                                                "volatile",
+                                                "while",
+                                                "_Alignas",
+                                                "_Alignof",
+                                                "_Atomic",
+                                                "_BitInt",
+                                                "_Bool",
+                                                "_Complex",
+                                                "_Decimal128",
+                                                "_Decimal32",
+                                                "_Decimal64",
+                                                "_Generic",
+                                                "_Imaginary",
+                                                "_Noreturn",
+                                                "_Static_assert",
+                                                "_Thread_local",
+                                                "_Pragma",
+                                                "asm",
+                                                "fortran",
+                                                "int",
+                                                "char",
+                                                "float",
+                                                "double",
+                                                "long"};
+
+// The set of all default compiler macros.
+const static std::set<std::string> compilerMacros = {"include!", "package!", "link!", "flag!"};
+
+// Constants used for markdown conversion.
+const std::string hline = "---";
+const std::string headerStart = "# ";
+const std::string fileStart = "## ";
+const std::string fnStart = "### ";
+
+// Operations set for operator substitution.
+const static std::set<std::string> operators = {
+    "+",  "-",  "/", "*", "%",  "=",  "-=", "+=", "/=", "*=", "%=", "&=", "|=", "<<", ">>",
+    "&&", "||", "<", ">", "==", "!=", "<=", ">=", "&",  "|",  ",",  "(",  ")",  ";"};
+
+// Used for implicit casting.
+const std::set<std::string> intLiterals = {"u8", "i8", "u16", "i16", "u32", "i32", "u64", "i64", "u128", "i128"};
+const std::set<std::string> floatLiterals = {"f32", "f64", "f128"};
 
 // Settings structure. Holds all information which used to be
 // non-const globals.
@@ -260,6 +332,25 @@ struct AcornSettings
     // The current return type if inside a function. If not
     // currently processing a function, is nullType.
     Type currentReturnType = nullType;
+
+    // Used for debugging.
+    std::string debugTreePrefix = "";
+
+    // Used for match statements.
+    std::string prevMatchTypeStr = "NULL";
+
+    // Caches.
+    std::map<std::string, long long> ageCache;
+    std::map<std::pair<unsigned long long, std::string>, std::string> toStrCTypeCache;
+    std::map<std::string, std::string> toStrCEnumCache;
+    std::map<unsigned long long, Type> getReturnTypeCache;
+    std::map<unsigned long long, std::vector<std::pair<std::string, Type>>> cache;
+
+    // The local command to install a system package.
+    std::string installCommand = "";
+
+    std::map<std::string, PackageInfo> packages;
+
 }; // struct AcornSettings
 
 #endif // OPTIONS_HPP
