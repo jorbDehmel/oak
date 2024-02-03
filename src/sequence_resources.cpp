@@ -4,12 +4,7 @@ Jordan Dehmel
 jdehmel@outlook.com
 */
 
-#include "sequence_resources.hpp"
-#include "symbol_table.hpp"
-#include "type_builder.hpp"
-#include <codecvt>
-#include <stdexcept>
-#include <string>
+#include "oakc_fns.hpp"
 
 void sm_assert(const bool &expression, const std::string &message)
 {
@@ -19,7 +14,207 @@ void sm_assert(const bool &expression, const std::string &message)
     }
 }
 
-void toCInternal(const ASTNode &What, std::vector<std::string> &out)
+Type toType(const std::vector<std::string> &What, AcornSettings &settings)
+{
+    Token templ;
+    templ.file = settings.curFile;
+    templ.line = settings.curLine;
+    templ.pos = 0;
+    templ.state = alpha_state;
+
+    std::vector<Token> temp;
+    temp.reserve(What.size());
+
+    for (const auto &item : What)
+    {
+        temp.push_back(item);
+    }
+
+    return toType(temp, settings);
+}
+
+// Converts lexed symbols into a type
+Type toType(const std::vector<Token> &WhatIn, AcornSettings &settings)
+{
+    if (WhatIn.size() == 0)
+    {
+        return Type(atomic, "NULL");
+    }
+
+    std::vector<Token> What;
+    for (Token s : WhatIn)
+    {
+        What.push_back(s);
+    }
+
+    if (What.size() == 0)
+    {
+        return Type(atomic, "NULL");
+    }
+
+    int i = 0;
+    if (What[i] == "<")
+    {
+        while (i < What.size() && What[i] != ">")
+        {
+            i++;
+        }
+        i++;
+    }
+
+    Type out;
+    for (; i < What.size(); i++)
+    {
+        std::string cur = What[i];
+
+        if (cur == "^" || cur == "@")
+        {
+            out.append(pointer);
+        }
+        else if (cur == "<")
+        {
+            if (out == nullType)
+            {
+                throw std::runtime_error("Malformed generic statement.");
+            }
+
+            // Append to back
+
+            // Collect generics
+            std::vector<std::string> curGen;
+            std::vector<std::vector<std::string>> generics;
+            int count = 0;
+            do
+            {
+                if (What[i] == "<")
+                {
+                    count++;
+
+                    if (count > 1)
+                    {
+                        curGen.push_back(What[i]);
+                    }
+                }
+                else if (What[i] == ">")
+                {
+                    count--;
+
+                    if (count == 0)
+                    {
+                        if (curGen.size() > 0)
+                        {
+                            generics.push_back(curGen);
+                        }
+
+                        curGen.clear();
+                    }
+                    else
+                    {
+                        curGen.push_back(What[i]);
+                    }
+                }
+                else if (What[i] == "," && count == 1)
+                {
+                    if (curGen.size() > 0)
+                    {
+                        generics.push_back(curGen);
+                    }
+
+                    curGen.clear();
+                }
+                else
+                {
+                    curGen.push_back(What[i]);
+                }
+
+                i++;
+            } while (i < What.size() && count != 0);
+            i--;
+
+            // At this point, will only ever be a struct
+            std::vector<std::string> temp;
+            temp.push_back("struct");
+
+            out[out.size() - 1].name = instantiateGeneric(out[out.size() - 1].name, generics, temp, settings);
+        }
+        else if (cur == ",")
+        {
+            out.append(join);
+        }
+        else if (cur == "->")
+        {
+            out.append(maps);
+        }
+        else if (cur == "[]")
+        {
+            out.append(arr);
+        }
+        else if (cur == "[")
+        {
+            if (i + 1 >= What.size())
+            {
+                throw sequencing_error("'[' must be followed by a number or ']'");
+            }
+
+            try
+            {
+                long long result = stoi(What[i + 1].text);
+                sm_assert(result > 0, "");
+            }
+            catch (...)
+            {
+                throw sequencing_error("Array size must be a compile-time constant positive integer, instead '" +
+                                       What[i + 1].text + "' (" + settings.curFile + ":" +
+                                       std::to_string(What[i + 1].line) + ")");
+            }
+
+            out.append(Type(sarr, What[i + 1]));
+            i++;
+        }
+        else if (cur == "]")
+        {
+            ;
+        }
+        else if (cur == ")" || cur == ":" || cur == ";")
+        {
+            ;
+        }
+        else if (cur == "(")
+        {
+            out.append(function);
+        }
+        else if (cur == "let")
+        {
+            i++;
+        }
+        else if (What.size() > i + 1 && What[i + 1] == ":")
+        {
+            out.append(var_name, cur);
+        }
+        else
+        {
+            out.append(atomic, cur);
+        }
+    }
+
+    for (const auto &what : out.internal)
+    {
+        if (what.info == atomic)
+        {
+            sm_assert(settings.structData.count(what.name) != 0 || settings.enumData.count(what.name) ||
+                          atomics.count(what.name) != 0 || what.name == "struct" || what.name == "enum",
+                      "Type '" + what.name + "' does not exist.");
+            sm_assert(atomics.count(what.name) != 0 || settings.structData[what.name].members.size() != 0 ||
+                          settings.enumData[what.name].options.size() != 0,
+                      "Non-atomic struct with zero members may not be instantiated. You are likely trying to "
+                      "instantiate a unit generic (used for traits), which is not valid usage.");
+        }
+    }
+
+    return out;
+}
+
+void toCInternal(const ASTNode &What, std::vector<std::string> &out, AcornSettings &settings)
 {
     std::string temp;
 
@@ -28,7 +223,7 @@ void toCInternal(const ASTNode &What, std::vector<std::string> &out)
     case code_line:
         for (int i = 0; i < What.items.size(); i++)
         {
-            toCInternal(What.items[i], out);
+            toCInternal(What.items[i], out, settings);
 
             if (i + 1 != What.items.size())
             {
@@ -45,12 +240,12 @@ void toCInternal(const ASTNode &What, std::vector<std::string> &out)
         {
             if (What.items[i].info == keyword)
             {
-                toCInternal(What.items[i], out);
+                toCInternal(What.items[i], out, settings);
             }
             else if (What.items[i].type == nullType)
             {
                 int old_size = out.size();
-                toCInternal(What.items[i], out);
+                toCInternal(What.items[i], out, settings);
 
                 if (out.size() != old_size && !(old_size + 1 == out.size() && out.back() == ";"))
                 {
@@ -63,7 +258,7 @@ void toCInternal(const ASTNode &What, std::vector<std::string> &out)
             {
                 // Janky return
                 out.push_back("return ");
-                toCInternal(What.items[i], out);
+                toCInternal(What.items[i], out, settings);
                 out.push_back(";\n");
             }
         }
@@ -85,7 +280,7 @@ void toCInternal(const ASTNode &What, std::vector<std::string> &out)
 
         for (auto child : What.items)
         {
-            toCInternal(child, out);
+            toCInternal(child, out, settings);
             out.push_back(" ");
         }
 
@@ -107,11 +302,12 @@ void toCInternal(const ASTNode &What, std::vector<std::string> &out)
                 typeStr = typeStr.substr(7);
             }
 
-            sm_assert(enumData.count(typeStr) != 0, "'match' may only be used on enums, not '" + typeStr + "'");
-            std::vector<std::string> options = enumData[typeStr].order;
+            sm_assert(settings.enumData.count(typeStr) != 0,
+                      "'match' may only be used on enums, not '" + typeStr + "'");
+            std::vector<std::string> options = settings.enumData[typeStr].order;
 
             std::map<std::string, bool> usedOptions;
-            for (auto opt : enumData[typeStr].order)
+            for (auto opt : settings.enumData[typeStr].order)
             {
                 usedOptions[opt] = false;
             }
@@ -131,7 +327,7 @@ void toCInternal(const ASTNode &What, std::vector<std::string> &out)
 
                     std::string optionName = cur.items[0].raw;
 
-                    sm_assert(enumData[typeStr].options.count(optionName) != 0,
+                    sm_assert(settings.enumData[typeStr].options.count(optionName) != 0,
                               "'" + optionName + "' is not an option for enum '" + typeStr + "'");
                     sm_assert(usedOptions.count(optionName) != 0,
                               "Option '" + optionName + "' cannot be used multiple times in a match statement.");
@@ -139,7 +335,7 @@ void toCInternal(const ASTNode &What, std::vector<std::string> &out)
 
                     std::string captureName = cur.items[1].raw;
 
-                    auto backupTable = table;
+                    auto backupTable = settings.table;
 
                     if (ind != 0)
                     {
@@ -148,7 +344,7 @@ void toCInternal(const ASTNode &What, std::vector<std::string> &out)
 
                     out.push_back("if (");
 
-                    toCInternal(What.items[0], out);
+                    toCInternal(What.items[0], out, settings);
                     std::string itemStr = out.back();
 
                     out.push_back(".__info == ");
@@ -161,7 +357,7 @@ void toCInternal(const ASTNode &What, std::vector<std::string> &out)
                     {
                         int numPtrs = 0;
 
-                        Type clone = enumData[typeStr].options[optionName];
+                        Type clone = settings.enumData[typeStr].options[optionName];
                         while (clone.size() > 0 && clone[0].info == pointer)
                         {
                             numPtrs++;
@@ -192,7 +388,7 @@ void toCInternal(const ASTNode &What, std::vector<std::string> &out)
 
                     // Add capture group to Oak table if needed
 
-                    toCInternal(cur.items[2], out);
+                    toCInternal(cur.items[2], out, settings);
                     out.push_back("\n}\n");
                 }
                 else if (What.items[1].items[ind].raw == "default")
@@ -209,13 +405,13 @@ void toCInternal(const ASTNode &What, std::vector<std::string> &out)
                     if (ind == 0)
                     {
                         out.push_back("{\n");
-                        toCInternal(cur.items[0], out);
+                        toCInternal(cur.items[0], out, settings);
                         out.push_back("\n}\n");
                     }
                     else
                     {
                         out.push_back("else\n{\n");
-                        toCInternal(cur.items[0], out);
+                        toCInternal(cur.items[0], out, settings);
                         out.push_back("\n}\n");
                     }
                 }
@@ -227,7 +423,7 @@ void toCInternal(const ASTNode &What, std::vector<std::string> &out)
 
             if (usedOptions.size() != 0)
             {
-                std::cout << tags::yellow_bold << "Warning! Match statement does not handle option(s) of enum '"
+                std::cout << tags::yellow_bold << "Warning: Match statement does not handle option(s) of enum '"
                           << typeStr << "':\n";
 
                 for (auto opt : usedOptions)
@@ -240,15 +436,11 @@ void toCInternal(const ASTNode &What, std::vector<std::string> &out)
         }
         else
         {
-            std::cout << tags::yellow_bold << "Warning! Unknown enum keyword '" << What.raw
-                      << "'. Treating as regular keyword.\n"
-                      << tags::reset;
-
             out.push_back(What.raw);
             out.push_back(" ");
             for (auto child : What.items)
             {
-                toCInternal(child, out);
+                toCInternal(child, out, settings);
                 out.push_back(" ");
             }
         }
@@ -259,11 +451,11 @@ void toCInternal(const ASTNode &What, std::vector<std::string> &out)
     return;
 } // toCInternal
 
-// Turn a .oak sequence into a .cpp one
-std::string toC(const ASTNode &What)
+// Turn a .oak sequence into a .c one
+std::string toC(const ASTNode &What, AcornSettings &settings)
 {
     std::vector<std::string> out;
-    toCInternal(What, out);
+    toCInternal(What, out, settings);
 
     int size = 0;
     for (const auto &what : out)
@@ -448,7 +640,182 @@ std::vector<std::pair<std::string, Type>> getArgs(Type &type)
 }
 
 // Can throw errors (IE malformed definitions)
-void addEnum(const std::vector<Token> &From)
+void addStruct(const std::vector<Token> &From, AcornSettings &settings)
+{
+    // Assert the expression can be properly-formed
+    parse_assert(From.size() >= 4);
+
+    // Get name and check against malformations
+    int i = 0;
+
+    parse_assert(From[i] == "let");
+    i++;
+
+    std::string name = From[i];
+
+    // Scrape generics here (and mangle)
+    std::vector<std::vector<std::string>> generics;
+    std::vector<std::string> curGen;
+
+    i++;
+    int count = 0;
+    while (i < From.size() && From[i] != ":" && From[i] != "{")
+    {
+        if (From[i] == "<")
+        {
+            count++;
+
+            if (count == 1)
+            {
+                i++;
+                continue;
+            }
+        }
+
+        else if (From[i] == ">")
+        {
+            count--;
+
+            if (count == 0)
+            {
+                generics.push_back(curGen);
+            }
+        }
+
+        else if (From[i] == "<")
+        {
+            count++;
+        }
+
+        curGen.push_back(From[i]);
+        i++;
+    }
+
+    if (generics.size() != 0)
+    {
+        name = mangleStruct(name, generics);
+    }
+
+    // Ensures unit structs still get added
+    settings.structData[name];
+    settings.structOrder.push_back(name);
+
+    // Auto-create unit New and Del
+    Type t;
+    t.append(function);
+    t.append(var_name, "what");
+    t.append(pointer);
+    t.append(atomic, name);
+    t.append(maps);
+    t.append(atomic, "void");
+
+    ASTNode s;
+    s.info = code_scope;
+    s.type = Type(atomic, "void");
+    s.items.push_back(ASTNode{});
+    s.items.back().info = atom;
+    s.items.back().raw = "//AUTOGEN";
+
+    // Ensure these keys exist
+    settings.table["New"];
+    settings.table["Del"];
+    settings.table["New"].push_back(MultiTableSymbol{s, t});
+    settings.table["Del"].push_back(MultiTableSymbol{s, t});
+
+    parse_assert(i < From.size() && From[i] == ":");
+    i++;
+    parse_assert(From[i] == "struct");
+    i++;
+
+    if (From[i] == "{")
+    {
+        i++;
+        for (; i < From.size() && From[i] != "}"; i++)
+        {
+            // name : type ,
+            // name , name2 , name3 : type < std::string , hi > , name4 : type2 ,
+            std::vector<Token> names, lexedType;
+
+            while (i + 1 < From.size() && From[i + 1] == ",")
+            {
+                names.push_back(From[i]);
+
+                i += 2;
+            }
+
+            names.push_back(From[i]);
+
+            parse_assert(i + 1 < From.size());
+            parse_assert(From[i + 1] == ":");
+
+            i += 2;
+
+            // Get lexed type (can be multiple symbols due to templating)
+            int templCount = 0;
+            std::vector<std::string> genericHolder;
+
+            while (i < From.size() && !(templCount == 0 && From[i] == ","))
+            {
+                if (templCount == 0 && From[i] != "<")
+                {
+                    lexedType.push_back(From[i]);
+                }
+                else
+                {
+                    genericHolder.push_back(From[i]);
+                }
+
+                if (From[i] == "<")
+                {
+                    templCount++;
+                }
+                else if (From[i] == ">")
+                {
+                    templCount--;
+
+                    if (templCount == 0)
+                    {
+                        std::string toAdd = mangle(genericHolder);
+                        genericHolder.clear();
+
+                        if (toAdd != "")
+                        {
+                            lexedType.back().text += "_" + toAdd;
+                        }
+                    }
+                }
+
+                i++;
+            }
+
+            Type toAdd = toType(lexedType, settings);
+            for (std::string varName : names)
+            {
+                settings.structData[name].members[varName] = toAdd;
+                settings.structData[name].order.push_back(varName);
+
+                // Add semicolon
+                settings.table["New"].back().seq.items.push_back(ASTNode{nullType, std::vector<ASTNode>(), atom, ";"});
+
+                ASTNode toAppend;
+                toAppend.info = atom;
+                toAppend.type = nullType;
+                toAppend.raw = getMemberNew("(*what)", varName, toAdd, settings);
+
+                settings.table["New"].back().seq.items.push_back(toAppend);
+            }
+        }
+    }
+    else if (From[4] != ";")
+    {
+        throw parse_error("Malformed struct definition; Expected ';' or '{'.");
+    }
+
+    return;
+}
+
+// Can throw errors (IE malformed definitions)
+void addEnum(const std::vector<Token> &From, AcornSettings &settings)
 {
     // Assert the expression can be properly-formed
     parse_assert(From.size() >= 4);
@@ -506,15 +873,8 @@ void addEnum(const std::vector<Token> &From)
         name = mangleStruct(name, generics);
     }
 
-    if (enumData.count(name) != 0 || structData.count(name) != 0)
-    {
-        std::cout << tags::yellow_bold << "Warning! Definition of enum '" << name
-                  << "' erases struct of the same name.\n"
-                  << tags::reset;
-    }
-
     // Ensure for unit enums
-    structOrder.push_back(name);
+    settings.structOrder.push_back(name);
 
     // Auto-create unit New and Del
     Type t;
@@ -533,11 +893,11 @@ void addEnum(const std::vector<Token> &From)
     s.items.back().raw = "//AUTOGEN";
 
     // Ensure these keys exist
-    table["New"];
-    table["Del"];
+    settings.table["New"];
+    settings.table["Del"];
 
-    table["New"].push_back(MultiTableSymbol{s, t, false, curFile});
-    table["Del"].push_back(MultiTableSymbol{s, t, false, curFile});
+    settings.table["New"].push_back(MultiTableSymbol{s, t, false, settings.curFile});
+    settings.table["Del"].push_back(MultiTableSymbol{s, t, false, settings.curFile});
 
     parse_assert(From[i] == ":");
     i++;
@@ -606,11 +966,11 @@ void addEnum(const std::vector<Token> &From)
                 i++;
             }
 
-            Type toAdd = toType(lexedType);
+            Type toAdd = toType(lexedType, settings);
             for (std::string varName : names)
             {
-                enumData[name].options[varName] = toAdd;
-                enumData[name].order.push_back(varName);
+                settings.enumData[name].options[varName] = toAdd;
+                settings.enumData[name].order.push_back(varName);
             }
         }
     }
@@ -619,7 +979,7 @@ void addEnum(const std::vector<Token> &From)
         throw parse_error("Malformed enum definition; Expected ';' or '{'.");
     }
 
-    EnumLookupData &cur = enumData[name];
+    EnumLookupData &cur = settings.enumData[name];
     std::string enumTypeStr = name;
     for (auto optionName : cur.order)
     {
@@ -638,7 +998,8 @@ void addEnum(const std::vector<Token> &From)
             constructorType.append(maps);
             constructorType.append(atomic, "void");
 
-            table["wrap_" + optionName].push_back(MultiTableSymbol{ASTNode{}, constructorType, false, curFile});
+            settings.table["wrap_" + optionName].push_back(
+                MultiTableSymbol{ASTNode{}, constructorType, false, settings.curFile});
         }
         else
         {
@@ -658,7 +1019,8 @@ void addEnum(const std::vector<Token> &From)
             constructorType.append(maps);
             constructorType.append(atomic, "void");
 
-            table["wrap_" + optionName].push_back(MultiTableSymbol{ASTNode{}, constructorType, false, curFile});
+            settings.table["wrap_" + optionName].push_back(
+                MultiTableSymbol{ASTNode{}, constructorType, false, settings.curFile});
         }
     }
 
@@ -667,7 +1029,8 @@ void addEnum(const std::vector<Token> &From)
 
 // Dump data to file
 void dump(const std::vector<Token> &Lexed, const std::string &Where, const std::string &FileName, const int &Line,
-          const ASTNode &FileSeq, const std::vector<Token> LexedBackup, const std::string &ErrorMsg)
+          const ASTNode &FileSeq, const std::vector<Token> LexedBackup, const std::string &ErrorMsg,
+          AcornSettings &settings)
 {
     std::string sep = "";
     for (int i = 0; i < 50; i++)
@@ -721,7 +1084,7 @@ void dump(const std::vector<Token> &Lexed, const std::string &Where, const std::
 
     file << sep << "// Symbols and their types:\n";
 
-    for (auto p : table)
+    for (auto p : settings.table)
     {
         file << p.first << ":\n";
 
@@ -733,7 +1096,7 @@ void dump(const std::vector<Token> &Lexed, const std::string &Where, const std::
 
     file << sep << "// Structs:\n";
 
-    for (auto s : structData)
+    for (auto s : settings.structData)
     {
         file << s.first << "\n";
 
@@ -752,7 +1115,7 @@ void dump(const std::vector<Token> &Lexed, const std::string &Where, const std::
 
     file << sep << "// Enums:\n";
 
-    for (auto e : enumData)
+    for (auto e : settings.enumData)
     {
         file << e.first << "\n";
 
@@ -764,7 +1127,7 @@ void dump(const std::vector<Token> &Lexed, const std::string &Where, const std::
 
     file << sep << "// Generics:\n";
 
-    printGenericDumpInfo(file);
+    printGenericDumpInfo(file, settings);
 
     file << sep << "// Full anatomy:\n";
 
@@ -773,18 +1136,18 @@ void dump(const std::vector<Token> &Lexed, const std::string &Where, const std::
     file << sep << "// All rules:\n";
 
     int i = 0;
-    for (auto s : dialectRules)
+    for (auto s : settings.dialectRules)
     {
         file << i << '\t' << s << '\n' << '\t';
 
-        for (auto t : rules[s].inputPattern)
+        for (auto t : settings.rules[s].inputPattern)
         {
             file << t.text << ' ';
         }
 
         file << "\n\t";
 
-        for (auto t : rules[s].outputPattern)
+        for (auto t : settings.rules[s].outputPattern)
         {
             file << t.text << ' ';
         }
@@ -792,18 +1155,18 @@ void dump(const std::vector<Token> &Lexed, const std::string &Where, const std::
         file << "\n";
         i++;
     }
-    for (auto s : activeRules)
+    for (auto s : settings.activeRules)
     {
         file << i << '\t' << s << '\n' << '\t';
 
-        for (auto t : rules[s].inputPattern)
+        for (auto t : settings.rules[s].inputPattern)
         {
             file << t.text << ' ';
         }
 
         file << "\n\t";
 
-        for (auto t : rules[s].outputPattern)
+        for (auto t : settings.rules[s].outputPattern)
         {
             file << t.text << ' ';
         }
@@ -814,7 +1177,7 @@ void dump(const std::vector<Token> &Lexed, const std::string &Where, const std::
 
     file << sep << "// All bundles:\n";
 
-    for (auto p : bundles)
+    for (auto p : settings.bundles)
     {
         file << p.first << "\n\t";
 
@@ -828,7 +1191,7 @@ void dump(const std::vector<Token> &Lexed, const std::string &Where, const std::
 
     file << sep << "// Active rules:\n";
 
-    for (auto s : activeRules)
+    for (auto s : settings.activeRules)
     {
         file << s << '\n';
     }
@@ -1152,22 +1515,23 @@ std::string cleanMacroArgument(const std::string &from)
 // Destroy all unit, temp, or autogen definitions matching a given type.
 // Can throw errors if doThrow is true.
 // Mostly used for New and Del, Oak ~0.0.14
-void destroyUnits(const std::string &name, const Type &type, const bool &doThrow)
+void destroyUnits(const std::string &name, const Type &type, const bool &doThrow, AcornSettings &settings)
 {
     // Safety check
-    if (table.count(name) != 0 && table[name].size() != 0)
+    if (settings.table.count(name) != 0 && settings.table[name].size() != 0)
     {
         // Iterate over items
-        for (int i = 0; i < table[name].size(); i++)
+        for (int i = 0; i < settings.table[name].size(); i++)
         {
-            if (table[name][i].type == type)
+            if (settings.table[name][i].type == type)
             {
                 // If is unit, erase
-                if (table[name][i].seq.items.size() == 0 ||
-                    (table[name][i].seq.items.size() >= 1 && table[name][i].seq.items[0].raw.size() > 8 &&
-                     table[name][i].seq.items[0].raw.substr(0, 9) == "//AUTOGEN"))
+                if (settings.table[name][i].seq.items.size() == 0 ||
+                    (settings.table[name][i].seq.items.size() >= 1 &&
+                     settings.table[name][i].seq.items[0].raw.size() > 8 &&
+                     settings.table[name][i].seq.items[0].raw.substr(0, 9) == "//AUTOGEN"))
                 {
-                    table.at(name).erase(table[name].begin() + i);
+                    settings.table.at(name).erase(settings.table[name].begin() + i);
                     i--;
                 }
 
@@ -1221,7 +1585,8 @@ void debugPrint(const ASTNode &What, int spaces, std::ostream &to)
 }
 
 // Assumes self is NOT a pointer
-std::string getMemberNew(const std::string &selfName, const std::string &varName, const Type &varType)
+std::string getMemberNew(const std::string &selfName, const std::string &varName, const Type &varType,
+                         AcornSettings &settings)
 {
     if (varType[0].info == atomic)
     {
@@ -1229,7 +1594,7 @@ std::string getMemberNew(const std::string &selfName, const std::string &varName
 
         // Ensure function exists
         bool isValid = false;
-        auto candidates = table["New"];
+        auto candidates = settings.table["New"];
         for (auto candidate : candidates)
         {
             if (candidate.type[0].info != function || candidate.type.size() < 4 || candidate.type[1].info != var_name ||
@@ -1252,7 +1617,7 @@ std::string getMemberNew(const std::string &selfName, const std::string &varName
     {
         // Sized array
         return "for (i32 _i = 0; _i < " + varType[0].name + "; _i++) " +
-               getMemberNew(selfName, varName + "[_i]", Type(varType, 1)) + ";";
+               getMemberNew(selfName, varName + "[_i]", Type(varType, 1), settings) + ";";
     }
     else
     {
@@ -1261,7 +1626,8 @@ std::string getMemberNew(const std::string &selfName, const std::string &varName
     }
 }
 
-std::string getMemberDel(const std::string &selfName, const std::string &varName, const Type &varType)
+std::string getMemberDel(const std::string &selfName, const std::string &varName, const Type &varType,
+                         AcornSettings &settings)
 {
     if (varType[0].info == atomic)
     {
@@ -1269,7 +1635,7 @@ std::string getMemberDel(const std::string &selfName, const std::string &varName
 
         // Ensure function exists
         bool isValid = false;
-        auto candidates = table["Del"];
+        auto candidates = settings.table["Del"];
         for (auto candidate : candidates)
         {
             if (candidate.type[0].info != function || candidate.type.size() < 4 || candidate.type[1].info != var_name ||
@@ -1292,7 +1658,7 @@ std::string getMemberDel(const std::string &selfName, const std::string &varName
     {
         // Sized array
         return "for (i32 _i = 0; _i < " + varType[0].name + "; _i++) " +
-               getMemberDel(selfName, varName + "[_i]", Type(varType, 1)) + ";";
+               getMemberDel(selfName, varName + "[_i]", Type(varType, 1), settings) + ";";
     }
     else
     {
@@ -1304,14 +1670,15 @@ std::string getMemberDel(const std::string &selfName, const std::string &varName
 
 // Returns an item to insert before a given sequence
 std::string insertDestructorsRecursive(ASTNode &what,
-                                       const std::vector<std::pair<std::string, std::string>> &destructors)
+                                       const std::vector<std::pair<std::string, std::string>> &destructors,
+                                       AcornSettings &settings)
 {
     if ((what.info == code_line || what.info == atom) && what.type != nullType)
     {
         // Janky return
 
         std::string out, against;
-        against = toC(what);
+        against = toC(what, settings);
 
         for (const auto &p : destructors)
         {
@@ -1332,7 +1699,7 @@ std::string insertDestructorsRecursive(ASTNode &what,
         // Keyword return
 
         std::string out, against;
-        against = toC(what.items[1]);
+        against = toC(what.items[1], settings);
 
         for (const auto &p : destructors)
         {
@@ -1354,7 +1721,7 @@ std::string insertDestructorsRecursive(ASTNode &what,
         std::string out;
         for (unsigned int i = 0; i < what.items.size(); i++)
         {
-            out = insertDestructorsRecursive(what.items[i], destructors);
+            out = insertDestructorsRecursive(what.items[i], destructors, settings);
 
             if (out != "")
             {
@@ -1374,7 +1741,8 @@ std::string insertDestructorsRecursive(ASTNode &what,
 // Insert destructors before any return statement that DOES NOT return the item in question
 // Recursive
 // Will only be called upon exiting a function
-void insertDestructors(ASTNode &what, const std::vector<std::pair<std::string, std::string>> &destructors)
+void insertDestructors(ASTNode &what, const std::vector<std::pair<std::string, std::string>> &destructors,
+                       AcornSettings &settings)
 {
-    insertDestructorsRecursive(what, destructors);
+    insertDestructorsRecursive(what, destructors, settings);
 }

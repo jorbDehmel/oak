@@ -4,18 +4,10 @@ Jordan Dehmel
 jdehmel@outlook.com
 */
 
-#include "rules.hpp"
+#include "oakc_fns.hpp"
 
 #define rm_assert(expression, message)                                                                                 \
     ((bool)(expression) ? true : throw rule_error(message " (Failed assertion: '" #expression "')"))
-
-std::map<std::string, Rule> rules;
-std::vector<std::string> activeRules, dialectRules;
-std::map<std::string, std::vector<std::string>> bundles;
-std::map<std::string, void (*)(std::vector<Token> &, int &, Rule &)> engines;
-
-bool doRuleLogFile = false;
-std::ofstream ruleLogFile;
 
 // I is the point in Lexed at which a macro name was found
 // CONSUMPTIVE!
@@ -68,17 +60,17 @@ std::vector<std::string> getMacroArgs(std::vector<Token> &lexed, const int &i)
     return out;
 }
 
-void doRules(std::vector<Token> &From)
+void doRules(std::vector<Token> &From, AcornSettings &settings)
 {
-    if (doRuleLogFile)
+    if (settings.doRuleLogFile)
     {
-        ruleLogFile.open(".oak_build/__rule_log.log", std::ios::out | std::ios::app);
-        if (!ruleLogFile.is_open())
+        settings.ruleLogFile.open(".oak_build/__rule_log.log", std::ios::out | std::ios::app);
+        if (!settings.ruleLogFile.is_open())
         {
             throw rule_error("Failed to open rule log file '.oak_build/__rule_log.log'");
         }
 
-        ruleLogFile << "\n\n/////////// In file " << curFile << " ///////////\n\n";
+        settings.ruleLogFile << "\n\n/////////// In file " << settings.curFile << " ///////////\n\n";
     }
 
     for (int i = 0; i < From.size(); i++)
@@ -105,21 +97,21 @@ void doRules(std::vector<Token> &From)
             if (args.size() == 3)
             {
                 // Default: Use sapling
-                toAdd.doRule = doRuleAcorn;
+                toAdd.engineName = "sapling";
             }
             else if (args.size() == 4)
             {
                 // Custom rule engine: Look up in engine table
 
-                rm_assert(engines.count(args[3]) != 0, "Failed to load unknown rule engine '" + args[3] + "'");
-                toAdd.doRule = engines[args[3]];
+                rm_assert(settings.engines.count(args[3]) != 0, "Failed to load unknown rule engine '" + args[3] + "'");
+                toAdd.engineName = args[3];
             }
 
             lexer dfa_lexer;
             toAdd.inputPattern = dfa_lexer.lex(args[1]);
             toAdd.outputPattern = dfa_lexer.lex(args[2]);
 
-            rules[name] = toAdd;
+            settings.rules[name] = toAdd;
         }
 
         // Use a rule that already exists
@@ -142,20 +134,20 @@ void doRules(std::vector<Token> &From)
 
             for (auto arg : args)
             {
-                rm_assert(rules.count(arg) != 0 || bundles.count(arg) != 0,
+                rm_assert(settings.rules.count(arg) != 0 || settings.bundles.count(arg) != 0,
                           "Rule '" + arg + "' does not exist and is not a bundle.");
 
                 // bundles override rules with the same name
-                if (bundles.count(arg) != 0)
+                if (settings.bundles.count(arg) != 0)
                 {
-                    for (auto r : bundles[arg])
+                    for (auto r : settings.bundles[arg])
                     {
-                        activeRules.push_back(r);
+                        settings.activeRules.push_back(r);
                     }
                 }
                 else
                 {
-                    activeRules.push_back(arg);
+                    settings.activeRules.push_back(arg);
                 }
             }
         }
@@ -178,18 +170,18 @@ void doRules(std::vector<Token> &From)
 
             if (args.size() == 0)
             {
-                activeRules.clear();
+                settings.activeRules.clear();
             }
 
             for (auto arg : args)
             {
                 bool found = false;
-                for (int j = activeRules.size() - 1; j >= 0; j--)
+                for (int j = settings.activeRules.size() - 1; j >= 0; j--)
                 {
-                    if (activeRules[j] == arg)
+                    if (settings.activeRules[j] == arg)
                     {
                         found = true;
-                        activeRules.erase(activeRules.begin() + j);
+                        settings.activeRules.erase(settings.activeRules.begin() + j);
                         break;
                     }
                 }
@@ -219,33 +211,33 @@ void doRules(std::vector<Token> &From)
             std::string name = args[0];
             for (int j = 1; j < args.size(); j++)
             {
-                bundles[name].push_back(args[j]);
+                settings.bundles[name].push_back(args[j]);
             }
         }
 
         // Regular case; Non-rule-macro symbol. Check against active rules.
         else
         {
-            for (int ruleIndex = 0; ruleIndex < dialectRules.size() + activeRules.size(); ruleIndex++)
+            for (int ruleIndex = 0; ruleIndex < settings.dialectRules.size() + settings.activeRules.size(); ruleIndex++)
             {
                 Rule curRule;
-                if (ruleIndex < dialectRules.size())
+                if (ruleIndex < settings.dialectRules.size())
                 {
-                    if (rules.count(dialectRules[ruleIndex]) == 0)
+                    if (settings.rules.count(settings.dialectRules[ruleIndex]) == 0)
                     {
                         continue;
                     }
 
-                    curRule = rules[dialectRules[ruleIndex]];
+                    curRule = settings.rules[settings.dialectRules[ruleIndex]];
                 }
                 else
                 {
-                    if (rules.count(activeRules[ruleIndex - dialectRules.size()]) == 0)
+                    if (settings.rules.count(settings.activeRules[ruleIndex - settings.dialectRules.size()]) == 0)
                     {
                         continue;
                     }
 
-                    curRule = rules[activeRules[ruleIndex - dialectRules.size()]];
+                    curRule = settings.rules[settings.activeRules[ruleIndex - settings.dialectRules.size()]];
                 }
 
                 if (i + curRule.inputPattern.size() >= From.size())
@@ -254,22 +246,33 @@ void doRules(std::vector<Token> &From)
                 }
 
                 // do rule here
-                curRule.doRule(From, i, curRule);
+                if (curRule.engineName == "sapling")
+                {
+                    doRuleAcorn(From, i, curRule, settings);
+                }
+                else if (settings.engines.count(curRule.engineName) == 0)
+                {
+                    throw rule_error("Unknown rule engine '" + curRule.engineName + "'");
+                }
+                else
+                {
+                    settings.engines[curRule.engineName](From, i, curRule, settings);
+                }
             }
         }
     }
 
     // cout << "Done.\n";
 
-    if (doRuleLogFile && ruleLogFile.is_open())
+    if (settings.doRuleLogFile && settings.ruleLogFile.is_open())
     {
-        ruleLogFile.close();
+        settings.ruleLogFile.close();
     }
 
     return;
 }
 
-void loadDialectFile(const std::string &File)
+void loadDialectFile(const std::string &File, AcornSettings &settings)
 {
     static bool dialectLock = false;
 
@@ -312,7 +315,7 @@ void loadDialectFile(const std::string &File)
 
             engine = line.substr(1, line.size() - 2);
 
-            if (engines.count(engine) == 0)
+            if (settings.engines.count(engine) == 0)
             {
                 throw rule_error("Error: Unknown rule engine '" + engine + "'");
             }
@@ -332,10 +335,10 @@ void loadDialectFile(const std::string &File)
             std::string inputStr, outputStr;
             Rule toAdd;
 
-            name = "dialect_rule_" + std::to_string(dialectRules.size());
+            name = "dialect_rule_" + std::to_string(settings.dialectRules.size());
 
             // Insert into dialectRules list
-            dialectRules.push_back(name);
+            settings.dialectRules.push_back(name);
 
             // Get input pattern
             inputStr = cur;
@@ -366,23 +369,23 @@ void loadDialectFile(const std::string &File)
             }
 
             // Fetch engine based on current
-            toAdd.doRule = engines[engine];
+            toAdd.engineName = engine;
 
             // Insert into rules list
-            rules[name] = toAdd;
+            settings.rules[name] = toAdd;
         }
         else if (cur == "clear")
         {
             // Clear all existing dialect rules
 
             // Erase all existing dialect rules from existence
-            for (auto s : dialectRules)
+            for (auto s : settings.dialectRules)
             {
-                rules.erase(s);
+                settings.rules.erase(s);
             }
 
             // Clear list of dialect rules
-            dialectRules.clear();
+            settings.dialectRules.clear();
         }
         else if (cur == "final")
         {
@@ -402,7 +405,7 @@ void loadDialectFile(const std::string &File)
     return;
 }
 
-void doRuleAcorn(std::vector<Token> &From, int &i, Rule &curRule)
+void doRuleAcorn(std::vector<Token> &From, int &i, Rule &curRule, AcornSettings &settings)
 {
     int posInFrom = i;
     std::vector<std::string> memory;
@@ -801,45 +804,45 @@ void doRuleAcorn(std::vector<Token> &From, int &i, Rule &curRule)
         }
 
         // Log if needed
-        if (doRuleLogFile)
+        if (settings.doRuleLogFile)
         {
-            ruleLogFile << "Sapling rule w/ Input pattern\t";
+            settings.ruleLogFile << "Sapling rule w/ Input pattern\t";
 
             for (const auto &what : curRule.inputPattern)
             {
-                ruleLogFile << "'" << what.text << "' ";
+                settings.ruleLogFile << "'" << what.text << "' ";
             }
 
-            ruleLogFile << "\nOutput pattern\t";
+            settings.ruleLogFile << "\nOutput pattern\t";
 
             for (const auto &what : curRule.outputPattern)
             {
-                ruleLogFile << "'" << what.text << "' ";
+                settings.ruleLogFile << "'" << what.text << "' ";
             }
 
-            ruleLogFile << "\nMatch '";
+            settings.ruleLogFile << "\nMatch '";
         }
 
         // Erase old contents
         for (int k = i; k < posInFrom; k++)
         {
-            if (doRuleLogFile)
+            if (settings.doRuleLogFile)
             {
-                ruleLogFile << From[i].text << ' ';
+                settings.ruleLogFile << From[i].text << ' ';
             }
             From.erase(From.begin() + i);
         }
 
-        if (doRuleLogFile)
+        if (settings.doRuleLogFile)
         {
-            ruleLogFile << "'\nIs now '";
+            settings.ruleLogFile << "'\nIs now '";
 
             for (const auto &what : newContents)
             {
-                ruleLogFile << what.text << ' ';
+                settings.ruleLogFile << what.text << ' ';
             }
 
-            ruleLogFile << "'\n\n";
+            settings.ruleLogFile << "'\n\n";
         }
 
         // Insert new contents
@@ -852,9 +855,10 @@ void doRuleAcorn(std::vector<Token> &From, int &i, Rule &curRule)
     ruleVars.clear();
 }
 
-void addEngine(const std::string &name, void (*hook)(std::vector<Token> &, int &, Rule &))
+void addEngine(const std::string &name, void (*hook)(std::vector<Token> &, int &, Rule &, AcornSettings &),
+               AcornSettings &settings)
 {
-    engines[name] = hook;
+    settings.engines[name] = hook;
     return;
 }
 

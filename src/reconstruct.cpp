@@ -6,31 +6,15 @@ github.com/jorbDehmel
 GPLv3 held by author
 */
 
-#include "reconstruct.hpp"
-#include "sequence_resources.hpp"
-#include <stdexcept>
-#include <string>
-namespace fs = std::filesystem;
-
-std::map<std::string, unsigned long long> atomics = {
-    {"u8", 1},   {"i8", 1},     {"u16", 2},   {"i16", 2},   {"u32", 4},
-    {"i32", 4},  {"u64", 8},    {"i64", 8},   {"u128", 16}, {"i128", 16},
-    {"f32", 4},  {"f64", 8},    {"f128", 16}, {"bool", 1},  {"str", sizeof(void *)},
-    {"void", 1}, {"struct", 1}, {"enum", 1}};
+#include "oakc_fns.hpp"
 
 // Removes illegal characters
 std::string purifyStr(const std::string &What)
 {
-    const std::string illegalChars = "<>(){}[]\\'\"`~!@#$%^&*-=+|?,;:/";
+    const std::string illegalChars = "<>(){}[]\\'\"`~!@#$%^&*-=+|?.,;:/";
     std::string out = What;
 
-    // Trim file extension(s)
-    while (out.find(".") != std::string::npos)
-    {
-        out.erase(out.find("."));
-    }
-
-    // Replace other illegal characters
+    // Replace illegal characters
     for (int i = 0; i < out.size(); i++)
     {
         if (illegalChars.find(out[i]) != std::string::npos)
@@ -39,17 +23,25 @@ std::string purifyStr(const std::string &What)
         }
     }
 
-    return (out == "" ? "NULL_STR" : out);
+    if (out == "")
+    {
+        std::cout << tags::yellow_bold << "Warning: The trimming of file name '" << What
+                  << "' resulted in a null string.\n"
+                  << tags::reset;
+        out = "NULL_STR";
+    }
+
+    return out;
 }
 
-std::pair<std::string, std::string> reconstructAndSave(const std::string &Name)
+std::pair<std::string, std::string> reconstructAndSave(const std::string &Name, AcornSettings &settings)
 {
     std::stringstream header, body;
-    reconstruct(Name, header, body);
+    reconstruct(Name, settings, header, body);
     return save(header, body, Name);
 }
 
-void reconstruct(const std::string &Name, std::stringstream &header, std::stringstream &body)
+void reconstruct(const std::string &Name, AcornSettings &settings, std::stringstream &header, std::stringstream &body)
 {
     // Purify name
     std::string rootName;
@@ -73,83 +65,61 @@ void reconstruct(const std::string &Name, std::stringstream &header, std::string
     std::string cleanedName = purifyStr(rootName);
     body << "#include \"" << cleanedName << ".h\"\n";
 
-    // Begin header enclosure
+    // Begin include guard
     header << "#ifndef " << name << "\n"
            << "#define " << name << "\n\n";
 
     // Step A1: Load Oak standard translational header
     header << "#include \"" << OAK_HEADER_PATH << "\"\n";
 
-    // Step A2: Dependencies
+    // Step A2: Struct definitions
+    header << "// Struct and Enum definitions\n";
+    for (auto name : settings.structOrder)
     {
-        header << "// Included files\n";
-        for (auto d : deps)
+        if (settings.enumData.count(name) != 0)
         {
-            header << "#include \"" << d << "\"\n";
+            header << enumToC(name, settings) << '\n';
+            continue;
         }
-    }
 
-    // Step A3: Struct definitions
-    {
-        header << "// Struct and Enum definitions\n";
-        for (auto name : structOrder)
+        header << "struct " << name << "\n{\n";
+
+        for (auto m : settings.structData[name].order)
         {
-            if (enumData.count(name) != 0)
-            {
-                header << enumToC(name) << '\n';
-                continue;
-            }
-
-            header << "struct " << name << "\n{\n";
-
-            for (auto m : structData[name].order)
-            {
-                header << toStrC(&structData[name].members[m], m) << ";\n";
-            }
-
-            header << "};\n";
+            header << toStrC(&settings.structData[name].members[m], m) << ";\n";
         }
+
+        header << "};\n";
     }
 
     // Step A4: Insert global definitions into header
     // (Translate Oak syntax into C syntax)
+    header << "// Global functions\n";
+    for (auto entry : settings.table)
     {
-        header << "// Global function definitions\n";
+        std::string name = entry.first;
 
-        for (auto entry : table)
+        for (MultiTableSymbol s : entry.second)
         {
-            std::string name = entry.first;
-
-            for (MultiTableSymbol s : entry.second)
+            try
             {
-                try
+                std::string toAdd = toStrCFunction(&s.type, name);
+
+                header << toAdd << ";\n";
+
+                if (s.seq.items.size() != 0)
                 {
-                    if (s.type[0].info == function)
-                    {
-                        std::string toAdd = toStrCFunction(&s.type, name);
+                    std::string definition = toC(s.seq, settings);
 
-                        header << toAdd << ";\n";
-
-                        if (s.seq.items.size() != 0)
-                        {
-                            std::string definition = toC(s.seq);
-
-                            body << toAdd << "\n" << (definition == "" ? ";" : definition);
-                        }
-                    }
-                    else
-                    {
-                        std::string toAdd = toStrC(&s.type);
-
-                        header << "extern " << toAdd << " " << name << ";\n";
-                        body << toAdd << " " << name << ";\n";
-                    }
+                    body << toAdd << "\n" << (definition == "" ? ";" : definition);
                 }
-                catch (std::runtime_error &e)
-                {
-                    throw sequencing_error("During processing of symbol '" + name + "' w/ type '" + toStr(&s.type) +
-                                           "' from " + s.sourceFilePath + ": " + e.what());
-                }
+            }
+            catch (std::runtime_error &e)
+            {
+                std::cout << "Failure in symbol " << name << " w/ type " << toStr(&s.type) << " from "
+                          << s.sourceFilePath << '\n';
+
+                throw sequencing_error(e.what());
             }
         }
     }
@@ -166,16 +136,7 @@ std::pair<std::string, std::string> save(const std::stringstream &header, const 
 {
     std::string rootName, headerName, bodyName;
 
-    if (Name.substr(Name.size() - 4) == ".oak")
-    {
-        rootName = Name.substr(0, Name.size() - 4);
-    }
-    else
-    {
-        rootName = Name;
-    }
-
-    rootName = purifyStr(rootName);
+    rootName = purifyStr(Name);
 
     fs::create_directory(".oak_build");
 
@@ -183,30 +144,26 @@ std::pair<std::string, std::string> save(const std::stringstream &header, const 
     bodyName = ".oak_build/" + rootName + ".c";
 
     // Save header
+    std::ofstream headerFile(headerName);
+    if (!headerFile.is_open())
     {
-        std::ofstream headerFile(headerName);
-        if (!headerFile.is_open())
-        {
-            throw std::runtime_error("Failed to open file `" + headerName + "`");
-        }
-
-        headerFile << header.str();
-
-        headerFile.close();
+        throw std::runtime_error("Failed to open file `" + headerName + "`");
     }
+
+    headerFile << header.str();
+
+    headerFile.close();
 
     // Save body
+    std::ofstream bodyFile(bodyName);
+    if (!bodyFile.is_open())
     {
-        std::ofstream bodyFile(bodyName);
-        if (!bodyFile.is_open())
-        {
-            throw std::runtime_error("Failed to open file `" + bodyName + "`");
-        }
-
-        bodyFile << body.str();
-
-        bodyFile.close();
+        throw std::runtime_error("Failed to open file `" + bodyName + "`");
     }
+
+    bodyFile << body.str();
+
+    bodyFile.close();
 
     return make_pair(headerName, bodyName);
 }
@@ -214,7 +171,9 @@ std::pair<std::string, std::string> save(const std::stringstream &header, const 
 // This is separate due to complexity
 std::string toStrCFunction(const Type *What, const std::string &Name, const unsigned int &pos)
 {
-    parse_assert(What != nullptr && What->size() > 0 && (*What)[0].info == function);
+    parse_assert(What != nullptr);
+    parse_assert(What->size() > 0);
+    parse_assert((*What)[0].info == function);
 
     if (pos >= What->size())
     {
@@ -504,7 +463,7 @@ std::string toStrC(const Type *What, const std::string &Name, const unsigned int
     return out;
 }
 
-std::string enumToC(const std::string &name)
+std::string enumToC(const std::string &name, AcornSettings &settings)
 {
     static std::map<std::string, std::string> toStrCEnumCache;
 
@@ -516,12 +475,12 @@ std::string enumToC(const std::string &name)
     // Basic error checking; Should NOT constitute the entirety
     // of safety checks!!! This just ensures a lack of internal
     // errors.
-    if (name == "" || enumData.count(name) == 0)
+    if (name == "" || settings.enumData.count(name) == 0)
     {
         throw std::runtime_error(std::string(__FILE__) + ":" + std::to_string(__LINE__) + " Error in enumeration toC.");
     }
 
-    EnumLookupData &cur = enumData[name];
+    EnumLookupData &cur = settings.enumData[name];
 
     std::string out = "struct " + name + " {\nenum {\n";
 

@@ -6,26 +6,15 @@ github.com/jorbDehmel
 GPLv3 held by author
 */
 
-#include "sequence.hpp"
-#include "enums.hpp"
-#include "sequence_resources.hpp"
-#include "symbol_table.hpp"
-#include "tags.hpp"
-#include "type_builder.hpp"
-
-std::vector<Token> curLineSymbols;
-static Type currentReturnType;
-
-unsigned long long int curLine = 1;
-std::string curFile = "";
+#include "oakc_fns.hpp"
 
 // The current depth of createSequence
 unsigned long long int depth = 0;
 
 // Internal consumptive version: Erases from std::vector, so not safe for frontend
-ASTNode __createSequence(std::list<Token> &From);
+ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings);
 
-ASTNode createSequence(const std::vector<Token> &From)
+ASTNode createSequence(const std::vector<Token> &From, AcornSettings &settings)
 {
     // Clone to feed into the consumptive version
     std::list<Token> temp;
@@ -41,7 +30,7 @@ ASTNode createSequence(const std::vector<Token> &From)
             temp.pop_front();
         }
 
-        out.push_back(__createSequence(temp));
+        out.push_back(__createSequence(temp, settings));
     }
 
     if (out.size() == 0)
@@ -67,7 +56,7 @@ ASTNode createSequence(const std::vector<Token> &From)
 }
 
 // Internal consumptive version: Erases from std::vector, so not safe for frontend
-ASTNode __createSequence(std::list<Token> &From)
+ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
 {
     static std::string prevMatchTypeStr = "NULL";
 
@@ -81,22 +70,22 @@ ASTNode __createSequence(std::list<Token> &From)
     }
 
     // Update line if needed
-    if (From.front().line != curLine)
+    if (From.front().line != settings.curLine)
     {
         // Line update special symbol
-        curLine = From.front().line;
-        curLineSymbols.clear();
+        settings.curLine = From.front().line;
+        settings.curLineSymbols.clear();
         if (From.size() != 0)
         {
-            for (auto it = From.begin(); it != From.end() && it->line == curLine; it++)
+            for (auto it = From.begin(); it != From.end() && it->line == settings.curLine; it++)
             {
-                curLineSymbols.push_back(*it);
+                settings.curLineSymbols.push_back(*it);
             }
         }
 
-        if (curLineSymbols.size() != 0)
+        if (settings.curLineSymbols.size() != 0)
         {
-            curLineSymbols.erase(curLineSymbols.begin());
+            settings.curLineSymbols.erase(settings.curLineSymbols.begin());
         }
     }
 
@@ -209,9 +198,9 @@ ASTNode __createSequence(std::list<Token> &From)
                     bool exempt = false;
                     for (auto s : generics)
                     {
-                        if (structData.count(s) != 0 || checkLiteral(s) != nullType || s == "u8" || s == "i8" ||
-                            s == "u16" || s == "i16" || s == "u32" || s == "i32" || s == "u64" || s == "i64" ||
-                            s == "u128" || s == "i128" || s == "str" || s == "bool")
+                        if (settings.structData.count(s) != 0 || checkLiteral(s) != nullType || s == "u8" ||
+                            s == "i8" || s == "u16" || s == "i16" || s == "u32" || s == "i32" || s == "u64" ||
+                            s == "i64" || s == "u128" || s == "i128" || s == "str" || s == "bool")
                         {
                             exempt = true;
                             break;
@@ -226,12 +215,12 @@ ASTNode __createSequence(std::list<Token> &From)
                             if (front == "struct")
                             {
                                 // Non-templated struct
-                                addStruct(toAdd);
+                                addStruct(toAdd, settings);
                             }
                             else if (front == "enum")
                             {
                                 // Non-templated enum
-                                addEnum(toAdd);
+                                addEnum(toAdd, settings);
                             }
                         }
                     }
@@ -315,7 +304,7 @@ ASTNode __createSequence(std::list<Token> &From)
                         for (auto name : names)
                         {
                             toAdd[1].text = name;
-                            addGeneric(toAdd, name, generics, {front}, preBlock, postBlock);
+                            addGeneric(toAdd, name, generics, {front}, preBlock, postBlock, settings);
                         }
                     }
 
@@ -372,7 +361,7 @@ ASTNode __createSequence(std::list<Token> &From)
                         int pos = 0;
 
                         // Analyze type of std::vector
-                        Type type = resolveFunction(toAnalyze, pos, junk);
+                        Type type = resolveFunction(toAnalyze, pos, junk, settings);
 
                         // Convert type to lexed std::string vec
                         lexer dfa_lexer;
@@ -403,7 +392,7 @@ ASTNode __createSequence(std::list<Token> &From)
                 out.type = nullType;
                 out.items.clear();
 
-                Type type = toType(toAdd);
+                Type type = toType(toAdd, settings);
 
                 for (auto name : names)
                 {
@@ -413,17 +402,17 @@ ASTNode __createSequence(std::list<Token> &From)
 
                     sm_assert(keywords.count(name) == 0,
                               "Variable name conflicts w/ canonical Oak keyword '" + name + "'");
-                    sm_assert(structData.count(name) == 0 && atomics.count(name) == 0,
+                    sm_assert(settings.structData.count(name) == 0 && atomics.count(name) == 0,
                               "Variable name conflicts w/ existing struct name '" + name + "'");
-                    sm_assert(enumData.count(name) == 0,
+                    sm_assert(settings.enumData.count(name) == 0,
                               "Variable name conflicts w/ existing enum name '" + name + "'");
 
                     out.items.push_back(ASTNode{nullType, std::vector<ASTNode>(), atom, toStrC(&type, name)});
                     out.items.push_back(ASTNode{nullType, std::vector<ASTNode>(), atom, ";"});
 
                     // Insert into table
-                    table[name].push_back(
-                        MultiTableSymbol{ASTNode{type, std::vector<ASTNode>(), atom, ""}, type, false, curFile});
+                    settings.table[name].push_back(MultiTableSymbol{ASTNode{type, std::vector<ASTNode>(), atom, ""},
+                                                                    type, false, settings.curFile});
 
                     // Call constructor (pointers do not get constructors)
                     if (type[0].info != pointer && type[0].info != arr && type[0].info != sarr)
@@ -436,7 +425,7 @@ ASTNode __createSequence(std::list<Token> &From)
 
                         ASTNode toAppend;
                         toAppend.info = atom;
-                        toAppend.type = resolveFunction(newCall, garbage, toAppend.raw);
+                        toAppend.type = resolveFunction(newCall, garbage, toAppend.raw, settings);
 
                         out.items.push_back(toAppend);
 
@@ -485,14 +474,14 @@ ASTNode __createSequence(std::list<Token> &From)
                     From.pop_front();
                 } while (From.front() != "{" && From.front() != ";");
 
-                auto type = toType(argList);
+                auto type = toType(argList, settings);
 
-                auto oldTable = table;
+                auto oldTable = settings.table;
 
                 auto argsWithType = getArgs(type);
                 for (std::pair<std::string, Type> p : argsWithType)
                 {
-                    table[p.first].push_back(MultiTableSymbol{ASTNode(), p.second, false, curFile});
+                    settings.table[p.first].push_back(MultiTableSymbol{ASTNode(), p.second, false, settings.curFile});
                 }
 
                 bool isSingleArg = true;
@@ -505,8 +494,8 @@ ASTNode __createSequence(std::list<Token> &From)
                     }
                 }
 
-                sm_assert(currentReturnType == nullType, "Cannot nest function definitions.");
-                currentReturnType = getReturnType(type);
+                sm_assert(settings.currentReturnType == nullType, "Cannot nest function definitions.");
+                settings.currentReturnType = getReturnType(type);
 
                 // Scrape contents
                 int count = 0;
@@ -536,7 +525,7 @@ ASTNode __createSequence(std::list<Token> &From)
                     // Restrictions upon some types of methods
                     if (name == "New" || name == "Del")
                     {
-                        if (currentReturnType != Type(atomic, "void"))
+                        if (settings.currentReturnType != Type(atomic, "void"))
                         {
                             throw std::runtime_error("Illegal method definition! Method '" + name +
                                                      "' must return void.");
@@ -552,9 +541,10 @@ ASTNode __createSequence(std::list<Token> &From)
                     // Restrictions upon main functions
                     if (name == "main" && !From.empty() && !toAdd.empty())
                     {
-                        sm_assert(table[name].size() == 0, "Function 'main' cannot be overloaded.");
-                        sm_assert(currentReturnType[0].info == atomic &&
-                                      (currentReturnType[0].name == "i32" || currentReturnType[0].name == "void"),
+                        sm_assert(settings.table[name].size() == 0, "Function 'main' cannot be overloaded.");
+                        sm_assert(settings.currentReturnType[0].info == atomic &&
+                                      (settings.currentReturnType[0].name == "i32" ||
+                                       settings.currentReturnType[0].name == "void"),
                                   "Function 'main' must return i32.");
 
                         if (argsWithType.size() != 0)
@@ -585,9 +575,9 @@ ASTNode __createSequence(std::list<Token> &From)
                     // Insert explicit symbol
                     if (!toAdd.empty())
                     {
-                        destroyUnits(name, type, true);
+                        destroyUnits(name, type, true, settings);
 
-                        table[name].push_back(MultiTableSymbol{ASTNode{}, type, false, curFile});
+                        settings.table[name].push_back(MultiTableSymbol{ASTNode{}, type, false, settings.curFile});
 
                         if (name == "New")
                         {
@@ -604,25 +594,26 @@ ASTNode __createSequence(std::list<Token> &From)
 
                             structName = argsWithType[0].second[cur].name;
 
-                            for (auto var : structData[structName].members)
+                            for (auto var : settings.structData[structName].members)
                             {
                                 // Add semicolon
-                                table["New"].back().seq.items.push_back(
+                                settings.table["New"].back().seq.items.push_back(
                                     ASTNode{nullType, std::vector<ASTNode>(), atom, ";"});
 
                                 ASTNode toAppend;
                                 toAppend.info = atom;
                                 toAppend.type = nullType;
-                                toAppend.raw = getMemberNew("(*" + argsWithType[0].first + ")", var.first, var.second);
+                                toAppend.raw =
+                                    getMemberNew("(*" + argsWithType[0].first + ")", var.first, var.second, settings);
 
-                                table["New"].back().seq.items.push_back(toAppend);
+                                settings.table["New"].back().seq.items.push_back(toAppend);
                             }
                         }
 
                         depth++;
                         std::list<Token> temp;
                         temp.assign(toAdd.begin(), toAdd.end());
-                        table[name].back().seq = __createSequence(temp);
+                        settings.table[name].back().seq = __createSequence(temp, settings);
                         depth--;
 
                         if (name == "Del")
@@ -640,18 +631,19 @@ ASTNode __createSequence(std::list<Token> &From)
 
                             structName = argsWithType[0].second[cur].name;
 
-                            for (auto var : structData[structName].members)
+                            for (auto var : settings.structData[structName].members)
                             {
                                 // Add semicolon
-                                table["Del"].back().seq.items.push_back(
+                                settings.table["Del"].back().seq.items.push_back(
                                     ASTNode{nullType, std::vector<ASTNode>(), atom, ";"});
 
                                 ASTNode toAppend;
                                 toAppend.info = atom;
                                 toAppend.type = nullType;
-                                toAppend.raw = getMemberDel("(*" + argsWithType[0].first + ")", var.first, var.second);
+                                toAppend.raw =
+                                    getMemberDel("(*" + argsWithType[0].first + ")", var.first, var.second, settings);
 
-                                table["Del"].back().seq.items.push_back(toAppend);
+                                settings.table["Del"].back().seq.items.push_back(toAppend);
                             }
                         }
                     }
@@ -662,16 +654,16 @@ ASTNode __createSequence(std::list<Token> &From)
                         // Destroys all autogen, requires
                         // actual definition.
 
-                        destroyUnits(name, type, false);
+                        destroyUnits(name, type, false, settings);
 
                         // Ensure exactly one unit declaration
-                        table[name].push_back(MultiTableSymbol{ASTNode{}, type, false, curFile});
+                        settings.table[name].push_back(MultiTableSymbol{ASTNode{}, type, false, settings.curFile});
                     }
 
-                    auto destructors = restoreSymbolTable(oldTable);
+                    auto destructors = restoreSymbolTable(oldTable, settings.table);
                     // insertDestructors(table[name].back().seq, destructors);
 
-                    currentReturnType = nullType;
+                    settings.currentReturnType = nullType;
                 }
             }
             else
@@ -798,7 +790,7 @@ ASTNode __createSequence(std::list<Token> &From)
                 for (auto name : names)
                 {
                     toAdd[1].text = name;
-                    addGeneric(toAdd, name, generics, typeVec, preBlock, postBlock);
+                    addGeneric(toAdd, name, generics, typeVec, preBlock, postBlock, settings);
                 }
             }
         }
@@ -857,30 +849,30 @@ ASTNode __createSequence(std::list<Token> &From)
 
                 bool didErase = false;
 
-                if (structData.count(symb) != 0)
+                if (settings.structData.count(symb) != 0)
                 {
                     didErase = true;
-                    structData[symb].erased = true;
+                    settings.structData[symb].erased = true;
                 }
 
-                if (enumData.count(symb) != 0)
+                if (settings.enumData.count(symb) != 0)
                 {
                     didErase = true;
-                    enumData[symb].erased = true;
+                    settings.enumData[symb].erased = true;
                 }
 
-                if (table.count(symb) != 0)
+                if (settings.table.count(symb) != 0)
                 {
                     didErase = true;
-                    for (int l = 0; l < table[symb].size(); l++)
+                    for (int l = 0; l < settings.table[symb].size(); l++)
                     {
-                        table[symb][l].erased = true;
+                        settings.table[symb][l].erased = true;
                     }
                 }
 
                 if (!didErase)
                 {
-                    std::cout << tags::yellow_bold << "Warning! No symbols were erase!-ed via the symbol '" << symb
+                    std::cout << tags::yellow_bold << "Warning: No symbols were erase!-ed via the symbol '" << symb
                               << "'\n"
                               << tags::reset;
                 }
@@ -892,7 +884,7 @@ ASTNode __createSequence(std::list<Token> &From)
         // Misc macros
         else if (From.front() == "c_print!")
         {
-            std::cout << curFile << ":" << curLine << ":c_print! ";
+            std::cout << settings.curFile << ":" << settings.curLine << ":c_print! ";
 
             int count = 0;
             sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
@@ -926,7 +918,7 @@ ASTNode __createSequence(std::list<Token> &From)
         }
         else if (From.front() == "c_panic!")
         {
-            std::string message = curFile + ":" + std::to_string(curLine) + ":c_panic! ";
+            std::string message = settings.curFile + ":" + std::to_string(settings.curLine) + ":c_panic! ";
 
             int count = 0;
             sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
@@ -958,7 +950,7 @@ ASTNode __createSequence(std::list<Token> &From)
         }
         else if (From.front() == "c_warn!")
         {
-            std::string message = curFile + ":" + std::to_string(curLine) + ":c_warn! ";
+            std::string message = settings.curFile + ":" + std::to_string(settings.curLine) + ":c_warn! ";
 
             int count = 0;
             sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
@@ -992,7 +984,7 @@ ASTNode __createSequence(std::list<Token> &From)
         }
         else if (From.front() == "c_sys!")
         {
-            std::cout << curFile << ":" << std::to_string(curLine) << ":c_sys! ";
+            std::cout << settings.curFile << ":" << std::to_string(settings.curLine) << ":c_sys! ";
 
             std::string command;
             int count = 0;
@@ -1068,16 +1060,16 @@ ASTNode __createSequence(std::list<Token> &From)
 
             std::string num = "1";
 
-            ASTNode temp = __createSequence(contents);
-            std::string name = toC(temp);
+            ASTNode temp = __createSequence(contents, settings);
+            std::string name = toC(temp, settings);
 
             while (contents.front() == ",")
             {
                 contents.pop_front();
             }
 
-            ASTNode numSeq = __createSequence(contents);
-            num = toC(numSeq);
+            ASTNode numSeq = __createSequence(contents, settings);
+            num = toC(numSeq, settings);
 
             Type tempType = temp.type;
             Type numType = numSeq.type;
@@ -1129,8 +1121,8 @@ ASTNode __createSequence(std::list<Token> &From)
                 From.pop_front();
             } while (!From.empty() && count != 0);
 
-            ASTNode temp = __createSequence(contents);
-            std::string name = toC(temp);
+            ASTNode temp = __createSequence(contents, settings);
+            std::string name = toC(temp, settings);
 
             Type tempType = temp.type;
             sm_assert(tempType[0].info == arr || tempType[0].info == pointer,
@@ -1168,16 +1160,16 @@ ASTNode __createSequence(std::list<Token> &From)
                 From.pop_front();
             } while (!From.empty() && count != 0);
 
-            ASTNode lhsSeq = __createSequence(contents);
-            std::string lhs = toC(lhsSeq);
+            ASTNode lhsSeq = __createSequence(contents, settings);
+            std::string lhs = toC(lhsSeq, settings);
 
             while (contents.front() == ",")
             {
                 contents.pop_front();
             }
 
-            ASTNode rhsSeq = __createSequence(contents);
-            std::string rhs = toC(rhsSeq);
+            ASTNode rhsSeq = __createSequence(contents, settings);
+            std::string rhs = toC(rhsSeq, settings);
 
             sm_assert(lhsSeq.type[0].info == pointer || lhsSeq.type[0].info == arr,
                       "First argument of ptrcpy! must be pointer or unsized array.");
@@ -1219,16 +1211,16 @@ ASTNode __createSequence(std::list<Token> &From)
                 From.pop_front();
             } while (!From.empty() && count != 0);
 
-            ASTNode lhsSeq = __createSequence(contents);
-            std::string lhs = toC(lhsSeq);
+            ASTNode lhsSeq = __createSequence(contents, settings);
+            std::string lhs = toC(lhsSeq, settings);
 
             while (contents.front() == ",")
             {
                 contents.pop_front();
             }
 
-            ASTNode rhsSeq = __createSequence(contents);
-            std::string rhs = toC(rhsSeq);
+            ASTNode rhsSeq = __createSequence(contents, settings);
+            std::string rhs = toC(rhsSeq, settings);
 
             sm_assert(lhsSeq.type[0].info == pointer || lhsSeq.type[0].info == arr || lhsSeq.type[0].info == sarr,
                       "First argument of ptrarr! must be pointer or arr.");
@@ -1255,7 +1247,7 @@ ASTNode __createSequence(std::list<Token> &From)
     {
         sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
         From.pop_front();
-        auto toReturn = __createSequence(From);
+        auto toReturn = __createSequence(From, settings);
         toReturn.type = nullType;
 
         return toReturn;
@@ -1276,9 +1268,9 @@ ASTNode __createSequence(std::list<Token> &From)
 
         // Pops the first full sequence from the remaining front
         // This is for the enum
-        out.items.push_back(__createSequence(From));
+        out.items.push_back(__createSequence(From, settings));
 
-        sm_assert(out.items[0].type[0].info == atomic && enumData.count(out.items[0].type[0].name) != 0,
+        sm_assert(out.items[0].type[0].info == atomic && settings.enumData.count(out.items[0].type[0].name) != 0,
                   out.raw + " statement argument must be enum. Instead, '" + toStr(&out.items[0].type) + "'");
         sm_assert(!From.empty(), "Missing statement after " + out.raw + "");
 
@@ -1286,7 +1278,7 @@ ASTNode __createSequence(std::list<Token> &From)
         prevMatchTypeStr = out.items[0].type[0].name;
 
         // This is for the code chunk
-        out.items.push_back(__createSequence(From));
+        out.items.push_back(__createSequence(From, settings));
 
         prevMatchTypeStr = old;
 
@@ -1346,8 +1338,8 @@ ASTNode __createSequence(std::list<Token> &From)
             out.items.push_back(ASTNode{nullType, std::vector<ASTNode>{}, atom, From.front()});
             From.pop_front();
 
-            table[captureName].push_back(MultiTableSymbol{ASTNode{}, pointer, false, curFile});
-            table[captureName].back().type.append(enumData[prevMatchTypeStr].options[optionName]);
+            settings.table[captureName].push_back(MultiTableSymbol{ASTNode{}, pointer, false, settings.curFile});
+            settings.table[captureName].back().type.append(settings.enumData[prevMatchTypeStr].options[optionName]);
         }
         else
         {
@@ -1361,12 +1353,12 @@ ASTNode __createSequence(std::list<Token> &From)
         From.pop_front();
 
         // Get actual code scope
-        out.items.push_back(__createSequence(From));
+        out.items.push_back(__createSequence(From, settings));
 
         // Remove capture group from Oak table if needed
         if (captureName != "NULL")
         {
-            table[captureName].pop_back();
+            settings.table[captureName].pop_back();
         }
 
         return out;
@@ -1383,7 +1375,7 @@ ASTNode __createSequence(std::list<Token> &From)
         sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
         From.pop_front();
 
-        out.items.push_back(__createSequence(From));
+        out.items.push_back(__createSequence(From, settings));
 
         return out;
     }
@@ -1401,14 +1393,14 @@ ASTNode __createSequence(std::list<Token> &From)
 
         // Pops the first full sequence from the remaining front
         // This is for the conditional
-        out.items.push_back(__createSequence(From));
+        out.items.push_back(__createSequence(From, settings));
 
         sm_assert(out.items[0].type == Type(atomic, "bool"),
                   out.raw + " statement argument must be boolean. Instead, '" + toStr(&out.items[0].type) + "'");
         sm_assert(!From.empty(), "Missing statement after " + out.raw + "");
 
         // This is for the code chunk
-        out.items.push_back(__createSequence(From));
+        out.items.push_back(__createSequence(From, settings));
 
         if (out.items.back().info == atom)
         {
@@ -1431,7 +1423,7 @@ ASTNode __createSequence(std::list<Token> &From)
         sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
         From.pop_front();
 
-        out.items.push_back(__createSequence(From));
+        out.items.push_back(__createSequence(From, settings));
 
         return out;
     }
@@ -1447,12 +1439,12 @@ ASTNode __createSequence(std::list<Token> &From)
 
         sm_assert(!From.empty() && From.front() != ";" && From.front() != "}",
                   "'return' must be followed by the thing to return (void returns are not legal).");
-        out.items.push_back(__createSequence(From));
+        out.items.push_back(__createSequence(From, settings));
 
         int garbage = 0;
-        sm_assert(typesAreSameCast(&out.items.back().type, &currentReturnType, garbage),
+        sm_assert(typesAreSameCast(&out.items.back().type, &settings.currentReturnType, garbage),
                   "Cannot return '" + toStr(&out.items.back().type) + "' from a function w/ return type '" +
-                      toStr(&currentReturnType) + "'");
+                      toStr(&settings.currentReturnType) + "'");
 
         return out;
     }
@@ -1463,7 +1455,7 @@ ASTNode __createSequence(std::list<Token> &From)
         From.pop_front();
 
         // Save symbol table for later restoration
-        auto oldTable = table;
+        auto oldTable = settings.table;
 
         out.info = code_scope;
 
@@ -1487,7 +1479,7 @@ ASTNode __createSequence(std::list<Token> &From)
 
                 if (count == 0)
                 {
-                    out.items.push_back(__createSequence(curVec));
+                    out.items.push_back(__createSequence(curVec, settings));
                     curVec.clear();
                     sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
                     From.pop_front();
@@ -1499,7 +1491,7 @@ ASTNode __createSequence(std::list<Token> &From)
             {
                 if (!curVec.empty())
                 {
-                    out.items.push_back(__createSequence(curVec));
+                    out.items.push_back(__createSequence(curVec, settings));
                     out.items.back().type = nullType;
                     curVec.clear();
                 }
@@ -1525,12 +1517,12 @@ ASTNode __createSequence(std::list<Token> &From)
         // Restore symbol table
 
         // Fetch destructors
-        auto destructors = restoreSymbolTable(oldTable);
-        insertDestructors(out, destructors);
+        auto destructors = restoreSymbolTable(oldTable, settings.table);
+        insertDestructors(out, destructors, settings);
 
         // If a void function, call all destructors
         // (otherwise, these calls will have been handled elsewhere)
-        if (currentReturnType == Type(atomic, "void"))
+        if (settings.currentReturnType == Type(atomic, "void"))
         {
             for (const auto &p : destructors)
             {
@@ -1556,9 +1548,9 @@ ASTNode __createSequence(std::list<Token> &From)
             if (out.items[i].type != nullType)
             {
                 int garbage = 0;
-                sm_assert(typesAreSameCast(&out.items[i].type, &currentReturnType, garbage),
+                sm_assert(typesAreSameCast(&out.items[i].type, &settings.currentReturnType, garbage),
                           "Cannot return '" + toStr(&out.items[i].type) + "' from a function w/ return type '" +
-                              toStr(&currentReturnType) + "'");
+                              toStr(&settings.currentReturnType) + "'");
             }
         }
 
@@ -1583,7 +1575,7 @@ ASTNode __createSequence(std::list<Token> &From)
             break;
         }
     }
-    temp.type = resolveFunction(tempVec, i, temp.raw);
+    temp.type = resolveFunction(tempVec, i, temp.raw, settings);
 
     out.items.push_back(temp);
 
@@ -1603,7 +1595,8 @@ ASTNode __createSequence(std::list<Token> &From)
 
 // This should only be called after method replacement
 // I know I wrote this, but it still feels like black magic and I don't really understand it
-Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::vector<std::string> &c)
+Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::vector<std::string> &c,
+                             AcornSettings &settings)
 {
     if (What.empty() || start >= What.size())
     {
@@ -1622,7 +1615,7 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
         std::string name = What[start];
 
         std::string followingC = "";
-        Type type = resolveFunction(What, start, followingC);
+        Type type = resolveFunction(What, start, followingC, settings);
 
         if (type[0].info == function)
         {
@@ -1640,7 +1633,7 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
 
         c.push_back("*");
 
-        Type type = resolveFunctionInternal(What, start, c);
+        Type type = resolveFunctionInternal(What, start, c, settings);
 
         sm_assert(type[0].info == pointer, "Cannot dereference non-pointer.");
         type.pop_front();
@@ -1689,7 +1682,7 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
         }
 
         int trash = 0;
-        Type toReturn = resolveFunctionInternal(toUse, trash, c);
+        Type toReturn = resolveFunctionInternal(toUse, trash, c, settings);
 
         if (!c.empty())
         {
@@ -1774,16 +1767,16 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
             typeVec.push_back("struct");
         }
 
-        Type oldType = currentReturnType;
-        currentReturnType = nullType;
+        Type oldType = settings.currentReturnType;
+        settings.currentReturnType = nullType;
 
         auto oldDepth = depth;
         depth = 0;
 
-        std::string result = instantiateGeneric(name, generics, typeVec);
+        std::string result = instantiateGeneric(name, generics, typeVec, settings);
 
         depth = oldDepth;
-        currentReturnType = oldType;
+        settings.currentReturnType = oldType;
 
         start--;
 
@@ -1854,7 +1847,7 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
         int pos = 0;
 
         // Analyze type of collected
-        Type type = resolveFunction(toAnalyze, pos, junk);
+        Type type = resolveFunction(toAnalyze, pos, junk, settings);
 
         // Append size
         c.push_back("sizeof(");
@@ -1894,9 +1887,9 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
         toAnalyze.push_back(Token(")"));
 
         // Analyze type of collected
-        ASTNode s = __createSequence(toAnalyze);
+        ASTNode s = __createSequence(toAnalyze, settings);
 
-        c.push_back(toC(s));
+        c.push_back(toC(s, settings));
 
         return s.type;
     }
@@ -1976,7 +1969,7 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
             int trash = 0;
             std::string cur;
 
-            argTypes.push_back(resolveFunction(arg, trash, cur));
+            argTypes.push_back(resolveFunction(arg, trash, cur, settings));
             argStrs.push_back(cur);
         }
 
@@ -2004,10 +1997,10 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
         else
         {
             // Search for candidates
-            sm_assert(table.count(name) != 0, "Function call '" + name + "' has no registered symbols.");
-            sm_assert(table[name].size() != 0, "Function call '" + name + "' has no registered symbols.");
+            sm_assert(settings.table.count(name) != 0, "Function call '" + name + "' has no registered symbols.");
+            sm_assert(settings.table[name].size() != 0, "Function call '" + name + "' has no registered symbols.");
 
-            std::vector<MultiTableSymbol> candidates = table[name];
+            std::vector<MultiTableSymbol> candidates = settings.table[name];
 
             // Construct candArgs
             std::vector<std::vector<Type>> candArgs;
@@ -2198,8 +2191,9 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
             sm_assert(What[start] != "pre", "`pre` may only be used on generic definitions.");
             sm_assert(What[start] != "post", "`post` may only be used on generic definitions.");
 
-            sm_assert(table.count(What[start]) != 0, "No definitions exist for symbol '" + What[start].text + "'.");
-            auto candidates = table[What[start]];
+            sm_assert(settings.table.count(What[start]) != 0,
+                      "No definitions exist for symbol '" + What[start].text + "'.");
+            auto candidates = settings.table[What[start]];
             sm_assert(candidates.size() != 0, "No definitions exist for symbol '" + What[start].text + "'.");
 
             type = candidates.back().type;
@@ -2258,9 +2252,10 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
                       "Error during type trimming for member access; Could not find struct name.");
             structName = type[0].name;
 
-            sm_assert(structData.count(structName) != 0, "Struct type '" + structName + "' does not exist.");
-            sm_assert(!structData[structName].erased, "Struct '" + structName + "' exists, but is erased (private).");
-            sm_assert(structData[structName].members.count(What[start + 2]) != 0,
+            sm_assert(settings.structData.count(structName) != 0, "Struct type '" + structName + "' does not exist.");
+            sm_assert(!settings.structData[structName].erased,
+                      "Struct '" + structName + "' exists, but is erased (private).");
+            sm_assert(settings.structData[structName].members.count(What[start + 2]) != 0,
                       "Struct '" + structName + "' has no member '" + What[start + 2].text + "'.");
         }
         catch (sequencing_error &e)
@@ -2283,7 +2278,7 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
             throw e;
         }
 
-        type = structData[structName].members[What[start + 2]];
+        type = settings.structData[structName].members[What[start + 2]];
 
         c.push_back(".");
         c.push_back(What[start + 2]);
@@ -2297,7 +2292,7 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
     return type;
 }
 
-Type resolveFunction(const std::vector<Token> &What, int &start, std::string &c)
+Type resolveFunction(const std::vector<Token> &What, int &start, std::string &c, AcornSettings &settings)
 {
     std::vector<std::string> cVec;
 
@@ -2306,7 +2301,7 @@ Type resolveFunction(const std::vector<Token> &What, int &start, std::string &c)
         cVec.push_back(c);
     }
 
-    Type out = resolveFunctionInternal(What, start, cVec);
+    Type out = resolveFunctionInternal(What, start, cVec, settings);
 
     int size = 0;
     for (const auto &item : cVec)

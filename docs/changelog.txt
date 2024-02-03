@@ -4,6 +4,11 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.4.22          | 2/3/24   | Consolidated source code to make
+                |          | the include paths more sensible.
+                |          | Now primed for full compiler
+                |          | object-orientation.
+                |          |
 0.4.21          | 2/1/24   | Added the `C` keyword collision
                 |          | avoidance pass to rectify names.
                 |          |

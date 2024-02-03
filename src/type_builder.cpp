@@ -4,17 +4,14 @@ Jordan Dehmel
 jdehmel@outlook.com
 */
 
-#include "type_builder.hpp"
-#include "sequence.hpp"
-#include "sequence_resources.hpp"
-#include <climits>
+#include "oakc_fns.hpp"
 
 // Externals
-std::set<std::string> deps;
-std::map<std::string, StructLookupData> structData;
-std::vector<std::string> structOrder;
+// std::map<std::string, StructLookupData> structData;
+// std::map<std::string, EnumLookupData> enumData;
+// std::vector<std::string> structOrder;
 
-unsigned long long currentID = 1;
+static unsigned long long currentID = 1;
 
 TypeNode &TypeNode::operator=(const TypeNode &other)
 {
@@ -38,8 +35,6 @@ bool TypeNode::operator==(const TypeNode &other) const
         return true;
     }
 }
-
-const Type nullType(atomic, "NULL");
 
 Type::Type(const TypeInfo &Info, const std::string &Name)
 {
