@@ -69,16 +69,8 @@ int main(const int argc, const char *argv[])
 
     std::vector<std::string> files;
     std::string out = "a.out";
-    bool noSave = false;
-    bool eraseTemp = false;
-    bool prettify = false;
 
-    bool execute = false;
-    bool compile = true;
-    bool doLink = true;
-    bool test = false;
-    bool manual = false;
-    bool testFail = false;
+    AcornSettings settings;
 
     try
     {
@@ -121,39 +113,39 @@ int main(const int argc, const char *argv[])
                     {
                         std::cout << "Version: " << VERSION << '\n' << "License: " << LICENSE << '\n' << INFO << '\n';
                     }
-                    else if (cur == "--debug")
+                    else if (cur == "--settings.debug")
                     {
-                        debug = !debug;
-                        std::cout << "Set debug to " << (debug ? "true" : "false") << '\n';
+                        settings.debug = !settings.debug;
+                        std::cout << "Set settings.debug to " << (settings.debug ? "true" : "false") << '\n';
                     }
                     else if (cur == "--no_save")
                     {
-                        noSave = !noSave;
+                        settings.noSave = !settings.noSave;
 
-                        if (noSave)
+                        if (settings.noSave)
                         {
-                            compile = doLink = false;
+                            settings.compile = settings.doLink = false;
                         }
                     }
                     else if (cur == "--translate")
                     {
-                        noSave = compile = doLink = false;
+                        settings.noSave = settings.compile = settings.doLink = false;
                     }
                     else if (cur == "--compile")
                     {
-                        compile = true;
-                        noSave = doLink = false;
+                        settings.compile = true;
+                        settings.noSave = settings.doLink = false;
                     }
                     else if (cur == "--link")
                     {
-                        noSave = false;
-                        compile = doLink = true;
+                        settings.noSave = false;
+                        settings.compile = settings.doLink = true;
                     }
                     else if (cur == "--clean")
                     {
-                        eraseTemp = !eraseTemp;
+                        settings.eraseTemp = !settings.eraseTemp;
 
-                        if (eraseTemp)
+                        if (settings.eraseTemp)
                         {
                             fs::remove_all(".oak_build");
                             fs::remove_all("*.log");
@@ -165,25 +157,25 @@ int main(const int argc, const char *argv[])
                     }
                     else if (cur == "--test")
                     {
-                        if (!test)
+                        if (!settings.test)
                         {
-                            test = true;
+                            settings.test = true;
                         }
                         else
                         {
-                            if (!testFail)
+                            if (!settings.testFail)
                             {
-                                testFail = true;
+                                settings.testFail = true;
                             }
                             else
                             {
-                                testFail = test = false;
+                                settings.testFail = settings.test = false;
                             }
                         }
                     }
-                    else if (cur == "--execute")
+                    else if (cur == "--settings.execute")
                     {
-                        execute = !execute;
+                        settings.execute = !settings.execute;
                     }
                     else if (cur == "--output")
                     {
@@ -197,7 +189,7 @@ int main(const int argc, const char *argv[])
                     }
                     else if (cur == "--prettify")
                     {
-                        prettify = !prettify;
+                        settings.prettify = !settings.prettify;
                     }
                     else if (cur == "--install")
                     {
@@ -221,18 +213,18 @@ int main(const int argc, const char *argv[])
 
                         i++;
                     }
-                    else if (cur == "--exe_debug")
+                    else if (cur == "--exe_settings.debug")
                     {
-                        if (cflags.count("-g") == 0)
+                        if (settings.cflags.count("-g") == 0)
                         {
-                            cflags.insert("-g");
+                            settings.cflags.insert("-g");
                         }
                     }
                     else if (cur == "--optimize")
                     {
-                        if (cflags.count("-O3") == 0)
+                        if (settings.cflags.count("-O3") == 0)
                         {
-                            cflags.insert("-O3");
+                            settings.cflags.insert("-O3");
                         }
                     }
                     else if (cur == "--size")
@@ -241,11 +233,11 @@ int main(const int argc, const char *argv[])
                     }
                     else if (cur == "--dump")
                     {
-                        alwaysDump = !alwaysDump;
+                        settings.alwaysDump = !settings.alwaysDump;
                     }
                     else if (cur == "--syntax")
                     {
-                        ignoreSyntaxErrors = !ignoreSyntaxErrors;
+                        settings.ignoreSyntaxErrors = !settings.ignoreSyntaxErrors;
                     }
                     else if (cur == "--new")
                     {
@@ -259,7 +251,7 @@ int main(const int argc, const char *argv[])
                     }
                     else if (cur == "--manual")
                     {
-                        manual = !manual;
+                        settings.manual = !settings.manual;
                     }
                     else
                     {
@@ -307,12 +299,12 @@ int main(const int argc, const char *argv[])
 
                             break;
                         case 'c':
-                            compile = true;
-                            noSave = doLink = false;
+                            settings.compile = true;
+                            settings.noSave = settings.doLink = false;
                             break;
                         case 'd':
-                            debug = !debug;
-                            std::cout << "Set debug to " << (debug ? "true" : "false") << '\n';
+                            settings.debug = !settings.debug;
+                            std::cout << "Set settings.debug to " << (settings.debug ? "true" : "false") << '\n';
                             break;
                         case 'D':
                             if (i + 1 >= argc)
@@ -320,14 +312,14 @@ int main(const int argc, const char *argv[])
                                 throw std::runtime_error("-D must be followed by a dialect file");
                             }
 
-                            loadDialectFile(argv[i + 1]);
+                            loadDialectFile(argv[i + 1], settings);
                             i++;
 
                             break;
                         case 'e':
-                            eraseTemp = !eraseTemp;
+                            settings.eraseTemp = !settings.eraseTemp;
 
-                            if (eraseTemp)
+                            if (settings.eraseTemp)
                             {
                                 fs::remove_all(".oak_build");
                                 fs::remove_all("*.log");
@@ -335,12 +327,12 @@ int main(const int argc, const char *argv[])
 
                             break;
                         case 'E':
-                            execute = !execute;
+                            settings.execute = !settings.execute;
                             break;
                         case 'g':
-                            if (cflags.count("-g") == 0)
+                            if (settings.cflags.count("-g") == 0)
                             {
-                                cflags.insert("-g");
+                                settings.cflags.insert("-g");
                             }
 
                             break;
@@ -353,21 +345,21 @@ int main(const int argc, const char *argv[])
 
                             break;
                         case 'l':
-                            noSave = false;
-                            compile = doLink = true;
+                            settings.noSave = false;
+                            settings.compile = settings.doLink = true;
                             break;
                         case 'm':
-                            manual = !manual;
+                            settings.manual = !settings.manual;
                             break;
                         case 'M':
-                            isMacroCall = !isMacroCall;
+                            settings.isMacroCall = !settings.isMacroCall;
                             break;
                         case 'n':
-                            noSave = !noSave;
+                            settings.noSave = !settings.noSave;
 
-                            if (noSave)
+                            if (settings.noSave)
                             {
-                                compile = doLink = false;
+                                settings.compile = settings.doLink = false;
                             }
                             break;
                         case 'o':
@@ -380,14 +372,14 @@ int main(const int argc, const char *argv[])
                             i++;
                             break;
                         case 'O':
-                            if (cflags.count("-O3") == 0)
+                            if (settings.cflags.count("-O3") == 0)
                             {
-                                cflags.insert("-O3");
+                                settings.cflags.insert("-O3");
                             }
 
                             break;
                         case 'p':
-                            prettify = !prettify;
+                            settings.prettify = !settings.prettify;
                             break;
                         case 'q':
                             return 0;
@@ -438,30 +430,30 @@ int main(const int argc, const char *argv[])
                             i++;
                             break;
                         case 't':
-                            noSave = compile = doLink = false;
+                            settings.noSave = settings.compile = settings.doLink = false;
                             break;
                         case 'T':
-                            if (!test)
+                            if (!settings.test)
                             {
-                                test = true;
+                                settings.test = true;
                             }
                             else
                             {
-                                if (!testFail)
+                                if (!settings.testFail)
                                 {
-                                    testFail = true;
+                                    settings.testFail = true;
                                 }
                                 else
                                 {
-                                    testFail = test = false;
+                                    settings.testFail = settings.test = false;
                                 }
                             }
                             break;
                         case 'u':
-                            alwaysDump = !alwaysDump;
+                            settings.alwaysDump = !settings.alwaysDump;
                             break;
                         case 'U':
-                            doRuleLogFile = !doRuleLogFile;
+                            settings.doRuleLogFile = !settings.doRuleLogFile;
                             break;
                         case 'v':
                             std::cout << "Version: " << VERSION << '\n'
@@ -479,7 +471,7 @@ int main(const int argc, const char *argv[])
                             i++;
                             break;
                         case 'x':
-                            ignoreSyntaxErrors = !ignoreSyntaxErrors;
+                            settings.ignoreSyntaxErrors = !settings.ignoreSyntaxErrors;
                             break;
 
                         default:
@@ -496,7 +488,7 @@ int main(const int argc, const char *argv[])
         }
 
         // Clean cache if not macro
-        if (!isMacroCall && getSize(COMPILED_PATH) > MAX_CACHE_KB)
+        if (!settings.isMacroCall && getSize(COMPILED_PATH) > MAX_CACHE_KB)
         {
             std::cout << tags::yellow_bold << "Performing partial cache purge\n" << tags::reset;
 
@@ -519,37 +511,37 @@ int main(const int argc, const char *argv[])
         {
 
             // Actual calls
-            if (debug)
+            if (settings.debug)
             {
                 std::cout << tags::green_bold << "\nPhase 1: File analysis\n" << tags::reset;
             }
 
             for (auto f : files)
             {
-                doFile(f);
+                doFile(f, settings);
             }
 
             // Reconstruct and save
-            if (debug)
+            if (settings.debug)
             {
                 std::cout << tags::green_bold << "\nLoaded all " << files.size() << " initial files.\n"
-                          << visitedFiles.size() - files.size() << " more files were included,\n"
-                          << "For " << visitedFiles.size() << " total files.\n"
+                          << settings.visitedFiles.size() - files.size() << " more files were included,\n"
+                          << "For " << settings.visitedFiles.size() << " total files.\n"
                           << tags::reset;
 
                 std::cout << tags::green_bold << "\nPhase 2: Reconstruction.\n" << tags::reset;
             }
 
-            if (table.count("main") == 0 && doLink)
+            if (settings.table.count("main") == 0 && settings.doLink)
             {
-                std::cout << tags::red_bold << "Error! No main function detected while in linking mode!\n"
+                std::cout << tags::red_bold << "Error: No main function detected while in linking mode!\n"
                           << tags::reset;
                 throw sequencing_error("A compilation unit must contain a main function.");
             }
 
             auto reconstructionStart = std::chrono::high_resolution_clock::now();
 
-            std::pair<std::string, std::string> names = reconstructAndSave(out);
+            std::pair<std::string, std::string> names = reconstructAndSave(out, settings);
             std::string toCompileFrom = names.second;
 
             end = std::chrono::high_resolution_clock::now();
@@ -557,18 +549,18 @@ int main(const int argc, const char *argv[])
             reconstructionElapsed =
                 std::chrono::duration_cast<std::chrono::nanoseconds>(end - reconstructionStart).count();
 
-            if (debug)
+            if (settings.debug)
             {
                 std::cout << "Output header: '" << names.first << "'\n"
                           << "Output body:   '" << names.second << "'\n";
             }
 
-            if (noSave)
+            if (settings.noSave)
             {
                 fs::remove_all(names.first);
                 fs::remove_all(names.second);
 
-                if (debug)
+                if (settings.debug)
                 {
                     std::cout << "Erased output files.\n";
                 }
@@ -577,11 +569,11 @@ int main(const int argc, const char *argv[])
             {
                 compStart = std::chrono::high_resolution_clock::now();
 
-                if (compile)
+                if (settings.compile)
                 {
                     fs::create_directory(".oak_build");
 
-                    if (debug)
+                    if (settings.debug)
                     {
                         std::cout << tags::green_bold << "\nPhase 3: Compilation.\n"
                                   << "(via Clang)\n"
@@ -590,14 +582,14 @@ int main(const int argc, const char *argv[])
 
                     std::string rootCommand = C_COMPILER + " -c ";
 
-                    for (std::string flag : cflags)
+                    for (std::string flag : settings.cflags)
                     {
                         rootCommand += flag + " ";
                     }
 
                     std::string command = rootCommand + toCompileFrom + " -o " + toCompileFrom + ".o";
 
-                    if (debug)
+                    if (settings.debug)
                     {
                         std::cout << "System call `" << command << "`\n";
                     }
@@ -607,11 +599,11 @@ int main(const int argc, const char *argv[])
                         throw std::runtime_error("Failed to compile translated C files");
                     }
 
-                    objects.insert(toCompileFrom + ".o");
+                    settings.objects.insert(toCompileFrom + ".o");
 
-                    if (doLink)
+                    if (settings.doLink)
                     {
-                        if (debug)
+                        if (settings.debug)
                         {
                             std::cout << tags::green_bold << "\nPhase 4: Linking.\n"
                                       << "(via Clang)\n"
@@ -619,17 +611,17 @@ int main(const int argc, const char *argv[])
                         }
 
                         std::string command = LINKER + " -o " + out + " ";
-                        for (std::string object : objects)
+                        for (std::string object : settings.objects)
                         {
                             command += object + " ";
                         }
 
-                        for (std::string flag : cflags)
+                        for (std::string flag : settings.cflags)
                         {
                             command += flag + " ";
                         }
 
-                        if (debug)
+                        if (settings.debug)
                         {
                             std::cout << "System call `" << command << "`\n";
                         }
@@ -641,7 +633,7 @@ int main(const int argc, const char *argv[])
                     }
                     else
                     {
-                        if (debug)
+                        if (settings.debug)
                         {
                             std::cout << tags::green_bold << "\nPhase 4 (compilation-only mode): Combining objects.\n"
                                       << "(via ld)\n"
@@ -650,12 +642,12 @@ int main(const int argc, const char *argv[])
 
                         // Collate here
                         std::string command = "ld -r -o " + out + " ";
-                        for (std::string object : objects)
+                        for (std::string object : settings.objects)
                         {
                             command += object + " ";
                         }
 
-                        if (debug)
+                        if (settings.debug)
                         {
                             std::cout << "System call `" << command << "`\n";
                         }
@@ -671,7 +663,7 @@ int main(const int argc, const char *argv[])
             }
 
             // Manual generation if requested
-            if (manual)
+            if (settings.manual)
             {
                 std::string manualPath = out;
                 if (manualPath.find(".") != std::string::npos)
@@ -681,7 +673,7 @@ int main(const int argc, const char *argv[])
 
                 manualPath += ".md";
 
-                if (debug)
+                if (settings.debug)
                 {
                     std::cout << tags::green_bold << "Generating manual '" << manualPath << "'.\n" << tags::reset;
                 }
@@ -697,15 +689,15 @@ int main(const int argc, const char *argv[])
             std::cout << "Elapsed Oak ns: " << oakElapsed;
         }
 
-        std::cout << tags::red_bold << "\n" << curFile << ":" << curLine;
+        std::cout << tags::red_bold << "\n" << settings.curFile << ":" << settings.curLine;
 
-        if (curLineSymbols.size() != 0)
+        if (settings.curLineSymbols.size() != 0)
         {
-            std::cout << "\t(" << curLineSymbols[0].file << ":" << curLineSymbols[0].line << ")\n";
+            std::cout << "\t(" << settings.curLineSymbols[0].file << ":" << settings.curLineSymbols[0].line << ")\n";
 
             std::cout << tags::violet_bold << "In code line: `";
 
-            for (auto s : curLineSymbols)
+            for (auto s : settings.curLineSymbols)
             {
                 std::cout << s.text << ' ';
             }
@@ -728,7 +720,7 @@ int main(const int argc, const char *argv[])
         }
 
         std::cout << tags::red_bold << "\n"
-                  << curFile << " " << curLine << '\n'
+                  << settings.curFile << " " << settings.curLine << '\n'
                   << "\nAn unknown error ocurred.\n"
                   << "This is an issue with acorn, please report this bug!\n"
                   << tags::reset;
@@ -736,7 +728,7 @@ int main(const int argc, const char *argv[])
         return 3;
     }
 
-    if (debug)
+    if (settings.debug)
     {
         auto size = getSize(".oak_build");
 
@@ -749,7 +741,7 @@ int main(const int argc, const char *argv[])
         }
     }
 
-    if (debug)
+    if (settings.debug)
     {
         end = std::chrono::high_resolution_clock::now();
         unsigned long long totalElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
@@ -759,7 +751,7 @@ int main(const int argc, const char *argv[])
         float percentAcornTime = oakElapsed / (float)totalElapsed;
         percentAcornTime *= 100;
 
-        if (debug)
+        if (settings.debug)
         {
             std::cout << tags::green_bold << "\nProcess finished with no errors.\n\n"
                       << tags::violet_bold << "Acorn-attributable time:\n"
@@ -777,7 +769,8 @@ int main(const int argc, const char *argv[])
                       << "Microseconds: " << totalElapsed / 1'000.0 << '\n'
                       << "Milliseconds: " << totalElapsed / 1'000'000.0 << '\n'
                       << "Seconds:      " << totalElapsed / 1'000'000'000.0 << "\n\n"
-                      << "Acorn Milliseconds per file: " << (oakElapsed / 1'000'000.0) / visitedFiles.size() << "\n\n";
+                      << "Acorn Milliseconds per file: " << (oakElapsed / 1'000'000.0) / settings.visitedFiles.size()
+                      << "\n\n";
         }
 
         std::cout << tags::reset << "Note: This data is only accurate to one recursion.\n";
@@ -804,12 +797,12 @@ int main(const int argc, const char *argv[])
         std::cout << "Post-compiler macro time usage by file (ns):\n";
 
         unsigned long long fileSum = 0;
-        for (const auto &p : visitedFiles)
+        for (const auto &p : settings.visitedFiles)
         {
             fileSum += p.second;
         }
 
-        for (const auto &p : visitedFiles)
+        for (const auto &p : settings.visitedFiles)
         {
             std::cout << std::setprecision(3) << std::setw(20) << 100.0 * (p.second / (double)fileSum) << "%\t"
                       << std::setw(15) << p.second << "\t" << p.first << '\n';
@@ -824,7 +817,7 @@ int main(const int argc, const char *argv[])
 
         // Get total according to this:
         unsigned long long int total = 0;
-        for (auto t : phaseTimes)
+        for (auto t : settings.phaseTimes)
         {
             total += t;
         }
@@ -837,8 +830,9 @@ int main(const int argc, const char *argv[])
         for (int j = 0; j < passNames.size(); j++)
         {
             std::cout << std::left << "\t" << j + 1 << "\t" << std::setw(20) << passNames[j] << std::right
-                      << std::setw(15) << phaseTimes[j] << std::setw(10) << (100 * (double)phaseTimes[j] / total)
-                      << "%\t" << std::setw(10) << (100 * (double)phaseTimes[j] / totalPlusCompilation) << "%\n";
+                      << std::setw(15) << settings.phaseTimes[j] << std::setw(10)
+                      << (100 * (double)settings.phaseTimes[j] / total) << "%\t" << std::setw(10)
+                      << (100 * (double)settings.phaseTimes[j] / totalPlusCompilation) << "%\n";
         }
 
         std::cout << std::left << "\t" << passNames.size() + 1 << "\t" << std::setw(20) << "reconstruction"
@@ -852,7 +846,7 @@ int main(const int argc, const char *argv[])
         std::cout << "Output file: " << out << '\n';
     }
 
-    if (execute && !test)
+    if (settings.execute && !settings.test)
     {
         if (out[0] != '/' && out[0] != '~' && out[0] != '.')
         {
@@ -869,12 +863,12 @@ int main(const int argc, const char *argv[])
     }
 
     // Run test suite ./tests/*
-    if (test)
+    if (settings.test)
     {
         if (!fs::exists("tests") || !fs::is_directory("tests"))
         {
             std::cout << tags::red_bold
-                      << "Cannot run test suite when './tests' does not exist or is not a directory.\n"
+                      << "Cannot run test suite when './tests' does not exist or exists and is not a directory.\n"
                       << tags::reset;
             return 15;
         }
@@ -889,7 +883,7 @@ int main(const int argc, const char *argv[])
 
         // Get all files to run
         fs::create_directory(".oak_build");
-        fs::remove_all("test_suite.log");
+        fs::remove_all("test_suite.tlog");
 
         // Build file vector
         for (auto test_iter : fs::directory_iterator("./tests"))
@@ -898,8 +892,8 @@ int main(const int argc, const char *argv[])
         }
 
         std::cout << tags::violet_bold << "Running " << files.size() << " tests...\n"
-                  << tags::reset << "[compiling, " << (execute ? "" : "NOT ") << "executing,"
-                  << (testFail ? "" : " NOT") << " halting on failure]\n";
+                  << tags::reset << "[compiling, " << (settings.execute ? "" : "NOT ") << "executing,"
+                  << (settings.testFail ? "" : " NOT") << " halting on failure]\n";
 
         // Check for ansi2txt
         std::string cleaner = "";
@@ -917,26 +911,46 @@ int main(const int argc, const char *argv[])
 
         // Iterate through files
         int i = 1;
+        unsigned long long min = -1ull, max = 0ull;
+        std::string nameOfMin, nameOfMax;
         for (auto test : files)
         {
+            // Echo the current filename onto the test suite log
             system(("echo " + test + " >> test_suite.tlog").c_str());
+
+            // Execute the command to test this file, either in compile or compile+execute mode.
             start = std::chrono::high_resolution_clock::now();
-            if (execute)
+            if (settings.execute)
             {
-                result = system(("acorn -o a.out --execute " + test + cleaner + " >> test_suite.tlog 2>&1").c_str());
+                result = system(
+                    ("acorn -o a.out --settings.execute " + test + cleaner + " >> test_suite.tlog 2>&1").c_str());
             }
             else
             {
                 result = system(("acorn -o /dev/null " + test + cleaner + " >> test_suite.tlog 2>&1").c_str());
             }
             end = std::chrono::high_resolution_clock::now();
-
             ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-            totalMs += ms;
 
+            // Update statistics
+            totalMs += ms;
+            if (ms < min)
+            {
+                nameOfMin = test;
+                min = ms;
+            }
+            if (ms > max)
+            {
+                nameOfMax = test;
+                max = ms;
+            }
+
+            // Update user on results of this test
             std::cout << "[" << i << "/" << files.size() << "]\t[" << (result == 0 ? tags::green : tags::red)
                       << std::left << std::setw(4) << result << tags::reset << "]" << std::right << std::setw(8) << ms
                       << " ms\t" << std::left << test << "\n";
+
+            // Update other statistics
             if (result == 0)
             {
                 good++;
@@ -946,7 +960,8 @@ int main(const int argc, const char *argv[])
                 failed.push_back(test);
                 bad++;
 
-                if (testFail)
+                // If using the `-TT` flag, cease testing here.
+                if (settings.testFail)
                 {
                     break;
                 }
@@ -955,19 +970,25 @@ int main(const int argc, const char *argv[])
             i++;
         }
 
+        // Print number of passed tests
         if (good != 0)
         {
             std::cout << tags::green_bold << "Passed:\t\t" << good << "\t(" << 100 * (double)good / (good + bad) << "%)"
                       << '\n';
         }
+
+        // Print number of failed tests
         if (bad != 0)
         {
             std::cout << tags::red_bold << "Failed:\t\t" << bad << "\t(" << 100 * (double)bad / (good + bad) << "%)"
                       << '\n';
         }
 
+        // Print final summary statistics
         std::cout << tags::reset << "Total:\t\t" << good + bad << '\n'
                   << "ms:\t\t" << totalMs << '\n'
+                  << "min:\t\t" << min << "\t" << nameOfMin << " ms\n"
+                  << "max:\t\t" << max << " \t" << nameOfMax << " ms\n"
                   << "mean test ms:\t" << (totalMs) / (double)(good + bad) << '\n';
 
         if (bad != 0)
@@ -983,7 +1004,7 @@ int main(const int argc, const char *argv[])
         std::cout << "\nAny output is in ./test_suite.tlog.\n";
     }
 
-    if (prettify)
+    if (settings.prettify)
     {
         if (system((PRETTIFIER + " .oak_build/*.c 2>&1 >/dev/null").c_str()) != 0)
         {
@@ -996,7 +1017,7 @@ int main(const int argc, const char *argv[])
         }
     }
 
-    if (eraseTemp)
+    if (settings.eraseTemp)
     {
         fs::remove_all(".oak_build");
         fs::remove_all("*.log");

@@ -20,13 +20,8 @@ Package loading for Oak.
 #include <string>
 #include <vector>
 
+#include "options.hpp"
 #include "tags.hpp"
-
-const static std::string PACKAGE_TEMP_LOCATION = "/tmp/oak_packages/";
-const static std::string PACKAGE_INCLUDE_PATH = "/usr/include/oak/";
-const static std::string INFO_FILE = "oak_package_info.txt";
-const static std::string PACKAGES_LIST_PATH = "/usr/include/oak/packages_list.txt";
-const static std::string CLONE_COMMAND = "git clone ";
 
 // Holds information about an installed package.
 struct PackageInfo
@@ -35,19 +30,15 @@ struct PackageInfo
     std::string version;   // Package version
     std::string license;   // Package license
     std::string date;      // Date the current version was released
-    std::string author;    // Self-explanitory
-    std::string email;     // See maintainer name
+    std::string author;    // The author(s) of the package
+    std::string email;     // The email(s) of the author(s)
     std::string source;    // URL package was downloaded from
     std::string path;      // Path from URL to get to the install point
     std::string about;     // Package description
-    std::string toInclude; // File within /usr/include/oak/$(PACKAGE_NAME) to include!();
-    std::string sysDeps;
-    std::string oakDeps;
+    std::string toInclude; // File within /usr/include/oak/$(PACKAGE_NAME) to include;
+    std::string sysDeps;   // System dependencies
+    std::string oakDeps;   // Oak dependencies
 };
-
-// Extern non-constant globals
-extern std::string installCommand;
-extern std::map<std::string, PackageInfo> packages;
 
 // Installs a given SYSTEM package; NOT an Oak one.
 void install(const std::string &what);

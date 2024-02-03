@@ -6,16 +6,18 @@ Jordan Dehmel, 2023
 */
 
 #include "generics.hpp"
+#include "options.hpp"
 #include "symbol_table.hpp"
 #include "tags.hpp"
 #include "type_builder.hpp"
 
-// External definition of createSequence, defined in sequence.cpp
-// This avoids circular dependencies
-extern ASTNode createSequence(const std::vector<Token> &From);
+// External definitions to avoid circular dependencies
+extern ASTNode createSequence(const std::vector<Token> &From, AcornSettings &settings);
+extern Type toType(const std::vector<Token> &whatIn, AcornSettings &settings);
+extern Type toType(const std::vector<std::string> &what, AcornSettings &settings);
 
 // A pair of <name, number_of_generics> maps to a vector of symbols within
-std::map<std::string, std::vector<GenericInfo>> generics;
+static std::map<std::string, std::list<GenericInfo>> generics;
 
 // Returns true if template substitution would make the two typeVecs the same
 bool checkTypeVec(const std::vector<std::string> &candidateTypeVec, const std::vector<std::string> &genericTypeVec,
@@ -156,15 +158,12 @@ bool typeIsPrefixOfAny(const Type &t, const std::vector<MultiTableSymbol> &candi
     }
 
     // Return result
-    // int i = 0;
     for (const auto candidate : isViable)
     {
         if (candidate)
         {
-            // cout << toStr(&t) << " is a prefix of " << toStr(&candidates[i].type) << '\n';
             return true;
         }
-        // i++;
     }
     return false;
 }
@@ -199,7 +198,7 @@ bool checkInstances(const std::vector<std::vector<std::string>> &a, const std::v
 // Skips all error checking; DO NOT FEED THIS THINGS THAT MAY ALREADY HAVE INSTANCES
 // Returns true if it was successful
 std::string __instantiateGeneric(const std::string &what, GenericInfo &info,
-                                 const std::vector<std::vector<std::string>> &genericSubs)
+                                 const std::vector<std::vector<std::string>> &genericSubs, AcornSettings &settings)
 {
     // Build substitution table
     std::map<std::string, std::vector<std::string>> substitutions;
@@ -235,7 +234,7 @@ std::string __instantiateGeneric(const std::string &what, GenericInfo &info,
         try
         {
             // Call on substituted pre block
-            createSequence(copy);
+            createSequence(copy, settings);
         }
         catch (std::exception &e)
         {
@@ -262,7 +261,7 @@ std::string __instantiateGeneric(const std::string &what, GenericInfo &info,
     }
 
     // Call on substituted results
-    createSequence(copy);
+    createSequence(copy, settings);
 
     // Post block
     if (info.postBlock.size() != 0)
@@ -291,7 +290,7 @@ std::string __instantiateGeneric(const std::string &what, GenericInfo &info,
         try
         {
             // Call on substituted post block
-            createSequence(copy);
+            createSequence(copy, settings);
         }
         catch (std::exception &e)
         {
@@ -304,11 +303,11 @@ std::string __instantiateGeneric(const std::string &what, GenericInfo &info,
 }
 
 std::string instantiateGeneric(const std::string &what, const std::vector<std::vector<std::string>> &genericSubs,
-                               const std::vector<std::string> &typeVec)
+                               const std::vector<std::string> &typeVec, AcornSettings &settings)
 {
     // Get mangled version (only meaningful for struct instantiations)
-    std::string oldCurFile = curFile;
-    int oldCurLine = curLine;
+    std::string oldCurFile = settings.curFile;
+    int oldCurLine = settings.curLine;
 
     std::string mangleStr = mangleStruct(what, genericSubs);
     std::vector<std::string> errors;
@@ -320,14 +319,14 @@ std::string instantiateGeneric(const std::string &what, const std::vector<std::v
     // skip candidate checking
 
     // Existing struct / enum check
-    if (structData.count(mangleStr) != 0)
+    if (settings.structData.count(mangleStr) != 0)
     {
         didInstantiate = true;
     }
 
     // Existing function check (ignores New and Del because they
     // are usually autogen)
-    else if (what != "New" && what != "Del" && typeIsPrefixOfAny(toType(typeVec), table[what]))
+    else if (what != "New" && what != "Del" && typeIsPrefixOfAny(toType(typeVec, settings), settings.table[what]))
     {
         didInstantiate = true;
     }
@@ -350,12 +349,12 @@ std::string instantiateGeneric(const std::string &what, const std::vector<std::v
             }
             std::cout << tags::reset << '\n';
 
-            throw generic_error("Error! No template exists with which to instantiate template '" + what + "'.");
+            throw generic_error("Error: No template exists with which to instantiate template '" + what + "'.");
         }
 
         for (auto &candidate : generics[what])
         {
-            curFile = candidate.originFile;
+            settings.curFile = candidate.originFile;
 
             if (checkTypeVec(typeVec, candidate.typeVec, candidate.genericNames, genericSubs))
             {
@@ -374,7 +373,7 @@ std::string instantiateGeneric(const std::string &what, const std::vector<std::v
                 if (!hasInstance)
                 {
                     candidate.instances.push_back(genericSubs);
-                    std::string result = __instantiateGeneric(what, candidate, genericSubs);
+                    std::string result = __instantiateGeneric(what, candidate, genericSubs, settings);
                     errors.push_back(result);
 
                     if (result == "")
@@ -385,7 +384,7 @@ std::string instantiateGeneric(const std::string &what, const std::vector<std::v
                     }
                     else
                     {
-                        errors.back().append(" (" + curFile + ":" + std::to_string(curLine) + ")");
+                        errors.back().append(" (" + settings.curFile + ":" + std::to_string(settings.curLine) + ")");
                     }
 
                     // Else, failed with this template. Not an overall failure.
@@ -398,14 +397,14 @@ std::string instantiateGeneric(const std::string &what, const std::vector<std::v
             }
             else
             {
-                errors.push_back("Did not match generic substitution. (" + curFile + ":" + std::to_string(curLine) +
-                                 ")");
+                errors.push_back("Did not match generic substitution. (" + settings.curFile + ":" +
+                                 std::to_string(settings.curLine) + ")");
             }
         }
     }
 
-    curFile = oldCurFile;
-    curLine = oldCurLine;
+    settings.curFile = oldCurFile;
+    settings.curLine = oldCurLine;
 
     if (!didInstantiate)
     {
@@ -430,12 +429,12 @@ std::string instantiateGeneric(const std::string &what, const std::vector<std::v
             std::cout << "' (mangle: " << mangle(item) << ")" << '\n';
         }
 
-        std::cout << "Against:\n";
+        std::cout << "Against:\n\n";
 
         int i = 0;
         for (auto item : generics[what])
         {
-            std::cout << '\t' << what << " w/ type ";
+            std::cout << what << " w/ type ";
             for (auto b : item.typeVec)
             {
                 std::cout << b << ' ';
@@ -447,7 +446,7 @@ std::string instantiateGeneric(const std::string &what, const std::vector<std::v
 
         std::cout << tags::reset;
 
-        throw generic_error("Error! Candidates exist for template '" + what + "', but none are viable.");
+        throw generic_error("Error: Candidates exist for template '" + what + "', but none are viable.");
     }
 
     // Return mangled version
@@ -456,10 +455,10 @@ std::string instantiateGeneric(const std::string &what, const std::vector<std::v
 
 void addGeneric(const std::vector<Token> &what, const std::string &name, const std::vector<std::string> &genericsList,
                 const std::vector<std::string> &typeVec, const std::vector<Token> &preBlock,
-                const std::vector<Token> &postBlock)
+                const std::vector<Token> &postBlock, AcornSettings &settings)
 {
     GenericInfo toAdd;
-    toAdd.originFile = curFile;
+    toAdd.originFile = settings.curFile;
 
     for (auto a : genericsList)
     {
@@ -509,7 +508,16 @@ void addGeneric(const std::vector<Token> &what, const std::string &name, const s
 
     if (!doesExist)
     {
-        generics[name].push_back(toAdd);
+        generics[name].push_front(toAdd);
+    }
+    else
+    {
+        std::cout << tags::yellow_bold << "Warning: Not re-adding existing template " << name << " w/ type vec `";
+        for (const auto &item : typeVec)
+        {
+            std::cout << item << ' ';
+        }
+        std::cout << "`.\n";
     }
 
     return;

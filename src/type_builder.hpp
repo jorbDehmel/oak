@@ -87,11 +87,17 @@ struct StructLookupData
     bool erased = false;
 };
 
-// External non-constant globals.
-extern std::set<std::string> deps;
-extern const Type nullType;
-extern std::map<std::string, StructLookupData> structData;
-extern std::vector<std::string> structOrder;
+// Used in the `enumData` map (part of the type symbol table).
+struct EnumLookupData
+{
+    std::map<std::string, Type> options;
+    std::vector<std::string> order;
+
+    bool erased = false;
+};
+
+// The null type, used for comparisons.
+const static Type nullType = {atomic, "NULL"};
 
 // Return the standard C representation of this type.
 std::string toStr(const Type *const what, const unsigned int &pos = 0);

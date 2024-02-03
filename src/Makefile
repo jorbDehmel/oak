@@ -10,14 +10,14 @@ OBJS := build/lexer.o build/symbol_table.o \
 	build/type_builder.o build/reconstruct.o build/macros.o \
 	build/sequence.o build/packages.o build/sizer.o \
 	build/op_sub.o build/mem.o build/acorn_resources.o \
-	build/document.o build/rules.o build/enums.o \
-	build/mangler.o build/generics.o build/sequence_resources.o
+	build/document.o build/rules.o build/mangler.o \
+	build/generics.o build/sequence_resources.o
 
 HEADS := lexer.hpp reconstruct.hpp symbol_table.hpp \
 	type_builder.hpp macros.hpp tags.hpp sequence.hpp \
 	packages.hpp sizer.hpp op_sub.hpp acorn_resources.hpp \
-	document.hpp rules.hpp enums.hpp mangler.hpp generics.hpp \
-	sequence_resources.hpp
+	document.hpp rules.hpp mangler.hpp generics.hpp \
+	sequence_resources.hpp rule_structs.hpp options.hpp
 
 FLAGS := -pedantic -Wall -O3
 
@@ -25,6 +25,7 @@ TEST := acorn
 
 ################################################################
 
+.PHONY:	install
 install: bin/acorn.out std_oak_header.h
 	sudo mkdir -p /usr/include/oak
 
@@ -33,6 +34,7 @@ install: bin/acorn.out std_oak_header.h
 
 	sudo cp bin/acorn.out /usr/bin/acorn
 
+.PHONY:	packages
 packages:
 	sudo rm -rf /usr/include/oak/sdl /usr/include/oak/extra \
 		/usr/include/oak/stl /usr/include/oak/turtle \
@@ -40,18 +42,22 @@ packages:
 	sudo acorn -S ../std -S ../sdl -S ../extra -S ../stl -S \
 		../turtle -e
 
+.PHONY:	uninstall
 uninstall:
 	sudo rm -rf /usr/bin/acorn /usr/include/oak \
 		/usr/include/std_oak_header.hpp
 
+.PHONY:	reinstall
 reinstall:
 	$(MAKE) -C . uninstall clean install
 
+.PHONY:	test
 test:
 	$(TEST) -eTT
 
 ################################################################
 
+.PHONY:	dirs
 dirs:
 	mkdir -p bin
 	mkdir -p build
@@ -67,6 +73,7 @@ bin/acorn.out:	dirs build/acorn.o $(OBJS) $(HEADS)
 
 ################################################################
 
+.PHONY:	clean
 clean:
 	rm -rf bin/* build/* *.o *.out *.log
 

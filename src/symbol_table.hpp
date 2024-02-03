@@ -22,15 +22,6 @@ Handles the Oak symbol table.
 
 ////////////////////////////////////////////////////////////////
 
-// External definitions so as to avoid a dependency loop.
-
-std::string mangle(const std::vector<std::string> &what);
-std::string mangleStruct(const std::string &name, const std::vector<std::vector<std::string>> &generics);
-std::string instantiateGeneric(const std::string &what, const std::vector<std::vector<std::string>> &genericSubs,
-                               const std::vector<std::string> &typeVec);
-
-////////////////////////////////////////////////////////////////
-
 // An error which may arise during parsing / lexing.
 class parse_error : public std::runtime_error
 {
@@ -41,7 +32,8 @@ class parse_error : public std::runtime_error
 };
 
 // If the given item is false, throw a parse_error.
-void parse_assert(const bool &what);
+#define parse_assert(b)                                                                                                \
+    ((bool)(b)) ? true : throw parse_error(__FILE__ ":" + std::to_string(__LINE__) + " Failed assertion '" #b "'\n")
 
 // Enumeration representing the type of a single AST node.
 enum SequenceInfo
@@ -78,29 +70,13 @@ struct MultiTableSymbol
 // Alias for the symbol table.
 typedef std::map<std::string, std::vector<MultiTableSymbol>> MultiSymbolTable;
 
-extern MultiSymbolTable table;
-
-// Returns the C version of a sequence
-std::string toC(const ASTNode &what);
-
-// Converts lexed symbols into a type.
-Type toType(const std::vector<Token> &what);
-
-// Converts lexed symbols into a type.
-Type toType(const std::vector<std::string> &what);
-
-// Can throw errors (IE malformed definitions)
-// Takes in the whole definition, starting at let
-// and ending after }. (Oak has no trailing semicolon)
-// Can also handle templating
-void addStruct(const std::vector<Token> &from);
-
 /*
 Erases any non-function symbols which were not present
 in the original table. However, skips all functions.
 If not contradicted by the above rules, bases off of
 the current table (not backup).
 */
-std::vector<std::pair<std::string, std::string>> restoreSymbolTable(MultiSymbolTable &backup);
+std::vector<std::pair<std::string, std::string>> restoreSymbolTable(MultiSymbolTable &backup,
+                                                                    MultiSymbolTable &realTable);
 
 #endif

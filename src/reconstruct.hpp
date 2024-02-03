@@ -20,24 +20,18 @@ agnostic with respect to input (as much as possible).
 #include <string>
 #include <vector>
 
-#include "enums.hpp"
 #include "lexer.hpp"
 #include "mangler.hpp"
+#include "options.hpp"
 #include "rules.hpp"
 #include "symbol_table.hpp"
 #include "type_builder.hpp"
-
-// External non-constant globals
-// Contains all the atomic types (ints, floats, bools, etc)
-extern std::map<std::string, unsigned long long> atomics;
-
-const static std::string OAK_HEADER_PATH = "/usr/include/oak/std_oak_header.h";
 
 // Removes illegal characters.
 std::string purifyStr(const std::string &what);
 
 // Reconstruct the existing symbol table into C.
-void reconstruct(const std::string &name, std::stringstream &header, std::stringstream &body);
+void reconstruct(const std::string &Name, AcornSettings &settings, std::stringstream &header, std::stringstream &body);
 
 // Save reconstructed files and return compilation command
 // Return pair<sstream, sstream>{header, body};
@@ -46,7 +40,7 @@ std::pair<std::string, std::string> save(const std::stringstream &header, const 
 
 // Call reconstruct and save, without fiddling with
 // stringstreams. Returns headerName, bodyName.
-std::pair<std::string, std::string> reconstructAndSave(const std::string &name);
+std::pair<std::string, std::string> reconstructAndSave(const std::string &Name, AcornSettings &settings);
 
 // Return the C format-version of a type, to be followed by
 // symbol name.
@@ -61,6 +55,6 @@ std::string toStrCFunctionRef(const Type *what, const std::string &name, const u
 
 // Return the C version of an Oak `enum`. These are heavily
 // involved, more so than structs or variables.
-std::string enumToC(const std::string &name);
+std::string enumToC(const std::string &name, AcornSettings &settings);
 
 #endif

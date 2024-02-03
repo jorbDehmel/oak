@@ -7,17 +7,23 @@ GPLv3 held by author
 */
 
 #include "macros.hpp"
+#include "options.hpp"
 #include <filesystem>
 #include <stdexcept>
 namespace fs = std::filesystem;
 
-// The pre-inserted ones are used by the compiler- Not literal macros
-std::set<std::string> compiled = {"include!",  "link!",     "package!",  "alloc!",    "free!",
-                                  "free_arr!", "new_rule!", "use_rule!", "rem_rule!", "bundle_rule!",
-                                  "erase!",    "c_print!",  "c_warn!",   "c_panic!",  "type!",
-                                  "size!",     "ptrcpy!",   "ptrarr!",   "raw_c!"};
-std::map<std::string, std::string> macros;
-std::map<std::string, std::string> macroSourceFiles;
+// Returns true if and only if the given macro already exists.
+bool hasMacro(const std::string &name, AcornSettings &settings) noexcept
+{
+    return settings.macros.count(name) != 0;
+}
+
+// Adds the given macro definition into the internal macro lookup table.
+void addMacro(const std::string &name, const std::string &contents, AcornSettings &settings)
+{
+    settings.macros[name] = contents;
+    settings.macroSourceFiles[name] = settings.curFile;
+}
 
 long long getFileLastModification(const std::string &filepath)
 {
@@ -60,9 +66,9 @@ bool isSourceNewer(const std::string &source, const std::string &dest)
     return (sourceAge > destAge);
 }
 
-void compileMacro(const std::string &Name, bool debug)
+void compileMacro(const std::string &Name, AcornSettings &settings)
 {
-    if (macros.count(Name) == 0)
+    if (settings.macros.count(Name) == 0)
     {
         throw std::runtime_error("Cannot compile macro `" + Name + "`; No source code present");
     }
@@ -70,7 +76,7 @@ void compileMacro(const std::string &Name, bool debug)
     {
         throw std::runtime_error("'" + Name + "' is an illegal macro name; This is an error of the compiler");
     }
-    else if (compiled.count(Name) != 0)
+    else if (settings.compiled.count(Name) != 0)
     {
         // Already compiled: This is fine
         return;
@@ -83,7 +89,7 @@ void compileMacro(const std::string &Name, bool debug)
     std::string binPath = COMPILED_PATH + rootName + ".out";
 
     // Check ages, makefile-style
-    if (!isSourceNewer(macroSourceFiles[Name], binPath))
+    if (!isSourceNewer(settings.macroSourceFiles[Name], binPath))
     {
         return;
     }
@@ -96,15 +102,15 @@ void compileMacro(const std::string &Name, bool debug)
         throw std::runtime_error("Could not open file `" + srcPath + "`");
     }
 
-    macroFile << macros[Name] << '\n';
+    macroFile << settings.macros[Name] << '\n';
 
     macroFile.close();
 
     // Call compiler
     std::string command =
-        COMPILER_COMMAND + (debug ? std::string(" -d") : std::string("")) + " -Mo " + binPath + " " + srcPath;
+        COMPILER_COMMAND + (settings.debug ? std::string(" -d") : std::string("")) + " -Mo " + binPath + " " + srcPath;
 
-    if (debug)
+    if (settings.debug)
     {
         std::cout << "Compiling via command '" << command << "'\n";
 
@@ -124,7 +130,7 @@ void compileMacro(const std::string &Name, bool debug)
     }
     catch (std::runtime_error &e)
     {
-        if (debug)
+        if (settings.debug)
         {
             std::cout << tags::yellow_bold << "\n/\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\\n"
                       << "-----------------------------\n"
@@ -136,7 +142,7 @@ void compileMacro(const std::string &Name, bool debug)
         throw std::runtime_error(std::string("Macro failure: ") + e.what());
     }
 
-    if (debug)
+    if (settings.debug)
     {
         std::cout << tags::yellow_bold << "/\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\\n"
                   << "-----------------------------\n"
@@ -145,16 +151,16 @@ void compileMacro(const std::string &Name, bool debug)
                   << tags::reset << std::flush;
     }
 
-    compiled.insert(Name);
+    settings.compiled.insert(Name);
 
     return;
 }
 
-std::string callMacro(const std::string &Name, const std::vector<std::string> &Args, bool debug)
+std::string callMacro(const std::string &Name, const std::vector<std::string> &Args, AcornSettings &settings)
 {
-    if (compiled.count(Name) == 0)
+    if (settings.compiled.count(Name) == 0)
     {
-        compileMacro(Name, debug);
+        compileMacro(Name, settings);
     }
 
     std::string outputName = COMPILED_PATH + std::string("__oak_macro_out") + ".txt";
@@ -199,7 +205,7 @@ std::string callMacro(const std::string &Name, const std::vector<std::string> &A
 
     command += " > " + outputName;
 
-    if (debug)
+    if (settings.debug)
     {
         std::cout << "Macro call `" << command << "`\n";
     }
@@ -233,7 +239,7 @@ std::string callMacro(const std::string &Name, const std::vector<std::string> &A
 
     file.close();
 
-    if (debug)
+    if (settings.debug)
     {
         std::cout << "Macro returned\n```\n" << out << "\n```\n";
     }

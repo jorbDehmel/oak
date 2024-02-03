@@ -10,11 +10,11 @@ jdehmel@outlook.com
 #include <climits>
 
 // Externals
-std::set<std::string> deps;
-std::map<std::string, StructLookupData> structData;
-std::vector<std::string> structOrder;
+// std::map<std::string, StructLookupData> structData;
+// std::map<std::string, EnumLookupData> enumData;
+// std::vector<std::string> structOrder;
 
-unsigned long long currentID = 1;
+static unsigned long long currentID = 1;
 
 TypeNode &TypeNode::operator=(const TypeNode &other)
 {
@@ -38,8 +38,6 @@ bool TypeNode::operator==(const TypeNode &other) const
         return true;
     }
 }
-
-const Type nullType(atomic, "NULL");
 
 Type::Type(const TypeInfo &Info, const std::string &Name)
 {

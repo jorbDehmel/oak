@@ -8,7 +8,7 @@ GPLv3 held by author
 
 #include "document.hpp"
 
-const std::string rule = "------------------------------";
+const std::string rule = "---";
 const std::string headerStart = "# ";
 const std::string fileStart = "## ";
 const std::string fnStart = "### ";
