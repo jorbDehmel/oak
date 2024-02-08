@@ -53,6 +53,11 @@ To install, open a terminal in this folder and run
 the standard `Oak` package. To uninstall, call `acorn -A`. To
 update, call `acorn -a`.
 
+To install *all* the default `Oak` packages, run `make packages`
+in this folder. If this is not run, only the `std` package will
+be installed. More information about the included packages can
+be found in `docs/manual.md`.
+
 ## Versions of `Oak`
 
 `Oak` versions follow the following format.
