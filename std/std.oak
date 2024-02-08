@@ -34,29 +34,19 @@ new_rule!(
 // Auto-parenthesize rules
 new_rule!("auto_if_paren", "if $*a {", "if ( $a ) {");
 new_rule!("auto_while_paren", "while $*a {", "while ( $a ) {");
-
 new_rule!("auto_match_paren", "match $*a {", "match ( $a ) {");
 
-// Method rules
+// Easy method rules
 new_rule!(
-    "easy_method_1",
-    "let $a . $b ( )",
-    "let $b ( self : ^ $a )"
-);
-new_rule!(
-    "easy_method_2",
+    "easy_method",
     "let $a . $b (",
     "let $b ( self : ^ $a ,"
 );
-
 new_rule!("get_method", "$/<$let $a . Get (", "Get ( @ $a ,");
-
-new_rule!("argless_method", "$/<$let $a . $b ( )", "$b ( $a )");
 new_rule!("method", "$/<$let $a . $b (", "$b ( $a ,");
 
-// Definition-Instantiation rule
+// Definition-Instantiation rules
 new_rule!("def_init", "let $a : $b = ", "let $a : $b ; $a = ");
-
 new_rule!(
     "auto_init",
     "let $a = $*b ;",
@@ -98,9 +88,7 @@ bundle_rule!(
     "auto_if_paren",
     "auto_while_paren",
     "auto_match_paren",
-    "easy_method_1",
-    "easy_method_2",
-    "argless_method",
+    "easy_method",
     "method",
     "auto_init",
     "def_init",

@@ -7,6 +7,7 @@ GPLv3 held by author
 */
 
 #include "oakc_fns.hpp"
+#include "tags.hpp"
 
 // Prints the cumulative disk usage of Oak (in human-readable)
 void getDiskUsage()
@@ -1011,9 +1012,8 @@ void ensureSyntax(const std::string &text, const bool &fatal, const std::string 
                         }
                         else if (globalStringChoice == '\'')
                         {
-                            printSyntaxError(
-                                "Precedent has been std::set for single-quotes, but double-quotes were used.",
-                                curLineVec, curLine, curFile);
+                            printSyntaxError("Precedent has been set for single-quotes, but double-quotes were used.",
+                                             curLineVec, curLine, curFile);
                             errorCount++;
                         }
                     }
@@ -1034,9 +1034,8 @@ void ensureSyntax(const std::string &text, const bool &fatal, const std::string 
                         }
                         else if (globalStringChoice == '"' && stringMarker == ' ')
                         {
-                            printSyntaxError(
-                                "Precedent has been std::set for double-quotes, but single-quotes were used.",
-                                curLineVec, curLine, curFile);
+                            printSyntaxError("Precedent has been set for double-quotes, but single-quotes were used.",
+                                             curLineVec, curLine, curFile);
                             errorCount++;
                         }
                     }
@@ -1111,9 +1110,16 @@ void ensureSyntax(const std::string &text, const bool &fatal, const std::string 
                 curLineVec.push_back(text[i]);
             }
 
-            if (curLineVec.size() == 97 && !(curLineVec.front() == '\'' || curLineVec.front() == '"'))
+            if (curLineVec.size() == 65)
             {
-                printSyntaxError("Lines should not exceed 96 characters", curLineVec, curLine, curFile);
+                std::cout << tags::yellow_bold << "Warning: Lines should not exceed 64 characters. (" << curFile << ":"
+                          << curLine << ")\n"
+                          << tags::reset;
+            }
+
+            if (curLineVec.size() == 97)
+            {
+                printSyntaxError("Lines must not exceed 96 characters", curLineVec, curLine, curFile);
                 errorCount++;
             }
         }

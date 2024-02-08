@@ -32,6 +32,8 @@ let main() -> i32
             print(^data);
             print("\n");
         }
+
+        case none() {}
     }
 
     0

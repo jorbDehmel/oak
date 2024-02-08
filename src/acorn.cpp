@@ -176,7 +176,7 @@ int main(const int argc, const char *argv[])
                             }
                         }
                     }
-                    else if (cur == "--settings.execute")
+                    else if (cur == "--execute")
                     {
                         settings.execute = !settings.execute;
                     }

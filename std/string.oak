@@ -151,7 +151,8 @@ let Copy(self: ^string, from: str) -> void
 {
     self.current_length = strlen(from) + 1;
 
-    while self.capacity > to_u128(7) && self.capacity > self.current_length * to_u128(2)
+    while self.capacity > to_u128(7)
+        && self.capacity > self.current_length * to_u128(2)
     {
         self.Shrink();
     }
@@ -178,7 +179,8 @@ let Copy(self: ^string, other: []i8) -> void
 {
     self.current_length = strlen(other) + 1;
 
-    while self.capacity > to_u128(7) && self.capacity > self.current_length * to_u128(2)
+    while self.capacity > to_u128(7)
+        && self.capacity > self.current_length * to_u128(2)
     {
         self.Shrink();
     }
@@ -202,7 +204,8 @@ let AddEq(self: ^string, other: string) -> void
     let i: u128 = 0;
     while self.current_length + i < new_size
     {
-        ptrarr!(self.data, self.current_length + i) = ptrarr!(other.data, i);
+        ptrarr!(self.data, self.current_length + i)
+            = ptrarr!(other.data, i);
         i += 1;
     }
 
@@ -221,7 +224,8 @@ let AddEq(self: ^string, other: str) -> void
     let i: u128 = 0;
     while self.current_length + i < new_size
     {
-        ptrarr!(self.data, self.current_length + i) = Get(other, i);
+        ptrarr!(self.data, self.current_length + i)
+            = Get(other, i);
         i += 1;
     }
 
@@ -240,7 +244,8 @@ let AddEq(self: ^string, other: []i8) -> void
     let i: u128 = 0;
     while self.current_length + i < new_size
     {
-        ptrarr!(self.data, self.current_length + i) = ptrarr!(other, i);
+        ptrarr!(self.data, self.current_length + i)
+            = ptrarr!(other, i);
         i += 1;
     }
 

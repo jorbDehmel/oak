@@ -531,7 +531,8 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                         if (!isSingleArg)
                         {
                             throw std::runtime_error("Illegal method definition! Method '" + name +
-                                                     "' must have exactly one argument.");
+                                                     "' must have exactly one argument. Instead, type '" +
+                                                     toStr(&type) + "'.");
                         }
                     }
 
