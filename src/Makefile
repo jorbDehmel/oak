@@ -29,6 +29,7 @@ install: bin/acorn.out std_oak_header.h
 	sudo cp packages_list.txt /usr/include/oak
 
 	sudo cp bin/acorn.out /usr/bin/acorn
+	sudo cp ../std/*.sh /usr/include/oak/
 
 .PHONY:	packages
 packages:
