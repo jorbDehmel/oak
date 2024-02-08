@@ -33,7 +33,13 @@ jdehmel@outlook.com
 #include <string>
 #include <vector>
 
+#include <unistd.h>
+
 #include "options.hpp"
+
+// Execute a given command and return the printed result.
+// Throws a runtime error if the return value is not 0.
+std::string execute(const std::string &command);
 
 // Prints the cumulative disk usage of Oak (human-readable).
 void getDiskUsage();

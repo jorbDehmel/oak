@@ -29,10 +29,12 @@ let size(self: ^extra::regex_smatch) -> u64;
 let str(self: ^extra::regex_smatch) -> string;
 let Get(self: ^extra::regex_smatch, index: u32) -> string;
 
-let extra::regex_match(text: ^string, pattern: ^extra::regex) -> bool;
+let extra::regex_match(text: ^string, pattern: ^extra::regex
+    ) -> bool;
 let extra::regex_match(text: ^string, pattern: ^extra::regex,
     into: ^extra::regex_smatch) -> bool;
 
-let extra::regex_search(text: ^string, pattern: ^extra::regex) -> bool;
+let extra::regex_search(text: ^string, pattern: ^extra::regex
+    ) -> bool;
 let extra::regex_search(text: ^string, pattern: ^extra::regex,
     into: ^extra::regex_smatch) -> bool;

@@ -140,7 +140,11 @@ Type toType(const std::vector<Token> &WhatIn, AcornSettings &settings)
         }
         else if (cur == ",")
         {
-            out.append(join);
+            // Allows for the dummy comma
+            if (i + 1 >= What.size() || What[i + 1] != ")")
+            {
+                out.append(join);
+            }
         }
         else if (cur == "->")
         {

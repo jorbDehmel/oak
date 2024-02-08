@@ -4,6 +4,11 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.4.24          | 2/8/24   | Minor efficiency boosts for macros,
+                |          | fixed bug where the `--execute`
+                |          | flag was broken. Also added warning
+                |          | for exceeding 64 character lines.
+                |          |
 0.4.23          | 2/3/24   | Fixed bug which was causing all
                 |          | test suites to succeed, no matter
                 |          | what. Also added type suffixes.

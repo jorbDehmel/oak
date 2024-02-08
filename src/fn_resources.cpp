@@ -11,7 +11,53 @@ GPLv3 held by author
 */
 
 #include "oakc_fns.hpp"
+#include "oakc_structs.hpp"
 #include "options.hpp"
+#include <stdexcept>
+#include <string>
+#include <unistd.h>
+
+std::string execute(const std::string &command)
+{
+    std::string output = "";
+    char buffer[128];
+
+    // Start process and open output as the file `pipe`
+    FILE *pipe = popen(command.c_str(), "r");
+    if (pipe == NULL)
+    {
+        throw sequencing_error("Failed to run command '" + command + "'");
+    }
+
+    // For as long as there is data to read, read it.
+    try
+    {
+        // Read chunk
+        while (fread(buffer, sizeof(buffer[0]), sizeof(buffer), pipe) == sizeof(buffer))
+        {
+            // Append
+            output += buffer;
+            memset(buffer, 0, sizeof(buffer));
+        }
+    }
+    catch (...)
+    {
+        pclose(pipe);
+        throw sequencing_error("Command '" + command + "' failed during output reading.");
+    }
+
+    // Close the pipe and get return value
+    int return_value = pclose(pipe);
+
+    // If return value is not 0, throw error
+    if (return_value != 0)
+    {
+        throw sequencing_error("Command '" + command + "' failed with exit code " + std::to_string(return_value) + ".");
+    }
+
+    // Otherwise, return retrieved output
+    return output;
+}
 
 void generate(const std::vector<std::string> &Files, const std::string &Output)
 {
@@ -171,7 +217,6 @@ long long getFileLastModification(const std::string &filepath, AcornSettings &se
         return settings.ageCache[filepath];
     }
 
-    // Get age (theoretically system independent)
     long long out = -1;
 
     if (fs::exists(filepath))
@@ -260,10 +305,7 @@ void compileMacro(const std::string &Name, AcornSettings &settings)
 
     try
     {
-        if (system(command.c_str()) != 0)
-        {
-            throw std::runtime_error("System call '" + command + "' failed.");
-        }
+        execute(command);
     }
     catch (std::runtime_error &e)
     {
@@ -347,34 +389,7 @@ std::string callMacro(const std::string &Name, const std::vector<std::string> &A
         std::cout << "Macro call `" << command << "`\n";
     }
 
-    try
-    {
-        if (system(command.c_str()) != 0)
-        {
-            throw std::runtime_error(std::string("Self-reported macro failure with command '" + command + "'"));
-        }
-    }
-    catch (...)
-    {
-        throw std::runtime_error(std::string("Macro system failure with command '" + command + "'"));
-    }
-
-    // Load from output file
-    std::string out = "";
-    std::ifstream file(outputName);
-
-    if (!file.is_open())
-    {
-        throw std::runtime_error(std::string("Failed to open macro output file ") + outputName);
-    }
-
-    std::string line;
-    while (getline(file, line))
-    {
-        out += line + '\n';
-    }
-
-    file.close();
+    std::string out = execute(command);
 
     if (settings.debug)
     {
