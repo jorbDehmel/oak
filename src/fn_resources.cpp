@@ -33,7 +33,7 @@ std::string execute(const std::string &command)
     try
     {
         // Read chunk
-        while (fread(buffer, sizeof(buffer[0]), sizeof(buffer), pipe) == sizeof(buffer))
+        while (fgets(buffer, sizeof(buffer), pipe) != NULL)
         {
             // Append
             output += buffer;
@@ -305,7 +305,12 @@ void compileMacro(const std::string &Name, AcornSettings &settings)
 
     try
     {
-        execute(command);
+        std::string result = execute(command);
+
+        if (result != "")
+        {
+            std::cout << result << "\n";
+        }
     }
     catch (std::runtime_error &e)
     {
@@ -381,8 +386,6 @@ std::string callMacro(const std::string &Name, const std::vector<std::string> &A
 
         command += " ";
     }
-
-    command += " > " + outputName;
 
     if (settings.debug)
     {
