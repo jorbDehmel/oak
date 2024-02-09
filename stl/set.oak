@@ -117,7 +117,7 @@ let has<k>(self: ^stl::set<k>, key: k) -> bool
 
     h = hash(key);
     sentinel = true;
-    
+
     // Get initial guess
     i = h % self.size;
 
@@ -176,7 +176,7 @@ let insert<k>(self: ^stl::set<k>, key: k) -> void
 
     h = hash(key);
     sentinel = true;
-    
+
     // Get initial guess
     i = h % self.size;
 
@@ -246,7 +246,7 @@ let erase<k>(self: stl::set<k>, key: k) -> void
 
     h = hash(key);
     sentinel = true;
-    
+
     // Get initial guess
     i = h % self.size;
 
@@ -312,7 +312,7 @@ let expand<k>(self: ^stl::set<k>) -> void
     self.size *= 2;
 
     alloc!(self.data, self.size);
-    
+
     self.occupied = 0;
     self.alpha = 0.0;
 
@@ -334,7 +334,7 @@ let expand<k>(self: ^stl::set<k>) -> void
 
             h = hash(key);
             sentinel = true;
-            
+
             // Get initial guess
             cur_key = h % self.size;
 

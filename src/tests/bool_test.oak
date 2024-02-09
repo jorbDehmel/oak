@@ -1,3 +1,5 @@
+// Tests the `std/bool.oak` file.
+
 package!("std");
 use_rule!("std");
 

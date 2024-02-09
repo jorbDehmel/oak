@@ -29,11 +29,11 @@ let main() -> i32
     */
 
     let first: node<i32>;
-    
+
     let second: node<node<i32>>;
-    
+
     let third: node<node<node<i32>>>;
-    
+
     let fourth: node<node<node<node<i32>>>>;
 
     0

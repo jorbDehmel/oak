@@ -1,3 +1,5 @@
+// Tests the bit print functions from the extra package
+
 package!("std");
 include!("extra/bit_print.oak");
 
@@ -12,7 +14,7 @@ let main() -> i32
     {
         extra::bit_print(j);
         print("\n");
-        
+
         extra::hex_print(j);
         print("\n");
 

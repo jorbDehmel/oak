@@ -41,15 +41,17 @@ post
 /*
 Sets the key and data of a given node to given values.
 */
-let Copy<k, d>(self: ^stl::bst_node<k, d>, key: k, data: d) -> void
+let Copy<k, d>(self: ^stl::bst_node<k, d>, key: k, data: d
+    ) -> void
 {
     self.key = key;
     self.data = data;
 }
 
 /*
-Delete a note in a stl::bst. Note: There is no need for a constructor
-since all variables are automatically initialized in Oak.
+Delete a note in a stl::bst. Note: There is no need for a
+constructor since all variables are automatically initialized
+in Oak.
 */
 let Del<k, d>(self: ^stl::bst_node<k, d>) -> void
 {

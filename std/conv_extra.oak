@@ -1,5 +1,9 @@
 /*
 Lesser used, but still common, conversions for Oak.
+These are mostly for working with i32 literals. These are
+decreasingly relevent as implicit casting becomes more and more
+standard.
+
 Jordan Dehmel, 2023 - present
 jdehmel@outlook.com, GPLv3
 */
@@ -7,143 +11,158 @@ jdehmel@outlook.com, GPLv3
 include!("std/math_inter.oak");
 include!("std/conv_inter.oak");
 
-// Common int inits from i32
+// Copy from a standard int
+let Copy(self: ^i8, other: i32) -> void { self = to_i8(other); }
 
-let Copy(self: ^i8, other: i32) -> void
-{
-    ^self = to_i8(other);
-}
+// Copy from a standard int
+let Copy(self: ^u8, other: i32) -> void { self = to_u8(other); }
 
-let Copy(self: ^u8, other: i32) -> void
-{
-    ^self = to_u8(other);
-}
-
+// Copy from a standard int
 let Copy(self: ^i16, other: i32) -> void
 {
-    ^self = to_i16(other);
+    self = to_i16(other);
 }
 
+// Copy from a standard int
 let Copy(self: ^u16, other: i32) -> void
 {
-    ^self = to_u16(other);
+    self = to_u16(other);
 }
 
+// Copy from a standard int
 let Copy(self: ^u32, other: i32) -> void
 {
-    ^self = to_u32(other);
+    self = to_u32(other);
 }
 
+// Copy from a standard int
 let Copy(self: ^i64, other: i32) -> void
 {
-    ^self = to_i64(other);
+    self = to_i64(other);
 }
 
+// Copy from a standard int
 let Copy(self: ^u64, other: i32) -> void
 {
-    ^self = to_u64(other);
+    self = to_u64(other);
 }
 
+// Copy from a standard int
 let Copy(self: ^i128, other: i32) -> void
 {
-    ^self = to_i128(other);
+    self = to_i128(other);
 }
 
+// Copy from a standard int
 let Copy(self: ^u128, other: i32) -> void
 {
-    ^self = to_u128(other);
+    self = to_u128(other);
 }
 
-// Common incrementation
-
+// Add from a standard int
 let AddEq(self: ^i8, other: i32) -> void
 {
-    ^self += to_i8(other);
+    self += to_i8(other);
 }
 
+// Add from a standard int
 let AddEq(self: ^u8, other: i32) -> void
 {
-    ^self += to_u8(other);
+    self += to_u8(other);
 }
 
+// Add from a standard int
 let AddEq(self: ^i16, other: i32) -> void
 {
-    ^self += to_i16(other);
+    self += to_i16(other);
 }
 
+// Add from a standard int
 let AddEq(self: ^u16, other: i32) -> void
 {
-    ^self += to_u16(other);
+    self += to_u16(other);
 }
 
+// Add from a standard int
 let AddEq(self: ^u32, other: i32) -> void
 {
-    ^self += to_u32(other);
+    self += to_u32(other);
 }
 
+// Add from a standard int
 let AddEq(self: ^i64, other: i32) -> void
 {
-    ^self += to_i64(other);
+    self += to_i64(other);
 }
 
+// Add from a standard int
 let AddEq(self: ^u64, other: i32) -> void
 {
-    ^self += to_u64(other);
+    self += to_u64(other);
 }
 
+// Add from a standard int
 let AddEq(self: ^i128, other: i32) -> void
 {
-    ^self += to_i128(other);
+    self += to_i128(other);
 }
 
+// Add from a standard int
 let AddEq(self: ^u128, other: i32) -> void
 {
-    ^self += to_u128(other);
+    self += to_u128(other);
 }
 
-// Common decrement operators
-
+// Decrement using a standard int
 let SubEq(self: ^i8, other: i32) -> void
 {
-    ^self -= to_i8(other);
+    self -= to_i8(other);
 }
 
+// Decrement using a standard int
 let SubEq(self: ^u8, other: i32) -> void
 {
-    ^self -= to_u8(other);
+    self -= to_u8(other);
 }
 
+// Decrement using a standard int
 let SubEq(self: ^i16, other: i32) -> void
 {
-    ^self -= to_i16(other);
+    self -= to_i16(other);
 }
 
+// Decrement using a standard int
 let SubEq(self: ^u16, other: i32) -> void
 {
-    ^self -= to_u16(other);
+    self -= to_u16(other);
 }
 
+// Decrement using a standard int
 let SubEq(self: ^u32, other: i32) -> void
 {
-    ^self -= to_u32(other);
+    self -= to_u32(other);
 }
 
+// Decrement using a standard int
 let SubEq(self: ^i64, other: i32) -> void
 {
-    ^self -= to_i64(other);
+    self -= to_i64(other);
 }
 
+// Decrement using a standard int
 let SubEq(self: ^u64, other: i32) -> void
 {
-    ^self -= to_u64(other);
+    self -= to_u64(other);
 }
 
+// Decrement using a standard int
 let SubEq(self: ^i128, other: i32) -> void
 {
-    ^self -= to_i128(other);
+    self -= to_i128(other);
 }
 
+// Decrement using a standard int
 let SubEq(self: ^u128, other: i32) -> void
 {
-    ^self -= to_u128(other);
+    self -= to_u128(other);
 }

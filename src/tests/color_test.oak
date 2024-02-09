@@ -1,3 +1,5 @@
+// Tests the std::color file
+
 package!("std");
 use_rule!("std");
 include!("std/color.oak");

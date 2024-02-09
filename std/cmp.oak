@@ -1,17 +1,20 @@
 /*
 Analogous to the result of strcmp.
 
-Jordan Dehmel, 2023
+Jordan Dehmel, 2023-
 jdehmel@outlook.com
 */
 
 include!("std/unit.oak");
 
+// The result of a comparison. Can either be -1 (less than),
+// 0 (equal to), or 1 (greater than). Not widely used.
 let cmp: struct
 {
     data: i8,
 }
 
+// Copy from the result of strcmp (or other analogous function).
 let Copy(self: ^cmp, from: i8) -> void
 {
     if (from == 0)
@@ -28,10 +31,14 @@ let Copy(self: ^cmp, from: i8) -> void
     }
 }
 
+// Copy from another cmp result.
 let Copy(self: ^cmp, other: cmp) -> void
 {
     self.data = other.data;
 }
+
+// The remaining functions are all ways of collapsing the
+// result to be more comprehensible.
 
 let eq(self: ^cmp) -> bool
 {

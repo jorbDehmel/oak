@@ -1,3 +1,8 @@
+/*
+Tests the merging of successive string literals, even over
+several lines.
+*/
+
 include!("std/io.oak");
 
 let main() -> i32

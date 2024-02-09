@@ -1,8 +1,11 @@
+// A basic test of the Oak turtle package.
+
 package!("std", "turtle");
 include!("std/printf.oak");
 use_rule!("std");
 
-let draw_shape(t: ^turtle::turtle, sides: i32, side_length: i32) -> void
+let draw_shape(t: ^turtle::turtle, sides: i32, side_length: i32
+    ) -> void
 {
     let angle: f64 = 360.0 / to_f64(sides);
 
@@ -25,7 +28,7 @@ let main() -> i32
     while i < 50 && t.is_running
     {
         t.clear();
-        
+
         t.set_position(256, 256);
         t.draw_shape(i, 50);
 

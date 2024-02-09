@@ -1,3 +1,5 @@
+// Tests the `opt` enumeration
+
 package!("std");
 use_rule!("std");
 

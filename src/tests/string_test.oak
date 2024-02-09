@@ -13,7 +13,7 @@ let main() -> i32
     print("\n");
 
     let test_b: string = "world!";
-    
+
     print(test_b);
     print("\n");
 

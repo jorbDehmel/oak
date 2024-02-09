@@ -5,10 +5,11 @@ let main(argc: i32, argv: []str) -> i32
 {
     println<str>(_: str);
 
-    let i: i32;
-    i = 0;
-    while (i < argc)
+    // Iterate over the arguments passed to main
+    let i: i32 = 0;
+    while i < argc
     {
+        // Print the current argument
         println(Get(argv, i));
         i += 1;
     }

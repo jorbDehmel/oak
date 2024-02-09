@@ -1,5 +1,18 @@
+/*
+Defines the opt<t> enum for Oak. This represents either some
+data or no data. This is equivalent to the Null or None
+keywords that languages like Java and Python provide, except
+that only datatypes declared as this type may have a null
+value. These are similar, though not exactly the same, to the
+res<t> enum.
+Jordan Dehmel, 2024
+jdehmel@outlook.com
+*/
+
 include!("std/panic_inter.oak");
 
+// A generic which allows `t` to have a null value, represented
+// by the `none` option.
 let opt<t>: enum
 {
     some: t,
@@ -12,11 +25,14 @@ post
     unwrap<t>(self: ^opt<t>);
 }
 
+// Default to the none option.
 let New<t>(self: ^opt<t>) -> void
 {
     wrap_none(self);
 }
 
+// If some, call the destructor on the underlying instance.
+// Otherwise, do not call any destructor.
 let Del<t>(self: ^opt<t>) -> void
 {
     match (self)
@@ -29,6 +45,7 @@ let Del<t>(self: ^opt<t>) -> void
     }
 }
 
+// Copy from one opt to another.
 let Copy<t>(self: ^opt<t>, other: opt<t>) -> void
 {
     match (other)
@@ -44,6 +61,9 @@ let Copy<t>(self: ^opt<t>, other: opt<t>) -> void
     }
 }
 
+// DANGER! Use with caution!
+// If the passed object is `some`, then return the data it
+// holds. Otherwise, cause an unrecoverable kernel panic.
 let unwrap<t>(self: ^opt<t>) -> t
 {
     let out: t;

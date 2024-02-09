@@ -50,7 +50,7 @@ reinstall:
 
 .PHONY:	test
 test:
-	$(TEST) -eTT
+	$(TEST) -eTT && acorn -e
 
 ################################################################
 

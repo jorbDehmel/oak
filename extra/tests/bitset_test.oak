@@ -26,7 +26,7 @@ let println(what: bool) -> void
 let main() -> i32
 {
     let b: extra::bitset<64>;
-    
+
     println<extra::bitset<64>>(_: extra::bitset<64>);
 
     let c = b.Get(to_u128(0));

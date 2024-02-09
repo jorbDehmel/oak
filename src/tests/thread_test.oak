@@ -44,7 +44,7 @@ let main() -> i32
     c.start(@call);
     d.start(@call);
     e.start(@call);
-    
+
     a.join();
     b.join();
     c.join();

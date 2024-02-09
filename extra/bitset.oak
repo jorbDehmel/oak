@@ -93,7 +93,7 @@ let flip<size>(self: ^extra::bitset<size>, i: u128) -> void
 
     if unwrap(res)
     {
-        self.clear(i);  
+        self.clear(i);
     }
     else
     {

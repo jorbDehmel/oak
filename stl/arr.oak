@@ -223,7 +223,7 @@ let diff<t>(self: ^stl::arr<t>) -> stl::arr<t>
 
     // Allocate correct size
     out = (self.l - 1);
-    
+
     // Create values
     let i: u128 = 0;
     while i < out.l
