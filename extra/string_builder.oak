@@ -23,7 +23,7 @@ stl::queue<string>;
 let extra::string_builder: struct
 {
     internal: stl::queue<string>, // Where strings are stored
-    size: u128,                   // Running total of char length
+    size: u128,                   // Running total of char len
 }
 
 ////////////////////////////////////////////////////////////////

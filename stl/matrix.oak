@@ -76,8 +76,8 @@ let Del<t>(self: ^stl::matrix<t>) -> void
 
 let Copy<t>(self: ^stl::matrix<t>, w: u128, h: u128) -> void
 {
-    assert!(w > to_u128(0));
-    assert!(h > to_u128(0));
+    assert!(w > 0u128);
+    assert!(h > 0u128);
 
     Del(self);
     self.responsible = true;

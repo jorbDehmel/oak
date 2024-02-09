@@ -1,6 +1,6 @@
 
 # The Oak Programming Language
-## Version 0.4.25
+## Version 0.4.26
 
 ![](./logo_trimmed.png)
 
@@ -121,6 +121,8 @@ dereference operator is `*`. In `Oak`, the reference operator is
 ---------------|-----|-------
  Reference     | `&` | `@`
  Dereference   | `*` | `^`
+
+**Note:** There is no built-in `xor` operator in `Oak`.
 
 ### Keywords For Variable/Function/Class/Enum Creation
 
@@ -778,6 +780,12 @@ Ensure you always have some sort of return statement (except
 `-> void` functions), even when it is unreachable. Principles
 take precedent over literal compiler interpretation.
 
+### Single vs. Double Quotes
+
+Both single and double quotes are acceptable in a given file,
+but a single file must use **only** one type. It is not allowed
+to use both single and double quotes in the same file.
+
 ### Naming Scheme
 
 `Oak` exclusively uses underscored variable names. Camelcase
@@ -801,16 +809,43 @@ let LongVariableNameWithMultipleWords: i32;
 let Long_variable_name_with_multiple_words: i32;
 ```
 
-The same naming tips go for structs and enums. Structs and enums
-should not have any special name conventions. The only symbols
-which have different naming conventions are the operator aliases
-(see later), which use upper camelcase.
+**The same naming tips go for structs and enums.** Structs and
+enums should not have any special name conventions. The only
+symbols which have different naming conventions are the operator
+aliases (see later), which use upper camelcase.
 
 These naming conventions are also extended to package names
 (unless for some reason incompatible with the git host website
 they are on) and file names. Unlike standard practice in `C++`
 and most other languages, generics types (see later) should
 still be lower-underscore-case.
+
+### Trailing Whitespace and Tabs
+
+Any trailing whitespace will be treated as an error by `acorn`.
+Additionally, any use of the tab (`\t`) character instead of
+four spaces will be treated as an error.
+
+### Commenting
+
+At least 15% of any given file's lines should be commenting. If
+this number is not met, `acorn` will raise a warning. If a file
+does not have any comment lines,
+**`acorn` will raise an error.**
+
+### Sectioning Code
+
+You should practice sectioning your code for readability's sake.
+This involved having large, visible, comment markers seperating
+chunks of unlike code. This is especially necessary in packages.
+In the case that you need such a large, visible comment marker,
+you should insert the following.
+
+```rust
+////////////////////////////////////////////////////////////////
+```
+
+This is 64 slashes in a row.
 
 ### Commenting
 
@@ -879,9 +914,9 @@ growth. This symbol should **never** be used for commenting.
 
 ### Whitespace and Line Wrapping
 
-Tabbing should follow standard `C++` rules. Tabs and
-quadruple-spaces are both acceptable, but double-spaces are not.
-Not using tabbing is not acceptable.
+Tabbing should follow standard `C++` rules. Quadruple-spaces are
+acceptable, but double-spaces are not. Not using tabbing is not
+acceptable. **The literal tab (`\t`) character is disallowed.**
 
 No line of `Oak` should be longer than 96 standard-width chars
 wide. Since newlines are erased by the lexer, one can be
@@ -1184,18 +1219,13 @@ for (let i: i32 = 0; i < 100; i += 1)
 }
 ```
 
-### Namespaces
+## Namespaces
 
-Without `std`:
-```rust
-let library_fn() -> void;
-```
-
-With `std`:
-```rust
-// `::` becomes `_`
-let library::fn() -> void;
-```
+In `Oak`, the namespace resolution operator `::` is a compiler
+shorthand for simply `_`. This means, for example, that
+`foo::bar` is equivalent to `foo_bar`. All packages which are
+not `std` must prefix any public-facing non-method function with
+a namespace specifier.
 
 **Note:** There is no `using` or `use` in `Oak`. If namespaces
 are to be used, they must always be fully qualified. Namespaces
@@ -1838,17 +1868,15 @@ in UNIX directory names.
 ### Packages and Namespaces
 
 While namespaces (denoted in most languages by the `::`
-operator) are not native to `Oak`, the `std` dialect provides
-them. **`Oak` packages (except `std`) must use these.** All
-structs, enums, and non-method functions **must** begin with the
-prefix `NAME_`. For instance, all such symbols in the `stl`
-(standard templated library) package begin with `stl_`, followed
-by their name. The `list` data structure is then `stl_list`.
-When using the namespace rule provided by the `std` dialect
-(or via the `std/ns.oak` file and `namespace` rule), this can
-be equivalently written `stl::list`. This naming convention is
-expected for all packages which are not `std`. The `std` package
-is allowed to be namespace-free.
+operator) are not as native to `Oak` as to other languages, they
+are critical to package development.
+**`Oak` packages (except `std`) must use these.** All structs,
+enums, and non-method functions **must** begin with the prefix
+`NAME_`. For instance, all such symbols in the `stl` (standard
+templated library) package begin with `stl_`, followed by their
+name. The `list` data structure is then `stl_list`. This naming
+convention is expected for all packages which are not `std`. The
+`std` package is allowed to be namespace-free.
 
 **Note:** In `Oak`, all namespaces must always be fully
 qualified. While in languages like `C++` you may say
@@ -1940,7 +1968,8 @@ let name! = definition;
 ```
 
 Following the above definition, all occurrences of `name!` will
-be replaced by `definition`.
+be replaced by `definition`. Preprocessor definitions are the
+only `Oak` objects that are guaranteed compile-time constants.
 
 **Note:** Preproc definitions can never be redefined. This is
 also true of macros.
@@ -5370,9 +5399,10 @@ are available with the GPLv3 at github.com/jorbDehmel/oak.
 ## `acorn` Error Lookup
 
 The following table maps a **compile-mode** acorn call return
-value to its meaning. If `acorn` executes its result via the
-`-E` flag, it will return the return value of that execution, no
-matter what.
+value to its meaning.
+
+**Note:** If `acorn` executes its result via the `-E` flag, it
+will return the return value of that execution, no matter what.
 
 Code | Meaning
 -----|-----------------
@@ -5382,6 +5412,7 @@ Code | Meaning
  7   | Failed to create test suite file
  10  | Aborted Acorn update or install
  15  | Failed to begin test suite
+ 19  | Test suite failed
 
 Most compile-time errors will have meaningful descriptions in
 their outputs, and thus do not return different values.
@@ -5412,4 +5443,8 @@ named items.
 
 ## License
 
-`Oak` is protected by the GPLv3.
+`Oak` is licensed under the GPLv3. A copy of this license should
+accompany the `Oak` and `acorn` codebase. This software, along
+with its corresponding documentation, is free and open source
+software (FOSS). It is against the wishes of the author of this
+document that it should ever be anything but FOSS.

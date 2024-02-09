@@ -12,8 +12,6 @@ jdehmel@outlook.com, GPLv3
 
 link!("sdl/sdl_inter.o");
 include!("std/interface.oak");
-include!("std/ns.oak");
-use_rule!("namespace");
 
 ////////////////////////////////////////////////////////////////
 // Struct definitions

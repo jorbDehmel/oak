@@ -1,6 +1,12 @@
-include!("std/ns.oak");
+/*
+A few extra math functions, most of which simply interface w/
+C.
+
+Jordan Dehmel, 2024
+jdehmel@outlook.com
+*/
+
 include!("std/rand.oak");
-use_rule!("namespace");
 link!("extra/math.o");
 
 // Returns a^b

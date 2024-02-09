@@ -429,7 +429,7 @@ let expand<k, d>(self: ^stl::map<k, d>) -> void
                 }
 
                 // Else if empty, break
-                else if cur.hash == to_u128(0)
+                else if cur.hash == 0u128
                 {
                     cur = (key, data);
 

@@ -60,12 +60,12 @@ let Copy<t>(self: ^stl::vec<t>, other: stl::vec<t>) -> void
     self.size = other.size;
 
     // Adjust to appropriate size
-    while (self.size * to_u128(4) < self.capacity)
+    while (self.size * 4u128 < self.capacity)
     {
         Shrink(self);
     }
 
-    while (self.size * to_u128(2) > self.capacity)
+    while (self.size * 2u128 > self.capacity)
     {
         Expand(self);
     }
@@ -82,7 +82,7 @@ let Copy<t>(self: ^stl::vec<t>, other: stl::vec<t>) -> void
 // Free the heap memory associated.
 let Del<t>(self: ^stl::vec<t>) -> void
 {
-    if (self.capacity != to_u128(0))
+    if (self.capacity != 0u128)
     {
         free!(self.data);
     }
@@ -94,7 +94,7 @@ let Get<t>(self: ^stl::vec<t>, index: i128) -> opt<^t>
 {
     let real_index: u128;
 
-    if (index < to_i128(0))
+    if (index < 0u128)
     {
         real_index = self.size;
         real_index += to_u128(index);
@@ -119,7 +119,7 @@ let Get<t>(self: ^stl::vec<t>, index: i128) -> opt<^t>
 let Expand<t>(self: ^stl::vec<t>) -> void
 {
     let new_capacity: u128;
-    new_capacity = self.capacity * to_u128(2);
+    new_capacity = self.capacity * 2u128;
 
     // Create aux array
     let new_data: []t;
@@ -145,9 +145,9 @@ let Expand<t>(self: ^stl::vec<t>) -> void
 // Halve in size, so long as capacity >= 16
 let Shrink<t>(self: ^stl::vec<t>) -> void
 {
-    if (self.capacity >= to_u128(16))
+    if (self.capacity >= 16u128)
     {
-        let new_capacity: u128 = self.capacity / to_u128(2);
+        let new_capacity: u128 = self.capacity / 2u128;
 
         // Create aux array
         let new_data: []t;
@@ -178,7 +178,7 @@ let append<t>(self: ^stl::vec<t>, what: t) -> void
 // Push an item onto the end of the vector.
 let push_back<t>(self: ^stl::vec<t>, what: t) -> void
 {
-    while (self.size * to_u128(2) > self.capacity)
+    while (self.size * 2u128 > self.capacity)
     {
         Expand(self);
     }
@@ -193,7 +193,7 @@ let pop_back<t>(self: ^stl::vec<t>) -> opt<t>
     let out: opt<t>;
     wrap_none(@out);
 
-    if (self.size > to_u128(0))
+    if (self.size > 0u128)
     {
         let data: t;
         data = ptrarr!(self.data, self.size - 1);
@@ -202,7 +202,7 @@ let pop_back<t>(self: ^stl::vec<t>) -> opt<t>
 
         wrap_some(@out, data);
 
-        while (self.size * to_u128(4) < self.capacity)
+        while (self.size * 4u128 < self.capacity)
         {
             Shrink(self);
         }
@@ -214,9 +214,9 @@ let pop_back<t>(self: ^stl::vec<t>) -> opt<t>
 // Empty the vector
 let clear<t>(self: ^stl::vec<t>) -> void
 {
-    self.size = to_u128(0);
+    self.size = 0u128;
 
-    while (self.capacity > to_u128(8))
+    while (self.capacity > 8u128)
     {
         Shrink(self);
     }
@@ -227,7 +227,7 @@ let empty<t>(self: ^stl::vec<t>) -> bool
 {
     let out: bool;
 
-    if (self.size == to_u128(0))
+    if (self.size == 0u128)
     {
         out = true;
     }

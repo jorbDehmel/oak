@@ -49,7 +49,7 @@ let New<t>(self: ^stl::list_node<t>) -> void
 // the destructor on prev.
 let Del<t>(self: ^stl::list_node<t>) -> void
 {
-    if (to_void_ptr(self.next) != to_u128(0))
+    if (to_void_ptr(self.next) != 0u128)
     {
         Del(self.next);
         free!(self.next);
@@ -94,7 +94,7 @@ post
 // dynamically allocated memory.
 let Del<t>(self: ^stl::list<t>) -> void
 {
-    if (to_void_ptr(self.head) != to_u128(0))
+    if (to_void_ptr(self.head) != 0u128)
     {
         Del(self.head);
         free!(self.head);
@@ -111,7 +111,7 @@ let front<t>(self: ^stl::list<t>) -> opt<t>
     let out: opt<t>;
     out.wrap_none();
 
-    if (to_void_ptr(self.head) != to_u128(0))
+    if (to_void_ptr(self.head) != 0u128)
     {
         out.wrap_some(self.head.data);
     }
@@ -125,7 +125,7 @@ let back<t>(self: ^stl::list<t>) -> opt<t>
     let out: opt<t>;
     out.wrap_none();
 
-    if (to_void_ptr(self.tail) != to_u128(0))
+    if (to_void_ptr(self.tail) != 0u128)
     {
         out.wrap_some(self.tail.data);
     }

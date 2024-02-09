@@ -49,3 +49,11 @@ Minor release
 
 No, major changes are required and the major version is not `0`:
 Major release
+
+# `acorn` vs. `oakc`
+
+`acorn` is the CLI frontend of the `Oak` compiler. The web of
+other code that it interacts with is known as `oakc`. This is a
+pedantic difference, and is only used to disambiguate certain
+files in the compiler codebase. For all intents and purposes,
+they are the same thing.
