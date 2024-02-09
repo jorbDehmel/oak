@@ -72,7 +72,7 @@ let Del<t>(self: ^stl::arr<t>) -> void
 
 let Copy<t>(self: ^stl::arr<t>, l: u128) -> void
 {
-    assert!(l > to_u128(0));
+    assert!(l > 0u128);
 
     Del(self);
     self.responsible = true;

@@ -419,6 +419,28 @@ void join_numbers(std::list<Token> &what)
 }
 
 /*
+Applies the namespace rule, where '::' becomes '_'.
+*/
+void join_namespaces(std::list<Token> &what)
+{
+    for (auto it = what.begin(); it != what.end(); it++)
+    {
+        if (it != what.begin() && *it == "::")
+        {
+            it = what.erase(it);
+
+            if (it != what.end())
+            {
+                std::string temp = it->text;
+                it = what.erase(it);
+                it--;
+                it->text += "_" + temp;
+            }
+        }
+    }
+}
+
+/*
 Joins successive string literals together. Assumes that
 whitespace is no longer present.
 */
@@ -603,6 +625,7 @@ std::vector<Token> Lexer::lex(const std::string &What, const std::string &filepa
 
     erase_comments(out);
     erase_whitespace(out);
+    join_namespaces(out);
 
     join_numbers(out);
     join_bitshifts(out);

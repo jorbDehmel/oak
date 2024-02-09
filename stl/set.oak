@@ -56,8 +56,8 @@ let erase<k>(self: ^stl::set_node<k>) -> void
 
 ////////////////////////////////////////////////////////////////
 
-let default_set_size! = 128;
-let max_alpha! = 0.5;
+let stl::set::default_size! = 128;
+let stl::set::max_alpha! = 0.5;
 
 let stl::set<k>: struct
 {
@@ -88,7 +88,7 @@ post
 
 let New<k>(self: ^stl::set<k>) -> void
 {
-    self.size = default_set_size!;
+    self.size = stl::set::default_size!;
     self.alpha = 0.0;
     self.occupied = 0;
 
@@ -197,7 +197,7 @@ let insert<k>(self: ^stl::set<k>, key: k) -> void
             self.alpha /= to_f64(self.size);
 
             // Expand if need be
-            while self.alpha > max_alpha!
+            while self.alpha > stl::set::max_alpha!
             {
                 expand(self);
             }
@@ -351,7 +351,7 @@ let expand<k>(self: ^stl::set<k>) -> void
                 }
 
                 // Else if empty, break
-                else if cur.hash == to_u128(0)
+                else if cur.hash == 0u128
                 {
                     cur = key;
 

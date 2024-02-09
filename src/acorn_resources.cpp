@@ -71,7 +71,7 @@ void doFile(const std::string &From, AcornSettings &settings)
 
         for (char c : realName)
         {
-            if ('A' <= c && c <= 'Z')
+            if (('A' <= c && c <= 'Z') || c == ' ')
             {
                 std::cout << tags::yellow_bold << "Warning: File '" << From << "' has illegal name.\n"
                           << "Oak files use underscore formatting (ie /path/to/file_to_use.oak).\n"
@@ -240,42 +240,6 @@ void doFile(const std::string &From, AcornSettings &settings)
                     // macros[name] = contents;
                     // macroSourceFiles[name] = settings.curFile;
                     addMacro(name, contents, settings);
-                }
-                else
-                {
-                    // Preproc definition; Not a full macro
-
-                    // Safety checks
-                    if (settings.preprocDefines.count(lexed[i]) != 0)
-                    {
-                        throw sequencing_error("Preprocessor definition '" + lexed[i].text + "' cannot be overridden.");
-                    }
-                    else if (hasMacro(lexed[i], settings))
-                    {
-                        throw sequencing_error("Preprocessor definition '" + lexed[i].text +
-                                               "' cannot overwrite macro of same name.");
-                    }
-
-                    std::string name = lexed[i];
-
-                    // Erase as needed
-                    i--;
-                    lexed.erase(lexed.begin() + i); // Let
-                    lexed.erase(lexed.begin() + i); // Name!
-                    lexed.erase(lexed.begin() + i); // =
-
-                    // Scrape until next semicolon
-                    std::string contents = "";
-                    while (lexed[i] != ";")
-                    {
-                        contents.append(lexed[i]);
-                        lexed.erase(lexed.begin() + i);
-                    }
-
-                    lexed.erase(lexed.begin() + i); // ;
-
-                    // Insert
-                    settings.preprocDefines[name] = contents;
                 }
             }
         }
@@ -646,7 +610,51 @@ void doFile(const std::string &From, AcornSettings &settings)
             curPhase++;
         }
 
-        // H: Preproc definitions
+        // Preprocessor definition finding
+        for (int i = 1; i + 1 < lexed.size(); i++)
+        {
+            if (lexed[i].back() == '!' && lexed[i] != "!" && lexed[i - 1] == "let")
+            {
+                if (lexed[i + 1] == "=")
+                {
+                    // Preproc definition; Not a full macro
+
+                    // Safety checks
+                    if (settings.preprocDefines.count(lexed[i]) != 0)
+                    {
+                        throw sequencing_error("Preprocessor definition '" + lexed[i].text + "' cannot be overridden.");
+                    }
+                    else if (hasMacro(lexed[i], settings))
+                    {
+                        throw sequencing_error("Preprocessor definition '" + lexed[i].text +
+                                               "' cannot overwrite macro of same name.");
+                    }
+
+                    std::string name = lexed[i];
+
+                    // Erase as needed
+                    i--;
+                    lexed.erase(lexed.begin() + i); // Let
+                    lexed.erase(lexed.begin() + i); // Name!
+                    lexed.erase(lexed.begin() + i); // =
+
+                    // Scrape until next semicolon
+                    std::string contents = "";
+                    while (lexed[i] != ";")
+                    {
+                        contents.append(lexed[i]);
+                        lexed.erase(lexed.begin() + i);
+                    }
+
+                    lexed.erase(lexed.begin() + i); // ;
+
+                    // Insert
+                    settings.preprocDefines[name] = contents;
+                }
+            }
+        }
+
+        // H: Preproc definition insertion
 
         settings.preprocDefines["prev_file!"] = (oldFile == "" ? "\"NULL\"" : ("\"" + oldFile + "\""));
         settings.preprocDefines["file!"] = '"' + From + '"';

@@ -3,6 +3,7 @@
 /*
 Jordan Dehmel, 2023 - present
 Linkage file for the Oak standard (std) package.
+jdehmel@outlook.com
 */
 
 ////////////////////////////////////////////////////////////////
@@ -11,7 +12,6 @@ include!(
     "std/io_inter.oak",     // Interface to system I/O
     "std/math_inter.oak",   // Interface to C atomic operations
     "std/conv_inter.oak",   // Interface to C type conversions
-    "std/ns.oak",           // Provides namespace rule
     "std/unit.oak"          // Provides unit (1-byte) struct
 );
 
@@ -82,7 +82,6 @@ new_rule!(
 // Bundle everything together
 bundle_rule!(
     "std",
-    "namespace",
     "get_method",
     "void_return",
     "auto_if_paren",

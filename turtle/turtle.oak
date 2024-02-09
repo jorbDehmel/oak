@@ -34,12 +34,6 @@ let turtle::turtle: struct
     pixels: [][]sdl::color,
 }
 
-/*
-A constant used for later calculations. Equal to the square
-root of two.
-*/
-let turtle_sqrt_two! = 1.41421;
-
 ////////////////////////////////////////////////////////////////
 // Basic methods
 ////////////////////////////////////////////////////////////////
@@ -283,7 +277,7 @@ let refresh(self: ^turtle::turtle) -> void
 
                 case sdl::key_down_event(data)
                 {
-                    if (data.keycode == to_i128(27))
+                    if (data.keycode == 27u128)
                     {
                         self.is_running = false;
                     }
@@ -428,11 +422,11 @@ let forward(self: ^turtle::turtle, by: i128) -> void
         self.x = floor(real_x);
         self.y = floor(real_y);
 
-        while self.x < to_i128(0)
+        while self.x < 0i128
         {
             self.x += self.w;
         }
-        while self.y < to_i128(0)
+        while self.y < 0i128
         {
             self.y += self.h;
         }
@@ -482,11 +476,11 @@ let set_position(self: ^turtle::turtle, x: i128, y: i128)
         self.x = floor(real_x);
         self.y = floor(real_y);
 
-        while self.x < to_i128(0)
+        while self.x < 0i128
         {
             self.x += self.w;
         }
-        while self.y < to_i128(0)
+        while self.y < 0i128
         {
             self.y += self.h;
         }
@@ -555,11 +549,11 @@ let backward(self: ^turtle::turtle, by: i128) -> void
         self.x = floor(real_x);
         self.y = floor(real_y);
 
-        while self.x < to_i128(0)
+        while self.x < 0i128
         {
             self.x += self.w;
         }
-        while self.y < to_i128(0)
+        while self.y < 0i128
         {
             self.y += self.h;
         }

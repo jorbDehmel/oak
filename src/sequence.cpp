@@ -71,7 +71,6 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
     // Update line if needed
     if (From.front().line != settings.curLine)
     {
-        // Line update special symbol
         settings.curLine = From.front().line;
         settings.curLineSymbols.clear();
         if (From.size() != 0)

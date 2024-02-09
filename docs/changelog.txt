@@ -4,6 +4,10 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.4.26          | 2/9/24   | Made the `namespace` rule intrinsic
+                |          | such that it is available at all
+                |          | times. Adjusted accordingly.
+                |          |
 0.4.25          | 2/8/24   | Added syntax errors prohibiting
                 |          | trailing whitespace and requiring
                 |          | comments. Reformatted provided
