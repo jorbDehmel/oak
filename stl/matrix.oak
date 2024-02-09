@@ -95,14 +95,15 @@ let Copy<t>(self: ^stl::matrix<t>, w: u128, h: u128) -> void
     self.h = h;
 }
 
-let Copy<t>(self: ^stl::matrix<t>, other: stl::matrix<t>) -> void
+let Copy<t>(self: ^stl::matrix<t>, other: stl::matrix<t>
+    ) -> void
 {
     self.responsible = other.responsible;
 
     if self.responsible
     {
         // Deep copy
-        
+
         self = (other.w, other.h);
 
         let y: u128 = 0;
@@ -111,7 +112,8 @@ let Copy<t>(self: ^stl::matrix<t>, other: stl::matrix<t>) -> void
             let x: u128 = 0;
             while x < self.w
             {
-                Get(self.data, (y * self.w) + x) = Get(other.data, (y * self.w) + x);
+                Get(self.data, (y * self.w) + x)
+                    = Get(other.data, (y * self.w) + x);
                 x += 1;
             }
             y += 1;
@@ -143,7 +145,8 @@ let get<t>(self: ^stl::matrix<t>, x: u128, y: u128) -> t
     Get(self.data, (self.w * y) + x)
 }
 
-let set<t>(self: ^stl::matrix<t>, x: u128, y: u128, from: t) -> void
+let set<t>(self: ^stl::matrix<t>, x: u128, y: u128, from: t
+    ) -> void
 {
     assert!(x < self.w);
     assert!(y < self.h);

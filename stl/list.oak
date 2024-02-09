@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////
 
 /*
-A generic doubly linked stl::list for Oak
+A generic doubly linked list for Oak.
 
 Jordan Dehmel, 2023
 jdehmel@outlook.com
@@ -17,14 +17,16 @@ include!("stl/ptrcmp.oak");
 
 ////////////////////////////////////////////////////////////////
 
+// A single node in a list. This is doubly linked.
 let stl::list_node<t>: struct
 {
-    data: t,
-    next: ^stl::list_node<t>,
-    prev: ^stl::list_node<t>,
+    data: t,                  // The data stored at this node
+    next: ^stl::list_node<t>, // The next node in the list
+    prev: ^stl::list_node<t>, // The previous node in the list
 }
 post
 {
+    // Used for checking if the next and previous are null
     to_void_ptr<stl::list_node<t>>(_: ^stl::list_node<t>);
 
     New<t>(_: ^stl::list_node<t>);
@@ -33,12 +35,18 @@ post
 
 ////////////////////////////////////////////////////////////////
 
+// Create a new node, with both the next and the prev being
+// null.
 let New<t>(self: ^stl::list_node<t>) -> void
 {
     ptrcpy!(self.next, 0);
     ptrcpy!(self.prev, 0);
 }
 
+// Delete the current node. If the next node is not null, then
+// delete it as well. This will cause a cascade which will
+// delete all the nodes in the list. Note that it does not call
+// the destructor on prev.
 let Del<t>(self: ^stl::list_node<t>) -> void
 {
     if (to_void_ptr(self.next) != to_u128(0))
@@ -50,11 +58,13 @@ let Del<t>(self: ^stl::list_node<t>) -> void
 
 ////////////////////////////////////////////////////////////////
 
+// A generic doubly-linked list. Essentially a `dequeue`.
+// All operations detailed here require only constant time.
 let stl::list<t>: struct
 {
-    head: ^stl::list_node<t>,
-    tail: ^stl::list_node<t>,
-    size: u128,
+    head: ^stl::list_node<t>, // The first node, or null
+    tail: ^stl::list_node<t>, // The last node, or null
+    size: u128,               // The number of nodes
 }
 pre
 {
@@ -80,6 +90,8 @@ post
 
 ////////////////////////////////////////////////////////////////
 
+// Delete the first node, causing a cascade which will free all
+// dynamically allocated memory.
 let Del<t>(self: ^stl::list<t>) -> void
 {
     if (to_void_ptr(self.head) != to_u128(0))
@@ -93,6 +105,7 @@ let Del<t>(self: ^stl::list<t>) -> void
     }
 }
 
+// Get the first item from the list if there is one.
 let front<t>(self: ^stl::list<t>) -> opt<t>
 {
     let out: opt<t>;
@@ -106,6 +119,7 @@ let front<t>(self: ^stl::list<t>) -> opt<t>
     return out;
 }
 
+// Get the last item of the list if there is one.
 let back<t>(self: ^stl::list<t>) -> opt<t>
 {
     let out: opt<t>;
@@ -119,6 +133,7 @@ let back<t>(self: ^stl::list<t>) -> opt<t>
     return out;
 }
 
+// Erase the first item in the list.
 let pop_front<t>(self: ^stl::list<t>) -> void
 {
     let old: ^stl::list_node<t>;
@@ -130,6 +145,7 @@ let pop_front<t>(self: ^stl::list<t>) -> void
     Del(old);
 }
 
+// Erase the last item in the list.
 let pop_back<t>(self: ^stl::list<t>) -> void
 {
     let old: ^stl::list_node<t>;
@@ -139,6 +155,7 @@ let pop_back<t>(self: ^stl::list<t>) -> void
     Del(old);
 }
 
+// Push an item onto the end of the list.
 let append<t>(self: ^stl::list<t>, what: t) -> void
 {
     if (to_void_ptr(self.head) == 0)
@@ -156,6 +173,7 @@ let append<t>(self: ^stl::list<t>, what: t) -> void
     }
 }
 
+// Push an item onto the front of the list.
 let prepend<t>(self: ^stl::list<t>, what: t) -> void
 {
     if (to_void_ptr(self.head) == 0)
@@ -173,9 +191,14 @@ let prepend<t>(self: ^stl::list<t>, what: t) -> void
     }
 }
 
-let erase<t>(self: ^stl::list<t>, what: ^stl::list_node<t>) -> void
+// Erase the given node. This will most likely come from some
+// sort of iteration along the list.
+let erase<t>(self: ^stl::list<t>, what: ^stl::list_node<t>
+    ) -> void
 {
-    Eq<stl::list_node<i32>>(_: ^stl::list_node<i32>, _: ^stl::list_node<i32>);
+    Eq<stl::list_node<i32>>(
+        _: ^stl::list_node<i32>,
+        _: ^stl::list_node<i32>);
 
     if self.head == what
     {

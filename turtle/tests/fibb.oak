@@ -1,3 +1,6 @@
+// Tests the turtle Oak package by turning the turtle according
+// to the numbers in the Fibonacci sequence.
+
 package!("std", "turtle");
 include!("std/printf.oak");
 use_rule!("std");
@@ -22,7 +25,7 @@ let main() -> i32
         b = c;
 
         t.forward(10);
-        t.orientation = to_f64(a % to_u128(360));
+        t.orientation = to_f64(a % 360u128);
     }
 
     0

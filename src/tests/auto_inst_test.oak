@@ -22,7 +22,7 @@ let main() -> i32
 
     // Auto-instantiation for enums (works fine)
     let o: opt<i32>;
-    
+
     // Auto-instantiation for functions (does not work)
 
     // We want to make lines like these unnecessary:

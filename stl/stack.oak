@@ -135,7 +135,8 @@ let pop<t>(self: ^stl::stack<t>) -> opt<t>
 
         wrap_some(@out, data);
 
-        if (self.size > 16 && self.size * to_u128(4) < self.capacity)
+        if (self.size > 16 && self.size * to_u128(4)
+            < self.capacity)
         {
             shrink(self);
         }

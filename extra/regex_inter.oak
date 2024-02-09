@@ -1,3 +1,5 @@
+// A basic interface to C++ regex functions.
+
 package!("std");
 use_rule!("std");
 

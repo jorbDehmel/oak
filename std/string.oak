@@ -1,10 +1,9 @@
 ////////////////////////////////////////////////////////////////
 
 /*
-A basic self-resizing heap string for Oak.
-
-As of now, this is experimental, but once refined, it will
-replace the existing std/string.oak.
+A basic self-resizing heap string for Oak. You may also want to
+include `std/cstr.oak` and/or `std/string_ops.oak` for some more
+functionality.
 
 Jordan Dehmel, 2024
 jdehmel@outlook.com
@@ -17,11 +16,14 @@ use_rule!("std");
 include!("std/cstr.oak");
 link!("std/string.o");
 
+// A smart resizing string. This may be referred to as a `std`
+// string in other files, as opposed to other implementations of
+// string and the `str` literal. This should be null-terminated.
 let string: struct
 {
-    capacity: u128,
-    current_length: u128,
-    data: []i8,
+    capacity: u128,       // The max value currently storable
+    current_length: u128, // The current length of the string
+    data: []i8,           // The underlying heap memory
 }
 
 ////////////////////////////////////////////////////////////////
@@ -32,6 +34,7 @@ let c_str(self: ^string) -> str;
 
 ////////////////////////////////////////////////////////////////
 
+// Create an empty string.
 let New(self: ^string) -> void
 {
     self.capacity = to_u128(0);
@@ -39,6 +42,7 @@ let New(self: ^string) -> void
     ptrcpy!(self.data, 0);
 }
 
+// Free whatever memory is currently stored.
 let Del(self: ^string) -> void
 {
     if self.capacity != 0
@@ -147,6 +151,7 @@ let clear(self: ^string) -> void
 
 ////////////////////////////////////////////////////////////////
 
+// Copy from a string literal.
 let Copy(self: ^string, from: str) -> void
 {
     self.current_length = strlen(from) + 1;
@@ -165,6 +170,7 @@ let Copy(self: ^string, from: str) -> void
     strncpy(self.data, from, self.current_length);
 }
 
+// Copy from another string.
 let Copy(self: ^string, other: string) -> void
 {
     Del(self);
@@ -175,6 +181,7 @@ let Copy(self: ^string, other: string) -> void
     self.current_length = strlen(self.data);
 }
 
+// Copy from a char array string.
 let Copy(self: ^string, other: []i8) -> void
 {
     self.current_length = strlen(other) + 1;
@@ -192,6 +199,7 @@ let Copy(self: ^string, other: []i8) -> void
     strncpy(self.data, other, self.current_length);
 }
 
+// Append another string onto this.
 let AddEq(self: ^string, other: string) -> void
 {
     let new_size = self.current_length + other.current_length;
@@ -212,6 +220,7 @@ let AddEq(self: ^string, other: string) -> void
     self.current_length = new_size;
 }
 
+// Append another string onto this.
 let AddEq(self: ^string, other: str) -> void
 {
     let new_size = self.current_length + strlen(other);
@@ -232,6 +241,7 @@ let AddEq(self: ^string, other: str) -> void
     self.current_length = new_size;
 }
 
+// Append another string onto this.
 let AddEq(self: ^string, other: []i8) -> void
 {
     let new_size = self.current_length + strlen(other);
@@ -252,6 +262,7 @@ let AddEq(self: ^string, other: []i8) -> void
     self.current_length = new_size;
 }
 
+// Append another string onto this.
 let AddEq(self: ^string, other: i8) -> void
 {
     let new_size = self.current_length + 1;
@@ -266,6 +277,7 @@ let AddEq(self: ^string, other: i8) -> void
     self.current_length = new_size;
 }
 
+// Concat two strings.
 let Add(a: string, b: string) -> string
 {
     let out: string;
@@ -276,6 +288,7 @@ let Add(a: string, b: string) -> string
     out
 }
 
+// Concat two strings.
 let Add(a: string, b: str) -> string
 {
     let out: string;
@@ -286,6 +299,7 @@ let Add(a: string, b: str) -> string
     out
 }
 
+// Concat two strings.
 let Add(a: string, b: []i8) -> string
 {
     let out: string;
@@ -296,6 +310,8 @@ let Add(a: string, b: []i8) -> string
     out
 }
 
+// Get the byte at the given index.
+// NOTE: This may not work properly on Unicode strings!
 let Get(self: ^string, index: u128) -> i8
 {
     let out: i8;
@@ -308,6 +324,7 @@ let Get(self: ^string, index: u128) -> i8
     out
 }
 
+// Set the given character, so long as it is in range.
 let set(self: ^string, index: u128, to: i8) -> void
 {
     if index < self.current_length
@@ -318,36 +335,43 @@ let set(self: ^string, index: u128, to: i8) -> void
 
 ////////////////////////////////////////////////////////////////
 
+// Uses strcmp to compare two strings.
 let Eq(a: string, b: string) -> bool
 {
     strcmp(a.data, b.data) == 0
 }
 
+// Uses strcmp to compare two strings.
 let Eq(a: string, b: str) -> bool
 {
     strcmp(a.data, b) == 0
 }
 
+// Uses strcmp to compare two strings.
 let Eq(a: string, b: []i8) -> bool
 {
     strcmp(a.data, b) == 0
 }
 
+// Uses strcmp to compare two strings.
 let Neq(a: string, b: string) -> bool
 {
     Not(Eq(a, b))
 }
 
+// Uses strcmp to compare two strings.
 let Neq(a: string, b: str) -> bool
 {
     Not(Eq(a, b))
 }
 
+// Uses strcmp to compare two strings.
 let Neq(a: string, b: []i8) -> bool
 {
     Not(Eq(a, b))
 }
 
+// Returns true if and only if two substrings match.
 let is_substring_eq(
     self: ^string,
     what: str,
@@ -368,6 +392,7 @@ let is_substring_eq(
     return strncmp(l, what, n) == 0;
 }
 
+// Returns true if and only if two substrings match.
 let is_substring_eq(
     self: ^string,
     what: []i8,
@@ -420,6 +445,7 @@ let is_substring_eq(
 
 ////////////////////////////////////////////////////////////////
 
+// Print the contents of the string.
 let print(what: string) -> void
 {
     print(what.data);
@@ -448,11 +474,13 @@ let hash(self: ^string) -> u128
     out
 }
 
+// Returns the current length of the string.
 let size(self: ^string) -> u128
 {
     self.current_length
 }
 
+// Returns true if and only if the current length is 0.
 let empty(self: ^string) -> bool
 {
     self.current_length == 0

@@ -76,7 +76,6 @@ let New(self: ^turtle::turtle) -> void
     // Initialize pixels array
     alloc!(self.pixels, self.h);
 
-    flush();
     for (let i: u128 = 0; i < self.h; i += 1)
     {
         alloc!(ptrarr!(self.pixels, i), self.w);
@@ -104,7 +103,7 @@ let Del(self: ^turtle::turtle) -> void
 
         i += 1;
     }
-    
+
     free!(self.pixels, self.h);
     ptrcpy!(self.pixels, 0);
 }
@@ -217,9 +216,13 @@ let refresh(self: ^turtle::turtle) -> void
         // Draw pixels
         let point: sdl::coord;
 
-        for (point.y = 0; point.y < to_u64(self.h); point.y += 1)
+        for (point.y = 0;
+            point.y < to_u64(self.h);
+            point.y += 1)
         {
-            for (point.x = 0; point.x < to_u64(self.w); point.x += 1)
+            for (point.x = 0;
+                point.x < to_u64(self.w);
+                point.x += 1)
             {
                 if self.is_filled(point.x, point.y)
                 {
@@ -260,7 +263,7 @@ let refresh(self: ^turtle::turtle) -> void
         draw_line(self.window, a, b, self.turtle_color);
         draw_line(self.window, b, c, self.turtle_color);
         draw_line(self.window, c, a, self.turtle_color);
-        
+
         show(self.window);
 
         // Process input signals

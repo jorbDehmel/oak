@@ -937,15 +937,29 @@ void ensureSyntax(const std::string &text, const bool &fatal, const std::string 
     int bracketDepth = 0;
     int commentDepth = 0;
     int errorCount = 0;
+    int emptyLines = 0;
     char stringMarker = ' ';
 
     char globalStringChoice = ' ';
+
+    unsigned int commentLines = 0;
 
     // Iterate over lines
     for (int i = 0; i < text.size(); i++)
     {
         if (text[i] == '\n')
         {
+            if (curLineVec.size() == 0)
+            {
+                emptyLines++;
+
+                if (i > 0 && text[i - 1] == ' ')
+                {
+                    printSyntaxError("Trailing whitespace is not allowed", curLineVec, curLine, curFile);
+                    errorCount++;
+                }
+            }
+
             // Single-line comment
             if (curLineVec.size() > 2 && curLineVec[0] == '/' && curLineVec[0] == '/')
             {
@@ -954,6 +968,7 @@ void ensureSyntax(const std::string &text, const bool &fatal, const std::string 
                     printSyntaxError("Comments must begin with either '// ' or '///'", curLineVec, curLine, curFile);
                     errorCount++;
                 }
+                commentLines++;
             }
 
             // Multi-line comment opening
@@ -966,6 +981,7 @@ void ensureSyntax(const std::string &text, const bool &fatal, const std::string 
                 }
 
                 commentDepth++;
+                commentLines++;
             }
 
             // Multi-line comment closing
@@ -978,6 +994,7 @@ void ensureSyntax(const std::string &text, const bool &fatal, const std::string 
                 }
 
                 commentDepth--;
+                commentLines++;
             }
 
             // Non-comment code line
@@ -1070,6 +1087,12 @@ void ensureSyntax(const std::string &text, const bool &fatal, const std::string 
                                 errorCount++;
                             }
                         }
+                        else if (c == '\t')
+                        {
+                            printSyntaxError("Tab characters (\\t) are not allowed; Use spaces instead", curLineVec,
+                                             curLine, curFile);
+                            errorCount++;
+                        }
 
                         else if (c == '.' && j > 0 && curLineVec[j - 1] == ')')
                         {
@@ -1097,6 +1120,10 @@ void ensureSyntax(const std::string &text, const bool &fatal, const std::string 
                     errorCount++;
                 }
             }
+            else
+            {
+                commentLines++;
+            }
 
             // Reset line
             curLineVec.clear();
@@ -1110,6 +1137,7 @@ void ensureSyntax(const std::string &text, const bool &fatal, const std::string 
                 curLineVec.push_back(text[i]);
             }
 
+            // Max suggested line width
             if (curLineVec.size() == 65)
             {
                 std::cout << tags::yellow_bold << "Warning: Lines should not exceed 64 characters. (" << curFile << ":"
@@ -1117,6 +1145,7 @@ void ensureSyntax(const std::string &text, const bool &fatal, const std::string 
                           << tags::reset;
             }
 
+            // Max allowed line width
             if (curLineVec.size() == 97)
             {
                 printSyntaxError("Lines must not exceed 96 characters", curLineVec, curLine, curFile);
@@ -1141,6 +1170,20 @@ void ensureSyntax(const std::string &text, const bool &fatal, const std::string 
     {
         printSyntaxError("Unmatched open parenthesis", curLineVec, curLine, curFile);
         errorCount++;
+    }
+
+    if (commentLines == 0)
+    {
+        printSyntaxError("No comments present in source code", curLineVec, curLine, curFile);
+        errorCount++;
+    }
+
+    if ((curLine - emptyLines) > 0 && (double)commentLines / (double)(curLine - emptyLines) < 0.15)
+    {
+        double percentage = 100.0 * (double)commentLines / (double)(curLine - emptyLines);
+        std::cout << tags::yellow_bold << "Warning: Less than 15% of source file " << curFile << " (" << percentage
+                  << "%) is commenting.\n"
+                  << tags::reset;
     }
 
     if (fatal && errorCount > 0)

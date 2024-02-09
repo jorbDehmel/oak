@@ -1,3 +1,6 @@
+// Tests the default values of various atomic data values. NOT
+// the default keyword.
+
 package!("std");
 use_rule!("std");
 
@@ -20,7 +23,7 @@ let main(argc: i32, argv: []str) -> i32
 
     let a: i32;
     println(a);
-    
+
     extra::bit_print(a);
     print("\n");
 

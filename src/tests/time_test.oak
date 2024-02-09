@@ -1,3 +1,5 @@
+// Tests the time file in the `std` library
+
 package!("std");
 use_rule!("std");
 

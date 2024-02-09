@@ -16,11 +16,12 @@ include!("std/conv_extra.oak");
 
 ////////////////////////////////////////////////////////////////
 
+// A generic self-resizing array.
 let stl::vec<t>: struct
 {
-    data: []t,
-    size: u128,
-    capacity: u128,
+    data: []t,      // The underlying heap memory
+    size: u128,     // The current number of items in the vec
+    capacity: u128, // The max amount this can be filled
 }
 post
 {
@@ -44,6 +45,7 @@ post
 
 ////////////////////////////////////////////////////////////////
 
+// Create an empty vector with capacity 8 by default.
 let New<t>(self: ^stl::vec<t>) -> void
 {
     self.size = 0;
@@ -77,6 +79,7 @@ let Copy<t>(self: ^stl::vec<t>, other: stl::vec<t>) -> void
     }
 }
 
+// Free the heap memory associated.
 let Del<t>(self: ^stl::vec<t>) -> void
 {
     if (self.capacity != to_u128(0))
@@ -85,6 +88,8 @@ let Del<t>(self: ^stl::vec<t>) -> void
     }
 }
 
+// Get the item of the given index. If the index is out of
+// range, it will return `none`.
 let Get<t>(self: ^stl::vec<t>, index: i128) -> opt<^t>
 {
     let real_index: u128;
@@ -164,11 +169,13 @@ let Shrink<t>(self: ^stl::vec<t>) -> void
     }
 }
 
+// Push an item onto the end of the vector.
 let append<t>(self: ^stl::vec<t>, what: t) -> void
 {
     push_back(self, what);
 }
 
+// Push an item onto the end of the vector.
 let push_back<t>(self: ^stl::vec<t>, what: t) -> void
 {
     while (self.size * to_u128(2) > self.capacity)
@@ -180,7 +187,7 @@ let push_back<t>(self: ^stl::vec<t>, what: t) -> void
     self.size += 1;
 }
 
-
+// Pop the item off the end of the vector.
 let pop_back<t>(self: ^stl::vec<t>) -> opt<t>
 {
     let out: opt<t>;
@@ -204,7 +211,7 @@ let pop_back<t>(self: ^stl::vec<t>) -> opt<t>
     out
 }
 
-
+// Empty the vector
 let clear<t>(self: ^stl::vec<t>) -> void
 {
     self.size = to_u128(0);
@@ -215,10 +222,11 @@ let clear<t>(self: ^stl::vec<t>) -> void
     }
 }
 
+// Return true if the vector is empty.
 let empty<t>(self: ^stl::vec<t>) -> bool
 {
     let out: bool;
-    
+
     if (self.size == to_u128(0))
     {
         out = true;
@@ -231,6 +239,7 @@ let empty<t>(self: ^stl::vec<t>) -> bool
     out
 }
 
+// Return the first item if there is one.
 let front<t>(self: ^stl::vec<t>) -> opt<t>
 {
     let out: opt<t>;
@@ -244,6 +253,7 @@ let front<t>(self: ^stl::vec<t>) -> opt<t>
     return out;
 }
 
+// Return the last item if there is one.
 let back<t>(self: ^stl::vec<t>) -> opt<t>
 {
     let out: opt<t>;

@@ -1009,6 +1009,17 @@ int main(const int argc, const char *argv[])
                          "to silence this warning.\n"
                       << tags::reset;
         }
+
+        // Exit w/ error if needed
+        if (bad != 0)
+        {
+            if (settings.eraseTemp)
+            {
+                fs::remove_all(".oak_build");
+                fs::remove_all("*.log");
+            }
+            return 19;
+        }
     }
 
     if (settings.prettify)

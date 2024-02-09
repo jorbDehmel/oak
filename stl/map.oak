@@ -44,7 +44,8 @@ let New<k, d>(self: ^stl::map_node<k, d>) -> void
     self.state = 0;
 }
 
-let Copy<k, d>(self: ^stl::map_node<k, d>, key: k, data: d) -> void
+let Copy<k, d>(self: ^stl::map_node<k, d>, key: k, data: d
+    ) -> void
 {
     self.key = key;
     self.data = data;
@@ -126,7 +127,7 @@ let Get<k, d>(self: ^stl::map<k, d>, key: k) -> opt<d>
     h = hash(key);
     out.wrap_none();
     sentinel = true;
-    
+
     // Get initial guess
     i = h % self.size;
 
@@ -186,7 +187,7 @@ let has<k, d>(self: ^stl::map<k, d>, key: k) -> bool
 
     h = hash(key);
     sentinel = true;
-    
+
     // Get initial guess
     i = h % self.size;
 
@@ -250,7 +251,7 @@ let set<k, d>(self: ^stl::map<k, d>, key: k, data: d) -> void
 
     h = hash(key);
     sentinel = true;
-    
+
     // Get initial guess
     i = h % self.size;
 
@@ -321,7 +322,7 @@ let erase<k, d>(self: stl::map<k, d>, key: k) -> void
 
     h = hash(key);
     sentinel = true;
-    
+
     // Get initial guess
     i = h % self.size;
 
@@ -387,7 +388,7 @@ let expand<k, d>(self: ^stl::map<k, d>) -> void
     self.size *= 2;
 
     alloc!(self.data, self.size);
-    
+
     self.occupied = 0;
     self.alpha = 0.0;
 
@@ -410,7 +411,7 @@ let expand<k, d>(self: ^stl::map<k, d>) -> void
 
             h = hash(key);
             sentinel = true;
-            
+
             // Get initial guess
             cur_key = h % self.size;
 

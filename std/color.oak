@@ -1,80 +1,52 @@
 /*
-Defines some terminal colors using escape codes
-Jordan Dehmel, 2023
+Defines some terminal colors using ANSI escape codes.
+
+Important note: ONLY use these on the terminal, they can cause
+large issues when used in files! There are terminal-based
+applications available for POSIX systems which can clean ANSI
+escape codes out of files, but the easiest thing to do is just
+to not put them there.
+
+See here for history and more information:
+https://en.wikipedia.org/wiki/ANSI_escape_code
+
+Jordan Dehmel, 2023-
 jdehmel@outlook.com
 */
 
 include!("std/io_inter.oak");
 include!("std/string.oak");
 
-// Section-based stuff
+let ansi_code_end! = "\033[0;0m";
 
-let begin_red() -> void
-{
-    print("\033[0;31m");
-}
+// Section-based `begin` functions.
+// These calls begin a given effect and do not stop it until
+// `end_effects()` is called.
 
-let begin_green() -> void
-{
-    print("\033[0;32m");
-}
+let begin_red() -> void { print("\033[0;31m"); }
+let begin_green() -> void { print("\033[0;32m"); }
+let begin_blue() -> void { print("\033[0;34m"); }
+let begin_yellow() -> void { print("\033[0;33m"); }
+let begin_magenta() -> void { print("\033[0;35m"); }
+let begin_cyan() -> void { print("\033[0;36m"); }
 
-let begin_blue() -> void
-{
-    print("\033[0;34m");
-}
+// Bold section-based `begin` functions.
 
-let begin_yellow() -> void
-{
-    print("\033[0;33m");
-}
+let begin_red_bold() -> void { print("\033[1;31m"); }
+let begin_green_bold() -> void { print("\033[1;32m"); }
+let begin_blue_bold() -> void { print("\033[1;34m"); }
+let begin_yellow_bold() -> void { print("\033[1;33m"); }
+let begin_magenta_bold() -> void { print("\033[1;35m"); }
+let begin_cyan_bold() -> void { print("\033[1;36m"); }
 
-let begin_magenta() -> void
-{
-    print("\033[0;35m");
-}
+// This is the most important one here: Call this to remove all
+// effects and return to a regular terminal.
+let end_effects() -> void { print(ansi_code_end!); }
 
-let begin_cyan() -> void
-{
-    print("\033[0;36m");
-}
-
-let begin_red_bold() -> void
-{
-    print("\033[1;31m");
-}
-
-let begin_green_bold() -> void
-{
-    print("\033[1;32m");
-}
-
-let begin_blue_bold() -> void
-{
-    print("\033[1;34m");
-}
-
-let begin_yellow_bold() -> void
-{
-    print("\033[1;33m");
-}
-
-let begin_magenta_bold() -> void
-{
-    print("\033[1;35m");
-}
-
-let begin_cyan_bold() -> void
-{
-    print("\033[1;36m");
-}
-
-let end_effects() -> void
-{
-    print("\033[0;0m");
-}
-
-// Regular colored text w/ reset code after
+// Regular colored text w/ reset code after.
+// These functions turn a given `std` string into a version of
+// itself which has the given effect. This prepends and appends
+// to the string.
 
 let red(on: string) -> string
 {
@@ -82,7 +54,7 @@ let red(on: string) -> string
     out = "\033[0;31m";
 
     let temp: string;
-    temp = "\033[0;0m";
+    temp = ansi_code_end!;
 
     out = out + on;
     out = out + temp;
@@ -95,7 +67,7 @@ let green(on: string) -> string
     out = "\033[0;32m";
 
     let temp: string;
-    temp = "\033[0;0m";
+    temp = ansi_code_end!;
 
     out = out + on;
     out = out + temp;
@@ -108,7 +80,7 @@ let blue(on: string) -> string
     out = "\033[0;34m";
 
     let temp: string;
-    temp = "\033[0;0m";
+    temp = ansi_code_end!;
 
     out = out + on;
     out = out + temp;
@@ -121,7 +93,7 @@ let yellow(on: string) -> string
     out = "\033[0;33m";
 
     let temp: string;
-    temp = "\033[0;0m";
+    temp = ansi_code_end!;
 
     out = out + on;
     out = out + temp;
@@ -134,7 +106,7 @@ let magenta(on: string) -> string
     out = "\033[0;35m";
 
     let temp: string;
-    temp = "\033[0;0m";
+    temp = ansi_code_end!;
 
     out = out + on;
     out = out + temp;
@@ -147,14 +119,15 @@ let cyan(on: string) -> string
     out = "\033[0;36m";
 
     let temp: string;
-    temp = "\033[0;0m";
+    temp = ansi_code_end!;
 
     out = out + on;
     out = out + temp;
     out
 }
 
-// Boldface versions
+// Boldface versions of the above functions.
+// These still all operate on `std` strings, not `str` literals.
 
 let red_bold(on: string) -> string
 {
@@ -162,7 +135,7 @@ let red_bold(on: string) -> string
     out = "\033[1;31m";
 
     let temp: string;
-    temp = "\033[0;0m";
+    temp = ansi_code_end!;
 
     out = out + on;
     out = out + temp;
@@ -175,7 +148,7 @@ let green_bold(on: string) -> string
     out = "\033[1;32m";
 
     let temp: string;
-    temp = "\033[0;0m";
+    temp = ansi_code_end!;
 
     out = out + on;
     out = out + temp;
@@ -188,7 +161,7 @@ let blue_bold(on: string) -> string
     out = "\033[1;34m";
 
     let temp: string;
-    temp = "\033[0;0m";
+    temp = ansi_code_end!;
 
     out = out + on;
     out = out + temp;
@@ -201,7 +174,7 @@ let yellow_bold(on: string) -> string
     out = "\033[1;33m";
 
     let temp: string;
-    temp = "\033[0;0m";
+    temp = ansi_code_end!;
 
     out = out + on;
     out = out + temp;
@@ -214,7 +187,7 @@ let magenta_bold(on: string) -> string
     out = "\033[1;35m";
 
     let temp: string;
-    temp = "\033[0;0m";
+    temp = ansi_code_end!;
 
     out = out + on;
     out = out + temp;
@@ -225,121 +198,99 @@ let cyan_bold(on: string) -> string
 {
     let out: string;
     out = "\033[1;36m";
-    
+
     let temp: string;
-    temp = "\033[0;0m";
+    temp = ansi_code_end!;
 
     out = out + on;
     out = out + temp;
     out
 }
 
-// Raw string literal versions
+// Raw string literal versions.
+// These operate on raw string literals for compatability's
+// sake.
 
 let red(on: str) -> string
 {
     let out: string;
     out = on;
-
-    out = red(out);
-    out
+    red(out)
 }
 
 let green(on: str) -> string
 {
     let out: string;
     out = on;
-
-    out = green(out);
-    out
+    green(out)
 }
 
 let blue(on: str) -> string
 {
     let out: string;
     out = on;
-
-    out = blue(out);
-    out
+    blue(out)
 }
 
 let yellow(on: str) -> string
 {
     let out: string;
     out = on;
-
-    out = yellow(out);
-    out
+    yellow(out)
 }
 
 let magenta(on: str) -> string
 {
     let out: string;
     out = on;
-
-    out = magenta(out);
-    out
+    magenta(out)
 }
 
 let cyan(on: str) -> string
 {
     let out: string;
     out = on;
-
-    out = cyan(out);
-    out
+    cyan(out)
 }
 
 let red_bold(on: str) -> string
 {
     let out: string;
     out = on;
-
-    out = red_bold(out);
-    out
+    red_bold(out)
 }
 
 let green_bold(on: str) -> string
 {
     let out: string;
     out = on;
-
-    out = green_bold(out);
-    out
+    green_bold(out)
 }
 
 let blue_bold(on: str) -> string
 {
     let out: string;
     out = on;
-
-    out = blue_bold(out);
-    out
+    blue_bold(out)
 }
 
 let yellow_bold(on: str) -> string
 {
     let out: string;
     out = on;
-
-    out = yellow_bold(out);
-    out
+    yellow_bold(out)
 }
 
 let magenta_bold(on: str) -> string
 {
     let out: string;
     out = on;
-
-    out = magenta_bold(out);
-    out
+    magenta_bold(out)
 }
 
 let cyan_bold(on: str) -> string
 {
     let out: string;
     out = on;
-
-    out = cyan_bold(out);
-    out
+    cyan_bold(out)
 }

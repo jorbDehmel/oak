@@ -4,18 +4,24 @@ Some garbage utilities for comparing pointers.
 
 link!("stl/ptrcmp.o");
 
+// Compare two pointers
 let Eq(l: ^void, r: ^void) -> bool;
 let Neq(l: ^void, r: ^void) -> bool;
 
+// Compare some pointer w/ a number. This will only ever be
+// true if the pointer is nullptr and the number is 0.
 let Eq(l: ^void, r: u128) -> bool;
 let Eq(l: u128, r: ^void) -> bool;
 
+// The inverse of the above nullptr equality functions.
 let Neq(l: ^void, r: u128) -> bool;
 let Neq(l: u128, r: ^void) -> bool;
 
+// Simplified null checking for pointers.
 let is_null(what: ^void) -> bool;
 let is_not_null(what: ^void) -> bool;
 
+// Casts any arbitrary pointer to a void pointer.
 let to_void_ptr<t>(what: ^t) -> ^void
 {
     let out: ^void;
@@ -23,6 +29,9 @@ let to_void_ptr<t>(what: ^t) -> ^void
     out
 }
 
+// Checks if two arbitrary pointers are equal. This can be
+// negated if you want, but no templated Neq function is
+// provided.
 let Eq<t>(l: ^t, r: ^t) -> bool
 {
     to_void_ptr<t>(_: ^t);

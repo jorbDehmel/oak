@@ -13,7 +13,7 @@ let main() -> i32
     let out: o_file;
     let to_write: string;
     out.open("hi.txt");
-    
+
     to_write = "abcdefghijklmnopqrstuvwxyz\n";
 
     out.write(to_write);
@@ -40,6 +40,6 @@ let main() -> i32
     Del(@str_a);
     Del(@str_b);
     Del(@inp);
-    
+
     0
 }

@@ -17,7 +17,7 @@ let Fn() -> void
     let b: ^i32;
 
     alloc!(a);
-    
+
     ptrcpy!(b, a);
 
     // Super unsafe call

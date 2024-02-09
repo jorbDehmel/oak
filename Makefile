@@ -29,9 +29,9 @@ reinstall:
 .PHONY: test
 test:
 	$(MAKE_SRC) test
-	cd extra && acorn -TT ; cd ..
-	cd stl && acorn -TT ; cd ..
-	cd turtle && acorn -TT ; cd ..
+	cd extra && acorn -TT && acorn -e && cd ..
+	cd stl && acorn -TT && acorn -e && cd ..
+	cd turtle && acorn -TT && acorn -e && cd ..
 
 .PHONY: docs
 docs: README.md docs/manual.md docs/source_code_guidelines.md
@@ -40,8 +40,14 @@ docs: README.md docs/manual.md docs/source_code_guidelines.md
 	cd docs && pandoc source_code_guidelines.md -o \
 		source_code_guidelines.pdf && cd ..
 
+.PHONY:	test_clean
+test_clean:
+	acorn -e
+	rm */*.log ; rm */*.tlog ; rm *.log ; rm *.tlog ; rm *.out
+
 .PHONY: clean
 clean:
 	$(MAKE_SRC) clean
+	$(MAKE) test_clean
 
 ################################################################

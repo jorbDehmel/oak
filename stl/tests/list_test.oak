@@ -32,7 +32,7 @@ let main() -> i32
     // Backwards iterator test
 
     println("Backward:");
-    
+
     ptrcpy!(it, obj.tail);
 
     while to_void_ptr(it) != 0

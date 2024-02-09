@@ -45,7 +45,7 @@ let main() -> i32
 
             x += 10;
         }
-    
+
         y += 10;
 
         let event: sdl_event;

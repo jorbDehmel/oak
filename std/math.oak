@@ -1,6 +1,5 @@
 /*
-A basic math package for Oak
-
+A basic math package for Oak.
 Jordan Dehmel, 2023
 */
 
@@ -13,12 +12,14 @@ let math_pi! = 3.14159265;
 // Euler's constant e to 8 decimal places
 let math_e! = 2.71828182;
 
-// Returns true if a is even
+// Returns true if a is even. This is an artifact from when the
+// operator precedence in Oak was broken and this needed to be
+// pulled into a library function.
 let even(a: i128) -> bool
 {
     let out: bool;
 
-    if (a % to_i128(2) == to_i128(0))
+    if (a % 2i128 == 0i128)
     {
         out = true;
     }
@@ -30,11 +31,14 @@ let even(a: i128) -> bool
     out
 }
 
+// Returns true if a is even. This is an artifact from when the
+// operator precedence in Oak was broken and this needed to be
+// pulled into a library function.
 let even(a: u128) -> bool
 {
     let out: bool;
 
-    if (a % to_u128(2) == to_u128(0))
+    if (a % 2u128 == 0u128)
     {
         out = true;
     }
@@ -46,7 +50,7 @@ let even(a: u128) -> bool
     out
 }
 
-// Return the absolute value of x
+// Returns the absolute value of x.
 let abs(x: i32) -> i32
 {
     let out: i32;
@@ -60,6 +64,7 @@ let abs(x: i32) -> i32
     out
 }
 
+// Returns the absolute value of x.
 let abs(x: f64) -> f64
 {
     let out: f64;
@@ -73,39 +78,43 @@ let abs(x: f64) -> f64
     out
 }
 
+// Return the minimum of two values of arbitrary type, given
+// that said type supports the less than operator.
 let min<t>(a: t, b: t) -> t
 {
-    let out: t;
-
     if (a < b)
     {
-        out = a;
+        return a;
     }
     else
     {
-        out = b;
+        return b;
     }
-
-    out
+}
+pre
+{
+    Less<t>(_: t, _: t);
 }
 
+// Return the maximum of two values of arbitrary type, given
+// that said type supports the less than operator.
 let max<t>(a: t, b: t) -> t
 {
-    let out: t;
-
-    if (a > b)
+    if (a < b)
     {
-        out = a;
+        return b;
     }
     else
     {
-        out = b;
+        return a;
     }
-
-    out
+}
+pre
+{
+    Less<t>(_: t, _: t);
 }
 
-// Return a to the power of b
+// Return a to the power of b for integers.
 let pow(a: i32, b: i32) -> i128
 {
     let out: i32;
@@ -124,6 +133,8 @@ let pow(a: i32, b: i32) -> i128
     out
 }
 
+// Returns some floating-point number to the power of some
+// integer.
 let pow(a: f64, b: i32) -> f64
 {
     let out: f64;
@@ -142,7 +153,7 @@ let pow(a: f64, b: i32) -> f64
     out
 }
 
-// Return the factorial of a number x
+// Return the factorial of x.
 let fact(x: i32) -> i128
 {
     let out: i128;
@@ -160,11 +171,13 @@ let fact(x: i32) -> i128
     out
 }
 
+// Converts some number in radians to degrees.
 let radians_to_degrees(rad: f64) -> f64
 {
     180.0 * rad / math_pi!
 }
 
+// Converts some number in degrees to radians.
 let degrees_to_radians(deg: f64) -> f64
 {
     math_pi! * deg / 180.0
@@ -201,7 +214,7 @@ let sin(x: f64) -> f64
     let out: f64;
     out = 0.0;
 
-    // Not black magic; Just a ninth-order Taylor
+    // Not black magic; Just a ninth-order truncated Taylor
     // polynomial
     out += real_x;
     out += pow(real_x, 3) * -0.1666666666666;
@@ -233,19 +246,19 @@ let tan(x: f64) -> f64
     (s / c)
 }
 
-// Return the largest integer less than or equal to x
+// Return the largest integer less than or equal to x.
 let floor(x: f64) -> i128
 {
     f_to_i(x)
 }
 
-// Return the smallest integer greater than or equal to x
+// Return the smallest integer greater than or equal to x.
 let ceiling(x: f64) -> i128
 {
     f_to_i(x + 0.9999)
 }
 
-// Return the closest integer to x
+// Return the closest integer to x.
 let round(x: f64) -> i32
 {
     let out: f64;
@@ -265,8 +278,8 @@ let round(x: f64) -> i32
     out
 }
 
-// Return the square root of a float
 /*
+Return the square root of a float.
 Uses Newtonian iteration
 To find \sqrt{k}:
 x_{n + 1} = 0.5 * (x_n + \frac{k}{x_n})
@@ -298,7 +311,7 @@ let sqrt(x: f64) -> f64
     out
 }
 
-// Return the remainder of a / b
+// Return the remainder of a / b.
 let f_mod(a: f64, b: f64) -> f64
 {
     let temp: f64;

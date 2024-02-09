@@ -1,3 +1,6 @@
+// Tests the `std/cmp.oak` file, which generalizes the results
+// of strcmp.
+
 package!("std");
 use_rule!("std");
 include!("std/cmp.oak");

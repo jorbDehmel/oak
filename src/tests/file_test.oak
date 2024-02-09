@@ -13,12 +13,12 @@ let main() -> i32
 
     let to_write: string;
     to_write = "Hello, world!\n";
-    
+
     out.write(to_write);
-    
+
     out.close();
     to_write.Del();
     out.Del();
-    
+
     0
 }

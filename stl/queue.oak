@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////
 
 /*
-A generic stl::queue using a singly linked stl::queue for Oak.
+A generic queue using a singly linked list for Oak.
 
 Jordan Dehmel, 2023
 jdehmel@outlook.com
@@ -17,10 +17,11 @@ include!("stl/ptrcmp.oak");
 
 ////////////////////////////////////////////////////////////////
 
+// A singly linked node, for use in a queue.
 let stl::queue_node<t>: struct
 {
-    data: t,
-    next: ^stl::queue_node<t>,
+    data: t,                    // The item in the current node
+    next: ^stl::queue_node<t>,  // The next node in the list
 }
 post
 {
@@ -31,15 +32,17 @@ post
 
 ////////////////////////////////////////////////////////////////
 
+// Create a new, empty, queue node.
 let New<t>(self: ^stl::queue_node<t>) -> void
 {
     New(self.data);
     ptrcpy!(self.next, 0);
 }
 
+// If this is not the last node, free all remaining nodes.
 let Del<t>(self: ^stl::queue_node<t>) -> void
 {
-    if (to_void_ptr(self.next) != to_u128(0))
+    if (to_void_ptr(self.next) != 0u128)
     {
         Del(self.next);
         free!(self.next);
@@ -50,6 +53,8 @@ let Del<t>(self: ^stl::queue_node<t>) -> void
 
 ////////////////////////////////////////////////////////////////
 
+// A queue, composed on dynamically allocated queue nodes.
+// First in, last out. NOT random access.
 let stl::queue<t>: struct
 {
     head: ^stl::queue_node<t>,
@@ -79,6 +84,7 @@ post
 
 ////////////////////////////////////////////////////////////////
 
+// Collapse a queue.
 let Del<t>(self: ^stl::queue<t>) -> void
 {
     if (to_void_ptr(self.head) != to_u128(0))
@@ -92,6 +98,7 @@ let Del<t>(self: ^stl::queue<t>) -> void
     }
 }
 
+// Get the front of the queue.
 let front<t>(self: ^stl::queue<t>) -> opt<t>
 {
     let out: opt<t>;
@@ -105,6 +112,7 @@ let front<t>(self: ^stl::queue<t>) -> opt<t>
     return out;
 }
 
+// Delete the front of the list.
 let pop_front<t>(self: ^stl::queue<t>) -> void
 {
     let old: ^stl::queue_node<t>;
@@ -116,6 +124,7 @@ let pop_front<t>(self: ^stl::queue<t>) -> void
     free!(old);
 }
 
+// Add some item to the queue.
 let append<t>(self: ^stl::queue<t>, what: t) -> void
 {
     if (to_void_ptr(self.head) == 0)
@@ -136,16 +145,19 @@ let append<t>(self: ^stl::queue<t>, what: t) -> void
     }
 }
 
+// Pop the front of the queue.
 let pop<t>(self: ^stl::queue<t>) -> void
 {
     pop_front(self);
 }
 
+// Add some item onto the queue.
 let push<t>(self: ^stl::queue<t>, what: t) -> void
 {
     append(self, what);
 }
 
+// Returns true if the queue is empty, false otherwise.
 let empty<t>(self: ^stl::queue<t>) -> bool
 {
     if (is_null(to_void_ptr(self.head)))

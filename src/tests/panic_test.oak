@@ -1,3 +1,5 @@
+// Tests the panic! macro
+
 package!("std");
 use_rule!("std");
 

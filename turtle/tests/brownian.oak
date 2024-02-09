@@ -1,3 +1,6 @@
+// Tests the turtle package by moving the turtle according to
+// some basic brownian motion.
+
 package!("std", "turtle");
 include!("std/printf.oak");
 include!("std/rand.oak");

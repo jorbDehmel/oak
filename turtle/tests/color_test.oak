@@ -1,3 +1,5 @@
+// Tests the pen colors in the turtle package for Oak.
+
 package!("std", "turtle");
 include!("std/printf.oak");
 use_rule!("std");
