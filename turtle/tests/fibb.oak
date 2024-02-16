@@ -9,8 +9,8 @@ let main() -> i32
 {
     let t: turtle::turtle;
 
-    let a: u128 = 0;
-    let b: u128 = 1;
+    let a = 0u128;
+    let b = 1u128;
     let c: u128;
 
     t.up();
