@@ -17,21 +17,10 @@ and the ternary must be added via rules, if at all.
 // Assumes that pre = i - 1, post = i + 1, i = index of bin op
 void getOperands(std::vector<Token> &from, int &pre, int &post, const bool &useLine = false)
 {
-    /*
-    Example cases:
-
-    i = (1 * 2) + (3 / 4);
-    c = b() + 4;
-    f = a.b + c.d
-    */
-
-    int count;
-
-    // int begin = pre;
+    int count = 0;
 
     // Decrement pre to point to the beginning of the left
     // operand
-    count = 0;
     do
     {
         if (from[pre] == "(")
@@ -144,23 +133,6 @@ void getOperands(std::vector<Token> &from, int &pre, int &post, const bool &useL
         }
     }
 
-    // std::cout << "Operands:\n";
-    // for (int i = pre; i < post; i++)
-    // {
-    //     if (i == begin)
-    //     {
-    //         std::cout << tags::green_bold;
-    //     }
-
-    //     std::cout << from[i].text << ' ';
-
-    //     if (i == begin)
-    //     {
-    //         std::cout << tags::reset;
-    //     }
-    // }
-    // std::cout << '\n';
-
     return;
 }
 
@@ -229,9 +201,29 @@ void doSub(std::vector<Token> &from, int &pos, const std::string &name)
     return;
 }
 
+// O(n)
+// These are some common rule-like token stream manipulations
+// which would be too hard (or perhaps impossible) to implement
+// with the rule system.
 void operatorSub(std::vector<Token> &From)
 {
-    // Level 2: Multiplication, division and modulo
+    // Level -1: Method notation
+    // for (int i = 1; i + 2 < From.size(); i++)
+    // {
+    //     // _ . _ (
+
+    //     // a b c . d ( e f g )
+    //     // a b d ( c , e f g )
+
+    //     if (From[i] == "." && From[i + 2] == "(")
+    //     {
+    //         // Method call
+
+    //         // Identify left edge of call
+    //     }
+    // }
+
+    // Level 1: Multiplication, division and modulo
     for (int i = 0; i < From.size(); i++)
     {
         std::string cur = From[i];
@@ -250,7 +242,7 @@ void operatorSub(std::vector<Token> &From)
         }
     }
 
-    // Level 3: Addition and subtraction
+    // Level 2: Addition and subtraction
     for (int i = 0; i < From.size(); i++)
     {
         std::string cur = From[i];
@@ -264,7 +256,7 @@ void operatorSub(std::vector<Token> &From)
         }
     }
 
-    // Level 4: Bitwise
+    // Level 3: Bitwise
     for (int i = 0; i < From.size(); i++)
     {
         std::string cur = From[i];
@@ -287,7 +279,7 @@ void operatorSub(std::vector<Token> &From)
         }
     }
 
-    // Level 5: Comparisons
+    // Level 4: Comparisons
     for (int i = 0; i < From.size(); i++)
     {
         std::string cur = From[i];
@@ -362,7 +354,7 @@ void operatorSub(std::vector<Token> &From)
         }
     }
 
-    // Level 6: Booleans
+    // Level 5: Booleans
     for (int i = 0; i < From.size(); i++)
     {
         std::string cur = From[i];
@@ -377,7 +369,7 @@ void operatorSub(std::vector<Token> &From)
         }
     }
 
-    // Level 1: Assignment
+    // Level 6: Assignment
     for (int i = 0; i < From.size(); i++)
     {
         std::string cur = From[i];
@@ -415,6 +407,12 @@ void operatorSub(std::vector<Token> &From)
             doSub(From, i, "OrEq");
         }
     }
+
+    // Level 7: Left unaries (negation, incrementation,
+    // decrementation)
+    // for (int i = 0; i < From.size(); i++)
+    // {
+    // }
 
     return;
 }
