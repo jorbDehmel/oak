@@ -7,20 +7,20 @@ Jordan Dehmel, 2023
 
 #include "oakc_fns.hpp"
 #include "options.hpp"
+#include <unistd.h>
 
 // Returns true if template substitution would make the two typeVecs the same
-bool checkTypeVec(const std::vector<std::string> &candidateTypeVec, const std::vector<std::string> &genericTypeVec,
-                  const std::vector<std::string> &genericNames,
-                  const std::vector<std::vector<std::string>> &substitutions)
+bool checkTypeVec(const std::list<std::string> &candidateTypeVec, const std::list<std::string> &genericTypeVec,
+                  const std::list<std::string> &genericNames, const std::list<std::list<std::string>> &substitutions)
 {
     if (genericNames.size() != substitutions.size())
     {
         return false;
     }
 
-    if (candidateTypeVec.size() == 1 && (candidateTypeVec[0] == "struct" || candidateTypeVec[0] == "enum"))
+    if (candidateTypeVec.size() == 1 && (candidateTypeVec.front() == "struct" || candidateTypeVec.front() == "enum"))
     {
-        if (genericTypeVec.size() == 1 && (genericTypeVec[0] == "struct" || genericTypeVec[0] == "enum"))
+        if (genericTypeVec.size() == 1 && (genericTypeVec.front() == "struct" || genericTypeVec.front() == "enum"))
         {
             return true;
         }
@@ -31,82 +31,97 @@ bool checkTypeVec(const std::vector<std::string> &candidateTypeVec, const std::v
     }
 
     // Build substitution table
-    std::map<std::string, std::vector<std::string>> subMap;
-    for (int i = 0; i < genericNames.size(); i++)
+    std::map<std::string, std::list<std::string>> subMap;
+
+    auto nameIter = genericNames.begin();
+    auto subIter = substitutions.begin();
+
+    while (nameIter != genericNames.end() && subIter != substitutions.end())
     {
-        subMap[genericNames[i]] = std::vector<std::string>();
-        for (auto item : substitutions[i])
+        subMap[*nameIter] = std::list<std::string>();
+        for (auto item : *subIter)
         {
-            subMap[genericNames[i]].push_back(item);
+            subMap[*nameIter].push_back(item);
         }
+
+        nameIter++;
+        subIter++;
     }
 
     // Do substitutions
-    // vector<string> afterSub;
-    int i = 0;
-
+    // list<string> afterSub;
+    auto candIter = candidateTypeVec.begin();
     for (std::string symb : genericTypeVec)
     {
         if (subMap.count(symb) == 0)
         {
             // afterSub.push_back(symb);
 
-            if (i >= candidateTypeVec.size())
+            if (candIter == candidateTypeVec.end())
             {
                 return false;
             }
 
-            if (candidateTypeVec[i] != symb)
+            if (*candIter != symb)
             {
                 // Failure case UNLESS this is a argument name
-                if (!(i + 1 < candidateTypeVec.size() && candidateTypeVec[i + 1] == ":"))
+
+                bool result = false;
+
+                candIter++;
+                if (candIter == candidateTypeVec.end())
+                {
+                    result = true;
+                }
+                else if (*candIter != ":")
+                {
+                    result = true;
+                }
+                candIter--;
+
+                if (result)
                 {
                     return false;
                 }
             }
 
-            i++;
+            candIter++;
         }
         else
         {
-            int j = 0;
-            while (j < subMap[symb].size() && subMap[symb][j] == "^")
+            auto j = subMap[symb].begin();
+            for (; j != subMap[symb].end() && *j == "^"; j++)
             {
-                if (candidateTypeVec[i] != "^")
+                if (*candIter != "^")
                 {
                     return false;
                 }
 
-                i++;
-                j++;
+                candIter++;
             }
 
-            std::vector<std::string> remaining;
-            for (int k = j; k < subMap[symb].size(); k++)
-            {
-                remaining.push_back(subMap[symb][k]);
-            }
+            std::list<std::string> remaining = {j, subMap[symb].end()};
 
-            if (j != subMap[symb].size() && mangle(remaining) != candidateTypeVec[i])
+            if (j != subMap[symb].end() && mangle(remaining) != *candIter)
             {
                 for (auto newSymb : remaining)
                 {
-                    if (i >= candidateTypeVec.size())
+                    if (candIter == candidateTypeVec.end())
                     {
                         return false;
                     }
 
-                    if (candidateTypeVec[i] != newSymb)
+                    if (*candIter != newSymb)
                     {
                         return false;
                     }
 
-                    i++;
+                    candIter++;
                 }
             }
             else
             {
-                i++;
+                candIter++;
             }
         }
     }
@@ -115,12 +130,12 @@ bool checkTypeVec(const std::vector<std::string> &candidateTypeVec, const std::v
 }
 
 /*
-Takes a type and a vector of candidates. Returns true if the
+Takes a type and a list of candidates. Returns true if the
 type is a prefix of any of the candidates.
 */
-bool typeIsPrefixOfAny(const Type &t, const std::vector<MultiTableSymbol> &candidates)
+bool typeIsPrefixOfAny(const Type &t, const std::list<MultiTableSymbol> &candidates)
 {
-    std::vector<bool> isViable;
+    std::list<bool> isViable;
     for (int i = 0; i < candidates.size(); i++)
     {
         isViable.push_back(true);
@@ -130,18 +145,22 @@ bool typeIsPrefixOfAny(const Type &t, const std::vector<MultiTableSymbol> &candi
     for (int i = 0; i < t.size(); i++)
     {
         // Iterate over candidates
-        for (int candIndex = 0; candIndex < isViable.size(); candIndex++)
+
+        auto candIter = candidates.begin();
+        auto viableIter = isViable.begin();
+
+        for (; candIter != candidates.end() && viableIter != isViable.end(); candIter++, viableIter++)
         {
-            if (!isViable[candIndex])
+            if (!*viableIter)
             {
                 continue;
             }
 
             // Do checking here
-            if (candidates[candIndex].type[i].info != var_name && t[i].info != var_name &&
-                !(candidates[candIndex].type[i].info == t[i].info && candidates[candIndex].type[i].name == t[i].name))
+            if (candIter->type[i].info != var_name && t[i].info != var_name &&
+                !(candIter->type[i].info == t[i].info && candIter->type[i].name == t[i].name))
             {
-                isViable[candIndex] = false;
+                *viableIter = false;
             }
         }
     }
@@ -158,27 +177,37 @@ bool typeIsPrefixOfAny(const Type &t, const std::vector<MultiTableSymbol> &candi
 }
 
 // Returns true if two instances are the same
-bool checkInstances(const std::vector<std::vector<std::string>> &a, const std::vector<std::vector<std::string>> &b)
+bool checkInstances(const std::list<std::list<std::string>> &a, const std::list<std::list<std::string>> &b)
 {
     if (a.size() != b.size())
     {
         return false;
     }
 
+    auto l = a.begin();
+    auto r = b.begin();
     for (int i = 0; i < a.size(); i++)
     {
-        if (a[i].size() != b[i].size())
+        if (l->size() != r->size())
         {
             return false;
         }
 
-        for (int j = 0; j < a[i].size(); j++)
+        auto ll = l->begin();
+        auto rr = r->begin();
+        for (int j = 0; j < l->size(); j++)
         {
-            if (a[i][j] != b[i][j])
+            if (*ll != *rr)
             {
                 return false;
             }
+
+            ll++;
+            rr++;
         }
+
+        l++;
+        r++;
     }
 
     return true;
@@ -187,34 +216,40 @@ bool checkInstances(const std::vector<std::vector<std::string>> &a, const std::v
 // Skips all error checking; DO NOT FEED THIS THINGS THAT MAY ALREADY HAVE INSTANCES
 // Returns true if it was successful
 std::string __instantiateGeneric(const std::string &what, GenericInfo &info,
-                                 const std::vector<std::vector<std::string>> &genericSubs, AcornSettings &settings)
+                                 const std::list<std::list<std::string>> &genericSubs, AcornSettings &settings)
 {
     // Build substitution table
-    std::map<std::string, std::vector<std::string>> substitutions;
+    std::map<std::string, std::list<std::string>> substitutions;
+
+    auto l = info.genericNames.begin();
+    auto r = genericSubs.begin();
+
     for (int i = 0; i < genericSubs.size(); i++)
     {
-        substitutions[info.genericNames[i]] = genericSubs[i];
+        substitutions[*l] = *r;
+
+        l++;
+        r++;
     }
 
-    std::vector<Token> copy;
+    std::list<Token> copy;
 
     // Needs block (pre, so no functions)
     if (info.preBlock.size() != 0)
     {
         // Create copy of pre block
-        copy.reserve(info.preBlock.size());
         copy.assign(info.preBlock.begin(), info.preBlock.end());
 
         // Iterate and mangle pre block
-        for (int i = 0; i < copy.size(); i++)
+        for (auto i = copy.begin(); i != copy.end(); i++)
         {
-            if (substitutions.count(copy[i]) != 0)
+            if (substitutions.count(*i) != 0)
             {
-                std::string temp = copy[i];
-                copy.erase(copy.begin() + i);
+                std::string temp = *i;
+                i = copy.erase(i);
                 for (auto s : substitutions[temp])
                 {
-                    copy.insert(copy.begin() + i, s);
+                    i = copy.insert(i, s);
                     i++;
                 }
             }
@@ -258,19 +293,18 @@ std::string __instantiateGeneric(const std::string &what, GenericInfo &info,
         copy.clear();
 
         // Create copy of post block
-        copy.reserve(info.postBlock.size());
         copy.assign(info.postBlock.begin(), info.postBlock.end());
 
         // Iterate and mangle post block
-        for (int i = 0; i < copy.size(); i++)
+        for (auto i = copy.begin(); i != copy.end(); i++)
         {
-            if (substitutions.count(copy[i]) != 0)
+            if (substitutions.count(*i) != 0)
             {
-                std::string temp = copy[i];
-                copy.erase(copy.begin() + i);
+                std::string temp = *i;
+                i = copy.erase(i);
                 for (auto s : substitutions[temp])
                 {
-                    copy.insert(copy.begin() + i, s);
+                    i = copy.insert(i, s);
                     i++;
                 }
             }
@@ -291,15 +325,15 @@ std::string __instantiateGeneric(const std::string &what, GenericInfo &info,
     return "";
 }
 
-std::string instantiateGeneric(const std::string &what, const std::vector<std::vector<std::string>> &genericSubs,
-                               const std::vector<std::string> &typeVec, AcornSettings &settings)
+std::string instantiateGeneric(const std::string &what, const std::list<std::list<std::string>> &genericSubs,
+                               const std::list<std::string> &typeVec, AcornSettings &settings)
 {
     // Get mangled version (only meaningful for struct instantiations)
     std::string oldCurFile = settings.curFile;
     int oldCurLine = settings.curLine;
 
     std::string mangleStr = mangleStruct(what, genericSubs);
-    std::vector<std::string> errors;
+    std::list<std::string> errors;
 
     bool didInstantiate = false;
 
@@ -420,7 +454,7 @@ std::string instantiateGeneric(const std::string &what, const std::vector<std::v
 
         std::cout << "Against:\n\n";
 
-        int i = 0;
+        auto it = errors.begin();
         for (auto item : settings.generics[what])
         {
             std::cout << what << " w/ type ";
@@ -428,9 +462,9 @@ std::string instantiateGeneric(const std::string &what, const std::vector<std::v
             {
                 std::cout << b << ' ';
             }
-            std::cout << '\n' << "Failed with error:\n\t" << (i < errors.size() ? errors[i] : "Unknown error") << '\n';
+            std::cout << '\n' << "Failed with error:\n\t" << (it != errors.end() ? *it : "Unknown error") << '\n';
 
-            i++;
+            it++;
         }
 
         std::cout << tags::reset;
@@ -442,9 +476,9 @@ std::string instantiateGeneric(const std::string &what, const std::vector<std::v
     return mangleStr;
 }
 
-void addGeneric(const std::vector<Token> &what, const std::string &name, const std::vector<std::string> &genericsList,
-                const std::vector<std::string> &typeVec, const std::vector<Token> &preBlock,
-                const std::vector<Token> &postBlock, AcornSettings &settings)
+void addGeneric(const std::list<Token> &what, const std::string &name, const std::list<std::string> &genericsList,
+                const std::list<std::string> &typeVec, const std::list<Token> &preBlock,
+                const std::list<Token> &postBlock, AcornSettings &settings)
 {
     GenericInfo toAdd;
     toAdd.originFile = settings.curFile;
@@ -459,16 +493,9 @@ void addGeneric(const std::vector<Token> &what, const std::string &name, const s
         toAdd.genericNames.push_back(a);
     }
 
-    toAdd.symbols.reserve(what.size());
     toAdd.symbols.assign(what.begin(), what.end());
-
-    toAdd.preBlock.reserve(preBlock.size());
     toAdd.preBlock.assign(preBlock.begin(), preBlock.end());
-
-    toAdd.postBlock.reserve(postBlock.size());
     toAdd.postBlock.assign(postBlock.begin(), postBlock.end());
-
-    toAdd.typeVec.reserve(typeVec.size());
     toAdd.typeVec.assign(typeVec.begin(), typeVec.end());
 
     // ENSURE IT DOESN'T ALREADY EXIST HERE; If it does, return w/o error
@@ -478,13 +505,20 @@ void addGeneric(const std::vector<Token> &what, const std::string &name, const s
         if (candidate.genericNames.size() == genericsList.size())
         {
             bool matchesCandidate = true;
-            for (int j = 0; j < candidate.typeVec.size(); j++)
+
+            auto l = candidate.typeVec.begin();
+            auto r = toAdd.typeVec.begin();
+
+            while (l != candidate.typeVec.end())
             {
-                if (candidate.typeVec[j] != toAdd.typeVec[j])
+                if (*l != *r)
                 {
                     matchesCandidate = false;
                     break;
                 }
+
+                l++;
+                r++;
             }
 
             if (matchesCandidate)
@@ -514,6 +548,7 @@ void addGeneric(const std::vector<Token> &what, const std::string &name, const s
 
 void printGenericDumpInfo(std::ostream &file, AcornSettings &settings)
 {
+    int i = 0;
     for (auto p : settings.generics)
     {
         file << "Identifier: '" << p.first << "'\n";
@@ -522,59 +557,74 @@ void printGenericDumpInfo(std::ostream &file, AcornSettings &settings)
         for (auto cand : p.second)
         {
             file << '\t' << p.first << "<";
-            for (int i = 0; i < cand.genericNames.size(); i++)
+            i = 0;
+            for (auto it : cand.genericNames)
             {
-                file << cand.genericNames[i];
+                file << it;
 
                 if (i + 1 < cand.genericNames.size())
                 {
                     file << ", ";
                 }
+
+                i++;
             }
             file << ">\n";
 
-            file << "\t\tType Vector:";
-            for (int i = 0; i < cand.typeVec.size(); i++)
+            file << "\t\tType list:";
+            i = 0;
+            for (auto it : cand.typeVec)
             {
                 if (i % 10 == 0)
                 {
                     file << "\n\t\t\t";
                 }
 
-                file << cand.typeVec[i] << ' ';
+                file << it << ' ';
+
+                i++;
             }
 
             file << '\n' << "\t\tContents:";
-            for (int i = 0; i < cand.symbols.size(); i++)
+            i = 0;
+            for (auto it : cand.symbols)
             {
                 if (i % 10 == 0)
                 {
                     file << "\n\t\t\t";
                 }
 
-                file << cand.symbols[i].text << ' ';
+                file << it.text << ' ';
+
+                i++;
             }
 
             file << '\n' << "\t\tPre block:";
-            for (int i = 0; i < cand.preBlock.size(); i++)
+            i = 0;
+            for (auto it : cand.preBlock)
             {
                 if (i % 10 == 0)
                 {
                     file << "\n\t\t\t";
                 }
 
-                file << cand.preBlock[i].text << ' ';
+                file << it.text << ' ';
+
+                i++;
             }
 
             file << '\n' << "\t\tPost block:";
-            for (int i = 0; i < cand.postBlock.size(); i++)
+            i = 0;
+            for (auto it : cand.postBlock)
             {
                 if (i % 10 == 0)
                 {
                     file << "\n\t\t\t";
                 }
 
-                file << cand.postBlock[i].text << ' ';
+                file << it.text << ' ';
+
+                i++;
             }
 
             file << '\n' << "\t\tInstances:\n";
@@ -582,22 +632,14 @@ void printGenericDumpInfo(std::ostream &file, AcornSettings &settings)
             {
                 file << "\t\t\t" << p.first << "<";
 
-                for (int vIndex = 0; vIndex < inst.size(); vIndex++)
+                for (auto v : inst)
                 {
-                    for (int iIndex = 0; iIndex < inst[vIndex].size(); iIndex++)
+                    for (auto vi : v)
                     {
-                        file << inst[vIndex][iIndex];
-
-                        if (iIndex + 1 < inst[vIndex].size())
-                        {
-                            file << ' ';
-                        }
+                        file << vi << ' ';
                     }
 
-                    if (vIndex + 1 < inst.size())
-                    {
-                        file << ", ";
-                    }
+                    file << ", ";
                 }
 
                 file << ">\n";

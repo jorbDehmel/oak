@@ -29,7 +29,6 @@ jdehmel@outlook.com
 #include <map>
 #include <set>
 #include <string>
-#include <vector>
 
 #include "lexer.hpp"
 #include "oakc_structs.hpp"
@@ -286,7 +285,7 @@ struct AcornSettings
     std::map<std::string, EnumLookupData> enumData;
 
     // Lists the order in which structs and enums were created.
-    std::vector<std::string> structOrder;
+    std::list<std::string> structOrder;
 
     // The symbol table. Holds every instance of a type within
     // the program.
@@ -299,17 +298,17 @@ struct AcornSettings
     std::string curFile = "NULL";
 
     // The tokens in the current line. Used for debugging.
-    std::vector<Token> curLineSymbols;
+    std::list<Token> curLineSymbols;
 
     std::vector<std::string> activeRules;
     std::vector<std::string> dialectRules;
     bool dialectLock = false;
-    std::map<std::string, std::vector<std::string>> bundles;
+    std::map<std::string, std::list<std::string>> bundles;
     bool doRuleLogFile = false;
     std::ofstream ruleLogFile;
 
     std::map<std::string, Rule> rules;
-    std::map<std::string, void (*)(std::vector<Token> &, int &, Rule &, AcornSettings &)> engines;
+    std::map<std::string, void (*)(std::list<Token> &, std::list<Token>::iterator &, Rule &, AcornSettings &)> engines;
 
     // The set of all macros for which an executable version
     // already exists. If a macro is not present here, it will
@@ -344,7 +343,7 @@ struct AcornSettings
     std::map<std::pair<unsigned long long, std::string>, std::string> toStrCTypeCache;
     std::map<std::string, std::string> toStrCEnumCache;
     std::map<unsigned long long, Type> getReturnTypeCache;
-    std::map<unsigned long long, std::vector<std::pair<std::string, Type>>> cache;
+    std::map<unsigned long long, std::list<std::pair<std::string, Type>>> cache;
 
     // The local command to install a system package.
     std::string installCommand = "";

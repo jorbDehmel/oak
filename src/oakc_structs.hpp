@@ -32,7 +32,6 @@ jdehmel@outlook.com
 #include <map>
 #include <sstream>
 #include <string>
-#include <vector>
 
 #include "lexer.hpp"
 
@@ -98,12 +97,12 @@ struct Rule
 // instantiate.
 struct GenericInfo
 {
-    std::vector<std::string> typeVec;
+    std::list<std::string> typeVec;
     std::string originFile;
-    std::vector<Token> symbols;
-    std::vector<Token> preBlock, postBlock;
-    std::vector<std::string> genericNames;
-    std::vector<std::vector<std::vector<std::string>>> instances;
+    std::list<Token> symbols;
+    std::list<Token> preBlock, postBlock;
+    std::list<std::string> genericNames;
+    std::list<std::list<std::list<std::string>>> instances;
 };
 
 // Holds information about an installed package.
@@ -182,21 +181,18 @@ class Type
 
     const size_t size() const;
 
-    // Not const, but does not modify ID
-    void reserve(const unsigned long long &to);
-
     TypeNode &operator[](const int &index) const;
 
     unsigned long long ID;
 
-    std::vector<TypeNode> internal;
+    std::list<TypeNode> internal;
 };
 
 // An entry in the struct symbol table.
 struct StructLookupData
 {
     std::map<std::string, Type> members;
-    std::vector<std::string> order;
+    std::list<std::string> order;
 
     bool erased = false;
 };
@@ -205,7 +201,7 @@ struct StructLookupData
 struct EnumLookupData
 {
     std::map<std::string, Type> options;
-    std::vector<std::string> order;
+    std::list<std::string> order;
 
     bool erased = false;
 };
@@ -216,7 +212,7 @@ struct EnumLookupData
 struct ASTNode
 {
     Type type;
-    std::vector<ASTNode> items;
+    std::list<ASTNode> items;
     SequenceInfo info = code_line;
     std::string raw; // If needed
 };
@@ -233,7 +229,7 @@ struct MultiTableSymbol
 };
 
 // Alias for the symbol table.
-typedef std::map<std::string, std::vector<MultiTableSymbol>> MultiSymbolTable;
+typedef std::map<std::string, std::list<MultiTableSymbol>> MultiSymbolTable;
 
 // The null type, used for comparisons.
 const static Type nullType = {atomic, "NULL"};

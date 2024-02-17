@@ -70,7 +70,7 @@ int main(const int argc, const char *argv[])
         fs::create_directory(".oak_build");
     }
 
-    std::vector<std::string> files;
+    std::list<std::string> files;
     std::string out = "a.out";
 
     AcornSettings settings;
@@ -78,7 +78,7 @@ int main(const int argc, const char *argv[])
     try
     {
         // Argument parsing
-        std::vector<std::string> filesToAdd;
+        std::list<std::string> filesToAdd;
         for (int i = 1; i < argc; i++)
         {
             std::string cur = argv[i];
@@ -696,7 +696,8 @@ int main(const int argc, const char *argv[])
 
         if (settings.curLineSymbols.size() != 0)
         {
-            std::cout << "\t(" << settings.curLineSymbols[0].file << ":" << settings.curLineSymbols[0].line << ")\n";
+            std::cout << "\t(" << settings.curLineSymbols.front().file << ":" << settings.curLineSymbols.front().line
+                      << ")\n";
 
             std::cout << tags::violet_bold << "In code line: `";
 
@@ -882,7 +883,7 @@ int main(const int argc, const char *argv[])
         std::ifstream file;
         std::string line;
         std::set<std::string> files;
-        std::vector<std::string> failed;
+        std::list<std::string> failed;
 
         // Get all files to run
         fs::create_directory(".oak_build");

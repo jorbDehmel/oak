@@ -43,7 +43,7 @@ docs: README.md docs/manual.md docs/source_code_guidelines.md
 .PHONY:	test_clean
 test_clean:
 	acorn -e
-	rm */*.log ; rm */*.tlog ; rm *.log ; rm *.tlog ; rm *.out
+	rm */*.log ; rm */*.tlog ; rm *.log ; rm *.tlog ; rm *.out ; rm */a.out
 
 .PHONY: clean
 clean:

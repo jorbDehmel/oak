@@ -17,6 +17,116 @@ GPLv3 held by author
 #include <string>
 #include <unistd.h>
 
+// Returns true if and only if (it + offset) == compareTo.
+// Runs in O(offset), unfortunately, so only use for small
+// offsets. If it is too close to the beginning or end of
+// `inside`, will return false,
+bool itCmp(const std::list<Token> &inside, const std::list<Token>::iterator &it, const int &offset,
+           const Token &compareTo) noexcept
+{
+    auto temp = it;
+
+    if (offset > 0)
+    {
+        for (int i = 0; i < offset; i++)
+        {
+            temp++;
+
+            if (temp == inside.end())
+            {
+                return false;
+            }
+        }
+    }
+    else
+    {
+        for (int i = 0; i < -offset; i++)
+        {
+            if (temp == inside.begin())
+            {
+                return false;
+            }
+
+            temp--;
+        }
+    }
+
+    return *temp == compareTo;
+}
+
+bool itCmp(const std::list<Token> &inside, const std::list<Token>::iterator &it, const int &offset,
+           const std::string &compareTo) noexcept
+{
+    return itCmp(inside, it, offset, Token(compareTo));
+}
+
+// Returns true if the given iterator is in range.
+bool itIsInRange(const std::list<Token> &inside, const std::list<Token>::iterator &it, const int &offset) noexcept
+{
+    auto temp = it;
+
+    if (offset > 0)
+    {
+        for (int i = 0; i < offset; i++)
+        {
+            temp++;
+
+            if (temp == inside.end())
+            {
+                return false;
+            }
+        }
+    }
+    else
+    {
+        for (int i = 0; i < -offset; i++)
+        {
+            if (temp == inside.begin())
+            {
+                return false;
+            }
+
+            temp--;
+        }
+    }
+
+    return true;
+}
+
+// Returns the token at the given offset, or a null token if
+// it is out of range.
+Token itGet(const std::list<Token> &inside, const std::list<Token>::iterator &it, const int &offset) noexcept
+{
+    auto temp = it;
+
+    if (offset > 0)
+    {
+        for (int i = 0; i < offset; i++)
+        {
+            temp++;
+
+            if (temp == inside.end())
+            {
+                return Token("");
+            }
+        }
+    }
+    else
+    {
+        for (int i = 0; i < -offset; i++)
+        {
+            if (temp == inside.begin())
+            {
+                return Token("");
+            }
+
+            temp--;
+        }
+    }
+
+    return *temp;
+}
+
 std::string execute(const std::string &command)
 {
     std::string output = "";
@@ -59,7 +169,7 @@ std::string execute(const std::string &command)
     return output;
 }
 
-void generate(const std::vector<std::string> &Files, const std::string &Output)
+void generate(const std::list<std::string> &Files, const std::string &Output)
 {
     if (Files.size() == 0)
     {
@@ -340,7 +450,7 @@ void compileMacro(const std::string &Name, AcornSettings &settings)
     return;
 }
 
-std::string callMacro(const std::string &Name, const std::vector<std::string> &Args, AcornSettings &settings)
+std::string callMacro(const std::string &Name, const std::list<std::string> &Args, AcornSettings &settings)
 {
     if (settings.compiled.count(Name) == 0)
     {
@@ -402,14 +512,14 @@ std::string callMacro(const std::string &Name, const std::vector<std::string> &A
     return out;
 }
 
-std::string mangleStruct(const std::string &name, const std::vector<std::vector<std::string>> &generics)
+std::string mangleStruct(const std::string &name, const std::list<std::list<std::string>> &generics)
 {
     if (generics.size() == 0)
     {
         return name;
     }
 
-    std::vector<std::string> outputParts;
+    std::list<std::string> outputParts;
     outputParts.push_back(name);
 
     if (generics.size() != 0)
@@ -435,27 +545,30 @@ std::string mangleStruct(const std::string &name, const std::vector<std::vector<
     }
 
     std::string out;
-    for (int i = 0; i < outputParts.size(); i++)
+    int i = 0;
+    for (auto it = outputParts.begin(); it != outputParts.end(); it++)
     {
-        out += outputParts[i];
+        out += *it;
 
         if (i + 1 < outputParts.size())
         {
             out += "_";
         }
+
+        i++;
     }
 
     return out;
 }
 
-std::string mangleEnum(const std::string &name, const std::vector<std::vector<std::string>> &generics)
+std::string mangleEnum(const std::string &name, const std::list<std::list<std::string>> &generics)
 {
     return mangleStruct(name, generics);
 }
 
 std::string mangleType(const Type &type)
 {
-    std::vector<std::string> outputParts;
+    std::list<std::string> outputParts;
 
     for (int i = 0; i < type.size(); i++)
     {
@@ -488,14 +601,17 @@ std::string mangleType(const Type &type)
     }
 
     std::string out;
-    for (int i = 0; i < outputParts.size(); i++)
+    int i = 0;
+    for (auto it = outputParts.begin(); it != outputParts.end(); it++)
     {
-        out += outputParts[i];
+        out += *it;
 
         if (i + 1 < outputParts.size())
         {
             out += "_";
         }
+
+        i++;
     }
 
     return out;
@@ -519,9 +635,9 @@ std::string mangleSymb(const std::string &name, const std::string &typeStr)
     }
 }
 
-std::string mangle(const std::vector<std::string> &what)
+std::string mangle(const std::list<std::string> &what)
 {
-    std::vector<std::string> outputParts;
+    std::list<std::string> outputParts;
 
     for (auto s : what)
     {
@@ -577,14 +693,17 @@ std::string mangle(const std::vector<std::string> &what)
     }
 
     std::string out;
-    for (int i = 0; i < outputParts.size(); i++)
+    int i = 0;
+    for (auto it = outputParts.begin(); it != outputParts.end(); it++)
     {
-        out += outputParts[i];
+        out += *it;
 
         if (i + 1 < outputParts.size())
         {
             out += "_";
         }
+
+        i++;
     }
 
     return out;
@@ -600,7 +719,7 @@ ASTNode getAllocSequence(Type &type, const std::string &name, AcornSettings &set
     out.type = nullType;
 
     // name = (type *)malloc(len * sizeof(type));
-    out.items.push_back(ASTNode{nullType, std::vector<ASTNode>(), atom,
+    out.items.push_back(ASTNode{nullType, std::list<ASTNode>(), atom,
                                 name + " = (" + toStrC(&type, settings) + " *)malloc(sizeof(" +
                                     toStrC(&type, settings) + ") * " + num + ")"});
 
@@ -614,7 +733,7 @@ ASTNode getFreeSequence(const std::string &name, AcornSettings &settings)
     out.type = nullType;
     out.items.clear();
 
-    out.items.push_back(ASTNode{nullType, std::vector<ASTNode>(), atom, "free(" + name + ")"});
+    out.items.push_back(ASTNode{nullType, std::list<ASTNode>(), atom, "free(" + name + ")"});
 
     return out;
 }
@@ -682,10 +801,9 @@ in the original table. However, skips all functions.
 If not contradicted by the above rules, bases off of
 the current table (not backup).
 */
-std::vector<std::pair<std::string, std::string>> restoreSymbolTable(MultiSymbolTable &backup,
-                                                                    MultiSymbolTable &realTable)
+std::list<std::pair<std::string, std::string>> restoreSymbolTable(MultiSymbolTable &backup, MultiSymbolTable &realTable)
 {
-    std::vector<std::pair<std::string, std::string>> out;
+    std::list<std::pair<std::string, std::string>> out;
 
     MultiSymbolTable newTable;
     for (auto p : realTable)

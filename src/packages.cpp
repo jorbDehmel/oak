@@ -517,7 +517,7 @@ void downloadPackage(const std::string &URLArg, AcornSettings &settings, const b
     return;
 }
 
-std::vector<std::string> getPackageFiles(const std::string &Name, AcornSettings &settings)
+std::list<std::string> getPackageFiles(const std::string &Name, AcornSettings &settings)
 {
     // If package is not already loaded
     if (settings.packages.count(Name) == 0)
@@ -536,7 +536,7 @@ std::vector<std::string> getPackageFiles(const std::string &Name, AcornSettings 
 
     // Loaded and installed
     PackageInfo info = settings.packages[Name];
-    std::vector<std::string> out;
+    std::list<std::string> out;
     std::string cur, toSplit = info.toInclude;
 
     for (int i = 0; i < toSplit.size(); i++)

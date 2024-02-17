@@ -15,7 +15,7 @@ void sm_assert(const bool &expression, const std::string &message)
     }
 }
 
-Type toType(const std::vector<std::string> &What, AcornSettings &settings)
+Type toType(const std::list<std::string> &What, AcornSettings &settings)
 {
     Token templ;
     templ.file = settings.curFile;
@@ -23,8 +23,7 @@ Type toType(const std::vector<std::string> &What, AcornSettings &settings)
     templ.pos = 0;
     templ.state = alpha_state;
 
-    std::vector<Token> temp;
-    temp.reserve(What.size());
+    std::list<Token> temp;
 
     for (const auto &item : What)
     {
@@ -35,14 +34,14 @@ Type toType(const std::vector<std::string> &What, AcornSettings &settings)
 }
 
 // Converts lexed symbols into a type
-Type toType(const std::vector<Token> &WhatIn, AcornSettings &settings)
+Type toType(const std::list<Token> &WhatIn, AcornSettings &settings)
 {
     if (WhatIn.size() == 0)
     {
         return Type(atomic, "NULL");
     }
 
-    std::vector<Token> What;
+    std::list<Token> What;
     for (Token s : WhatIn)
     {
         What.push_back(s);
@@ -82,8 +81,8 @@ Type toType(const std::vector<Token> &WhatIn, AcornSettings &settings)
             // Append to back
 
             // Collect generics
-            std::vector<std::string> curGen;
-            std::vector<std::vector<std::string>> generics;
+            std::list<std::string> curGen;
+            std::list<std::list<std::string>> generics;
             int count = 0;
             do
             {
@@ -133,7 +132,7 @@ Type toType(const std::vector<Token> &WhatIn, AcornSettings &settings)
             i--;
 
             // At this point, will only ever be a struct
-            std::vector<std::string> temp;
+            std::list<std::string> temp;
             temp.push_back("struct");
 
             out[out.size() - 1].name = instantiateGeneric(out[out.size() - 1].name, generics, temp, settings);
@@ -219,7 +218,7 @@ Type toType(const std::vector<Token> &WhatIn, AcornSettings &settings)
     return out;
 }
 
-void toCInternal(const ASTNode &What, std::vector<std::string> &out, AcornSettings &settings)
+void toCInternal(const ASTNode &What, std::list<std::string> &out, AcornSettings &settings)
 {
     std::string temp;
 
@@ -309,7 +308,7 @@ void toCInternal(const ASTNode &What, std::vector<std::string> &out, AcornSettin
 
             sm_assert(settings.enumData.count(typeStr) != 0,
                       "'match' may only be used on enums, not '" + typeStr + "'");
-            std::vector<std::string> options = settings.enumData[typeStr].order;
+            std::list<std::string> options = settings.enumData[typeStr].order;
 
             std::map<std::string, bool> usedOptions;
             for (auto opt : settings.enumData[typeStr].order)
@@ -459,7 +458,7 @@ void toCInternal(const ASTNode &What, std::vector<std::string> &out, AcornSettin
 // Turn a .oak sequence into a .c one
 std::string toC(const ASTNode &What, AcornSettings &settings)
 {
-    std::vector<std::string> out;
+    std::list<std::string> out;
     toCInternal(What, out, settings);
 
     int size = 0;
@@ -521,7 +520,7 @@ Type getReturnType(const Type &T, AcornSettings &settings)
     return T;
 }
 
-std::vector<std::pair<std::string, Type>> getArgs(Type &type, AcornSettings &settings)
+std::list<std::pair<std::string, Type>> getArgs(Type &type, AcornSettings &settings)
 {
     // Check cache for existing value
     if (settings.cache.count(type.ID) != 0)
@@ -531,7 +530,7 @@ std::vector<std::pair<std::string, Type>> getArgs(Type &type, AcornSettings &set
 
     // Get everything between final function and maps
     // For the case of function pointers, all variable names will be the unit string
-    std::vector<std::pair<std::string, Type>> out;
+    std::list<std::pair<std::string, Type>> out;
     std::string curName = "";
     Type curType = nullType;
     int count = 0;
@@ -641,7 +640,7 @@ std::vector<std::pair<std::string, Type>> getArgs(Type &type, AcornSettings &set
 }
 
 // Can throw errors (IE malformed definitions)
-void addStruct(const std::vector<Token> &From, AcornSettings &settings)
+void addStruct(const std::list<Token> &From, AcornSettings &settings)
 {
     // Assert the expression can be properly-formed
     parse_assert(From.size() >= 4);
@@ -655,8 +654,8 @@ void addStruct(const std::vector<Token> &From, AcornSettings &settings)
     std::string name = From[i];
 
     // Scrape generics here (and mangle)
-    std::vector<std::vector<std::string>> generics;
-    std::vector<std::string> curGen;
+    std::list<std::list<std::string>> generics;
+    std::list<std::string> curGen;
 
     i++;
     int count = 0;
@@ -735,7 +734,7 @@ void addStruct(const std::vector<Token> &From, AcornSettings &settings)
         {
             // name : type ,
             // name , name2 , name3 : type < std::string , hi > , name4 : type2 ,
-            std::vector<Token> names, lexedType;
+            std::list<Token> names, lexedType;
 
             while (i + 1 < From.size() && From[i + 1] == ",")
             {
@@ -753,7 +752,7 @@ void addStruct(const std::vector<Token> &From, AcornSettings &settings)
 
             // Get lexed type (can be multiple symbols due to templating)
             int templCount = 0;
-            std::vector<std::string> genericHolder;
+            std::list<std::string> genericHolder;
 
             while (i < From.size() && !(templCount == 0 && From[i] == ","))
             {
@@ -796,7 +795,7 @@ void addStruct(const std::vector<Token> &From, AcornSettings &settings)
                 settings.structData[name].order.push_back(varName);
 
                 // Add semicolon
-                settings.table["New"].back().seq.items.push_back(ASTNode{nullType, std::vector<ASTNode>(), atom, ";"});
+                settings.table["New"].back().seq.items.push_back(ASTNode{nullType, std::list<ASTNode>(), atom, ";"});
 
                 ASTNode toAppend;
                 toAppend.info = atom;
@@ -816,7 +815,7 @@ void addStruct(const std::vector<Token> &From, AcornSettings &settings)
 }
 
 // Can throw errors (IE malformed definitions)
-void addEnum(const std::vector<Token> &From, AcornSettings &settings)
+void addEnum(const std::list<Token> &From, AcornSettings &settings)
 {
     // Assert the expression can be properly-formed
     parse_assert(From.size() >= 4);
@@ -833,8 +832,8 @@ void addEnum(const std::vector<Token> &From, AcornSettings &settings)
     parse_assert(i < From.size());
 
     // Scrape generics here (and mangle)
-    std::vector<std::string> curGen;
-    std::vector<std::vector<std::string>> generics;
+    std::list<std::string> curGen;
+    std::list<std::list<std::string>> generics;
 
     int count = 0;
     while (i < From.size() && From[i] != ":" && From[i] != "{")
@@ -912,8 +911,8 @@ void addEnum(const std::vector<Token> &From, AcornSettings &settings)
         {
             // name : type ,
             // name , name2 , name3 : type < string , hi > , name4 : type2 ,
-            std::vector<std::string> names;
-            std::vector<Token> lexedType;
+            std::list<std::string> names;
+            std::list<Token> lexedType;
 
             while (i + 1 < From.size() && From[i + 1] == ",")
             {
@@ -931,7 +930,7 @@ void addEnum(const std::vector<Token> &From, AcornSettings &settings)
 
             // Get lexed type (can be multiple symbols due to templating)
             int templCount = 0;
-            std::vector<std::string> genericHolder;
+            std::list<std::string> genericHolder;
 
             while (i < From.size() && !(templCount == 0 && From[i] == ","))
             {
@@ -1029,11 +1028,12 @@ void addEnum(const std::vector<Token> &From, AcornSettings &settings)
 }
 
 // Dump data to file
-void dump(const std::vector<Token> &Lexed, const std::string &Where, const std::string &FileName, const int &Line,
-          const ASTNode &FileSeq, const std::vector<Token> LexedBackup, const std::string &ErrorMsg,
+void dump(const std::list<Token> &Lexed, const std::string &Where, const std::string &FileName, const int &Line,
+          const ASTNode &FileSeq, const std::list<Token> LexedBackup, const std::string &ErrorMsg,
           AcornSettings &settings)
 {
-    std::string sep = "";
+    std::string sep;
+    sep.reserve(50);
     for (int i = 0; i < 50; i++)
     {
         sep += '-';
@@ -1204,9 +1204,9 @@ void dump(const std::vector<Token> &Lexed, const std::string &Where, const std::
 ////////////////////////////////////////////////////////////////
 
 // Get all candidates which match exactly.
-std::vector<int> getExactCandidates(const std::vector<std::vector<Type>> &candArgs, const std::vector<Type> &argTypes)
+std::list<int> getExactCandidates(const std::list<std::list<Type>> &candArgs, const std::list<Type> &argTypes)
 {
-    std::vector<int> out;
+    std::list<int> out;
     bool isMatch;
 
     // Check for exact match for each candidate
@@ -1240,9 +1240,9 @@ std::vector<int> getExactCandidates(const std::vector<std::vector<Type>> &candAr
 }
 
 // Get all candidates which match with implicit casting.
-std::vector<int> getCastingCandidates(const std::vector<std::vector<Type>> &candArgs, const std::vector<Type> &argTypes)
+std::list<int> getCastingCandidates(const std::list<std::list<Type>> &candArgs, const std::list<Type> &argTypes)
 {
-    std::vector<int> out;
+    std::list<int> out;
     bool isMatch;
 
     // Min number of conversions
@@ -1304,10 +1304,9 @@ std::vector<int> getCastingCandidates(const std::vector<std::vector<Type>> &cand
 
 // Get all candidates which match with auto referencing and/or
 // dereferencing.
-std::vector<int> getReferenceCandidates(const std::vector<std::vector<Type>> &candArgs,
-                                        const std::vector<Type> &argTypes)
+std::list<int> getReferenceCandidates(const std::list<std::list<Type>> &candArgs, const std::list<Type> &argTypes)
 {
-    std::vector<int> out;
+    std::list<int> out;
     bool isMatch;
     int min = 999, iOfMin = 0, cur;
 
@@ -1367,12 +1366,12 @@ std::vector<int> getReferenceCandidates(const std::vector<std::vector<Type>> &ca
 ////////////////////////////////////////////////////////////////
 
 // Prints the reason why each candidate was rejected
-void printCandidateErrors(const std::vector<MultiTableSymbol> &candidates, const std::vector<Type> &argTypes,
+void printCandidateErrors(const std::list<MultiTableSymbol> &candidates, const std::list<Type> &argTypes,
                           const std::string &name, AcornSettings &settings)
 {
     std::cout << "--------------------------------------------------\n";
 
-    std::vector<std::vector<Type>> candArgs;
+    std::list<std::list<Type>> candArgs;
     for (auto item : candidates)
     {
         Type curType = item.type;
@@ -1382,7 +1381,7 @@ void printCandidateErrors(const std::vector<MultiTableSymbol> &candidates, const
         }
 
         auto args = getArgs(item.type, settings);
-        candArgs.push_back(std::vector<Type>());
+        candArgs.push_back(std::list<Type>());
 
         for (auto arg : args)
         {
@@ -1670,8 +1669,7 @@ std::string getMemberDel(const std::string &selfName, const std::string &varName
 }
 
 // Returns an item to insert before a given sequence
-std::string insertDestructorsRecursive(ASTNode &what,
-                                       const std::vector<std::pair<std::string, std::string>> &destructors,
+std::string insertDestructorsRecursive(ASTNode &what, const std::list<std::pair<std::string, std::string>> &destructors,
                                        AcornSettings &settings)
 {
     if ((what.info == code_line || what.info == atom) && what.type != nullType)
@@ -1728,7 +1726,7 @@ std::string insertDestructorsRecursive(ASTNode &what,
             {
                 // Insert the thing returned
 
-                what.items.insert(what.items.begin() + i, ASTNode{nullType, std::vector<ASTNode>(), atom, out});
+                what.items.insert(what.items.begin() + i, ASTNode{nullType, std::list<ASTNode>(), atom, out});
                 i++;
             }
         }
@@ -1742,7 +1740,7 @@ std::string insertDestructorsRecursive(ASTNode &what,
 // Insert destructors before any return statement that DOES NOT return the item in question
 // Recursive
 // Will only be called upon exiting a function
-void insertDestructors(ASTNode &what, const std::vector<std::pair<std::string, std::string>> &destructors,
+void insertDestructors(ASTNode &what, const std::list<std::pair<std::string, std::string>> &destructors,
                        AcornSettings &settings)
 {
     insertDestructorsRecursive(what, destructors, settings);

@@ -12,16 +12,16 @@ GPLv3 held by author
 // The current depth of createSequence
 unsigned long long int depth = 0;
 
-// Internal consumptive version: Erases from std::vector, so not safe for frontend
+// Internal consumptive version: Erases from std::list, so not safe for frontend
 ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings);
 
-ASTNode createSequence(const std::vector<Token> &From, AcornSettings &settings)
+ASTNode createSequence(const std::list<Token> &From, AcornSettings &settings)
 {
     // Clone to feed into the consumptive version
     std::list<Token> temp;
     temp.assign(From.begin(), From.end());
 
-    std::vector<ASTNode> out;
+    std::list<ASTNode> out;
 
     // Feed to consumptive version
     while (!temp.empty())
@@ -56,7 +56,7 @@ ASTNode createSequence(const std::vector<Token> &From, AcornSettings &settings)
     }
 }
 
-// Internal consumptive version: Erases from std::vector, so not safe for frontend
+// Internal consumptive version: Erases from std::list, so not safe for frontend
 ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
 {
     ASTNode out;
@@ -96,13 +96,13 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
     else if (From.front() == "let")
     {
         // Get name
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        sm_assert(!From.empty(), "Cannot pop from front of empty list.");
         From.pop_front(); // let
         sm_assert(!From.empty(), "'let' must be followed by something.");
 
-        std::vector<std::string> names = {From.front()};
+        std::list<std::string> names = {From.front()};
 
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        sm_assert(!From.empty(), "Cannot pop from front of empty list.");
         From.pop_front();
 
         // Handle plural definitions
@@ -113,12 +113,12 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
             sm_assert(!From.empty(), "Ill-formed 'let' statement: Name must follow ','");
             names.push_back(From.front());
 
-            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+            sm_assert(!From.empty(), "Cannot pop from front of empty list.");
             From.pop_front();
         }
 
         // Gather templating if there is any
-        std::vector<std::string> generics;
+        std::list<std::string> generics;
         while (From.front() == "<")
         {
             int count = 0;
@@ -152,7 +152,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
         // Get type
         if (From.front() == ":")
         {
-            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+            sm_assert(!From.empty(), "Cannot pop from front of empty list.");
             From.pop_front();
 
             if (!From.empty() && (From.front() == "struct" || From.front() == "enum"))
@@ -163,7 +163,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
 
                     // sm_assert(depth == 0, "Structs and enums may only be declared in the global scope.");
 
-                    std::vector<Token> toAdd = {Token("let"), Token("NAME_HERE")};
+                    std::list<Token> toAdd = {Token("let"), Token("NAME_HERE")};
 
                     // Add generics back in here
                     if (generics.size() != 0)
@@ -184,13 +184,13 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                     {
                         toAdd.push_back(From.front());
 
-                        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                        sm_assert(!From.empty(), "Cannot pop from front of empty list.");
                         From.pop_front();
                     }
 
                     toAdd.push_back(From.front());
 
-                    sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                    sm_assert(!From.empty(), "Cannot pop from front of empty list.");
                     From.pop_front();
 
                     bool exempt = false;
@@ -225,7 +225,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                     else
                     {
                         // Check for needs / inst block here
-                        std::vector<Token> preBlock, postBlock;
+                        std::list<Token> preBlock, postBlock;
 
                         while (!From.empty() && (From.front() == "pre" || From.front() == "post"))
                         {
@@ -318,7 +318,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                 sm_assert(generics.empty(), "Variable declaration must not be templated.");
 
                 // Scrape entire definition for this
-                std::vector<Token> toAdd = {
+                std::list<Token> toAdd = {
                     Token("let"),
                     Token("NAME_HERE"),
                     Token(":"),
@@ -330,8 +330,8 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                     {
                         // Case for type!() macro
 
-                        // Scrape entire type!(what) call to a std::vector
-                        std::vector<Token> toAnalyze;
+                        // Scrape entire type!(what) call to a std::list
+                        std::list<Token> toAnalyze;
                         int count = 0;
 
                         From.pop_front();
@@ -358,12 +358,12 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                         std::string junk = "";
                         int pos = 0;
 
-                        // Analyze type of std::vector
+                        // Analyze type of std::list
                         Type type = resolveFunction(toAnalyze, pos, junk, settings);
 
                         // Convert type to lexed std::string vec
                         Lexer dfa_lexer;
-                        std::vector<Token> lexedType = dfa_lexer.lex(toStr(&type));
+                        std::list<Token> lexedType = dfa_lexer.lex(toStr(&type));
 
                         // Push lexed vec to front of From
                         for (auto iter = lexedType.rbegin(); iter != lexedType.rend(); iter++)
@@ -375,7 +375,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                     }
 
                     toAdd.push_back(From.front());
-                    sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                    sm_assert(!From.empty(), "Cannot pop from front of empty list.");
                     From.pop_front();
 
                     if (!From.empty() && From.front() == "=")
@@ -403,20 +403,20 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                               "Variable name conflicts w/ existing enum name '" + name + "'");
                     sm_assert(checkLiteral(name) == nullType, "Variable name cannot be a valid literal.");
 
-                    out.items.push_back(ASTNode{nullType, std::vector<ASTNode>(), atom, toStrC(&type, settings, name)});
-                    out.items.push_back(ASTNode{nullType, std::vector<ASTNode>(), atom, ";"});
+                    out.items.push_back(ASTNode{nullType, std::list<ASTNode>(), atom, toStrC(&type, settings, name)});
+                    out.items.push_back(ASTNode{nullType, std::list<ASTNode>(), atom, ";"});
 
                     // Insert into table
-                    settings.table[name].push_back(MultiTableSymbol{ASTNode{type, std::vector<ASTNode>(), atom, ""},
-                                                                    type, false, settings.curFile});
+                    settings.table[name].push_back(
+                        MultiTableSymbol{ASTNode{type, std::list<ASTNode>(), atom, ""}, type, false, settings.curFile});
 
                     // Call constructor (pointers do not get constructors)
                     if (type[0].info != pointer && type[0].info != arr && type[0].info != sarr)
                     {
                         // Syntactically necessary
-                        out.items.push_back(ASTNode{nullType, std::vector<ASTNode>(), atom, ";"});
+                        out.items.push_back(ASTNode{nullType, std::list<ASTNode>(), atom, ";"});
 
-                        std::vector<Token> newCall = {Token("New"), Token("("), Token("@"), Token(name), Token(")")};
+                        std::list<Token> newCall = {Token("New"), Token("("), Token("@"), Token(name), Token(")")};
                         int garbage = 0;
 
                         ASTNode toAppend;
@@ -426,7 +426,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                         out.items.push_back(toAppend);
 
                         // Syntactically necessary
-                        out.items.push_back(ASTNode{nullType, std::vector<ASTNode>(), atom, ";"});
+                        out.items.push_back(ASTNode{nullType, std::list<ASTNode>(), atom, ";"});
                     }
                     else if (type[0].info != sarr)
                     {
@@ -462,11 +462,11 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
             if (generics.size() == 0)
             {
                 // Arguments
-                std::vector<Token> argList;
+                std::list<Token> argList;
                 do
                 {
                     argList.push_back(From.front());
-                    sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                    sm_assert(!From.empty(), "Cannot pop from front of empty list.");
                     From.pop_front();
                 } while (From.front() != "{" && From.front() != ";");
 
@@ -595,7 +595,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                             {
                                 // Add semicolon
                                 settings.table["New"].back().seq.items.push_back(
-                                    ASTNode{nullType, std::vector<ASTNode>(), atom, ";"});
+                                    ASTNode{nullType, std::list<ASTNode>(), atom, ";"});
 
                                 ASTNode toAppend;
                                 toAppend.info = atom;
@@ -632,7 +632,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                             {
                                 // Add semicolon
                                 settings.table["Del"].back().seq.items.push_back(
-                                    ASTNode{nullType, std::vector<ASTNode>(), atom, ";"});
+                                    ASTNode{nullType, std::list<ASTNode>(), atom, ";"});
 
                                 ASTNode toAppend;
                                 toAppend.info = atom;
@@ -667,8 +667,8 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
             {
                 // Templated function definition
 
-                std::vector<Token> returnType, toAdd = {Token("let"), Token("NAME_HERE")};
-                std::vector<std::string> typeVec;
+                std::list<Token> returnType, toAdd = {Token("let"), Token("NAME_HERE")};
+                std::list<std::string> typeVec;
 
                 while (From.front() != "->")
                 {
@@ -711,7 +711,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                 } while (count != 0);
 
                 // Check for needs / inst block here
-                std::vector<Token> preBlock, postBlock;
+                std::list<Token> preBlock, postBlock;
 
                 while (!From.empty() && (From.front() == "pre" || From.front() == "post"))
                 {
@@ -808,7 +808,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
         if (From.front() == "erase!")
         {
             int count = 0;
-            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+            sm_assert(!From.empty(), "Cannot pop from front of empty list.");
             From.pop_front();
             std::list<std::string> contents;
 
@@ -831,7 +831,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                     }
                 }
 
-                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                sm_assert(!From.empty(), "Cannot pop from front of empty list.");
                 From.pop_front();
             } while (!From.empty() && count != 0);
 
@@ -884,7 +884,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
             std::cout << settings.curFile << ":" << settings.curLine << ":c_print! ";
 
             int count = 0;
-            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+            sm_assert(!From.empty(), "Cannot pop from front of empty list.");
             From.pop_front();
 
             do
@@ -904,7 +904,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                     std::cout << cleanMacroArgument(cur) << " ";
                 }
 
-                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                sm_assert(!From.empty(), "Cannot pop from front of empty list.");
                 From.pop_front();
 
             } while (!From.empty() && count != 0);
@@ -918,7 +918,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
             std::string message = settings.curFile + ":" + std::to_string(settings.curLine) + ":c_panic! ";
 
             int count = 0;
-            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+            sm_assert(!From.empty(), "Cannot pop from front of empty list.");
             From.pop_front();
 
             do
@@ -937,7 +937,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                     message += cleanMacroArgument(From.front()) + " ";
                 }
 
-                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                sm_assert(!From.empty(), "Cannot pop from front of empty list.");
                 From.pop_front();
             } while (!From.empty() && count != 0);
 
@@ -950,7 +950,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
             std::string message = settings.curFile + ":" + std::to_string(settings.curLine) + ":c_warn! ";
 
             int count = 0;
-            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+            sm_assert(!From.empty(), "Cannot pop from front of empty list.");
             From.pop_front();
 
             do
@@ -969,7 +969,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                     message += cleanMacroArgument(From.front()) + " ";
                 }
 
-                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                sm_assert(!From.empty(), "Cannot pop from front of empty list.");
                 From.pop_front();
             } while (!From.empty() && count != 0);
 
@@ -985,7 +985,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
 
             std::string command;
             int count = 0;
-            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+            sm_assert(!From.empty(), "Cannot pop from front of empty list.");
             From.pop_front();
 
             do
@@ -1009,7 +1009,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                     command += cleanMacroArgument(From.front());
                 }
 
-                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                sm_assert(!From.empty(), "Cannot pop from front of empty list.");
                 From.pop_front();
             } while (!From.empty() && count != 0);
 
@@ -1031,7 +1031,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
         else if (From.front() == "alloc!")
         {
             int count = 0;
-            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+            sm_assert(!From.empty(), "Cannot pop from front of empty list.");
             From.pop_front();
             std::list<Token> contents;
 
@@ -1051,7 +1051,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                     contents.push_back(From.front());
                 }
 
-                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                sm_assert(!From.empty(), "Cannot pop from front of empty list.");
                 From.pop_front();
             } while (!From.empty() && count != 0);
 
@@ -1094,7 +1094,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
         else if (From.front() == "free!")
         {
             int count = 0;
-            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+            sm_assert(!From.empty(), "Cannot pop from front of empty list.");
             From.pop_front();
             std::list<Token> contents;
 
@@ -1114,7 +1114,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                     contents.push_back(From.front());
                 }
 
-                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                sm_assert(!From.empty(), "Cannot pop from front of empty list.");
                 From.pop_front();
             } while (!From.empty() && count != 0);
 
@@ -1133,7 +1133,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
         else if (From.front() == "ptrcpy!")
         {
             int count = 0;
-            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+            sm_assert(!From.empty(), "Cannot pop from front of empty list.");
             From.pop_front();
             std::list<Token> contents;
 
@@ -1153,7 +1153,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                     contents.push_back(From.front());
                 }
 
-                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                sm_assert(!From.empty(), "Cannot pop from front of empty list.");
                 From.pop_front();
             } while (!From.empty() && count != 0);
 
@@ -1177,14 +1177,14 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
             out.type = nullType;
             out.items.clear();
 
-            out.items.push_back(ASTNode{nullType, std::vector<ASTNode>(), atom, lhs + " = (void*)(" + rhs + ")"});
+            out.items.push_back(ASTNode{nullType, std::list<ASTNode>(), atom, lhs + " = (void*)(" + rhs + ")"});
 
             return out;
         }
         else if (From.front() == "ptrarr!")
         {
             int count = 0;
-            sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+            sm_assert(!From.empty(), "Cannot pop from front of empty list.");
             From.pop_front();
             std::list<Token> contents;
 
@@ -1204,7 +1204,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                     contents.push_back(From.front());
                 }
 
-                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                sm_assert(!From.empty(), "Cannot pop from front of empty list.");
                 From.pop_front();
             } while (!From.empty() && count != 0);
 
@@ -1242,7 +1242,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
     // Misc key-characters
     else if (From.front() == ";")
     {
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        sm_assert(!From.empty(), "Cannot pop from front of empty list.");
         From.pop_front();
         auto toReturn = __createSequence(From, settings);
         toReturn.type = nullType;
@@ -1260,7 +1260,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
         out.raw = From.front();
         out.type = nullType;
 
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        sm_assert(!From.empty(), "Cannot pop from front of empty list.");
         From.pop_front();
 
         // Pops the first full sequence from the remaining front
@@ -1311,19 +1311,19 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
         out.raw = From.front();
         out.type = nullType;
 
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        sm_assert(!From.empty(), "Cannot pop from front of empty list.");
         From.pop_front();
 
         sm_assert(!From.empty(), "'case' must be followed by enumeration option name.");
-        out.items.push_back(ASTNode{nullType, std::vector<ASTNode>{}, atom, From.front()});
+        out.items.push_back(ASTNode{nullType, std::list<ASTNode>{}, atom, From.front()});
         std::string optionName = From.front();
 
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        sm_assert(!From.empty(), "Cannot pop from front of empty list.");
         From.pop_front();
 
         sm_assert(!From.empty() && From.front() == "(",
                   "Enumeration option must be followed by capture parenthesis (IE name(capture_here)).");
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        sm_assert(!From.empty(), "Cannot pop from front of empty list.");
         From.pop_front();
 
         sm_assert(!From.empty(), "Capture group is missing name or closing parenthesis.");
@@ -1332,7 +1332,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
         if (From.front() != ")")
         {
             captureName = From.front();
-            out.items.push_back(ASTNode{nullType, std::vector<ASTNode>{}, atom, From.front()});
+            out.items.push_back(ASTNode{nullType, std::list<ASTNode>{}, atom, From.front()});
             From.pop_front();
 
             settings.table[captureName].push_back(MultiTableSymbol{ASTNode{}, pointer, false, settings.curFile});
@@ -1342,12 +1342,12 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
         else
         {
             // Padding so that this spot will always refer to the capture variable
-            out.items.push_back(ASTNode{nullType, std::vector<ASTNode>{}, atom, "NULL"});
+            out.items.push_back(ASTNode{nullType, std::list<ASTNode>{}, atom, "NULL"});
         }
 
         sm_assert(!From.empty() && From.front() == ")", "Capture parenthesis must contain at most one symbol.");
 
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        sm_assert(!From.empty(), "Cannot pop from front of empty list.");
         From.pop_front();
 
         // Get actual code scope
@@ -1370,7 +1370,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
         out.raw = From.front();
         out.type = nullType;
 
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        sm_assert(!From.empty(), "Cannot pop from front of empty list.");
         From.pop_front();
 
         out.items.push_back(__createSequence(From, settings));
@@ -1386,7 +1386,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
         out.raw = From.front();
         out.type = nullType;
 
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        sm_assert(!From.empty(), "Cannot pop from front of empty list.");
         From.pop_front();
 
         // Pops the first full sequence from the remaining front
@@ -1406,7 +1406,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
         }
         else if (out.items.back().info == code_line)
         {
-            out.items.back().items.push_back(ASTNode{nullType, std::vector<ASTNode>(), atom, ";"});
+            out.items.back().items.push_back(ASTNode{nullType, std::list<ASTNode>(), atom, ";"});
         }
 
         return out;
@@ -1418,7 +1418,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
         out.raw = From.front();
         out.type = nullType;
 
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        sm_assert(!From.empty(), "Cannot pop from front of empty list.");
         From.pop_front();
 
         out.items.push_back(__createSequence(From, settings));
@@ -1430,9 +1430,9 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
         // Takes a code scope / code line
         out.info = code_line;
         out.type = nullType;
-        out.items.push_back(ASTNode{nullType, std::vector<ASTNode>(), keyword, "return"});
+        out.items.push_back(ASTNode{nullType, std::list<ASTNode>(), keyword, "return"});
 
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        sm_assert(!From.empty(), "Cannot pop from front of empty list.");
         From.pop_front();
 
         sm_assert(!From.empty() && From.front() != ";" && From.front() != "}",
@@ -1449,7 +1449,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
 
     else if (From.front() == "{")
     {
-        sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+        sm_assert(!From.empty(), "Cannot pop from front of empty list.");
         From.pop_front();
 
         // Save symbol table for later restoration
@@ -1479,7 +1479,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                 {
                     out.items.push_back(__createSequence(curVec, settings));
                     curVec.clear();
-                    sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                    sm_assert(!From.empty(), "Cannot pop from front of empty list.");
                     From.pop_front();
                     break;
                 }
@@ -1494,7 +1494,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                     curVec.clear();
                 }
 
-                sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                sm_assert(!From.empty(), "Cannot pop from front of empty list.");
                 From.pop_front();
             }
             else
@@ -1502,7 +1502,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                 if (!From.empty())
                 {
                     curVec.push_back(From.front());
-                    sm_assert(!From.empty(), "Cannot pop from front of empty vector.");
+                    sm_assert(!From.empty(), "Cannot pop from front of empty list.");
                     From.pop_front();
                 }
                 else
@@ -1524,7 +1524,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
         {
             for (const auto &p : destructors)
             {
-                out.items.push_back(ASTNode{nullType, std::vector<ASTNode>(), atom, p.second + ";"});
+                out.items.push_back(ASTNode{nullType, std::list<ASTNode>(), atom, p.second + ";"});
             }
         }
 
@@ -1563,7 +1563,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
 
     int i = 0;
 
-    std::vector<Token> tempVec;
+    std::list<Token> tempVec;
     for (auto i : From)
     {
         tempVec.push_back(i);
@@ -1593,7 +1593,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
 
 // This should only be called after method replacement
 // I know I wrote this, but it still feels like black magic and I don't really understand it
-Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::vector<std::string> &c,
+Type resolveFunctionInternal(const std::list<Token> &What, int &start, std::list<std::string> &c,
                              AcornSettings &settings)
 {
     if (What.empty() || start >= What.size())
@@ -1655,7 +1655,7 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
     // Parenthesis
     if (What[start] == "(")
     {
-        std::vector<Token> toUse;
+        std::list<Token> toUse;
         int count = 0;
         do
         {
@@ -1701,8 +1701,8 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
     {
         start++;
 
-        std::vector<std::string> curGen;
-        std::vector<std::vector<std::string>> generics;
+        std::list<std::string> curGen;
+        std::list<std::list<std::string>> generics;
         int count = 0;
         do
         {
@@ -1752,7 +1752,7 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
         // start--;
 
         // should leave w/ what[start] == ';'
-        std::vector<std::string> typeVec;
+        std::list<std::string> typeVec;
 
         while (start < What.size() && What[start] != ";")
         {
@@ -1784,7 +1784,7 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
     // Append literal C code, without interpretation from Oak
     if (What[start] == "raw_c!")
     {
-        // Scrape call to a std::vector
+        // Scrape call to a std::list
         int count = 0;
 
         start++;
@@ -1816,8 +1816,8 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
     {
         // Case for size!() macro
 
-        // Scrape entire size!(what) call to a std::vector
-        std::vector<Token> toAnalyze;
+        // Scrape entire size!(what) call to a std::list
+        std::list<Token> toAnalyze;
         int count = 0;
 
         start++;
@@ -1855,11 +1855,11 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
         return Type(atomic, "u128");
     }
 
-    else if (What[start].back() == '!')
+    else if (What[start].back() == '!' && What[start + 1] == "(")
     {
         // Otherwise unspecified macro
 
-        // Scrape entire call to a std::vector
+        // Scrape entire call to a std::list
         std::list<Token> toAnalyze = {Token(What[start]), Token("(")};
         int count = 0;
 
@@ -1896,8 +1896,8 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
     if (What.size() > start + 1 && What[start + 1] == "(")
     {
         // get args within parenthesis
-        std::vector<Token> curArg;
-        std::vector<std::vector<Token>> args;
+        std::list<Token> curArg;
+        std::list<std::list<Token>> args;
 
         int count = 0, templCount = 0;
         start++;
@@ -1960,9 +1960,9 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
             }
         }
 
-        std::vector<Type> argTypes;
-        std::vector<std::string> argStrs;
-        for (std::vector<Token> arg : args)
+        std::list<Type> argTypes;
+        std::list<std::string> argStrs;
+        for (std::list<Token> arg : args)
         {
             int trash = 0;
             std::string cur;
@@ -1998,10 +1998,10 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
             sm_assert(settings.table.count(name) != 0, "Function call '" + name + "' has no registered symbols.");
             sm_assert(settings.table[name].size() != 0, "Function call '" + name + "' has no registered symbols.");
 
-            std::vector<MultiTableSymbol> candidates = settings.table[name];
+            std::list<MultiTableSymbol> candidates = settings.table[name];
 
             // Construct candArgs
-            std::vector<std::vector<Type>> candArgs;
+            std::list<std::list<Type>> candArgs;
             for (auto item : candidates)
             {
                 Type curType = item.type;
@@ -2011,7 +2011,7 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
                 }
 
                 auto args = getArgs(item.type, settings);
-                candArgs.push_back(std::vector<Type>());
+                candArgs.push_back(std::list<Type>());
 
                 for (auto arg : args)
                 {
@@ -2024,7 +2024,7 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
                 }
             }
 
-            std::vector<int> validCandidates;
+            std::list<int> validCandidates;
 
             // Do stages of candidacy
             validCandidates = getExactCandidates(candArgs, argTypes);
@@ -2296,9 +2296,9 @@ Type resolveFunctionInternal(const std::vector<Token> &What, int &start, std::ve
     return type;
 }
 
-Type resolveFunction(const std::vector<Token> &What, int &start, std::string &c, AcornSettings &settings)
+Type resolveFunction(const std::list<Token> &What, int &start, std::string &c, AcornSettings &settings)
 {
-    std::vector<std::string> cVec;
+    std::list<std::string> cVec;
 
     if (c != "")
     {

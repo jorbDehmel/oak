@@ -15,7 +15,7 @@ OBJS := build/acorn_resources.o \
 HEADS := lexer.hpp oakc_fns.hpp oakc_structs.hpp options.hpp \
 	tags.hpp
 
-FLAGS := -pedantic -Wall -O3
+FLAGS := -pedantic -Wall -O3 -g
 
 TEST := acorn
 

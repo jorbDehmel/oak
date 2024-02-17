@@ -607,7 +607,16 @@ std::list<Token> Lexer::str_all(const std::string &from, const std::string &file
     return out;
 }
 
-std::vector<Token> Lexer::lex(const std::string &What, const std::string &filepath)
+// Antiquated version:
+// std::vector<Token> Lexer::lex(const std::string &What, const std::string &filepath)
+// {
+//     auto lexed = lex_list(What, filepath);
+//     std::vector<Token> out_vec;
+//     out_vec.assign(lexed.begin(), lexed.end());
+//     return out_vec;
+// }
+
+std::list<Token> Lexer::lex_list(const std::string &What, const std::string &filepath)
 {
     if (filepath != "")
     {
@@ -631,7 +640,5 @@ std::vector<Token> Lexer::lex(const std::string &What, const std::string &filepa
     join_bitshifts(out);
     join_strings(out);
 
-    std::vector<Token> out_vec;
-    out_vec.assign(out.begin(), out.end());
-    return out_vec;
+    return out;
 }

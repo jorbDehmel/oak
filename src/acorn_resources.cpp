@@ -7,12 +7,13 @@ GPLv3 held by author
 */
 
 #include "oakc_fns.hpp"
+#include "oakc_structs.hpp"
 #include "tags.hpp"
 
 // Prints the cumulative disk usage of Oak (in human-readable)
 void getDiskUsage()
 {
-    const std::vector<std::string> filesToCheck = {"/usr/bin/acorn", "/usr/include/oak"};
+    const std::list<std::string> filesToCheck = {"/usr/bin/acorn", "/usr/include/oak"};
     unsigned long long int totalKB = 0;
 
     for (std::string s : filesToCheck)
@@ -53,7 +54,7 @@ void doFile(const std::string &From, AcornSettings &settings)
     settings.curLine = 1;
     settings.curFile = From;
 
-    std::vector<Token> lexed, lexedCopy;
+    std::list<Token> lexed, lexedCopy;
 
     try
     {
@@ -157,7 +158,7 @@ void doFile(const std::string &From, AcornSettings &settings)
         }
 
         Lexer dfa_lexer;
-        lexed = dfa_lexer.lex(text, From);
+        lexed = dfa_lexer.lex_list(text, From);
         lexedCopy = lexed;
 
         if (settings.debug)
@@ -176,16 +177,21 @@ void doFile(const std::string &From, AcornSettings &settings)
             start = std::chrono::high_resolution_clock::now();
         }
 
-        for (int i = 1; i + 1 < lexed.size(); i++)
+        auto it = lexed.begin();
+        it++;
+
+        for (; itIsInRange(lexed, it, 1); it++)
         {
-            if (lexed[i].back() == '!' && lexed[i] != "!" && lexed[i - 1] == "let")
+            Token curTok = *it;
+
+            if (curTok.back() == '!' && curTok != "!" && itCmp(lexed, it, -1, "let"))
             {
-                if (lexed[i + 1] != "=")
+                if (!itCmp(lexed, it, 1, "="))
                 {
                     // Full macro
 
                     std::string name, contents;
-                    name = lexed[i];
+                    name = curTok;
 
                     // Safety checks
                     if (settings.preprocDefines.count(name) != 0)
@@ -199,42 +205,42 @@ void doFile(const std::string &From, AcornSettings &settings)
 
                     contents = "let main";
 
-                    i--;
-                    lexed.erase(lexed.begin() + i); // Let
-                    lexed.erase(lexed.begin() + i); // Name
+                    it--;
+                    it = lexed.erase(it); // Let
+                    it = lexed.erase(it); // Name
 
-                    while (lexed.size() >= i && lexed[i] != "{" && lexed[i] != ";")
+                    while (it != lexed.end() && *it != "{" && *it != ";")
                     {
-                        contents += " " + lexed[i].text;
-                        lexed.erase(lexed.begin() + i);
+                        contents += " " + it->text;
+                        it = lexed.erase(it);
                     }
 
                     int count = 1;
-                    lexed.erase(lexed.begin() + i);
+                    it = lexed.erase(it);
                     contents += "\n{";
 
                     while (count != 0)
                     {
-                        if (lexed[i] == "{")
+                        if (*it == "{")
                         {
                             count++;
                         }
-                        else if (lexed[i] == "}")
+                        else if (*it == "}")
                         {
                             count--;
                         }
 
-                        if (lexed[i].line == settings.curLine)
+                        if (it->line == settings.curLine)
                         {
-                            contents += " " + lexed[i].text;
+                            contents += " " + it->text;
                         }
                         else
                         {
-                            contents += "\n" + lexed[i].text;
-                            settings.curLine = lexed[i].line;
+                            contents += "\n" + it->text;
+                            settings.curLine = it->line;
                         }
 
-                        lexed.erase(lexed.begin() + i);
+                        it = lexed.erase(it);
                     }
 
                     // macros[name] = contents;
@@ -264,31 +270,34 @@ void doFile(const std::string &From, AcornSettings &settings)
                 start = std::chrono::high_resolution_clock::now();
             }
 
-            for (int i = 0; i < lexed.size(); i++)
+            for (auto it = lexed.begin(); it != lexed.end(); it++)
             {
-                if (lexed[i] != "!" && lexed[i].back() == '!')
+                Token curTok = *it;
+
+                if (*it != "!" && it->back() == '!' && itCmp(lexed, it, 1, "("))
                 {
                     // File handling / translation unit macros
-                    if (lexed[i] == "include!")
+                    if (*it == "include!")
                     {
-                        std::vector<std::string> args = getMacroArgs(lexed, i);
-
-                        // Clean arguments
-                        for (int j = 0; j < args.size(); j++)
+                        if (settings.debug)
                         {
-                            while (!args[j].empty() && (args[j].front() == '"' || args[j].front() == '\''))
-                            {
-                                args[j].erase(0, 1);
-                            }
-                            while (!args[j].empty() && (args[j].back() == '"' || args[j].back() == '\''))
-                            {
-                                args[j].pop_back();
-                            }
+                            std::cout << settings.debugTreePrefix << "`include!`\n";
                         }
 
-                        // global_end = std::chrono::high_resolution_clock::now();
-                        // elapsedms += std::chrono::duration_cast<std::chrono::milliseconds>(global_end -
-                        // global_start).count();
+                        std::list<std::string> args = getMacroArgs(lexed, it);
+
+                        // Clean arguments
+                        for (auto it = args.begin(); it != args.end(); it++)
+                        {
+                            while (!it->empty() && (it->front() == '"' || it->front() == '\''))
+                            {
+                                it->erase(0, 1);
+                            }
+                            while (!it->empty() && (it->back() == '"' || it->back() == '\''))
+                            {
+                                it->pop_back();
+                            }
+                        }
 
                         for (std::string a : args)
                         {
@@ -314,18 +323,21 @@ void doFile(const std::string &From, AcornSettings &settings)
                             }
                         }
 
-                        // global_start = std::chrono::high_resolution_clock::now();
-
-                        i--;
+                        it--;
                     }
-                    else if (lexed[i] == "link!")
+                    else if (*it == "link!")
                     {
-                        std::vector<std::string> args = getMacroArgs(lexed, i);
+                        if (settings.debug)
+                        {
+                            std::cout << settings.debugTreePrefix << "`link!`\n";
+                        }
+
+                        std::list<std::string> args = getMacroArgs(lexed, it);
 
                         // Clean arguments
-                        for (int j = 0; j < args.size(); j++)
+                        for (auto it = args.begin(); it != args.end(); it++)
                         {
-                            args[j] = cleanMacroArgument(args[j]);
+                            *it = cleanMacroArgument(*it);
                         }
 
                         for (std::string a : args)
@@ -351,22 +363,27 @@ void doFile(const std::string &From, AcornSettings &settings)
                                 settings.objects.insert(OAK_DIR_PATH + a);
                             }
                         }
-                        i--;
+                        it--;
                     }
-                    else if (lexed[i] == "flag!")
+                    else if (*it == "flag!")
                     {
-                        std::vector<std::string> args = getMacroArgs(lexed, i);
+                        if (settings.debug)
+                        {
+                            std::cout << settings.debugTreePrefix << "`flag!`\n";
+                        }
+
+                        std::list<std::string> args = getMacroArgs(lexed, it);
 
                         // Clean arguments
-                        for (int j = 0; j < args.size(); j++)
+                        for (auto it = args.begin(); it != args.end(); it++)
                         {
-                            while (!args[j].empty() && (args[j].front() == '"' || args[j].front() == '\''))
+                            while (!it->empty() && (it->front() == '"' || it->front() == '\''))
                             {
-                                args[j].erase(0, 1);
+                                it->erase(0, 1);
                             }
-                            while (!args[j].empty() && (args[j].back() == '"' || args[j].back() == '\''))
+                            while (!it->empty() && (it->back() == '"' || it->back() == '\''))
                             {
-                                args[j].pop_back();
+                                it->pop_back();
                             }
                         }
 
@@ -379,23 +396,28 @@ void doFile(const std::string &From, AcornSettings &settings)
 
                             settings.cflags.insert(a);
                         }
-                        i--;
+                        it--;
                     }
-                    else if (lexed[i] == "package!")
+                    else if (*it == "package!")
                     {
-                        std::vector<std::string> args = getMacroArgs(lexed, i);
-                        std::vector<std::string> files;
+                        if (settings.debug)
+                        {
+                            std::cout << settings.debugTreePrefix << "`package!`\n";
+                        }
+
+                        std::list<std::string> args = getMacroArgs(lexed, it);
+                        std::list<std::string> files;
 
                         // Clean arguments
-                        for (int j = 0; j < args.size(); j++)
+                        for (auto it = args.begin(); it != args.end(); it++)
                         {
-                            while (!args[j].empty() && (args[j].front() == '"' || args[j].front() == '\''))
+                            while (!it->empty() && (it->front() == '"' || it->front() == '\''))
                             {
-                                args[j].erase(0, 1);
+                                it->erase(0, 1);
                             }
-                            while (!args[j].empty() && (args[j].back() == '"' || args[j].back() == '\''))
+                            while (!it->empty() && (it->back() == '"' || it->back() == '\''))
                             {
-                                args[j].pop_back();
+                                it->pop_back();
                             }
                         }
 
@@ -414,23 +436,16 @@ void doFile(const std::string &From, AcornSettings &settings)
                                     std::cout << settings.debugTreePrefix << "Loading package file '" << f << "'...\n";
                                 }
 
-                                // Backup dialect rules; These do NOT
+                                // Backup dialect rules
                                 std::vector<std::string> backupDialectRules = settings.dialectRules;
                                 settings.dialectRules.clear();
 
-                                // global_end = std::chrono::high_resolution_clock::now();
-                                // elapsedms +=
-                                //     std::chrono::duration_cast<std::chrono::milliseconds>(global_end -
-                                //     global_start).count();
-
                                 doFile(f, settings);
-
-                                // global_start = std::chrono::high_resolution_clock::now();
 
                                 settings.dialectRules = backupDialectRules;
                             }
                         }
-                        i--;
+                        it--;
 
                         settings.dialectRules = backupDialectRules;
                     }
@@ -438,34 +453,34 @@ void doFile(const std::string &From, AcornSettings &settings)
                     {
                         // Non-compiler macro definition
                         // Nested stuff may be allowed within
-                        if (i > 0 && lexed[i - 1] == "let")
+                        if (it != lexed.begin() && itCmp(lexed, it, -1, "let"))
                         {
-                            while (lexed.size() >= i && lexed[i] != "{" && lexed[i] != ";")
+                            while (it != lexed.end() && *it != "{" && *it != ";")
                             {
-                                i++;
+                                it++;
                             }
 
-                            if (lexed[i] == ";")
+                            if (*it == ";")
                             {
-                                i++;
+                                it++;
                             }
                             else
                             {
                                 int count = 1;
-                                i++;
+                                it++;
 
                                 while (count != 0)
                                 {
-                                    if (lexed[i] == "{")
+                                    if (*it == "{")
                                     {
                                         count++;
                                     }
-                                    else if (lexed[i] == "}")
+                                    else if (*it == "}")
                                     {
                                         count--;
                                     }
 
-                                    i++;
+                                    it++;
                                 }
                             }
                         }
@@ -521,83 +536,81 @@ void doFile(const std::string &From, AcornSettings &settings)
             start = std::chrono::high_resolution_clock::now();
         }
 
-        for (int i = 0; i < lexed.size(); i++)
+        for (auto it = lexed.begin(); it != lexed.end(); it++)
         {
+            Token curTok = *it;
+
             // We can assume that no macro definitions remain
-            if (lexed[i] != "!" && lexed[i].back() == '!' && i + 1 < lexed.size() && lexed[i + 1] == "(")
+            if (*it != "!" && it->back() == '!' && itCmp(lexed, it, 1, "("))
             {
                 // Special cases: Memory macros
-                if (lexed[i] == "alloc!" || lexed[i] == "free!" || lexed[i] == "free_arr!")
+                if (*it == "alloc!" || *it == "free!" || *it == "free_arr!")
                 {
                     continue;
                 }
 
                 // Another special case: Erasure macro
-                else if (lexed[i] == "erase!")
+                else if (*it == "erase!")
                 {
                     continue;
                 }
 
                 // More special cases
-                else if (lexed[i] == "c_print!")
+                else if (*it == "c_print!")
                 {
                     continue;
                 }
-                else if (lexed[i] == "c_panic!")
+                else if (*it == "c_panic!")
                 {
                     continue;
                 }
-                else if (lexed[i] == "c_sys!")
+                else if (*it == "c_sys!")
                 {
                     continue;
                 }
-                else if (lexed[i] == "c_warn!")
+                else if (*it == "c_warn!")
                 {
                     continue;
                 }
 
                 // More special cases: Rule macros
-                else if (lexed[i] == "new_rule!" || lexed[i] == "use_rule!" || lexed[i] == "rem_rule!" ||
-                         lexed[i] == "bundle_rule!")
+                else if (*it == "new_rule!" || *it == "use_rule!" || *it == "rem_rule!" || *it == "bundle_rule!")
                 {
                     continue;
                 }
 
                 // Extra bonus special cases: Typing and sizing
-                else if (lexed[i] == "type!" || lexed[i] == "size!")
+                else if (*it == "type!" || *it == "size!")
                 {
                     continue;
                 }
 
                 // Raw C insertion
-                else if (lexed[i] == "raw_c!")
+                else if (*it == "raw_c!")
                 {
                     continue;
                 }
 
                 // Super secret special cases: Pointer manipulation
-                else if (lexed[i] == "ptrcpy!" || lexed[i] == "ptrarr!")
+                else if (*it == "ptrcpy!" || *it == "ptrarr!")
                 {
                     continue;
                 }
 
-                std::string name = lexed[i];
+                std::string name = *it;
 
                 // Erases all trace of the call in the process
-                std::vector<std::string> args = getMacroArgs(lexed, i);
+                std::list<std::string> args = getMacroArgs(lexed, it);
 
                 std::string output = callMacro(name, args, settings);
-                std::vector<Token> lexedOutput = dfa_lexer.lex(output, name);
+                std::list<Token> lexedOutput = dfa_lexer.lex_list(output, name);
 
                 // Reset preproc defs, as they tend to break w/ macros
                 settings.preprocDefines["prev_file!"] = (oldFile == "" ? "\"NULL\"" : ("\"" + oldFile + "\""));
                 settings.preprocDefines["file!"] = '"' + From + '"';
 
                 // Insert the new code
-                for (int j = lexedOutput.size() - 1; j >= 0; j--)
-                {
-                    lexed.insert(lexed.begin() + i, lexedOutput[j]);
-                }
+                it = lexed.insert(it, lexedOutput.begin(), lexedOutput.end());
 
                 // Since we do not change i, this new code will be scanned next.
             }
@@ -611,45 +624,53 @@ void doFile(const std::string &From, AcornSettings &settings)
         }
 
         // Preprocessor definition finding
-        for (int i = 1; i + 1 < lexed.size(); i++)
+        for (auto it = ++lexed.begin(); ++it != lexed.end();)
         {
-            if (lexed[i].back() == '!' && lexed[i] != "!" && lexed[i - 1] == "let")
+            Token curTok = *it;
+
+            if (it->back() == '!' && *it != "!" && itCmp(lexed, it, -1, "let"))
             {
-                if (lexed[i + 1] == "=")
+                if (itCmp(lexed, it, 1, "="))
                 {
                     // Preproc definition; Not a full macro
 
                     // Safety checks
-                    if (settings.preprocDefines.count(lexed[i]) != 0)
+                    if (settings.preprocDefines.count(*it) != 0)
                     {
-                        throw sequencing_error("Preprocessor definition '" + lexed[i].text + "' cannot be overridden.");
+                        throw sequencing_error("Preprocessor definition '" + it->text + "' cannot be overridden.");
                     }
-                    else if (hasMacro(lexed[i], settings))
+                    else if (hasMacro(*it, settings))
                     {
-                        throw sequencing_error("Preprocessor definition '" + lexed[i].text +
+                        throw sequencing_error("Preprocessor definition '" + it->text +
                                                "' cannot overwrite macro of same name.");
                     }
 
-                    std::string name = lexed[i];
+                    std::string name = *it;
 
                     // Erase as needed
-                    i--;
-                    lexed.erase(lexed.begin() + i); // Let
-                    lexed.erase(lexed.begin() + i); // Name!
-                    lexed.erase(lexed.begin() + i); // =
+                    it--;
+                    it = lexed.erase(it); // Let
+                    it = lexed.erase(it); // Name!
+                    it = lexed.erase(it); // =
 
                     // Scrape until next semicolon
                     std::string contents = "";
-                    while (lexed[i] != ";")
+                    while (*it != ";")
                     {
-                        contents.append(lexed[i]);
-                        lexed.erase(lexed.begin() + i);
+                        contents.append(*it);
+                        it = lexed.erase(it);
                     }
 
-                    lexed.erase(lexed.begin() + i); // ;
+                    it = lexed.erase(it); // ;
 
                     // Insert
                     settings.preprocDefines[name] = contents;
+                }
+                else if (!itCmp(lexed, it, 1, "("))
+                {
+                    throw sequencing_error("Error: `let NAME!` must be followed by `=` (preprocessor definition) or "
+                                           "`(` (macro definition). Instead, `" +
+                                           (++it)->text + "`.");
                 }
             }
         }
@@ -681,35 +702,34 @@ void doFile(const std::string &From, AcornSettings &settings)
             start = std::chrono::high_resolution_clock::now();
         }
 
-        for (int i = 0; i < lexed.size(); i++)
+        for (auto it = lexed.begin(); it != lexed.end(); it++)
         {
-            settings.preprocDefines["line!"] = std::to_string(lexed[i].line);
-            if (settings.preprocDefines.count(lexed[i]) != 0)
+            Token curTok = *it;
+
+            settings.preprocDefines["line!"] = std::to_string(it->line);
+            if (settings.preprocDefines.count(*it) != 0)
             {
-                std::vector<Token> lexedDef = dfa_lexer.lex(settings.preprocDefines[lexed[i]]);
-                lexed.erase(lexed.begin() + i);
+                std::list<Token> lexedDef = dfa_lexer.lex_list(settings.preprocDefines[*it]);
+                it = lexed.erase(it);
 
-                for (int j = lexedDef.size() - 1; j >= 0; j--)
-                {
-                    lexed.insert(lexed.begin() + i, lexedDef[j]);
-                }
+                it = lexed.insert(it, lexedDef.begin(), lexedDef.end());
 
-                i--;
+                it--;
             }
-            else if (lexed[i].size() > 1 && lexed[i].back() == '!' && (i + 1 >= lexed.size() || lexed[i + 1] != "("))
+            else if (it->size() > 1 && it->back() == '!' && !itCmp(lexed, it, 1, "("))
             {
-                throw sequencing_error("Unknown preprocessor definition '" + lexed[i].text + "'");
+                throw sequencing_error("Unknown preprocessor definition '" + it->text + "'");
             }
         }
 
         // Clean out any C keywords
-        for (int i = 0; i < lexed.size(); i++)
+        for (auto it = lexed.begin(); it != lexed.end(); it++)
         {
-            if (cKeywords.count(lexed[i]) != 0 && oakKeywords.count(lexed[i]) == 0)
+            if (cKeywords.count(*it) != 0 && oakKeywords.count(*it) == 0)
             {
                 // Is a c keyword but not an oak keyword: replace it.
                 // The `__KWA` suffix stands for `key word avoidance`.
-                lexed[i].text += "__KWA";
+                it->text += "__KWA";
             }
         }
 
@@ -787,8 +807,8 @@ void doFile(const std::string &From, AcornSettings &settings)
         std::cout << tags::red_bold << "Caught rule error '" << e.what() << "'\n" << tags::reset;
 
         std::string name = purifyStr(From) + ".oak.log";
-        std::cout << "Dump saved in " << name << "\n";
         dump(lexed, name, From, settings.curLine, ASTNode(), lexedCopy, e.what(), settings);
+        std::cout << "Dump saved in " << name << "\n";
 
         throw std::runtime_error("Failure in file '" + From + "': " + e.what());
     }
@@ -797,8 +817,8 @@ void doFile(const std::string &From, AcornSettings &settings)
         std::cout << tags::red_bold << "Caught sequencing error '" << e.what() << "'\n" << tags::reset;
 
         std::string name = purifyStr(From) + ".oak.log";
-        std::cout << "Dump saved in " << name << "\n";
         dump(lexed, name, From, settings.curLine, ASTNode(), lexedCopy, e.what(), settings);
+        std::cout << "Dump saved in " << name << "\n";
 
         throw std::runtime_error("Failure in file '" + From + "': " + e.what());
     }
@@ -807,8 +827,8 @@ void doFile(const std::string &From, AcornSettings &settings)
         std::cout << tags::red_bold << "Caught parse error '" << e.what() << "'\n" << tags::reset;
 
         std::string name = purifyStr(From) + ".oak.log";
-        std::cout << "Dump saved in " << name << "\n";
         dump(lexed, name, From, settings.curLine, ASTNode(), lexedCopy, e.what(), settings);
+        std::cout << "Dump saved in " << name << "\n";
 
         throw std::runtime_error("Failure in file '" + From + "': " + e.what());
     }
@@ -817,8 +837,8 @@ void doFile(const std::string &From, AcornSettings &settings)
         std::cout << tags::red_bold << "Caught package error '" << e.what() << "'\n" << tags::reset;
 
         std::string name = purifyStr(From) + ".oak.log";
-        std::cout << "Dump saved in " << name << "\n";
         dump(lexed, name, From, settings.curLine, ASTNode(), lexedCopy, e.what(), settings);
+        std::cout << "Dump saved in " << name << "\n";
 
         throw std::runtime_error("Failure in file '" + From + "': " + e.what());
     }
@@ -827,8 +847,8 @@ void doFile(const std::string &From, AcornSettings &settings)
         std::cout << tags::red_bold << "Caught generic error '" << e.what() << "'\n" << tags::reset;
 
         std::string name = purifyStr(From) + ".oak.log";
-        std::cout << "Dump saved in " << name << "\n";
         dump(lexed, name, From, settings.curLine, ASTNode(), lexedCopy, e.what(), settings);
+        std::cout << "Dump saved in " << name << "\n";
 
         throw std::runtime_error("Failure in file '" + From + "': " + e.what());
     }
@@ -837,8 +857,8 @@ void doFile(const std::string &From, AcornSettings &settings)
         std::cout << tags::red_bold << "Caught runtime error '" << e.what() << "'\n" << tags::reset;
 
         std::string name = purifyStr(From) + ".oak.log";
-        std::cout << "Dump saved in " << name << "\n";
         dump(lexed, name, From, settings.curLine, ASTNode(), lexedCopy, e.what(), settings);
+        std::cout << "Dump saved in " << name << "\n";
 
         throw std::runtime_error("Failure in file '" + From + "': " + e.what());
     }
@@ -847,16 +867,16 @@ void doFile(const std::string &From, AcornSettings &settings)
         std::cout << tags::red_bold << "Caught exception '" << e.what() << "'\n" << tags::reset;
 
         std::string name = purifyStr(From) + ".oak.log";
-        std::cout << "Dump saved in " << name << "\n";
         dump(lexed, name, From, settings.curLine, ASTNode(), lexedCopy, e.what(), settings);
+        std::cout << "Dump saved in " << name << "\n";
 
         throw std::runtime_error("Failure in file '" + From + "': " + e.what());
     }
     catch (...)
     {
         std::string name = purifyStr(From) + ".oak.log";
-        std::cout << "Dump saved in " << name << "\n";
         dump(lexed, name, From, settings.curLine, ASTNode(), lexedCopy, "Unknown failure.", settings);
+        std::cout << "Dump saved in " << name << "\n";
 
         throw std::runtime_error("Unknown failure in file '" + From + "'");
     }

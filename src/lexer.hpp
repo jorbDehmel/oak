@@ -226,8 +226,8 @@ class Lexer
     // Returns true when exhausted
     bool done() const noexcept;
 
-    // If an empty symbol is printed, it is a newline literal
-    std::vector<Token> lex(const std::string &What, const std::string &filepath = "");
+    // std::vector<Token> lex(const std::string &What, const std::string &filepath = "");
+    std::list<Token> lex_list(const std::string &What, const std::string &filepath = "");
 
   private:
     // Text handling members

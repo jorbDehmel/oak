@@ -11,11 +11,13 @@ and the ternary must be added via rules, if at all.
 */
 
 #include "oakc_fns.hpp"
+#include <iterator>
 
 // Moves pre and post to include the operands to a binary
 // operator
 // Assumes that pre = i - 1, post = i + 1, i = index of bin op
-void getOperands(std::vector<Token> &from, int &pre, int &post, const bool &useLine = false)
+void getOperands(std::list<Token> &from, std::list<Token>::iterator &pre, std::list<Token>::iterator &post,
+                 const bool &useLine = false)
 {
     int count = 0;
 
@@ -23,18 +25,18 @@ void getOperands(std::vector<Token> &from, int &pre, int &post, const bool &useL
     // operand
     do
     {
-        if (from[pre] == "(")
+        if (*pre == "(")
         {
             count++;
 
-            if (count == 0 && pre != 0 && operators.count(from[pre - 1]) == 0)
+            if (count == 0 && operators.count(itGet(from, pre, -1)) == 0)
             {
-                if (pre != 0 && operators.count(from[pre - 1]) == 0)
+                if (operators.count(itGet(from, pre, -1)) == 0)
                 {
                     // Is function call
                     pre--;
                 }
-                else if (from[pre - 1] == ">")
+                else if (itCmp(from, pre, -1, ">"))
                 {
                     // Possible templated function call
 
@@ -42,15 +44,22 @@ void getOperands(std::vector<Token> &from, int &pre, int &post, const bool &useL
                     // Else, not templating.
 
                     bool isTemplating = false;
-                    int i = pre - 2;
-                    while (i >= 0)
+                    auto i = pre;
+                    i--;
+
+                    if (i != from.begin())
                     {
-                        if (from[i] == ")" || from[i] == ";")
+                        i--;
+                    }
+
+                    while (i != from.begin())
+                    {
+                        if (*i == ")" || *i == ";")
                         {
                             isTemplating = false;
                             break;
                         }
-                        else if (from[i] == "<")
+                        else if (*i == "<")
                         {
                             isTemplating = true;
                             break;
@@ -66,21 +75,22 @@ void getOperands(std::vector<Token> &from, int &pre, int &post, const bool &useL
                 }
             }
         }
-        else if (from[pre] == ")")
+        else if (*pre == ")")
         {
             count--;
         }
 
         pre--;
-    } while (pre > 0 && count != 0);
+    } while (pre != from.begin() && count != 0);
     pre++;
 
     // Handle member access, refs and dereferences
-    while (pre >= 2 && from[pre - 1] == ".")
+    while (itCmp(from, pre, -1, "."))
     {
-        pre -= 2;
+        pre--;
+        pre--;
     }
-    while (pre > 0 && (from[pre - 1] == "^" || from[pre - 1] == "@"))
+    while (itCmp(from, pre, -1, "^") || itCmp(from, pre, -1, "@"))
     {
         pre--;
     }
@@ -89,7 +99,7 @@ void getOperands(std::vector<Token> &from, int &pre, int &post, const bool &useL
     // If useLine, increment until a semicolon.
     if (useLine)
     {
-        while (post < from.size() && from[post] != ";")
+        while (post != from.end() && *post != ";")
         {
             post++;
         }
@@ -99,16 +109,16 @@ void getOperands(std::vector<Token> &from, int &pre, int &post, const bool &useL
         count = 0;
         do
         {
-            if (from[post] == "(")
+            if (*post == "(")
             {
                 count++;
             }
-            else if (from[post] == ")")
+            else if (*post == ")")
             {
                 count--;
             }
 
-            while (post < from.size() && (from[post] == "^" || from[post] == "@"))
+            while (post != from.end() && (*post == "^" || *post == "@"))
             {
                 post++;
             }
@@ -116,7 +126,7 @@ void getOperands(std::vector<Token> &from, int &pre, int &post, const bool &useL
             if (count == 0)
             {
                 // Function call
-                if (operators.count(from[post]) == 0 && from[post + 1] == "(")
+                if (operators.count(*post) == 0 && itCmp(from, post, 1, "("))
                 {
                     post++;
                     count = 1;
@@ -124,12 +134,13 @@ void getOperands(std::vector<Token> &from, int &pre, int &post, const bool &useL
             }
 
             post++;
-        } while (post < from.size() && count != 0);
+        } while (post != from.end() && count != 0);
 
         // Member access, references and dereferences
-        while (post + 2 < from.size() && from[post] == ".")
+        while (itIsInRange(from, post, 2) && *post == ".")
         {
-            post += 2;
+            post++;
+            post++;
         }
     }
 
@@ -137,11 +148,14 @@ void getOperands(std::vector<Token> &from, int &pre, int &post, const bool &useL
 }
 
 // Substitute a single operation as identified
-void doSub(std::vector<Token> &from, int &pos, const std::string &name)
+void doSub(std::list<Token> &from, std::list<Token>::iterator &pos, const std::string &name)
 {
-    int pre = pos - 1, post = pos + 1;
+    auto pre = pos, post = pos;
+    pre--;
+    post++;
+
     bool fullLine = false;
-    std::vector<std::string> toAdd;
+    std::list<std::string> toAdd;
 
     if (name == "Copy" || (name != "Eq" && name.find("Eq") != std::string::npos))
     {
@@ -152,137 +166,119 @@ void doSub(std::vector<Token> &from, int &pos, const std::string &name)
     getOperands(from, pre, post, fullLine);
 
     // Reconstruct into valid output
-    toAdd.reserve(post - pre + 2);
+    auto start = pre, end = pos;
 
-    int start = pre, end = pos;
-    while (from[start] == "(" && from[end - 1] == ")")
+    while (itCmp(from, start, 0, "(") && itCmp(from, end, -1, ")"))
     {
         start++;
         end--;
     }
 
     toAdd = {name, "("};
-    for (int i = start; i < end; i++)
+    for (auto i = start; i != end; i++)
     {
-        toAdd.push_back(from[i]);
+        toAdd.push_back(*i);
     }
 
     toAdd.push_back(",");
 
-    start = pos + 1;
+    start = pos;
+    start++;
+
     end = post;
-    while (from[start] == "(" && from[end - 1] == ")")
+    while (itCmp(from, start, 0, "(") && itCmp(from, end, -1, ")"))
     {
         start++;
         end--;
     }
 
-    for (int i = start; i < end; i++)
+    for (auto i = start; i != end; i++)
     {
-        toAdd.push_back(from[i]);
+        toAdd.push_back(*i);
     }
     toAdd.push_back(")");
 
     // Erase old (all items pre <= i < post)
-    Token templ = from[pre];
-    for (int i = pre; i < post; i++)
+    Token templ = *pre; // Ensures line, file info are copied over
+    while (pre != post)
     {
-        from.erase(from.begin() + pre);
+        pre = from.erase(pre);
     }
 
     // Insert new
-    for (int j = toAdd.size() - 1; j >= 0; j--)
-    {
-        templ.text = toAdd[j];
-        from.insert(from.begin() + pre, templ);
-    }
+    pre = from.insert(pre, toAdd.begin(), toAdd.end());
 
+    pos = pre;
     pos--;
-    return;
 }
 
 // O(n)
 // These are some common rule-like token stream manipulations
 // which would be too hard (or perhaps impossible) to implement
 // with the rule system.
-void operatorSub(std::vector<Token> &From)
+void operatorSub(std::list<Token> &From)
 {
-    // Level -1: Method notation
-    // for (int i = 1; i + 2 < From.size(); i++)
-    // {
-    //     // _ . _ (
-
-    //     // a b c . d ( e f g )
-    //     // a b d ( c , e f g )
-
-    //     if (From[i] == "." && From[i + 2] == "(")
-    //     {
-    //         // Method call
-
-    //         // Identify left edge of call
-    //     }
-    // }
-
     // Level 1: Multiplication, division and modulo
-    for (int i = 0; i < From.size(); i++)
+    for (auto it = From.begin(); it != From.end(); it++)
     {
-        std::string cur = From[i];
+        std::string cur = it->text;
 
         if (cur == "*")
         {
-            doSub(From, i, "Mult");
+            doSub(From, it, "Mult");
         }
         else if (cur == "/")
         {
-            doSub(From, i, "Div");
+            doSub(From, it, "Div");
         }
         else if (cur == "%")
         {
-            doSub(From, i, "Mod");
+            doSub(From, it, "Mod");
         }
     }
 
     // Level 2: Addition and subtraction
-    for (int i = 0; i < From.size(); i++)
+    for (auto it = From.begin(); it != From.end(); it++)
     {
-        std::string cur = From[i];
+        std::string cur = *it;
+
         if (cur == "+")
         {
-            doSub(From, i, "Add");
+            doSub(From, it, "Add");
         }
         else if (cur == "-")
         {
-            doSub(From, i, "Sub");
+            doSub(From, it, "Sub");
         }
     }
 
     // Level 3: Bitwise
-    for (int i = 0; i < From.size(); i++)
+    for (auto it = From.begin(); it != From.end(); it++)
     {
-        std::string cur = From[i];
+        std::string cur = *it;
 
         if (cur == "<<")
         {
-            doSub(From, i, "Lbs");
+            doSub(From, it, "Lbs");
         }
         else if (cur == ">>")
         {
-            doSub(From, i, "Rbs");
+            doSub(From, it, "Rbs");
         }
         else if (cur == "&")
         {
-            doSub(From, i, "And");
+            doSub(From, it, "And");
         }
         else if (cur == "|")
         {
-            doSub(From, i, "Or");
+            doSub(From, it, "Or");
         }
     }
 
     // Level 4: Comparisons
-    for (int i = 0; i < From.size(); i++)
+    for (auto it = From.begin(); it != From.end(); it++)
     {
-        std::string cur = From[i];
+        std::string cur = *it;
 
         if (cur == "<")
         {
@@ -292,18 +288,18 @@ void operatorSub(std::vector<Token> &From)
             */
 
             bool isTemplating = false;
-            int j = i + 1;
+            auto j = it;
+            j++;
             int depth = 1;
 
-            // std::cout << "Scanning for templating:\n";
-            for (; j < From.size(); j++)
+            for (; j != From.end(); j++)
             {
-                if (From[j] == ";" || From[j] == ")")
+                if (*j == ";" || *j == ")")
                 {
                     isTemplating = false;
                     break;
                 }
-                else if (From[j] == ">")
+                else if (*j == ">")
                 {
                     depth--;
 
@@ -313,106 +309,95 @@ void operatorSub(std::vector<Token> &From)
                         break;
                     }
                 }
-                else if (From[j] == "<")
+                else if (*j == "<")
                 {
                     depth++;
                 }
-
-                // std::cout << From[j].text << ' ';
             }
-            // std::cout << '\n';
 
             if (isTemplating)
             {
-                i = j;
+                it = j;
             }
             else
             {
-                doSub(From, i, "Less");
+                doSub(From, it, "Less");
             }
         }
         else if (cur == ">")
         {
-            doSub(From, i, "Great");
+            doSub(From, it, "Great");
         }
 
         else if (cur == "<=")
         {
-            doSub(From, i, "Leq");
+            doSub(From, it, "Leq");
         }
         else if (cur == ">=")
         {
-            doSub(From, i, "Greq");
+            doSub(From, it, "Greq");
         }
         else if (cur == "==")
         {
-            doSub(From, i, "Eq");
+            doSub(From, it, "Eq");
         }
         else if (cur == "!=")
         {
-            doSub(From, i, "Neq");
+            doSub(From, it, "Neq");
         }
     }
 
     // Level 5: Booleans
-    for (int i = 0; i < From.size(); i++)
+    for (auto it = From.begin(); it != From.end(); it++)
     {
-        std::string cur = From[i];
+        std::string cur = *it;
 
         if (cur == "&&")
         {
-            doSub(From, i, "Andd");
+            doSub(From, it, "Andd");
         }
         else if (cur == "||")
         {
-            doSub(From, i, "Orr");
+            doSub(From, it, "Orr");
         }
     }
 
     // Level 6: Assignment
-    for (int i = 0; i < From.size(); i++)
+    for (auto it = From.begin(); it != From.end(); it++)
     {
-        std::string cur = From[i];
+        std::string cur = *it;
 
         if (cur == "=")
         {
-            doSub(From, i, "Copy");
+            doSub(From, it, "Copy");
         }
         else if (cur == "+=")
         {
-            doSub(From, i, "AddEq");
+            doSub(From, it, "AddEq");
         }
         else if (cur == "-=")
         {
-            doSub(From, i, "SubEq");
+            doSub(From, it, "SubEq");
         }
         else if (cur == "*=")
         {
-            doSub(From, i, "MultEq");
+            doSub(From, it, "MultEq");
         }
         else if (cur == "/=")
         {
-            doSub(From, i, "DivEq");
+            doSub(From, it, "DivEq");
         }
         else if (cur == "%=")
         {
-            doSub(From, i, "ModEq");
+            doSub(From, it, "ModEq");
         }
         else if (cur == "&=")
         {
-            doSub(From, i, "AndEq");
+            doSub(From, it, "AndEq");
         }
         else if (cur == "|=")
         {
-            doSub(From, i, "OrEq");
+            doSub(From, it, "OrEq");
         }
     }
-
-    // Level 7: Left unaries (negation, incrementation,
-    // decrementation)
-    // for (int i = 0; i < From.size(); i++)
-    // {
-    // }
-
-    return;
 }

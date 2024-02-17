@@ -8,11 +8,6 @@ jdehmel@outlook.com
 #include "oakc_structs.hpp"
 #include <string>
 
-// Externals
-// std::map<std::string, StructLookupData> structData;
-// std::map<std::string, EnumLookupData> enumData;
-// std::vector<std::string> structOrder;
-
 static unsigned long long currentID = 1;
 
 TypeNode &TypeNode::operator=(const TypeNode &other)
@@ -108,9 +103,9 @@ void Type::append(const TypeInfo &Info, const std::string &Name)
 
 void Type::append(const Type &Other)
 {
-    if (internal.size() == 1 && internal[0].info == atomic && internal[0].name == "NULL")
+    if (internal.size() == 1 && internal.front().info == atomic && internal.front().name == "NULL")
     {
-        internal[0] = Other.internal[0];
+        internal.front() = Other.internal.front();
     }
     else
     {
@@ -122,11 +117,6 @@ void Type::append(const Type &Other)
     ID = currentID++;
 
     return;
-}
-
-void Type::reserve(const unsigned long long &To)
-{
-    internal.reserve(To);
 }
 
 bool Type::operator==(const Type &Other) const

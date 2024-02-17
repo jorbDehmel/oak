@@ -31,11 +31,26 @@ jdehmel@outlook.com
 #include <iostream>
 #include <map>
 #include <string>
-#include <vector>
 
 #include <unistd.h>
 
 #include "options.hpp"
+
+// Returns true if and only if (it + offset) == compareTo.
+// Runs in O(offset), unfortunately, so only use for small
+// offsets. If it is too close to the beginning or end of
+// `inside`, will return false,
+bool itCmp(const std::list<Token> &inside, const std::list<Token>::iterator &it, const int &offset,
+           const Token &compareTo) noexcept;
+bool itCmp(const std::list<Token> &inside, const std::list<Token>::iterator &it, const int &offset,
+           const std::string &compareTo) noexcept;
+
+// Returns true if the given iterator is in range.
+bool itIsInRange(const std::list<Token> &inside, const std::list<Token>::iterator &it, const int &offset) noexcept;
+
+// Returns the token at the given offset, or a null token if
+// it is out of range.
+Token itGet(const std::list<Token> &inside, const std::list<Token>::iterator &it, const int &offset) noexcept;
 
 // Execute a given command and return the printed result.
 // Throws a runtime error if the return value is not 0.
@@ -61,19 +76,19 @@ void ensureSyntax(const std::string &text, const bool &fatal, const std::string 
 
 // Generate a single `.md` file from the given file(s). Saves at
 // the provided filepath.
-void generate(const std::vector<std::string> &files, const std::string &output);
+void generate(const std::list<std::string> &files, const std::string &output);
 
 // Can throw generic_error's if no viable options exist.
 // Ensure all items in genericSubs have been pre-mangled.
 // Returns the mangled version.
-std::string instantiateGeneric(const std::string &what, const std::vector<std::vector<std::string>> &genericSubs,
-                               const std::vector<std::string> &typeVec, AcornSettings &settings);
+std::string instantiateGeneric(const std::string &what, const std::list<std::list<std::string>> &genericSubs,
+                               const std::list<std::string> &typeVec, AcornSettings &settings);
 
 // Also holds the skeleton of the inst block system, although
 // gathering of these happens elsewhere.
-void addGeneric(const std::vector<Token> &what, const std::string &name, const std::vector<std::string> &genericsList,
-                const std::vector<std::string> &typeVec, const std::vector<Token> &preBlock,
-                const std::vector<Token> &postBlock, AcornSettings &settings);
+void addGeneric(const std::list<Token> &what, const std::string &name, const std::list<std::string> &genericsList,
+                const std::list<std::string> &typeVec, const std::list<Token> &preBlock,
+                const std::list<Token> &postBlock, AcornSettings &settings);
 
 // Print the info of all existing generics to a file stream
 void printGenericDumpInfo(std::ostream &file, AcornSettings &settings);
@@ -81,7 +96,7 @@ void printGenericDumpInfo(std::ostream &file, AcornSettings &settings);
 // USES SYSTEM CALLS. Ensures a given macro exists, then calls
 // it with the given arguments. If debug is true, specifies such
 // in the call.
-std::string callMacro(const std::string &Name, const std::vector<std::string> &Args, AcornSettings &settings);
+std::string callMacro(const std::string &Name, const std::list<std::string> &Args, AcornSettings &settings);
 
 // USES SYSTEM CALLS. If source code exists for `name` but it is
 // not yet compiled, calls another instance of the compiler on
@@ -105,15 +120,15 @@ bool hasMacro(const std::string &name, AcornSettings &settings) noexcept;
 void addMacro(const std::string &name, const std::string &contents, AcornSettings &settings);
 
 // Used for mangling and resolving generics pre-sequencing
-std::string mangle(const std::vector<std::string> &what);
+std::string mangle(const std::list<std::string> &what);
 
 // Mangle a struct, given its generic substitutions
-std::string mangleStruct(const std::string &name, const std::vector<std::vector<std::string>> &generics =
-                                                      std::vector<std::vector<std::string>>());
+std::string mangleStruct(const std::string &name,
+                         const std::list<std::list<std::string>> &generics = std::list<std::list<std::string>>());
 
 // Mangle an enumeration, give its generic substitutions
 std::string mangleEnum(const std::string &name,
-                       const std::vector<std::vector<std::string>> &generics = std::vector<std::vector<std::string>>());
+                       const std::list<std::list<std::string>> &generics = std::list<std::list<std::string>>());
 
 // Fully qualify a type in a canonical way.
 std::string mangleType(const Type &type);
@@ -134,7 +149,7 @@ ASTNode getFreeSequence(const std::string &name, AcornSettings &settings);
 Takes entire lexed token stream. After call, no operators
 should remain.
 */
-void operatorSub(std::vector<Token> &from);
+void operatorSub(std::list<Token> &from);
 
 // Installs a given SYSTEM package; NOT an Oak one.
 void install(const std::string &what, AcornSettings &settings);
@@ -158,7 +173,7 @@ void downloadPackage(const std::string &url, AcornSettings &settings, const bool
 
 // Get the include!() -ed files of a package given name and
 // possibly URL.
-std::vector<std::string> getPackageFiles(const std::string &Name, AcornSettings &settings);
+std::list<std::string> getPackageFiles(const std::string &Name, AcornSettings &settings);
 
 // Removes illegal characters.
 std::string purifyStr(const std::string &what);
@@ -194,27 +209,28 @@ std::string toStrCFunctionRef(const Type *what, AcornSettings &settings, const s
 std::string enumToC(const std::string &name, AcornSettings &settings);
 
 // Add a new rule engine.
-void addEngine(const std::string &name, void (*hook)(std::vector<Token> &, int &, Rule &, AcornSettings &),
+void addEngine(const std::string &name,
+               void (*hook)(std::list<Token> &, std::list<Token>::iterator &, Rule &, AcornSettings &),
                AcornSettings &settings);
 
 // `i` is the point in Lexed at which a macro name was found.
 // CONSUMPTIVE on `lexed`.
-std::vector<std::string> getMacroArgs(std::vector<Token> &lexed, const int &i);
+std::list<std::string> getMacroArgs(std::list<Token> &lexed, std::list<Token>::iterator &i);
 
 // Does all active rules on a given token stream.
-void doRules(std::vector<Token> &From, AcornSettings &settings);
+void doRules(std::list<Token> &From, AcornSettings &settings);
 
 // Load a dialect file.
 void loadDialectFile(const std::string &File, AcornSettings &settings);
 
 // Internal pass-through for Sapling rule engine.
-void doRuleAcorn(std::vector<Token> &From, int &i, Rule &curRule, AcornSettings &settings);
+void doRuleAcorn(std::list<Token> &From, std::list<Token>::iterator &i, Rule &curRule, AcornSettings &settings);
 
 // Converts lexed symbols into a type.
-Type toType(const std::vector<Token> &whatIn, AcornSettings &settings);
+Type toType(const std::list<Token> &whatIn, AcornSettings &settings);
 
 // Converts lexed symbols into a type.
-Type toType(const std::vector<std::string> &what, AcornSettings &settings);
+Type toType(const std::list<std::string> &what, AcornSettings &settings);
 
 // ASTNode message assert
 void sm_assert(const bool &expression, const std::string &message);
@@ -233,23 +249,23 @@ void destroyUnits(const std::string &name, const Type &type, const bool &doThrow
 Type getReturnType(const Type &T, AcornSettings &settings);
 
 // Gets the arguments from a Type, given that it is a function
-std::vector<std::pair<std::string, Type>> getArgs(Type &type, AcornSettings &settings);
+std::list<std::pair<std::string, Type>> getArgs(Type &type, AcornSettings &settings);
 
 // Print the AST in a pretty-ish way.
 void debugPrint(const ASTNode &what, int spaces = 0, std::ostream &to = std::cout);
 
 // Adds an enumeration into the type symbol table.
-void addEnum(const std::vector<Token> &From, AcornSettings &settings);
+void addEnum(const std::list<Token> &From, AcornSettings &settings);
 
 // Can throw errors (IE malformed definitions)
 // Takes in the whole definition, starting at let
 // and ending after }. (Oak has no trailing semicolon)
 // Can also handle templating
-void addStruct(const std::vector<Token> &From, AcornSettings &settings);
+void addStruct(const std::list<Token> &From, AcornSettings &settings);
 
 // Dump data to file. Mostly used for debugging purposes.
-void dump(const std::vector<Token> &Lexed, const std::string &Where, const std::string &FileName, const int &Line,
-          const ASTNode &FileSeq, const std::vector<Token> LexedBackup, const std::string &ErrorMsg,
+void dump(const std::list<Token> &Lexed, const std::string &Where, const std::string &FileName, const int &Line,
+          const ASTNode &FileSeq, const std::list<Token> LexedBackup, const std::string &ErrorMsg,
           AcornSettings &settings);
 
 // Get a valid constructor call for a given struct member var.
@@ -261,41 +277,39 @@ std::string getMemberDel(const std::string &selfName, const std::string &varName
                          AcornSettings &settings);
 
 // Inserts destructors at all appropriate places in a ASTNode.
-void insertDestructors(ASTNode &what, const std::vector<std::pair<std::string, std::string>> &destructors,
+void insertDestructors(ASTNode &what, const std::list<std::pair<std::string, std::string>> &destructors,
                        AcornSettings &settings);
 
 // Internal function definition candidate matching functions.
 // Used for identifying candidates and possibly printing errors
 // for them.
 
-// Get all candidates which match exactly. Returns vector of all
+// Get all candidates which match exactly. Returns list of all
 // indices which match exactly. Takes in candArgs, which is a
 // list of lists of argument Types. the 0th item in candArgs is
-// a vector of the types of the arguments of the 0th candidate.
-// argTypes is a vector of the types provided
-std::vector<int> getExactCandidates(const std::vector<std::vector<Type>> &candArgs, const std::vector<Type> &argTypes);
+// a list of the types of the arguments of the 0th candidate.
+// argTypes is a list of the types provided
+std::list<int> getExactCandidates(const std::list<std::list<Type>> &candArgs, const std::list<Type> &argTypes);
 
 // Get all candidates which match with implicit casting. Works
 // as above.
-std::vector<int> getCastingCandidates(const std::vector<std::vector<Type>> &candArgs,
-                                      const std::vector<Type> &argTypes);
+std::list<int> getCastingCandidates(const std::list<std::list<Type>> &candArgs, const std::list<Type> &argTypes);
 
 // Get all candidates which match with auto referencing and/or
 // dereferencing. Works as above.
-std::vector<int> getReferenceCandidates(const std::vector<std::vector<Type>> &candArgs,
-                                        const std::vector<Type> &argTypes);
+std::list<int> getReferenceCandidates(const std::list<std::list<Type>> &candArgs, const std::list<Type> &argTypes);
 
 // Prints the reason why each candidate was rejected
-void printCandidateErrors(const std::vector<MultiTableSymbol> &candidates, const std::vector<Type> &argTypes,
+void printCandidateErrors(const std::list<MultiTableSymbol> &candidates, const std::list<Type> &argTypes,
                           const std::string &name, AcornSettings &settings);
 
 // Creates a sequence from a lexed string.
 // Return type is deduced naturally from the contents.
 // Can throw sequencing errors.
-ASTNode createSequence(const std::vector<Token> &from, AcornSettings &settings);
+ASTNode createSequence(const std::list<Token> &from, AcornSettings &settings);
 
 // Get the return type; Set as a global
-Type resolveFunction(const std::vector<Token> &What, int &start, std::string &c, AcornSettings &settings);
+Type resolveFunction(const std::list<Token> &What, int &start, std::string &c, AcornSettings &settings);
 
 // Use filesystem calls to get the size in kilobytes of a given
 // filepath.
@@ -310,8 +324,8 @@ in the original table. However, skips all functions.
 If not contradicted by the above rules, bases off of
 the current table (not backup).
 */
-std::vector<std::pair<std::string, std::string>> restoreSymbolTable(MultiSymbolTable &backup,
-                                                                    MultiSymbolTable &realTable);
+std::list<std::pair<std::string, std::string>> restoreSymbolTable(MultiSymbolTable &backup,
+                                                                  MultiSymbolTable &realTable);
 
 // Return the standard C representation of this type.
 std::string toStr(const Type *const what, const unsigned int &pos = 0);
