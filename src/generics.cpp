@@ -535,7 +535,7 @@ void addGeneric(const std::list<Token> &what, const std::string &name, const std
     }
     else
     {
-        std::cout << tags::yellow_bold << "Warning: Not re-adding existing template " << name << " w/ type vec `";
+        std::cout << tags::yellow_bold << "Warning: Not re-adding existing template " << name << " w/ type `";
         for (const auto &item : typeVec)
         {
             std::cout << item << ' ';

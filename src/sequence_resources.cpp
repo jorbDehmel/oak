@@ -1067,9 +1067,18 @@ void dump(const std::list<Token> &Lexed, const std::string &Where, const std::st
     unsigned int currentLine = 0;
     for (auto s : LexedBackup)
     {
-        while (currentLine < s.line)
+        if (currentLine + 20 >= s.line)
         {
-            currentLine++;
+            while (currentLine < s.line)
+            {
+                currentLine++;
+                file << "\n" << currentLine << "\t|\t";
+            }
+        }
+        else if (s.line - currentLine != 0)
+        {
+            file << "\n\n<omitted " << s.line - currentLine << " lines here>\n";
+            currentLine = s.line;
             file << "\n" << currentLine << "\t|\t";
         }
         file << s.text << ' ';
@@ -1081,9 +1090,18 @@ void dump(const std::list<Token> &Lexed, const std::string &Where, const std::st
     currentLine = 0;
     for (auto s : Lexed)
     {
-        while (currentLine < s.line)
+        if (currentLine + 20 >= s.line)
         {
-            currentLine++;
+            while (currentLine < s.line)
+            {
+                currentLine++;
+                file << "\n" << currentLine << "\t|\t";
+            }
+        }
+        else if (s.line - currentLine != 0)
+        {
+            file << "\n\n<omitted " << s.line - currentLine << " lines here>\n";
+            currentLine = s.line;
             file << "\n" << currentLine << "\t|\t";
         }
         file << s.text << ' ';

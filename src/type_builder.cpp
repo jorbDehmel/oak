@@ -6,6 +6,7 @@ jdehmel@outlook.com
 
 #include "oakc_fns.hpp"
 #include "oakc_structs.hpp"
+#include "options.hpp"
 #include <string>
 
 static unsigned long long currentID = 1;
@@ -307,36 +308,35 @@ bool typesAreSame(const Type *const A, const Type *const B, int &changes)
 // Like the above, but does not do auto-referencing or dereferencing
 bool typesAreSameExact(const Type *const A, const Type *const B)
 {
-    unsigned int left, right;
-    left = right = 0;
+    auto left = A->internal.begin();
+    auto right = B->internal.begin();
 
-    while (left < A->internal.size() && right < B->internal.size())
+    while (left != A->internal.end() && right != B->internal.end())
     {
-        while (left < A->internal.size() && A->internal[left].info == var_name)
+        while (left != A->internal.end() && left->info == var_name)
         {
             left++;
         }
 
-        while (right < B->internal.size() && B->internal[right].info == var_name)
+        while (right != B->internal.end() && right->info == var_name)
         {
             right++;
         }
 
-        if (left >= A->internal.size() || right >= B->internal.size())
+        if (left == A->internal.end() || right == B->internal.end())
         {
             break;
         }
 
-        if (A->internal[left].info != B->internal[right].info &&
-            !(A->internal[left].info == sarr && B->internal[right].info == arr) &&
-            !(A->internal[left].info == arr && B->internal[right].info == sarr))
+        if (left->info != right->info && !(left->info == sarr && right->info == arr) &&
+            !(left->info == arr && right->info == sarr))
         {
             // Failure
             return false;
         }
         else
         {
-            if (A->internal[left].info == atomic && A->internal[left].name != B->internal[right].name)
+            if (left->info == atomic && left->name != right->name)
             {
                 // Failure
                 return false;
@@ -358,15 +358,16 @@ casting. The number of changes is recorded in `changes`.
 */
 bool typesAreSameCast(const Type *const A, const Type *const B, int &changes)
 {
-    unsigned int left, right;
     bool castIsLegal = true;
-    left = right = 0;
 
-    while (left < A->internal.size() && right < B->internal.size())
+    auto left = A->internal.begin();
+    auto right = B->internal.begin();
+
+    while (left != A->internal.end() && right != B->internal.end())
     {
-        while (left < A->internal.size() && (A->internal[left].info == var_name || A->internal[left].info == pointer))
+        while (left != A->internal.end() && (left->info == var_name || left->info == pointer))
         {
-            if (A->internal[left].info == pointer)
+            if (left->info == pointer)
             {
                 castIsLegal = false;
                 changes++;
@@ -379,10 +380,9 @@ bool typesAreSameCast(const Type *const A, const Type *const B, int &changes)
             left++;
         }
 
-        while (right < B->internal.size() &&
-               (B->internal[right].info == var_name || B->internal[right].info == pointer))
+        while (right != B->internal.end() && (right->info == var_name || right->info == pointer))
         {
-            if (B->internal[right].info == pointer)
+            if (right->info == pointer)
             {
                 castIsLegal = false;
                 changes++;
@@ -395,37 +395,34 @@ bool typesAreSameCast(const Type *const A, const Type *const B, int &changes)
             right++;
         }
 
-        if (left >= A->internal.size() || right >= B->internal.size())
+        if (left == A->internal.end() || right == B->internal.end())
         {
             break;
         }
 
-        if (A->internal[left].info != B->internal[right].info &&
-            !(A->internal[left].info == sarr && B->internal[right].info == arr) &&
-            !(A->internal[left].info == arr && B->internal[right].info == sarr))
+        if (left->info != right->info && !(left->info == sarr && right->info == arr) &&
+            !(left->info == arr && right->info == sarr))
         {
             // Failure
             return false;
         }
         else
         {
-            if (A->internal[left].info == atomic)
+            if (left->info == atomic)
             {
                 if (castIsLegal)
                 {
                     castIsLegal = false;
 
                     // Case 1: Int cast
-                    if (intLiterals.count(A->internal[left].name) != 0 &&
-                        intLiterals.count(B->internal[right].name) != 0)
+                    if (intLiterals.count(left->name) != 0 && intLiterals.count(right->name) != 0)
                     {
                         changes++;
                         castIsLegal = true;
                     }
 
                     // Case 2: Float cast
-                    if (!castIsLegal && (floatLiterals.count(A->internal[left].name) != 0 &&
-                                         floatLiterals.count(B->internal[right].name) != 0))
+                    if (!castIsLegal && (floatLiterals.count(left->name) != 0 && floatLiterals.count(right->name) != 0))
                     {
                         changes++;
                         castIsLegal = true;
@@ -433,7 +430,7 @@ bool typesAreSameCast(const Type *const A, const Type *const B, int &changes)
                 }
 
                 // Failure: No cast available
-                if (!castIsLegal && A->internal[left].name != B->internal[right].name)
+                if (!castIsLegal && left->name != right->name)
                 {
                     return false;
                 }
@@ -723,7 +720,8 @@ Type checkLiteral(const std::string &From)
     return nullType;
 }
 
+// Costly! Beware!
 TypeNode &Type::operator[](const int &Index) const
 {
-    return (TypeNode &)internal[Index];
+    return (TypeNode &)*std::next(internal.begin(), Index);
 }

@@ -61,7 +61,7 @@ bool itCmp(const std::list<Token> &inside, const std::list<Token>::iterator &it,
 }
 
 bool itCmp(const std::list<Token> &inside, const std::list<Token>::const_iterator &it, const int &offset,
-           const Token &compareTo) noexcept
+           const std::string &compareTo) noexcept
 {
     auto temp = it;
 

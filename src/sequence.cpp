@@ -174,6 +174,13 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                     }
 
                     toAdd.push_back(Token(":"));
+
+                    // Normalize line numbers
+                    for (auto &item : toAdd)
+                    {
+                        item.line = From.front().line;
+                    }
+
                     std::string front = From.front();
 
                     int count = 0;
@@ -206,7 +213,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                     {
                         for (auto name : names)
                         {
-                            *std::next(toAdd.begin()) = name;
+                            std::next(toAdd.begin())->text = name;
                             if (front == "struct")
                             {
                                 // Non-templated struct
@@ -298,7 +305,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
 
                         for (auto name : names)
                         {
-                            *std::next(toAdd.begin()) = name;
+                            std::next(toAdd.begin())->text = name;
                             addGeneric(toAdd, name, generics, {front}, preBlock, postBlock, settings);
                         }
                     }
@@ -1083,7 +1090,8 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
             }
 
             sm_assert(tempType.size() > 0 && (tempType[0].info == arr || (tempType[0].info == pointer && num == "1")),
-                      "'alloc!' returns an unsized array, or pointer if no number was provided.");
+                      "'alloc!' returns an unsized array, or pointer if no number was provided. Instead, found '" +
+                          toStr(&tempType) + "'.");
 
             sm_assert(numType[0].info == atomic && numType[0].name == "u128",
                       "'alloc!' takes 'u128', not '" + toStr(&numType) + "'.");
@@ -1283,7 +1291,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
 
         // Ensure internal safety
         int i = -1;
-        for (const auto j : out.items)
+        for (const auto &j : out.items)
         {
             i++;
 
@@ -1759,7 +1767,7 @@ Type resolveFunctionInternal(std::list<Token> &What, std::list<Token>::iterator 
         // should leave w/ what[start] == ';'
         std::list<std::string> typeVec;
 
-        while (itCmp(What, start, 0, ";"))
+        while (start != What.end() && *start != ";")
         {
             typeVec.push_back(*start);
             start++;
