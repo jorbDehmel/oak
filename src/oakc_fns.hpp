@@ -45,6 +45,9 @@ bool itCmp(const std::list<Token> &inside, const std::list<Token>::iterator &it,
 bool itCmp(const std::list<Token> &inside, const std::list<Token>::iterator &it, const int &offset,
            const std::string &compareTo) noexcept;
 
+bool itCmp(const std::list<Token> &inside, const std::list<Token>::const_iterator &it, const int &offset,
+           const std::string &compareTo) noexcept;
+
 // Returns true if the given iterator is in range.
 bool itIsInRange(const std::list<Token> &inside, const std::list<Token>::iterator &it, const int &offset) noexcept;
 
@@ -300,7 +303,7 @@ std::list<int> getCastingCandidates(const std::list<std::list<Type>> &candArgs, 
 std::list<int> getReferenceCandidates(const std::list<std::list<Type>> &candArgs, const std::list<Type> &argTypes);
 
 // Prints the reason why each candidate was rejected
-void printCandidateErrors(const std::list<MultiTableSymbol> &candidates, const std::list<Type> &argTypes,
+void printCandidateErrors(const std::vector<MultiTableSymbol> &candidates, const std::list<Type> &argTypes,
                           const std::string &name, AcornSettings &settings);
 
 // Creates a sequence from a lexed string.
@@ -309,7 +312,8 @@ void printCandidateErrors(const std::list<MultiTableSymbol> &candidates, const s
 ASTNode createSequence(const std::list<Token> &from, AcornSettings &settings);
 
 // Get the return type; Set as a global
-Type resolveFunction(const std::list<Token> &What, int &start, std::string &c, AcornSettings &settings);
+Type resolveFunction(std::list<Token> &What, std::list<Token>::iterator &start, std::string &c,
+                     AcornSettings &settings);
 
 // Use filesystem calls to get the size in kilobytes of a given
 // filepath.
@@ -328,7 +332,7 @@ std::list<std::pair<std::string, std::string>> restoreSymbolTable(MultiSymbolTab
                                                                   MultiSymbolTable &realTable);
 
 // Return the standard C representation of this type.
-std::string toStr(const Type *const what, const unsigned int &pos = 0);
+std::string toStr(const Type *const what);
 
 // Ignores all var_names, plus auto-ref/deref.
 bool typesAreSame(const Type *const a, const Type *const b, int &changes);

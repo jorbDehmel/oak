@@ -61,9 +61,14 @@ Type::Type(const Type &What)
 Type::Type(const Type &What, const int &startingAt)
 {
     internal.clear();
-    for (int i = startingAt; i < What.size(); i++)
+    int i = 0;
+    for (const auto &item : What.internal)
     {
-        internal.push_back(What.internal[i]);
+        if (i >= startingAt)
+        {
+            internal.push_back(item);
+        }
+        i++;
     }
     ID = currentID++;
 
@@ -73,7 +78,7 @@ Type::Type(const Type &What, const int &startingAt)
 Type::Type()
 {
     internal.clear();
-    internal.push_back(TypeNode{nullType.internal[0].info, nullType.internal[0].name});
+    internal.push_back(TypeNode{nullType.internal.front().info, nullType.internal.front().name});
     ID = currentID++;
     return;
 }
@@ -87,10 +92,10 @@ void Type::prepend(const TypeInfo &Info, const std::string &Name)
 
 void Type::append(const TypeInfo &Info, const std::string &Name)
 {
-    if (internal.size() == 1 && internal[0].info == atomic && internal[0].name == "NULL")
+    if (internal.size() == 1 && internal.front().info == atomic && internal.front().name == "NULL")
     {
-        internal[0].info = Info;
-        internal[0].name = Name;
+        internal.front().info = Info;
+        internal.front().name = Name;
     }
     else
     {
@@ -148,57 +153,80 @@ Type &Type::operator=(const TypeNode &Other)
     return *this;
 }
 
-std::string toStr(const Type *const What, const unsigned int &pos)
+void toStr(const Type *const What, const std::list<TypeNode>::const_iterator &pos, std::list<std::string> &builder)
 {
-    if (What == nullptr || pos >= What->internal.size())
+    if (What == nullptr || pos == What->internal.end())
     {
-        return "";
+        return;
     }
 
-    std::string out = "";
-
-    switch (What->internal[pos].info)
+    switch (pos->info)
     {
     case arr:
-        out += "[]";
+        builder.push_back("[]");
         break;
     case sarr:
-        out += "[" + What->internal[pos].name + "]";
+        builder.push_back("[");
+        builder.push_back(pos->name);
+        builder.push_back("]");
         break;
     case pointer:
-        out += "^";
+        builder.push_back("^");
         break;
     case join:
-        out += ",";
+        builder.push_back(",");
         break;
     case maps:
-        out += ") ->";
+        builder.push_back(") ->");
         break;
     case function:
-        out += "(";
+        builder.push_back("(");
         break;
     case var_name:
-        out += What->internal[pos].name + ":";
+        builder.push_back(":");
         break;
     default:
-        out += What->internal[pos].name;
+        builder.push_back(pos->name);
         break;
     }
 
-    if (pos < What->internal.size())
+    if (std::next(pos) != What->internal.end())
     {
-        if (What->internal[pos + 1].info != function && What->internal[pos + 1].info != pointer &&
-            What->internal[pos + 1].info != join && What->internal[pos + 1].info != maps &&
-            What->internal[pos].info != pointer && What->internal[pos].info != function)
+        if (std::next(pos)->info != function && std::next(pos)->info != pointer && std::next(pos)->info != join &&
+            std::next(pos)->info != maps && pos->info != pointer && pos->info != function)
         {
-            out += " ";
+            builder.push_back(" ");
         }
-        else if (What->internal[pos].info == var_name)
+        else if (pos->info == var_name)
         {
-            out += " ";
+            builder.push_back(" ");
         }
 
-        out += toStr(What, pos + 1);
+        toStr(What, std::next(pos), builder);
+    }
+
+    return;
+}
+
+// Return the standard C representation of this type.
+std::string toStr(const Type *const what)
+{
+    std::list<std::string> builder;
+
+    toStr(what, what->internal.begin(), builder);
+
+    std::string out;
+    size_t size = 0;
+    for (const auto &item : builder)
+    {
+        size += item.size();
+    }
+
+    out.reserve(size);
+
+    for (const auto &item : builder)
+    {
+        out += item;
     }
 
     return out;
@@ -223,14 +251,14 @@ void Type::pop_back()
 // of arguments
 bool typesAreSame(const Type *const A, const Type *const B, int &changes)
 {
-    unsigned int left, right;
-    left = right = 0;
+    auto left = A->internal.begin();
+    auto right = B->internal.begin();
 
-    while (left < A->internal.size() && right < B->internal.size())
+    while (left != A->internal.end() && right != B->internal.end())
     {
-        while (left < A->internal.size() && (A->internal[left].info == var_name || A->internal[left].info == pointer))
+        while (left != A->internal.end() && (left->info == var_name || left->info == pointer))
         {
-            if (A->internal[left].info == pointer)
+            if (left->info == pointer)
             {
                 changes++;
             }
@@ -238,10 +266,9 @@ bool typesAreSame(const Type *const A, const Type *const B, int &changes)
             left++;
         }
 
-        while (right < B->internal.size() &&
-               (B->internal[right].info == var_name || B->internal[right].info == pointer))
+        while (right != B->internal.end() && (right->info == var_name || right->info == pointer))
         {
-            if (B->internal[right].info == pointer)
+            if (right->info == pointer)
             {
                 changes++;
             }
@@ -249,21 +276,20 @@ bool typesAreSame(const Type *const A, const Type *const B, int &changes)
             right++;
         }
 
-        if (left >= A->internal.size() || right >= B->internal.size())
+        if (left == A->internal.end() || right == B->internal.end())
         {
             break;
         }
 
-        if (A->internal[left].info != B->internal[right].info &&
-            !(A->internal[left].info == sarr && B->internal[right].info == arr) &&
-            !(A->internal[left].info == arr && B->internal[right].info == sarr))
+        if (left->info != right->info && !(left->info == sarr && right->info == arr) &&
+            !(left->info == arr && right->info == sarr))
         {
             // Failure
             return false;
         }
         else
         {
-            if (A->internal[left].info == atomic && A->internal[left].name != B->internal[right].name)
+            if (left->info == atomic && left->name != right->name)
             {
                 // Failure
                 return false;

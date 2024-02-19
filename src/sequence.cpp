@@ -40,7 +40,7 @@ ASTNode createSequence(const std::list<Token> &From, AcornSettings &settings)
     }
     else if (out.size() == 1)
     {
-        return out[0];
+        return out.front();
     }
     else
     {
@@ -169,10 +169,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                     if (generics.size() != 0)
                     {
                         toAdd.push_back(Token("<"));
-                        for (int i = 0; i < generics.size(); i++)
-                        {
-                            toAdd.push_back(generics[i]);
-                        }
+                        toAdd.insert(toAdd.end(), generics.begin(), generics.end());
                         toAdd.push_back(Token(">"));
                     }
 
@@ -209,7 +206,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                     {
                         for (auto name : names)
                         {
-                            toAdd[1].text = name;
+                            *std::next(toAdd.begin()) = name;
                             if (front == "struct")
                             {
                                 // Non-templated struct
@@ -301,7 +298,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
 
                         for (auto name : names)
                         {
-                            toAdd[1].text = name;
+                            *std::next(toAdd.begin()) = name;
                             addGeneric(toAdd, name, generics, {front}, preBlock, postBlock, settings);
                         }
                     }
@@ -356,14 +353,14 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
 
                         // Garbage to feed to resolveFunction
                         std::string junk = "";
-                        int pos = 0;
+                        auto pos = toAnalyze.begin();
 
                         // Analyze type of std::list
                         Type type = resolveFunction(toAnalyze, pos, junk, settings);
 
                         // Convert type to lexed std::string vec
                         Lexer dfa_lexer;
-                        std::list<Token> lexedType = dfa_lexer.lex(toStr(&type));
+                        std::list<Token> lexedType = dfa_lexer.lex_list(toStr(&type));
 
                         // Push lexed vec to front of From
                         for (auto iter = lexedType.rbegin(); iter != lexedType.rend(); iter++)
@@ -417,7 +414,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                         out.items.push_back(ASTNode{nullType, std::list<ASTNode>(), atom, ";"});
 
                         std::list<Token> newCall = {Token("New"), Token("("), Token("@"), Token(name), Token(")")};
-                        int garbage = 0;
+                        auto garbage = newCall.begin();
 
                         ASTNode toAppend;
                         toAppend.info = atom;
@@ -547,18 +544,20 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                         if (argsWithType.size() != 0)
                         {
                             sm_assert(argsWithType.size() == 2, "'main' must have either 0 or 2 arguments.");
-                            sm_assert(argsWithType[0].second == Type(atomic, "i32"),
-                                      "First argument of 'main' must be i32, not " + toStr(&argsWithType[0].second));
+                            sm_assert(argsWithType.front().second == Type(atomic, "i32"),
+                                      "First argument of 'main' must be i32, not " +
+                                          toStr(&argsWithType.front().second));
 
-                            if (!((argsWithType[1].second.size() == 2 && argsWithType[1].second[0].info == arr &&
-                                   argsWithType[1].second[1].info == atomic &&
-                                   argsWithType[1].second[1].name == "str") ||
-                                  (argsWithType[1].second.size() == 3 && argsWithType[1].second[0].info == arr &&
-                                   argsWithType[1].second[1].info == arr && argsWithType[1].second[2].info == atomic &&
-                                   argsWithType[1].second[2].name == "i8")))
+                            auto first = *std::next(argsWithType.begin());
+
+                            if (!((first.second.size() == 2 && first.second[0].info == arr &&
+                                   first.second[1].info == atomic && first.second[1].name == "str") ||
+                                  (first.second.size() == 3 && first.second[0].info == arr &&
+                                   first.second[1].info == arr && first.second[2].info == atomic &&
+                                   first.second[2].name == "i8")))
                             {
                                 throw sequencing_error("Second argument of 'main' must be []str, or [][]i8, not " +
-                                                       toStr(&argsWithType[1].second));
+                                                       toStr(&first.second));
                             }
                         }
                     }
@@ -584,12 +583,13 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                             // Type *cur = &argsWithType[0].second;
                             int cur = 0;
 
-                            while (cur < argsWithType[0].second.size() && argsWithType[0].second[cur].info == pointer)
+                            while (cur < argsWithType.front().second.size() &&
+                                   argsWithType.front().second[cur].info == pointer)
                             {
                                 cur++;
                             }
 
-                            structName = argsWithType[0].second[cur].name;
+                            structName = argsWithType.front().second[cur].name;
 
                             for (auto var : settings.structData[structName].members)
                             {
@@ -600,8 +600,8 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                                 ASTNode toAppend;
                                 toAppend.info = atom;
                                 toAppend.type = nullType;
-                                toAppend.raw =
-                                    getMemberNew("(*" + argsWithType[0].first + ")", var.first, var.second, settings);
+                                toAppend.raw = getMemberNew("(*" + argsWithType.front().first + ")", var.first,
+                                                            var.second, settings);
 
                                 settings.table["New"].back().seq.items.push_back(toAppend);
                             }
@@ -621,12 +621,13 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                             // Type *cur = &argsWithType[0].second;
                             int cur = 0;
 
-                            while (cur < argsWithType[0].second.size() && argsWithType[0].second[cur].info == pointer)
+                            while (cur < argsWithType.front().second.size() &&
+                                   argsWithType.front().second[cur].info == pointer)
                             {
                                 cur++;
                             }
 
-                            structName = argsWithType[0].second[cur].name;
+                            structName = argsWithType.front().second[cur].name;
 
                             for (auto var : settings.structData[structName].members)
                             {
@@ -637,8 +638,8 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                                 ASTNode toAppend;
                                 toAppend.info = atom;
                                 toAppend.type = nullType;
-                                toAppend.raw =
-                                    getMemberDel("(*" + argsWithType[0].first + ")", var.first, var.second, settings);
+                                toAppend.raw = getMemberDel("(*" + argsWithType.front().first + ")", var.first,
+                                                            var.second, settings);
 
                                 settings.table["Del"].back().seq.items.push_back(toAppend);
                             }
@@ -786,7 +787,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                 // Insert templated function
                 for (auto name : names)
                 {
-                    toAdd[1].text = name;
+                    std::next(toAdd.begin())->text = name;
                     addGeneric(toAdd, name, generics, typeVec, preBlock, postBlock, settings);
                 }
             }
@@ -863,7 +864,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                     didErase = true;
                     for (int l = 0; l < settings.table[symb].size(); l++)
                     {
-                        settings.table[symb][l].erased = true;
+                        std::next(settings.table[symb].begin())->erased = true;
                     }
                 }
 
@@ -1267,12 +1268,13 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
         // This is for the enum
         out.items.push_back(__createSequence(From, settings));
 
-        sm_assert(out.items[0].type[0].info == atomic && settings.enumData.count(out.items[0].type[0].name) != 0,
-                  out.raw + " statement argument must be enum. Instead, '" + toStr(&out.items[0].type) + "'");
+        sm_assert(out.items.front().type[0].info == atomic &&
+                      settings.enumData.count(out.items.front().type[0].name) != 0,
+                  out.raw + " statement argument must be enum. Instead, '" + toStr(&out.items.front().type) + "'");
         sm_assert(!From.empty(), "Missing statement after " + out.raw + "");
 
         std::string old = settings.prevMatchTypeStr;
-        settings.prevMatchTypeStr = out.items[0].type[0].name;
+        settings.prevMatchTypeStr = out.items.front().type[0].name;
 
         // This is for the code chunk
         out.items.push_back(__createSequence(From, settings));
@@ -1280,20 +1282,23 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
         settings.prevMatchTypeStr = old;
 
         // Ensure internal safety
-        for (int j = 1; j < out.items.size(); j++)
+        int i = -1;
+        for (const auto j : out.items)
         {
-            if (out.items[j].raw == "")
+            i++;
+
+            if (j.raw == "")
             {
                 continue;
             }
 
-            if (out.items[j].raw != "case" && out.items[j].raw != "default")
+            if (j.raw != "case" && j.raw != "default")
             {
                 throw sequencing_error("Match statement must contain only 'case' and 'default' statements, not '" +
-                                       out.items[j].raw + "'.");
+                                       j.raw + "'.");
             }
 
-            if (out.items[j].raw == "default" && j != out.items.size() - 1)
+            if (j.raw == "default" && i != out.items.size() - 1)
             {
                 throw sequencing_error("Default statement must be the final branch of a match statement.");
             }
@@ -1393,8 +1398,8 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
         // This is for the conditional
         out.items.push_back(__createSequence(From, settings));
 
-        sm_assert(out.items[0].type == Type(atomic, "bool"),
-                  out.raw + " statement argument must be boolean. Instead, '" + toStr(&out.items[0].type) + "'");
+        sm_assert(out.items.front().type == Type(atomic, "bool"),
+                  out.raw + " statement argument must be boolean. Instead, '" + toStr(&out.items.front().type) + "'");
         sm_assert(!From.empty(), "Missing statement after " + out.raw + "");
 
         // This is for the code chunk
@@ -1529,25 +1534,25 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
         }
 
         // Check if/else validity
-        for (int i = 1; i < out.items.size(); i++)
+        for (auto i = std::next(out.items.begin()); i != out.items.end(); i++)
         {
-            if (out.items[i].info == keyword && out.items[i].raw == "else")
+            if (i->info == keyword && i->raw == "else")
             {
-                if (out.items[i - 1].items.size() != 0 && out.items[i - 1].items[0].info == keyword &&
-                    out.items[i - 1].items[0].raw == "if")
+                if (std::prev(i)->items.size() != 0 && std::prev(i)->items.front().info == keyword &&
+                    std::prev(i)->items.front().raw == "if")
                 {
                     continue;
                 }
 
-                sm_assert(out.items[i - 1].info == keyword && out.items[i - 1].raw == "if",
+                sm_assert(std::prev(i)->info == keyword && std::prev(i)->raw == "if",
                           "Else statement must be prefixed by if statement.");
             }
 
-            if (out.items[i].type != nullType)
+            if (i->type != nullType)
             {
                 int garbage = 0;
-                sm_assert(typesAreSameCast(&out.items[i].type, &settings.currentReturnType, garbage),
-                          "Cannot return '" + toStr(&out.items[i].type) + "' from a function w/ return type '" +
+                sm_assert(typesAreSameCast(&i->type, &settings.currentReturnType, garbage),
+                          "Cannot return '" + toStr(&i->type) + "' from a function w/ return type '" +
                               toStr(&settings.currentReturnType) + "'");
             }
         }
@@ -1561,9 +1566,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
     ASTNode temp;
     temp.info = atom;
 
-    int i = 0;
-
-    std::list<Token> tempVec;
+    std::list<Token> tempVec; /*  */
     for (auto i : From)
     {
         tempVec.push_back(i);
@@ -1573,19 +1576,21 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
             break;
         }
     }
+
+    auto i = tempVec.begin();
     temp.type = resolveFunction(tempVec, i, temp.raw, settings);
 
     out.items.push_back(temp);
 
     // Erase old
-    for (int k = 0; !From.empty() && k < i; k++)
+    for (int k = std::distance(tempVec.begin(), i); !From.empty() && k > 0; k--)
     {
         From.pop_front();
     }
 
     if (out.items.size() == 1)
     {
-        return out.items[0];
+        return out.items.front();
     }
 
     return out;
@@ -1593,10 +1598,10 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
 
 // This should only be called after method replacement
 // I know I wrote this, but it still feels like black magic and I don't really understand it
-Type resolveFunctionInternal(const std::list<Token> &What, int &start, std::list<std::string> &c,
+Type resolveFunctionInternal(std::list<Token> &What, std::list<Token>::iterator &start, std::list<std::string> &c,
                              AcornSettings &settings)
 {
-    if (What.empty() || start >= What.size())
+    if (What.empty() || start == What.end())
     {
         return nullType;
     }
@@ -1605,12 +1610,12 @@ Type resolveFunctionInternal(const std::list<Token> &What, int &start, std::list
     //           << What[start].line << '\n';
 
     // Pointer check
-    if (What[start] == "@")
+    if (*start == "@")
     {
         start++;
         c.push_back("&");
 
-        std::string name = What[start];
+        std::string name = *start;
 
         std::string followingC = "";
         Type type = resolveFunction(What, start, followingC, settings);
@@ -1625,7 +1630,7 @@ Type resolveFunctionInternal(const std::list<Token> &What, int &start, std::list
 
         return type;
     }
-    else if (What[start] == "^")
+    else if (*start == "^")
     {
         start++;
 
@@ -1640,7 +1645,7 @@ Type resolveFunctionInternal(const std::list<Token> &What, int &start, std::list
     }
 
     // Semicolon check
-    else if (What[start] == ";")
+    else if (*start == ";")
     {
         c.push_back(";");
         return nullType;
@@ -1649,29 +1654,29 @@ Type resolveFunctionInternal(const std::list<Token> &What, int &start, std::list
     // Standard case
 
     // get name (first item)
-    std::string name = What[start];
+    std::string name = *start;
     Type type = nullType;
 
     // Parenthesis
-    if (What[start] == "(")
+    if (*start == "(")
     {
         std::list<Token> toUse;
         int count = 0;
         do
         {
-            if (What[start] == "(")
+            if (*start == "(")
             {
                 count++;
             }
-            else if (What[start] == ")")
+            else if (*start == ")")
             {
                 count--;
             }
 
-            toUse.push_back(What[start]);
+            toUse.push_back(*start);
 
             start++;
-        } while (start < What.size() && count != 0);
+        } while (start != What.end() && count != 0);
 
         if (!toUse.empty())
         {
@@ -1679,7 +1684,7 @@ Type resolveFunctionInternal(const std::list<Token> &What, int &start, std::list
             toUse.pop_back();
         }
 
-        int trash = 0;
+        auto trash = toUse.begin();
         Type toReturn = resolveFunctionInternal(toUse, trash, c, settings);
 
         if (!c.empty())
@@ -1697,7 +1702,7 @@ Type resolveFunctionInternal(const std::list<Token> &What, int &start, std::list
 
     // Template instantiation
     bool didTemplate = false;
-    if (What.size() > start + 1 && What[start + 1] == "<")
+    if (std::next(start) != What.end() && *std::next(start) == "<")
     {
         start++;
 
@@ -1706,16 +1711,16 @@ Type resolveFunctionInternal(const std::list<Token> &What, int &start, std::list
         int count = 0;
         do
         {
-            if (What[start] == "<")
+            if (*start == "<")
             {
                 count++;
 
                 if (count > 1)
                 {
-                    curGen.push_back(What[start]);
+                    curGen.push_back(*start);
                 }
             }
-            else if (What[start] == ">")
+            else if (*start == ">")
             {
                 count--;
 
@@ -1730,10 +1735,10 @@ Type resolveFunctionInternal(const std::list<Token> &What, int &start, std::list
                 }
                 else
                 {
-                    curGen.push_back(What[start]);
+                    curGen.push_back(*start);
                 }
             }
-            else if (What[start] == "," && count == 1)
+            else if (*start == "," && count == 1)
             {
                 if (curGen.size() > 0)
                 {
@@ -1744,19 +1749,19 @@ Type resolveFunctionInternal(const std::list<Token> &What, int &start, std::list
             }
             else
             {
-                curGen.push_back(What[start]);
+                curGen.push_back(*start);
             }
 
             start++;
-        } while (start < What.size() && count != 0);
+        } while (start != What.end() && count != 0);
         // start--;
 
         // should leave w/ what[start] == ';'
         std::list<std::string> typeVec;
 
-        while (start < What.size() && What[start] != ";")
+        while (itCmp(What, start, 0, ";"))
         {
-            typeVec.push_back(What[start]);
+            typeVec.push_back(*start);
             start++;
         }
 
@@ -1782,7 +1787,7 @@ Type resolveFunctionInternal(const std::list<Token> &What, int &start, std::list
     }
 
     // Append literal C code, without interpretation from Oak
-    if (What[start] == "raw_c!")
+    if (*start == "raw_c!")
     {
         // Scrape call to a std::list
         int count = 0;
@@ -1790,29 +1795,29 @@ Type resolveFunctionInternal(const std::list<Token> &What, int &start, std::list
         start++;
         do
         {
-            if (What[start] == "(")
+            if (*start == "(")
             {
                 count++;
             }
-            else if (What[start] == ")")
+            else if (*start == ")")
             {
                 count--;
             }
 
-            if (!((What[start] == "(" && count == 1) || (What[start] == ")" && count == 0)))
+            if (!((*start == "(" && count == 1) || (*start == ")" && count == 0)))
             {
                 // Append raw C code
-                c.push_back(cleanMacroArgument(What[start]));
+                c.push_back(cleanMacroArgument(*start));
                 c.push_back(" ");
             }
 
             start++;
-        } while (count != 0 && start < What.size());
+        } while (count != 0 && start != What.end());
 
         return Type(atomic, "void");
     }
 
-    else if (What[start] == "size!")
+    else if (*start == "size!")
     {
         // Case for size!() macro
 
@@ -1823,28 +1828,28 @@ Type resolveFunctionInternal(const std::list<Token> &What, int &start, std::list
         start++;
         do
         {
-            if (What[start] == "(")
+            if (*start == "(")
             {
                 count++;
             }
-            else if (What[start] == ")")
+            else if (*start == ")")
             {
                 count--;
             }
 
-            if (!((What[start] == "(" && count == 1) || (What[start] == ")" && count == 0)))
+            if (!((*start == "(" && count == 1) || (*start == ")" && count == 0)))
             {
-                toAnalyze.push_back(What[start]);
+                toAnalyze.push_back(*start);
             }
 
             start++;
-        } while (count != 0 && start < What.size());
+        } while (count != 0 && start != What.end());
 
         // Garbage to feed to resolveFunction
         std::string junk = "";
-        int pos = 0;
 
         // Analyze type of collected
+        auto pos = toAnalyze.begin();
         Type type = resolveFunction(toAnalyze, pos, junk, settings);
 
         // Append size
@@ -1855,33 +1860,33 @@ Type resolveFunctionInternal(const std::list<Token> &What, int &start, std::list
         return Type(atomic, "u128");
     }
 
-    else if (What[start].back() == '!' && What[start + 1] == "(")
+    else if (start->back() == '!' && *std::next(start) == "(")
     {
         // Otherwise unspecified macro
 
         // Scrape entire call to a std::list
-        std::list<Token> toAnalyze = {Token(What[start]), Token("(")};
+        std::list<Token> toAnalyze = {Token(*start), Token("(")};
         int count = 0;
 
         start++;
         do
         {
-            if (What[start] == "(")
+            if (*start == "(")
             {
                 count++;
             }
-            else if (What[start] == ")")
+            else if (*start == ")")
             {
                 count--;
             }
 
-            if (!((What[start] == "(" && count == 1) || (What[start] == ")" && count == 0)))
+            if (!((*start == "(" && count == 1) || (*start == ")" && count == 0)))
             {
-                toAnalyze.push_back(What[start]);
+                toAnalyze.push_back(*start);
             }
 
             start++;
-        } while (count != 0 && start < What.size());
+        } while (count != 0 && start != What.end());
         toAnalyze.push_back(Token(")"));
 
         // Analyze type of collected
@@ -1893,7 +1898,7 @@ Type resolveFunctionInternal(const std::list<Token> &What, int &start, std::list
     }
 
     // Function call
-    if (What.size() > start + 1 && What[start + 1] == "(")
+    if (itCmp(What, start, 1, "("))
     {
         // get args within parenthesis
         std::list<Token> curArg;
@@ -1903,33 +1908,33 @@ Type resolveFunctionInternal(const std::list<Token> &What, int &start, std::list
         start++;
         do
         {
-            if (What[start] == "(")
+            if (*start == "(")
             {
                 count++;
             }
-            else if (What[start] == ")")
+            else if (*start == ")")
             {
                 count--;
             }
-            else if (What[start] == "<")
+            else if (*start == "<")
             {
                 templCount++;
             }
-            else if (What[start] == ">")
+            else if (*start == ">")
             {
                 templCount--;
             }
 
-            if (What[start] == "," && count == 1 && templCount == 0)
+            if (*start == "," && count == 1 && templCount == 0)
             {
                 args.push_back(curArg);
                 curArg.clear();
             }
 
-            curArg.push_back(What[start]);
+            curArg.push_back(*start);
 
             start++;
-        } while (start < What.size() && count != 0);
+        } while (start != What.end() && count != 0);
 
         if (!curArg.empty())
         {
@@ -1937,11 +1942,11 @@ Type resolveFunctionInternal(const std::list<Token> &What, int &start, std::list
         }
 
         // Erase commas, open parenthesis on first one
-        for (int i = 0; i < args.size(); i++)
+        for (auto &i : args)
         {
-            if (!args[i].empty())
+            if (!i.empty())
             {
-                args[i].erase(args[i].begin());
+                i.erase(i.begin());
             }
         }
 
@@ -1951,45 +1956,45 @@ Type resolveFunctionInternal(const std::list<Token> &What, int &start, std::list
             args.back().pop_back();
         }
 
-        for (int i = 0; i < args.size(); i++)
+        for (auto i = args.begin(); i != args.end(); i++)
         {
-            if (args[i].size() == 0)
+            if (i->size() == 0)
             {
-                args.erase(args.begin() + i);
-                i--;
+                i = args.erase(i);
             }
         }
 
         std::list<Type> argTypes;
-        std::list<std::string> argStrs;
+        std::vector<std::string> argStrs;
         for (std::list<Token> arg : args)
         {
-            int trash = 0;
             std::string cur;
+            auto trash = arg.begin();
 
             argTypes.push_back(resolveFunction(arg, trash, cur, settings));
             argStrs.push_back(cur);
         }
 
         // Special case: Array access
-        if (name == "Get" && (argTypes[0][0].info == sarr || argTypes[0][0].info == arr) && argStrs.size() == 2 &&
-            argTypes[1][0].info == atomic &&
-            (argTypes[1][0].name == "u8" || argTypes[1][0].name == "i8" || argTypes[1][0].name == "u16" ||
-             argTypes[1][0].name == "i16" || argTypes[1][0].name == "u32" || argTypes[1][0].name == "i32" ||
-             argTypes[1][0].name == "u64" || argTypes[1][0].name == "i64" || argTypes[1][0].name == "u128" ||
-             argTypes[1][0].name == "i128"))
+        if (name == "Get" && (argTypes.front()[0].info == sarr || argTypes.front()[0].info == arr) &&
+            argStrs.size() == 2 && (*std::next(argTypes.begin()))[0].info == atomic &&
+            ((*std::next(argTypes.begin()))[0].name == "u8" || (*std::next(argTypes.begin()))[0].name == "i8" ||
+             (*std::next(argTypes.begin()))[0].name == "u16" || (*std::next(argTypes.begin()))[0].name == "i16" ||
+             (*std::next(argTypes.begin()))[0].name == "u32" || (*std::next(argTypes.begin()))[0].name == "i32" ||
+             (*std::next(argTypes.begin()))[0].name == "u64" || (*std::next(argTypes.begin()))[0].name == "i64" ||
+             (*std::next(argTypes.begin()))[0].name == "u128" || (*std::next(argTypes.begin()))[0].name == "i128"))
         {
             // Return type is the thing the array is of
-            type = Type(argTypes[0], 1);
-            c.push_back("(*(" + argStrs[0] + "+" + argStrs[1] + "))");
+            type = Type(argTypes.front(), 1);
+            c.push_back("(*(" + argStrs.front() + "+" + *std::next(argStrs.begin()) + "))");
         }
 
         // Special case: Pointer nullification
-        else if (name == "Copy" && argTypes[0][0].info == pointer && argStrs[1] == "0")
+        else if (name == "Copy" && argTypes.front()[0].info == pointer && *std::next(argStrs.begin()) == "0")
         {
             // Return type is the thing the array is of
-            type = argTypes[0];
-            c.push_back("(" + argStrs[0] + "=0)");
+            type = argTypes.front();
+            c.push_back("(" + argStrs.front() + "=0)");
         }
 
         else
@@ -1998,7 +2003,7 @@ Type resolveFunctionInternal(const std::list<Token> &What, int &start, std::list
             sm_assert(settings.table.count(name) != 0, "Function call '" + name + "' has no registered symbols.");
             sm_assert(settings.table[name].size() != 0, "Function call '" + name + "' has no registered symbols.");
 
-            std::list<MultiTableSymbol> candidates = settings.table[name];
+            std::vector<MultiTableSymbol> candidates = {settings.table[name].begin(), settings.table[name].end()};
 
             // Construct candArgs
             std::list<std::list<Type>> candArgs;
@@ -2075,22 +2080,25 @@ Type resolveFunctionInternal(const std::list<Token> &What, int &start, std::list
             }
 
             // Use candidate at front; This is highest-priority one
-            type = getReturnType(candidates[validCandidates[0]].type, settings);
+            type = getReturnType(candidates[validCandidates.front()].type, settings);
 
-            if (candidates[validCandidates[0]].type[0].info == pointer)
+            if (candidates[validCandidates.front()].type[0].info == pointer)
             {
                 c.push_back(name);
                 c.push_back("(");
             }
             else
             {
-                c.push_back(mangleSymb(name, mangleType(candidates[validCandidates[0]].type)));
+                c.push_back(mangleSymb(name, mangleType(candidates[validCandidates.front()].type)));
                 c.push_back("(");
             }
 
-            for (int j = 0; j < argStrs.size(); j++)
+            int j_ind = -1;
+
+            for (auto &j : argTypes)
             {
-                if (j != 0)
+                j_ind++;
+                if (j_ind != 0)
                 {
                     c.push_back(", ");
                 }
@@ -2100,38 +2108,37 @@ Type resolveFunctionInternal(const std::list<Token> &What, int &start, std::list
                 int numDeref = 0;
                 // determine actual number here
 
-                auto candArgs = getArgs(candidates[validCandidates[0]].type, settings);
-
-                // Type *candCursor = &candArgs[j].second;
-                // Type *argCursor = &argTypes[j];
+                auto candArgsList = getArgs(candidates[validCandidates.front()].type, settings);
+                std::vector<std::pair<std::string, Type>> candArgs = {candArgsList.begin(), candArgsList.end()};
 
                 int candCursor = 0, argCursor = 0;
 
-                while (argCursor < argTypes[j].size() && argTypes[j][argCursor].info == pointer)
+                while (argCursor < j.size() && j[argCursor].info == pointer)
                 {
                     argCursor++;
                     numDeref++;
                 }
 
-                while (candCursor < candArgs[j].second.size() && candArgs[j].second[candCursor].info == pointer)
+                while (candCursor < candArgs[j_ind].second.size() && candArgs[j_ind].second[candCursor].info == pointer)
                 {
                     candCursor++;
                     numDeref--;
                 }
 
                 // If arg is str and cand is i8
-                if (argCursor < argTypes[j].size() && argTypes[j][argCursor].info == atomic &&
-                    argTypes[j][argCursor].name == "str" && candCursor < candArgs[j].second.size() &&
-                    candArgs[j].second[candCursor].info == atomic && candArgs[j].second[candCursor].name == "i8")
+                if (argCursor < j.size() && j[argCursor].info == atomic && j[argCursor].name == "str" &&
+                    candCursor < candArgs[j_ind].second.size() && candArgs[j_ind].second[candCursor].info == atomic &&
+                    candArgs[j_ind].second[candCursor].name == "i8")
                 {
                     argCursor++;
                     numDeref++;
                 }
 
                 // Else if arg is i8 and cand is str
-                else if (argCursor < argTypes[j].size() && argTypes[j][argCursor].info == atomic &&
-                         argTypes[j][argCursor].name == "i8" && candCursor < candArgs[j].second.size() &&
-                         candArgs[j].second[candCursor].info == atomic && candArgs[j].second[candCursor].name == "str")
+                else if (argCursor < j.size() && j[argCursor].info == atomic && j[argCursor].name == "i8" &&
+                         candCursor < candArgs[j_ind].second.size() &&
+                         candArgs[j_ind].second[candCursor].info == atomic &&
+                         candArgs[j_ind].second[candCursor].name == "str")
                 {
                     candCursor++;
                     numDeref--;
@@ -2163,7 +2170,7 @@ Type resolveFunctionInternal(const std::list<Token> &What, int &start, std::list
                 }
 
                 c.push_back("(");
-                c.push_back(argStrs[j]);
+                c.push_back(argStrs[j_ind]);
                 c.push_back(")");
             }
             c.push_back(")");
@@ -2177,22 +2184,21 @@ Type resolveFunctionInternal(const std::list<Token> &What, int &start, std::list
         // Non-function-call
 
         // Literal check
-        Type litType = checkLiteral(What[start]);
-        std::string litName = What[start];
+        Type litType = checkLiteral(*start);
+        std::string litName = *start;
 
         if (litType == nullType)
         {
             // Is not a literal
 
             // Some common issues
-            sm_assert(What[start] != "let", "Invalid use of `let` keyword. This is most likely a rule issue.");
-            sm_assert(What[start] != "pre", "`pre` may only be used on generic definitions.");
-            sm_assert(What[start] != "post", "`post` may only be used on generic definitions.");
+            sm_assert(*start != "let", "Invalid use of `let` keyword. This is most likely a rule issue.");
+            sm_assert(*start != "pre", "`pre` may only be used on generic definitions.");
+            sm_assert(*start != "post", "`post` may only be used on generic definitions.");
 
-            sm_assert(settings.table.count(What[start]) != 0,
-                      "No definitions exist for symbol '" + What[start].text + "'.");
-            auto candidates = settings.table[What[start]];
-            sm_assert(candidates.size() != 0, "No definitions exist for symbol '" + What[start].text + "'.");
+            sm_assert(settings.table.count(*start) != 0, "No definitions exist for symbol '" + start->text + "'.");
+            auto candidates = settings.table[*start];
+            sm_assert(candidates.size() != 0, "No definitions exist for symbol '" + start->text + "'.");
 
             type = candidates.back().type;
         }
@@ -2233,7 +2239,7 @@ Type resolveFunctionInternal(const std::list<Token> &What, int &start, std::list
     }
 
     // if member access, resolve that
-    while (start + 1 < What.size() && What[start + 1] == ".")
+    while (itCmp(What, start, 1, "."))
     {
         // Auto-dereference pointers (. to -> automatically)
         if (type[0].info == pointer)
@@ -2259,22 +2265,33 @@ Type resolveFunctionInternal(const std::list<Token> &What, int &start, std::list
             sm_assert(settings.structData.count(structName) != 0, "Struct type '" + structName + "' does not exist.");
             sm_assert(!settings.structData[structName].erased,
                       "Struct '" + structName + "' exists, but is erased (private).");
-            sm_assert(settings.structData[structName].members.count(What[start + 2]) != 0,
-                      "Struct '" + structName + "' has no member '" + What[start + 2].text + "'.");
+
+            start = std::next(start, 2);
+
+            sm_assert(settings.structData[structName].members.count(*start) != 0,
+                      "Struct '" + structName + "' has no member '" + start->text + "'.");
         }
         catch (sequencing_error &e)
         {
             std::cout << tags::yellow_bold << "In context: '";
 
-            int pos = start - 8;
-            if (pos < 0)
+            int pos = std::distance(What.begin(), start);
+
+            int min = pos - 8;
+            int max = pos + 8;
+
+            if (min < 0)
             {
                 pos = 0;
             }
 
-            for (; pos < What.size() && pos < start + 8; pos++)
+            // Move iterator to point at first item
+            start = std::next(start, min - pos);
+
+            for (pos = min; pos < What.size() && pos < max; pos++)
             {
-                std::cout << What[pos].text << (pos == start + 7 ? "" : " ");
+                std::cout << start->text << " ";
+                start++;
             }
 
             std::cout << "'\n" << tags::reset;
@@ -2282,12 +2299,12 @@ Type resolveFunctionInternal(const std::list<Token> &What, int &start, std::list
             throw e;
         }
 
-        type = settings.structData[structName].members[What[start + 2]];
+        start = std::next(start, 2);
 
         c.push_back(".");
-        c.push_back(What[start + 2]);
 
-        start += 2;
+        type = settings.structData[structName].members[*start];
+        c.push_back(*start);
     }
 
     start++;
@@ -2296,7 +2313,7 @@ Type resolveFunctionInternal(const std::list<Token> &What, int &start, std::list
     return type;
 }
 
-Type resolveFunction(const std::list<Token> &What, int &start, std::string &c, AcornSettings &settings)
+Type resolveFunction(std::list<Token> &What, std::list<Token>::iterator &start, std::string &c, AcornSettings &settings)
 {
     std::list<std::string> cVec;
 

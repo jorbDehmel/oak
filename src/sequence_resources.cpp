@@ -52,20 +52,20 @@ Type toType(const std::list<Token> &WhatIn, AcornSettings &settings)
         return Type(atomic, "NULL");
     }
 
-    int i = 0;
-    if (What[i] == "<")
+    auto it = What.begin();
+    if (*it == "<")
     {
-        while (i < What.size() && What[i] != ">")
+        while (it != What.end() && *it != ">")
         {
-            i++;
+            it++;
         }
-        i++;
+        it++;
     }
 
     Type out;
-    for (; i < What.size(); i++)
+    for (; it != What.end(); it++)
     {
-        std::string cur = What[i];
+        std::string cur = *it;
 
         if (cur == "^" || cur == "@")
         {
@@ -86,16 +86,16 @@ Type toType(const std::list<Token> &WhatIn, AcornSettings &settings)
             int count = 0;
             do
             {
-                if (What[i] == "<")
+                if (*it == "<")
                 {
                     count++;
 
                     if (count > 1)
                     {
-                        curGen.push_back(What[i]);
+                        curGen.push_back(*it);
                     }
                 }
-                else if (What[i] == ">")
+                else if (*it == ">")
                 {
                     count--;
 
@@ -110,10 +110,10 @@ Type toType(const std::list<Token> &WhatIn, AcornSettings &settings)
                     }
                     else
                     {
-                        curGen.push_back(What[i]);
+                        curGen.push_back(*it);
                     }
                 }
-                else if (What[i] == "," && count == 1)
+                else if (*it == "," && count == 1)
                 {
                     if (curGen.size() > 0)
                     {
@@ -124,12 +124,12 @@ Type toType(const std::list<Token> &WhatIn, AcornSettings &settings)
                 }
                 else
                 {
-                    curGen.push_back(What[i]);
+                    curGen.push_back(*it);
                 }
 
-                i++;
-            } while (i < What.size() && count != 0);
-            i--;
+                it++;
+            } while (it != What.end() && count != 0);
+            it--;
 
             // At this point, will only ever be a struct
             std::list<std::string> temp;
@@ -140,7 +140,7 @@ Type toType(const std::list<Token> &WhatIn, AcornSettings &settings)
         else if (cur == ",")
         {
             // Allows for the dummy comma
-            if (i + 1 >= What.size() || What[i + 1] != ")")
+            if (!itCmp(What, it, 1, ")"))
             {
                 out.append(join);
             }
@@ -155,25 +155,25 @@ Type toType(const std::list<Token> &WhatIn, AcornSettings &settings)
         }
         else if (cur == "[")
         {
-            if (i + 1 >= What.size())
+            if (!itIsInRange(What, it, 1))
             {
                 throw sequencing_error("'[' must be followed by a number or ']'");
             }
 
             try
             {
-                long long result = stoi(What[i + 1].text);
+                long long result = stoi(itGet(What, it, 1).text);
                 sm_assert(result > 0, "");
             }
             catch (...)
             {
                 throw sequencing_error("Array size must be a compile-time constant positive integer, instead '" +
-                                       What[i + 1].text + "' (" + settings.curFile + ":" +
-                                       std::to_string(What[i + 1].line) + ")");
+                                       itGet(What, it, 1).text + "' (" + settings.curFile + ":" +
+                                       std::to_string(itGet(What, it, 1).line) + ")");
             }
 
-            out.append(Type(sarr, What[i + 1]));
-            i++;
+            out.append(Type(sarr, itGet(What, it, 1)));
+            it++;
         }
         else if (cur == "]")
         {
@@ -189,9 +189,9 @@ Type toType(const std::list<Token> &WhatIn, AcornSettings &settings)
         }
         else if (cur == "let")
         {
-            i++;
+            it++;
         }
-        else if (What.size() > i + 1 && What[i + 1] == ":")
+        else if (itCmp(What, it, 1, ":"))
         {
             out.append(var_name, cur);
         }
@@ -225,11 +225,11 @@ void toCInternal(const ASTNode &What, std::list<std::string> &out, AcornSettings
     switch (What.info)
     {
     case code_line:
-        for (int i = 0; i < What.items.size(); i++)
+        for (auto it = What.items.begin(); it != What.items.end(); it++)
         {
-            toCInternal(What.items[i], out, settings);
+            toCInternal(*it, out, settings);
 
-            if (i + 1 != What.items.size())
+            if (std::next(it) != What.items.end())
             {
                 out.push_back(" ");
             }
@@ -240,16 +240,16 @@ void toCInternal(const ASTNode &What, std::list<std::string> &out, AcornSettings
     case code_scope:
         out.push_back("{\n");
 
-        for (int i = 0; i < What.items.size(); i++)
+        for (auto &i : What.items)
         {
-            if (What.items[i].info == keyword)
+            if (i.info == keyword)
             {
-                toCInternal(What.items[i], out, settings);
+                toCInternal(i, out, settings);
             }
-            else if (What.items[i].type == nullType)
+            else if (i.type == nullType)
             {
                 int old_size = out.size();
-                toCInternal(What.items[i], out, settings);
+                toCInternal(i, out, settings);
 
                 if (out.size() != old_size && !(old_size + 1 == out.size() && out.back() == ";"))
                 {
@@ -262,7 +262,7 @@ void toCInternal(const ASTNode &What, std::list<std::string> &out, AcornSettings
             {
                 // Janky return
                 out.push_back("return ");
-                toCInternal(What.items[i], out, settings);
+                toCInternal(i, out, settings);
                 out.push_back(";\n");
             }
         }
@@ -298,7 +298,7 @@ void toCInternal(const ASTNode &What, std::list<std::string> &out, AcornSettings
             // First item is object to capture.
             // Remaining items are case or defaults.
 
-            Type type = What.items[0].type;
+            Type type = What.items.front().type;
             std::string typeStr = toStrC(&type, settings);
 
             if (typeStr.substr(0, 7) == "struct ")
@@ -317,19 +317,24 @@ void toCInternal(const ASTNode &What, std::list<std::string> &out, AcornSettings
             }
 
             // Skips any vestigial "Del" statements
-            int max = What.items[1].items.size();
-            while (max >= 0 && What.items[1].items[max - 1].raw.substr(0, 3) == "Del")
+            // COSTLY CALL:
+            int max = std::next(What.items.begin())->items.size();
+            while (max >= 0 &&
+                   std::next(std::next(What.items.begin())->items.begin(), max - 1)->raw.substr(0, 3) == "Del")
             {
                 max--;
             }
 
-            for (int ind = 0; ind < max; ind++)
+            int i = -1;
+            for (auto &ind : std::next(What.items.begin())->items)
             {
-                if (What.items[1].items[ind].raw == "case")
-                {
-                    auto &cur = What.items[1].items[ind];
+                i++;
 
-                    std::string optionName = cur.items[0].raw;
+                if (ind.raw == "case")
+                {
+                    auto &cur = ind;
+
+                    std::string optionName = cur.items.front().raw;
 
                     sm_assert(settings.enumData[typeStr].options.count(optionName) != 0,
                               "'" + optionName + "' is not an option for enum '" + typeStr + "'");
@@ -337,18 +342,18 @@ void toCInternal(const ASTNode &What, std::list<std::string> &out, AcornSettings
                               "Option '" + optionName + "' cannot be used multiple times in a match statement.");
                     usedOptions.erase(optionName);
 
-                    std::string captureName = cur.items[1].raw;
+                    std::string captureName = std::next(cur.items.begin())->raw;
 
                     auto backupTable = settings.table;
 
-                    if (ind != 0)
+                    if (i != 0)
                     {
                         out.push_back("else ");
                     }
 
                     out.push_back("if (");
 
-                    toCInternal(What.items[0], out, settings);
+                    toCInternal(What.items.front(), out, settings);
                     std::string itemStr = out.back();
 
                     out.push_back(".__info == ");
@@ -392,36 +397,36 @@ void toCInternal(const ASTNode &What, std::list<std::string> &out, AcornSettings
 
                     // Add capture group to Oak table if needed
 
-                    toCInternal(cur.items[2], out, settings);
+                    toCInternal(*std::next(cur.items.begin(), 2), out, settings);
                     out.push_back("\n}\n");
                 }
-                else if (What.items[1].items[ind].raw == "default")
+                else if (ind.raw == "default")
                 {
                     // Causes errors with destructor calls
                     // debugPrint(What.items[1]);
 
-                    sm_assert(ind + 2 >= What.items[1].items.size(),
+                    sm_assert(i + 2 >= std::next(What.items.begin())->items.size(),
                               "Default statement must be final branch of match statement.");
                     usedOptions.clear();
 
-                    auto &cur = What.items[1].items[ind];
+                    auto &cur = ind;
 
-                    if (ind == 0)
+                    if (i == 0)
                     {
                         out.push_back("{\n");
-                        toCInternal(cur.items[0], out, settings);
+                        toCInternal(cur.items.front(), out, settings);
                         out.push_back("\n}\n");
                     }
                     else
                     {
                         out.push_back("else\n{\n");
-                        toCInternal(cur.items[0], out, settings);
+                        toCInternal(cur.items.front(), out, settings);
                         out.push_back("\n}\n");
                     }
                 }
-                else if (What.items[1].items[ind].raw != "")
+                else if (ind.raw != "")
                 {
-                    sm_assert(false, "Invalid option '" + What.items[1].items[ind].raw + "' in match statement.");
+                    sm_assert(false, "Invalid option '" + ind.raw + "' in match statement.");
                 }
             }
 
@@ -646,33 +651,33 @@ void addStruct(const std::list<Token> &From, AcornSettings &settings)
     parse_assert(From.size() >= 4);
 
     // Get name and check against malformations
-    int i = 0;
+    auto it = From.begin();
 
-    parse_assert(From[i] == "let");
-    i++;
+    parse_assert(*it == "let");
+    it++;
 
-    std::string name = From[i];
+    std::string name = *it;
 
     // Scrape generics here (and mangle)
     std::list<std::list<std::string>> generics;
     std::list<std::string> curGen;
 
-    i++;
+    it++;
     int count = 0;
-    while (i < From.size() && From[i] != ":" && From[i] != "{")
+    while (it != From.end() && *it != ":" && *it != "{")
     {
-        if (From[i] == "<")
+        if (*it == "<")
         {
             count++;
 
             if (count == 1)
             {
-                i++;
+                it++;
                 continue;
             }
         }
 
-        else if (From[i] == ">")
+        else if (*it == ">")
         {
             count--;
 
@@ -682,13 +687,13 @@ void addStruct(const std::list<Token> &From, AcornSettings &settings)
             }
         }
 
-        else if (From[i] == "<")
+        else if (*it == "<")
         {
             count++;
         }
 
-        curGen.push_back(From[i]);
-        i++;
+        curGen.push_back(*it);
+        it++;
     }
 
     if (generics.size() != 0)
@@ -722,54 +727,57 @@ void addStruct(const std::list<Token> &From, AcornSettings &settings)
     settings.table["New"].push_back(MultiTableSymbol{s, t});
     settings.table["Del"].push_back(MultiTableSymbol{s, t});
 
-    parse_assert(i < From.size() && From[i] == ":");
-    i++;
-    parse_assert(From[i] == "struct");
-    i++;
+    parse_assert(it != From.end() && *it == ":");
+    it++;
+    parse_assert(*it == "struct");
+    it++;
 
-    if (From[i] == "{")
+    if (*it == "{")
     {
-        i++;
-        for (; i < From.size() && From[i] != "}"; i++)
+        it++;
+        for (; it != From.end() && *it != "}"; it++)
         {
             // name : type ,
             // name , name2 , name3 : type < std::string , hi > , name4 : type2 ,
             std::list<Token> names, lexedType;
 
-            while (i + 1 < From.size() && From[i + 1] == ",")
+            while (std::next(it) != From.end() && *std::next(it) == ",")
             {
-                names.push_back(From[i]);
+                names.push_back(*it);
 
-                i += 2;
+                it++;
+                it++;
             }
 
-            names.push_back(From[i]);
+            names.push_back(*it);
 
-            parse_assert(i + 1 < From.size());
-            parse_assert(From[i + 1] == ":");
+            it++;
 
-            i += 2;
+            parse_assert(it != From.end());
+            parse_assert(*it == ":");
+
+            it++;
 
             // Get lexed type (can be multiple symbols due to templating)
             int templCount = 0;
             std::list<std::string> genericHolder;
 
-            while (i < From.size() && !(templCount == 0 && From[i] == ","))
+            while (it != From.end() && !(templCount == 0 && *it == ","))
             {
-                if (templCount == 0 && From[i] != "<")
+                if (templCount == 0 && *it != "<")
                 {
-                    lexedType.push_back(From[i]);
+                    lexedType.push_back(*it);
                 }
                 else
                 {
-                    genericHolder.push_back(From[i]);
+                    genericHolder.push_back(*it);
                 }
 
-                if (From[i] == "<")
+                if (*it == "<")
                 {
                     templCount++;
                 }
-                else if (From[i] == ">")
+                else if (*it == ">")
                 {
                     templCount--;
 
@@ -785,7 +793,7 @@ void addStruct(const std::list<Token> &From, AcornSettings &settings)
                     }
                 }
 
-                i++;
+                it++;
             }
 
             Type toAdd = toType(lexedType, settings);
@@ -806,7 +814,7 @@ void addStruct(const std::list<Token> &From, AcornSettings &settings)
             }
         }
     }
-    else if (From[4] != ";")
+    else if (!itCmp(From, From.begin(), 4, ";"))
     {
         throw parse_error("Malformed struct definition; Expected ';' or '{'.");
     }
@@ -821,24 +829,24 @@ void addEnum(const std::list<Token> &From, AcornSettings &settings)
     parse_assert(From.size() >= 4);
 
     // Get name and check against malformations
-    int i = 0;
+    auto i = From.begin();
 
-    parse_assert(From[i] == "let");
+    parse_assert(*i == "let");
     i++;
 
-    std::string name = From[i];
+    std::string name = *i;
     i++;
 
-    parse_assert(i < From.size());
+    parse_assert(i != From.end());
 
     // Scrape generics here (and mangle)
     std::list<std::string> curGen;
     std::list<std::list<std::string>> generics;
 
     int count = 0;
-    while (i < From.size() && From[i] != ":" && From[i] != "{")
+    while (i != From.end() && *i != ":" && *i != "{")
     {
-        if (From[i] == "<")
+        if (*i == "<")
         {
             count++;
 
@@ -849,7 +857,7 @@ void addEnum(const std::list<Token> &From, AcornSettings &settings)
             }
         }
 
-        else if (From[i] == ">")
+        else if (*i == ">")
         {
             count--;
 
@@ -859,12 +867,12 @@ void addEnum(const std::list<Token> &From, AcornSettings &settings)
             }
         }
 
-        else if (From[i] == "<")
+        else if (*i == "<")
         {
             count++;
         }
 
-        curGen.push_back(From[i]);
+        curGen.push_back(*i);
         i++;
     }
 
@@ -899,55 +907,56 @@ void addEnum(const std::list<Token> &From, AcornSettings &settings)
     settings.table["New"].push_back(MultiTableSymbol{s, t, false, settings.curFile});
     settings.table["Del"].push_back(MultiTableSymbol{s, t, false, settings.curFile});
 
-    parse_assert(From[i] == ":");
+    parse_assert(*i == ":");
     i++;
-    parse_assert(From[i] == "enum");
+    parse_assert(*i == "enum");
     i++;
 
-    if (From[i] == "{")
+    if (*i == "{")
     {
         i++;
-        for (; i < From.size() && From[i] != "}"; i++)
+        for (; i != From.end() && *i != "}"; i++)
         {
             // name : type ,
             // name , name2 , name3 : type < string , hi > , name4 : type2 ,
             std::list<std::string> names;
             std::list<Token> lexedType;
 
-            while (i + 1 < From.size() && From[i + 1] == ",")
+            while (std::next(i) != From.end() && *std::next(i) == ",")
             {
-                names.push_back(From[i]);
+                names.push_back(*i);
 
-                i += 2;
+                i++;
+                i++;
             }
 
-            names.push_back(From[i]);
+            names.push_back(*i);
 
-            parse_assert(i + 1 < From.size());
-            parse_assert(From[i + 1] == ":");
-
-            i += 2;
+            i++;
+            parse_assert(i != From.end());
+            parse_assert(*i == ":");
+            i++;
 
             // Get lexed type (can be multiple symbols due to templating)
             int templCount = 0;
             std::list<std::string> genericHolder;
 
-            while (i < From.size() && !(templCount == 0 && From[i] == ","))
+            while (i != From.end() && !(templCount == 0 && *i == ","))
             {
-                if (templCount == 0 && From[i] != "<")
+                if (templCount == 0 && *i != "<")
                 {
-                    lexedType.push_back(From[i]);
+                    lexedType.push_back(*i);
                 }
                 else
                 {
-                    genericHolder.push_back(From[i]);
+                    genericHolder.push_back(*i);
                 }
 
-                if (From[i] == "<")
+                if (*i == "<")
                 {
                     templCount++;
                 }
-                else if (From[i] == ">")
+                else if (*i == ">")
                 {
                     templCount--;
 
@@ -974,7 +983,7 @@ void addEnum(const std::list<Token> &From, AcornSettings &settings)
             }
         }
     }
-    else if (From[4] != ";")
+    else if (*std::next(From.begin(), 4) != ";")
     {
         throw parse_error("Malformed enum definition; Expected ';' or '{'.");
     }
@@ -989,7 +998,6 @@ void addEnum(const std::list<Token> &From, AcornSettings &settings)
 
             // Insert Oak version
             Type constructorType = nullType;
-            constructorType.reserve(6);
 
             constructorType.append(function);
             constructorType.append(var_name, "self");
@@ -1007,7 +1015,6 @@ void addEnum(const std::list<Token> &From, AcornSettings &settings)
 
             // Insert Oak version
             Type constructorType = nullType;
-            constructorType.reserve(9);
 
             constructorType.append(function);
             constructorType.append(var_name, "self");
@@ -1210,9 +1217,12 @@ std::list<int> getExactCandidates(const std::list<std::list<Type>> &candArgs, co
     bool isMatch;
 
     // Check for exact match for each candidate
-    for (int j = 0; j < candArgs.size(); j++)
+    int j_ind = -1;
+    for (auto &j : candArgs)
     {
-        if (candArgs[j].size() != argTypes.size())
+        j_ind++;
+
+        if (j.size() != argTypes.size())
         {
             // Cannot match if number of arguments is different
             continue;
@@ -1221,9 +1231,11 @@ std::list<int> getExactCandidates(const std::list<std::list<Type>> &candArgs, co
         isMatch = true;
 
         // Iterate over argument types
-        for (int k = 0; k < candArgs[j].size(); k++)
+        auto j_item = j.begin();
+        auto arg_item = argTypes.begin();
+        for (int k = 0; k < j.size(); k++)
         {
-            if (!typesAreSameExact(&candArgs[j][k], &argTypes[k]))
+            if (!typesAreSameExact(&*j_item, &*arg_item))
             {
                 isMatch = false;
                 break;
@@ -1232,7 +1244,7 @@ std::list<int> getExactCandidates(const std::list<std::list<Type>> &candArgs, co
 
         if (isMatch)
         {
-            out.push_back(j);
+            out.push_back(j_ind);
         }
     }
 
@@ -1247,13 +1259,16 @@ std::list<int> getCastingCandidates(const std::list<std::list<Type>> &candArgs, 
 
     // Min number of conversions
     int min = argTypes.size();
-    int iOfMin = 0;
+    auto iOfMin = 0;
     int cur;
 
     // Check for exact match for each candidate
-    for (int j = 0; j < candArgs.size(); j++)
+    int j_ind = -1;
+    for (auto &j : candArgs)
     {
-        if (candArgs[j].size() != argTypes.size())
+        j_ind++;
+
+        if (j.size() != argTypes.size())
         {
             // Cannot match if number of arguments is different
             continue;
@@ -1263,13 +1278,20 @@ std::list<int> getCastingCandidates(const std::list<std::list<Type>> &candArgs, 
 
         // Iterate over argument types
         cur = 0;
-        for (int k = 0; k < candArgs[j].size(); k++)
+
+        auto l = j.begin();
+        auto r = argTypes.begin();
+
+        for (int k = 0; k < j.size(); k++)
         {
-            if (!typesAreSameCast(&candArgs[j][k], &argTypes[k], cur))
+            if (!typesAreSameCast(&*l, &*r, cur))
             {
                 isMatch = false;
                 break;
             }
+
+            l++;
+            r++;
         }
 
         if (isMatch)
@@ -1277,26 +1299,22 @@ std::list<int> getCastingCandidates(const std::list<std::list<Type>> &candArgs, 
             if (cur < min)
             {
                 min = cur;
-                iOfMin = j;
+                iOfMin = j_ind;
             }
 
-            out.push_back(j);
+            out.push_back(j_ind);
         }
     }
 
     // Make the occurrence with the fewest casts first
     if (iOfMin != 0)
     {
-        for (int i = 0; i < out.size(); i++)
-        {
-            if (i == iOfMin)
-            {
-                auto temp = out[i];
-                out[i] = out[iOfMin];
-                out[iOfMin] = temp;
-                break;
-            }
-        }
+        // Costly call:
+        auto it = std::next(out.begin(), iOfMin);
+
+        auto temp = out.front();
+        out.front() = *it;
+        *it = temp;
     }
 
     return out;
@@ -1311,9 +1329,12 @@ std::list<int> getReferenceCandidates(const std::list<std::list<Type>> &candArgs
     int min = 999, iOfMin = 0, cur;
 
     // Check for exact match for each candidate
-    for (int j = 0; j < candArgs.size(); j++)
+    int j_ind = -1;
+    for (auto &j : candArgs)
     {
-        if (candArgs[j].size() != argTypes.size())
+        j_ind++;
+
+        if (j.size() != argTypes.size())
         {
             // Cannot match if number of arguments is different
             continue;
@@ -1322,42 +1343,45 @@ std::list<int> getReferenceCandidates(const std::list<std::list<Type>> &candArgs
         isMatch = true;
 
         // Iterate over argument types
+        // Iterate over argument types
         cur = 0;
-        for (int k = 0; k < candArgs[j].size(); k++)
+
+        auto l = j.begin();
+        auto r = argTypes.begin();
+
+        for (int k = 0; k < j.size(); k++)
         {
-            // Inexact match, rather than exact in the last one
-            if (!typesAreSame(&candArgs[j][k], &argTypes[k], cur))
+            if (!typesAreSame(&*l, &*r, cur))
             {
                 isMatch = false;
                 break;
             }
+
+            l++;
+            r++;
         }
 
         if (isMatch)
         {
-            out.push_back(j);
-
             if (cur < min)
             {
                 min = cur;
-                iOfMin = j;
+                iOfMin = j_ind;
             }
+
+            out.push_back(j_ind);
         }
     }
 
     // Make the occurrence with the fewest casts first
     if (iOfMin != 0)
     {
-        for (int i = 0; i < out.size(); i++)
-        {
-            if (i == iOfMin)
-            {
-                auto temp = out[i];
-                out[i] = out[iOfMin];
-                out[iOfMin] = temp;
-                break;
-            }
-        }
+        // Costly call:
+        auto it = std::next(out.begin(), iOfMin);
+
+        auto temp = out.front();
+        out.front() = *it;
+        *it = temp;
     }
 
     return out;
@@ -1366,7 +1390,7 @@ std::list<int> getReferenceCandidates(const std::list<std::list<Type>> &candArgs
 ////////////////////////////////////////////////////////////////
 
 // Prints the reason why each candidate was rejected
-void printCandidateErrors(const std::list<MultiTableSymbol> &candidates, const std::list<Type> &argTypes,
+void printCandidateErrors(const std::vector<MultiTableSymbol> &candidates, const std::list<Type> &argTypes,
                           const std::string &name, AcornSettings &settings)
 {
     std::cout << "--------------------------------------------------\n";
@@ -1402,7 +1426,8 @@ void printCandidateErrors(const std::list<MultiTableSymbol> &candidates, const s
               << "Passed s2: " << s2.size() << '\n'
               << "Passed s3: " << s3.size() << "\n\n";
 
-    for (int i = 0; i < candidates.size(); i++)
+    auto candArgIter = candArgs.begin();
+    for (int i = 0; i < candidates.size(); i++, candArgIter++)
     {
         std::cout << std::left << name << std::setw(30) << toStr(&candidates[i].type) << "\tFrom "
                   << candidates[i].sourceFilePath << '\n';
@@ -1446,7 +1471,7 @@ void printCandidateErrors(const std::list<MultiTableSymbol> &candidates, const s
         }
 
         std::cout << "\tArgs:\n";
-        for (auto arg : candArgs[i])
+        for (auto arg : *candArgIter)
         {
             std::cout << "\t\t" << toStr(&arg) << '\n';
         }
@@ -1521,18 +1546,15 @@ void destroyUnits(const std::string &name, const Type &type, const bool &doThrow
     if (settings.table.count(name) != 0 && settings.table[name].size() != 0)
     {
         // Iterate over items
-        for (int i = 0; i < settings.table[name].size(); i++)
+        for (auto i = settings.table[name].begin(), end = settings.table[name].end(); i != end; i++)
         {
-            if (settings.table[name][i].type == type)
+            if (i->type == type)
             {
                 // If is unit, erase
-                if (settings.table[name][i].seq.items.size() == 0 ||
-                    (settings.table[name][i].seq.items.size() >= 1 &&
-                     settings.table[name][i].seq.items[0].raw.size() > 8 &&
-                     settings.table[name][i].seq.items[0].raw.substr(0, 9) == "//AUTOGEN"))
+                if (i->seq.items.size() == 0 || (i->seq.items.size() >= 1 && i->seq.items.front().raw.size() > 8 &&
+                                                 i->seq.items.front().raw.substr(0, 9) == "//AUTOGEN"))
                 {
-                    settings.table.at(name).erase(settings.table[name].begin() + i);
-                    i--;
+                    i = settings.table[name].erase(i);
                 }
 
                 // Else if doThrow, throw redef error
@@ -1693,12 +1715,12 @@ std::string insertDestructorsRecursive(ASTNode &what, const std::list<std::pair<
 
         return out;
     }
-    else if (what.info == keyword && what.items[0].raw == "return")
+    else if (what.info == keyword && what.items.front().raw == "return")
     {
         // Keyword return
 
         std::string out, against;
-        against = toC(what.items[1], settings);
+        against = toC(*std::next(what.items.begin()), settings);
 
         for (const auto &p : destructors)
         {
@@ -1718,16 +1740,15 @@ std::string insertDestructorsRecursive(ASTNode &what, const std::list<std::pair<
     {
         // Recursive
         std::string out;
-        for (unsigned int i = 0; i < what.items.size(); i++)
+        for (auto i = what.items.begin(), end = what.items.end(); i != end; i++)
         {
-            out = insertDestructorsRecursive(what.items[i], destructors, settings);
+            out = insertDestructorsRecursive(*i, destructors, settings);
 
             if (out != "")
             {
                 // Insert the thing returned
 
-                what.items.insert(what.items.begin() + i, ASTNode{nullType, std::list<ASTNode>(), atom, out});
-                i++;
+                i = what.items.insert(i, ASTNode{nullType, std::list<ASTNode>(), atom, out});
             }
         }
 

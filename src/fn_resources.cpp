@@ -60,6 +60,39 @@ bool itCmp(const std::list<Token> &inside, const std::list<Token>::iterator &it,
     return itCmp(inside, it, offset, Token(compareTo));
 }
 
+bool itCmp(const std::list<Token> &inside, const std::list<Token>::const_iterator &it, const int &offset,
+           const Token &compareTo) noexcept
+{
+    auto temp = it;
+
+    if (offset > 0)
+    {
+        for (int i = 0; i < offset; i++)
+        {
+            temp++;
+
+            if (temp == inside.end())
+            {
+                return false;
+            }
+        }
+    }
+    else
+    {
+        for (int i = 0; i < -offset; i++)
+        {
+            if (temp == inside.begin())
+            {
+                return false;
+            }
+
+            temp--;
+        }
+    }
+
+    return *temp == compareTo;
+}
+
 // Returns true if the given iterator is in range.
 bool itIsInRange(const std::list<Token> &inside, const std::list<Token>::iterator &it, const int &offset) noexcept
 {
