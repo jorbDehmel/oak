@@ -157,162 +157,155 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
 
             if (!From.empty() && (From.front() == "struct" || From.front() == "enum"))
             {
+                // addStruct takes in the full struct definition, from
+                // let to end curly bracket. So we must first parse this.
+
+                std::list<Token> toAdd = {Token("let"), Token("NAME_HERE")};
+
+                // Add generics back in here
+                if (generics.size() != 0)
                 {
-                    // addStruct takes in the full struct definition, from
-                    // let to end curly bracket. So we must first parse this.
+                    toAdd.push_back(Token("<"));
+                    toAdd.insert(toAdd.end(), generics.begin(), generics.end());
+                    toAdd.push_back(Token(">"));
+                }
 
-                    // sm_assert(depth == 0, "Structs and enums may only be declared in the global scope.");
+                toAdd.push_back(Token(":"));
 
-                    std::list<Token> toAdd = {Token("let"), Token("NAME_HERE")};
+                std::string front = From.front();
 
-                    // Add generics back in here
-                    if (generics.size() != 0)
-                    {
-                        toAdd.push_back(Token("<"));
-                        toAdd.insert(toAdd.end(), generics.begin(), generics.end());
-                        toAdd.push_back(Token(">"));
-                    }
-
-                    toAdd.push_back(Token(":"));
-
-                    // Normalize line numbers
-                    for (auto &item : toAdd)
-                    {
-                        item.line = From.front().line;
-                    }
-
-                    std::string front = From.front();
-
-                    int count = 0;
-                    while (count != 0 || (!From.empty() && From.front() != "}" && From.front() != ";"))
-                    {
-                        toAdd.push_back(From.front());
-
-                        sm_assert(!From.empty(), "Cannot pop from front of empty list.");
-                        From.pop_front();
-                    }
-
+                while (!From.empty() && From.front() != "}" && From.front() != ";")
+                {
                     toAdd.push_back(From.front());
 
                     sm_assert(!From.empty(), "Cannot pop from front of empty list.");
                     From.pop_front();
-
-                    bool exempt = false;
-                    for (auto s : generics)
-                    {
-                        if (settings.structData.count(s) != 0 || checkLiteral(s) != nullType || s == "u8" ||
-                            s == "i8" || s == "u16" || s == "i16" || s == "u32" || s == "i32" || s == "u64" ||
-                            s == "i64" || s == "u128" || s == "i128" || s == "str" || s == "bool")
-                        {
-                            exempt = true;
-                            break;
-                        }
-                    }
-
-                    if (generics.size() == 0 || exempt)
-                    {
-                        for (auto name : names)
-                        {
-                            std::next(toAdd.begin())->text = name;
-                            if (front == "struct")
-                            {
-                                // Non-templated struct
-                                addStruct(toAdd, settings);
-                            }
-                            else if (front == "enum")
-                            {
-                                // Non-templated enum
-                                addEnum(toAdd, settings);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        // Check for needs / inst block here
-                        std::list<Token> preBlock, postBlock;
-
-                        while (!From.empty() && (From.front() == "pre" || From.front() == "post"))
-                        {
-                            if (!From.empty() && From.front() == "pre")
-                            {
-                                // pop needs
-                                From.pop_front();
-
-                                // pop {
-                                sm_assert(!From.empty() && From.front() == "{",
-                                          "'pre' block must be followed by scope.");
-                                From.pop_front();
-
-                                int count = 1;
-                                while (!From.empty())
-                                {
-                                    if (From.front() == "{")
-                                    {
-                                        count++;
-                                    }
-                                    else if (From.front() == "}")
-                                    {
-                                        count--;
-                                    }
-
-                                    if (count == 0)
-                                    {
-                                        From.pop_front();
-                                        break;
-                                    }
-                                    else
-                                    {
-                                        preBlock.push_back(From.front());
-                                        From.pop_front();
-                                    }
-                                }
-                            }
-                            else if (!From.empty() && From.front() == "post")
-                            {
-                                // pop needs
-                                From.pop_front();
-
-                                // pop {
-                                sm_assert(!From.empty() && From.front() == "{",
-                                          "'post' block must be followed by scope.");
-                                From.pop_front();
-
-                                int count = 1;
-                                while (!From.empty())
-                                {
-                                    if (From.front() == "{")
-                                    {
-                                        count++;
-                                    }
-                                    else if (From.front() == "}")
-                                    {
-                                        count--;
-                                    }
-
-                                    if (count == 0)
-                                    {
-                                        From.pop_front();
-                                        break;
-                                    }
-                                    else
-                                    {
-                                        postBlock.push_back(From.front());
-                                        From.pop_front();
-                                    }
-                                }
-                            }
-                        }
-
-                        for (auto name : names)
-                        {
-                            std::next(toAdd.begin())->text = name;
-                            addGeneric(toAdd, name, generics, {front}, preBlock, postBlock, settings);
-                        }
-                    }
-
-                    // This should be left out of toC, as it should only be used
-                    // in the header file during reconstruction.
                 }
+
+                toAdd.push_back(From.front());
+
+                // Normalize line numbers
+                for (auto &item : toAdd)
+                {
+                    item.line = From.front().line;
+                }
+
+                sm_assert(!From.empty(), "Cannot pop from front of empty list.");
+                From.pop_front();
+
+                bool exempt = false;
+                for (auto s : generics)
+                {
+                    if (settings.structData.count(s) != 0 || checkLiteral(s) != nullType || s == "u8" || s == "i8" ||
+                        s == "u16" || s == "i16" || s == "u32" || s == "i32" || s == "u64" || s == "i64" ||
+                        s == "u128" || s == "i128" || s == "str" || s == "bool")
+                    {
+                        exempt = true;
+                        break;
+                    }
+                }
+
+                if (generics.size() == 0 || exempt)
+                {
+                    for (auto name : names)
+                    {
+                        std::next(toAdd.begin())->text = name;
+                        if (front == "struct")
+                        {
+                            // Non-templated struct
+                            addStruct(toAdd, settings);
+                        }
+                        else if (front == "enum")
+                        {
+                            // Non-templated enum
+                            addEnum(toAdd, settings);
+                        }
+                    }
+                }
+                else
+                {
+                    // Check for needs / inst block here
+                    std::list<Token> preBlock, postBlock;
+
+                    while (!From.empty() && (From.front() == "pre" || From.front() == "post"))
+                    {
+                        if (!From.empty() && From.front() == "pre")
+                        {
+                            // pop needs
+                            From.pop_front();
+
+                            // pop {
+                            sm_assert(!From.empty() && From.front() == "{", "'pre' block must be followed by scope.");
+                            From.pop_front();
+
+                            int count = 1;
+                            while (!From.empty())
+                            {
+                                if (From.front() == "{")
+                                {
+                                    count++;
+                                }
+                                else if (From.front() == "}")
+                                {
+                                    count--;
+                                }
+
+                                if (count == 0)
+                                {
+                                    From.pop_front();
+                                    break;
+                                }
+                                else
+                                {
+                                    preBlock.push_back(From.front());
+                                    From.pop_front();
+                                }
+                            }
+                        }
+                        else if (!From.empty() && From.front() == "post")
+                        {
+                            // pop needs
+                            From.pop_front();
+
+                            // pop {
+                            sm_assert(!From.empty() && From.front() == "{", "'post' block must be followed by scope.");
+                            From.pop_front();
+
+                            int count = 1;
+                            while (!From.empty())
+                            {
+                                if (From.front() == "{")
+                                {
+                                    count++;
+                                }
+                                else if (From.front() == "}")
+                                {
+                                    count--;
+                                }
+
+                                if (count == 0)
+                                {
+                                    From.pop_front();
+                                    break;
+                                }
+                                else
+                                {
+                                    postBlock.push_back(From.front());
+                                    From.pop_front();
+                                }
+                            }
+                        }
+                    }
+
+                    for (auto name : names)
+                    {
+                        std::next(toAdd.begin())->text = name;
+                        addGeneric(toAdd, name, generics, {front}, preBlock, postBlock, settings);
+                    }
+                }
+
+                // This should be left out of toC, as it should only be used
+                // in the header file during reconstruction.
             }
             else
             {
@@ -1068,6 +1061,8 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
             ASTNode temp = __createSequence(contents, settings);
             std::string name = toC(temp, settings);
 
+            debugPrint(temp);
+
             while (contents.front() == ",")
             {
                 contents.pop_front();
@@ -1078,6 +1073,8 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
 
             Type tempType = temp.type;
             Type numType = numSeq.type;
+
+            std::cout << __FILE__ << ":" << __LINE__ << " " << toStr(&tempType) << '\t' << toStr(&numType) << '\n';
 
             sm_assert(tempType.size() > 0, "'alloc!' received a malformed first argument.");
 

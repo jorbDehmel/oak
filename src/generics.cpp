@@ -6,6 +6,7 @@ Jordan Dehmel, 2023
 */
 
 #include "oakc_fns.hpp"
+#include "oakc_structs.hpp"
 #include "options.hpp"
 #include <unistd.h>
 
@@ -38,25 +39,18 @@ bool checkTypeVec(const std::list<std::string> &candidateTypeVec, const std::lis
 
     while (nameIter != genericNames.end() && subIter != substitutions.end())
     {
-        subMap[*nameIter] = std::list<std::string>();
-        for (auto item : *subIter)
-        {
-            subMap[*nameIter].push_back(item);
-        }
+        subMap[*nameIter] = std::list<std::string>(*subIter);
 
         nameIter++;
         subIter++;
     }
 
     // Do substitutions
-    // list<string> afterSub;
     auto candIter = candidateTypeVec.begin();
     for (std::string symb : genericTypeVec)
     {
         if (subMap.count(symb) == 0)
         {
-            // afterSub.push_back(symb);
-
             if (candIter == candidateTypeVec.end())
             {
                 return false;
@@ -224,7 +218,7 @@ std::string __instantiateGeneric(const std::string &what, GenericInfo &info,
     auto l = info.genericNames.begin();
     auto r = genericSubs.begin();
 
-    for (int i = 0; i < genericSubs.size(); i++)
+    while (l != info.genericNames.end() && r != genericSubs.end())
     {
         substitutions[*l] = *r;
 
@@ -238,20 +232,18 @@ std::string __instantiateGeneric(const std::string &what, GenericInfo &info,
     if (info.preBlock.size() != 0)
     {
         // Create copy of pre block
-        copy.assign(info.preBlock.begin(), info.preBlock.end());
-
-        // Iterate and mangle pre block
-        for (auto i = copy.begin(); i != copy.end(); i++)
+        for (auto item : info.preBlock)
         {
-            if (substitutions.count(*i) != 0)
+            if (substitutions.count(item) != 0)
             {
-                std::string temp = *i;
-                i = copy.erase(i);
-                for (auto s : substitutions[temp])
+                for (auto subItem : substitutions[item])
                 {
-                    i = copy.insert(i, s);
-                    i++;
+                    copy.push_back(subItem);
                 }
+            }
+            else
+            {
+                copy.push_back(item);
             }
         }
 
@@ -291,22 +283,18 @@ std::string __instantiateGeneric(const std::string &what, GenericInfo &info,
     if (info.postBlock.size() != 0)
     {
         copy.clear();
-
-        // Create copy of post block
-        copy.assign(info.postBlock.begin(), info.postBlock.end());
-
-        // Iterate and mangle post block
-        for (auto i = copy.begin(); i != copy.end(); i++)
+        for (auto item : info.postBlock)
         {
-            if (substitutions.count(*i) != 0)
+            if (substitutions.count(item) != 0)
             {
-                std::string temp = *i;
-                i = copy.erase(i);
-                for (auto s : substitutions[temp])
+                for (auto subItem : substitutions[item])
                 {
-                    i = copy.insert(i, s);
-                    i++;
+                    copy.push_back(subItem);
                 }
+            }
+            else
+            {
+                copy.push_back(item);
             }
         }
 
@@ -317,8 +305,7 @@ std::string __instantiateGeneric(const std::string &what, GenericInfo &info,
         }
         catch (std::exception &e)
         {
-            // This is only a failure case for this template
-            return e.what();
+            throw generic_error("Post-block failed to instantiate given prerequisites: " + std::string(e.what()));
         }
     }
 

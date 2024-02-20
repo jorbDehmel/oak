@@ -5,6 +5,7 @@ jdehmel@outlook.com
 */
 
 #include "oakc_fns.hpp"
+#include "oakc_structs.hpp"
 #include "options.hpp"
 
 void sm_assert(const bool &expression, const std::string &message)
@@ -654,15 +655,50 @@ void addStruct(const std::list<Token> &From, AcornSettings &settings)
     auto it = From.begin();
 
     parse_assert(*it == "let");
-    it++;
+    it++; // Now on 1st
 
     std::string name = *it;
+    it++; // Now on 2nd
+
+    // If unit, exit
+    if (From.size() == 6)
+    {
+        bool isUnit = true;
+
+        if (*it != ":")
+        {
+            isUnit = false;
+        }
+
+        it++; // Now on 3rd
+        it++; // Now on 4th
+
+        if (*it != "{")
+        {
+            isUnit = false;
+        }
+
+        it++; // Now on 5th
+
+        if (*it != "}")
+        {
+            isUnit = false;
+        }
+
+        if (isUnit)
+        {
+            return;
+        }
+        else
+        {
+            it = std::prev(it, 3);
+        }
+    }
 
     // Scrape generics here (and mangle)
     std::list<std::list<std::string>> generics;
     std::list<std::string> curGen;
 
-    it++;
     int count = 0;
     while (it != From.end() && *it != ":" && *it != "{")
     {
@@ -1758,7 +1794,7 @@ std::string insertDestructorsRecursive(ASTNode &what, const std::list<std::pair<
     {
         // Recursive
         std::string out;
-        for (auto i = what.items.begin(), end = what.items.end(); i != end; i++)
+        for (auto i = what.items.begin(); i != what.items.end(); i++)
         {
             out = insertDestructorsRecursive(*i, destructors, settings);
 
@@ -1767,6 +1803,7 @@ std::string insertDestructorsRecursive(ASTNode &what, const std::list<std::pair<
                 // Insert the thing returned
 
                 i = what.items.insert(i, ASTNode{nullType, std::list<ASTNode>(), atom, out});
+                i++;
             }
         }
 

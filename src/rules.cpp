@@ -679,7 +679,7 @@ void doRuleAcorn(std::list<Token> &From, std::list<Token>::iterator &i, Rule &cu
                 posInFrom++;
             } while (posInFrom != From.end() && count != 0);
 
-            if (!isMatch || posInFrom == beginningPosition || posInFrom == ++beginningPosition)
+            if (!isMatch || posInFrom == beginningPosition || posInFrom == std::next(beginningPosition))
             {
                 isMatch = false;
                 break;

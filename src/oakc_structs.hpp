@@ -143,6 +143,7 @@ enum TypeInfo
     var_name, // A variable name for functions.
     arr,      // Unsized array. Equivalent to pointer.
     sarr,     // Sized array. like var_name, has size in `name`.
+    mut,      // Mutable keyword for future work.
 };
 
 // A single node in a type; For instance, in `[]i8`, both

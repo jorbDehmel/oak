@@ -1,0 +1,20 @@
+/*
+Tests structs in Oak, as the name suggests.
+
+Jordan Dehmel, 2024
+jdehmel@outlook.com
+*/
+
+package!("std");
+
+let test: struct
+{
+    id: i32,
+}
+
+let main() -> i32
+{
+    let a: test;
+
+    0
+}
