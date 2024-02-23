@@ -70,7 +70,7 @@ let Del<t>(self: ^stl::arr<t>) -> void
     }
 }
 
-let Copy<t>(self: ^stl::arr<t>, l: u128) -> void
+let Copy<t>(self: ^stl::arr<t>, l: u128) -> ^stl::arr<t>
 {
     assert!(l > 0u128);
 
@@ -87,9 +87,12 @@ let Copy<t>(self: ^stl::arr<t>, l: u128) -> void
     }
 
     self.l = l;
+
+    self
 }
 
-let Copy<t>(self: ^stl::arr<t>, other: stl::arr<t>) -> void
+let Copy<t>(self: ^stl::arr<t>, other: stl::arr<t>
+    ) -> ^stl::arr<t>
 {
     self.responsible = other.responsible;
 
@@ -111,6 +114,8 @@ let Copy<t>(self: ^stl::arr<t>, other: stl::arr<t>) -> void
         self.l = other.l;
         ptrcpy!(self.data, other.data);
     }
+
+    self
 }
 
 let Get<t>(self: ^stl::arr<t>, x: u128) -> t

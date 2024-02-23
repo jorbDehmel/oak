@@ -28,10 +28,11 @@ let node: struct
 }
 
 // Initialize the inputs and weights of a node
-let Copy(self: ^node, num_inputs: u128) -> void
+let Copy(self: ^node, num_inputs: u128) -> ^node
 {
     self.inputs = num_inputs;
     self.weights = num_inputs;
+    self
 }
 
 // Randomize the weights of a node

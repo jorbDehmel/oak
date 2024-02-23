@@ -17,7 +17,7 @@ let ns: struct
 
 let New(self: ^ns) -> void;
 
-let Copy(self: ^ns, other: ns) -> void;
+let Copy(self: ^ns, other: ns) -> ^ns;
 let now(self: ^ns) -> void;
 let count(start: ^ns, end: ^ns) -> i128;
 

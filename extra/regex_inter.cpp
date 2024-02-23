@@ -56,7 +56,7 @@ extern "C"
         }
     }
 
-    void Copy_FN_PTR_extra_regex_JOIN_PTR_string_MAPS_void(extra_regex *self, string *pattern)
+    extra_regex *Copy_FN_PTR_extra_regex_JOIN_PTR_string_MAPS_PTR_extra_regex(extra_regex *self, string *pattern)
     {
         if (self->re != nullptr)
         {
@@ -64,9 +64,10 @@ extern "C"
         }
 
         self->re = new boost::regex(pattern->data);
+        return self;
     }
 
-    void Copy_FN_PTR_extra_regex_JOIN_str_MAPS_void(extra_regex *self, str pattern)
+    extra_regex *Copy_FN_PTR_extra_regex_JOIN_str_MAPS_PTR_extra_regex(extra_regex *self, str pattern)
     {
         if (self->re != nullptr)
         {
@@ -74,6 +75,7 @@ extern "C"
         }
 
         self->re = new boost::regex(pattern);
+        return self;
     }
 
     void New_FN_PTR_extra_regex_smatch_MAPS_void(extra_regex_smatch *self)

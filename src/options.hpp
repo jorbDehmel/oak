@@ -36,7 +36,7 @@ jdehmel@outlook.com
 namespace fs = std::filesystem;
 
 // The current version of Oak.
-const static std::string VERSION = "0.4.25";
+const static std::string VERSION = "0.5.0";
 
 // The license that this version of Oak uses.
 const static std::string LICENSE = "GPLv3";
@@ -216,6 +216,9 @@ const std::set<std::string> floatLiterals = {"f32", "f64", "f128"};
 // non-const globals.
 struct AcornSettings
 {
+    // The file whose analysis began this translation unit.
+    fs::path entryPoint;
+
     // Object files to include when linking.
     std::set<std::string> objects;
 
@@ -295,7 +298,7 @@ struct AcornSettings
     unsigned long long int curLine = 1;
 
     // The current file.
-    std::string curFile = "NULL";
+    fs::path curFile = "NULL";
 
     // The tokens in the current line. Used for debugging.
     std::list<Token> curLineSymbols;

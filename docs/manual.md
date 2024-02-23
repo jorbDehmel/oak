@@ -1,6 +1,6 @@
 
 # The Oak Programming Language
-## Version 0.4.26
+## Version 0.5.0
 
 ![](./logo_trimmed.png)
 
@@ -670,6 +670,11 @@ Deviation from the following is considered **non-canonical**
 `Oak` formatting, and is unadvised. Deviation, in fact, could
 easily be considered an error by the compiler.
 
+**Note:** Due to the way macros are processed, their `oakc`
+internal representations will most likely deviate drastically
+from these guidelines. This is likely not relevent to most
+developers.
+
 ### Code Scopes
 
 Code scopes go like this:
@@ -691,7 +696,7 @@ let fn() -> void
 NEVER like this:
 
 ```rust
-// Bad
+// Bad form in Oak
 
 if (true) {
     // ..
@@ -1429,14 +1434,14 @@ public:
 In `Oak` you would write
 
 ```rust
-// The empty struct; No members
+// The null struct; No members
 let example: struct
 {
     ,
 }
 
-let Copy(self: ^example, ..) -> void;
-let Eq(self: ^example, ..) -> bool;
+let Copy(self: ^example, ...) -> ^example;
+let Eq(self: ^example, ...) -> bool;
 ```
 
 There are many so-called "operator aliases" which are listed
@@ -1478,11 +1483,7 @@ Del    | N/A       | Deletion
 and decrement operators, although such a rule would be trivial
 to write.
 
-**Note B:** There is not a set return type for many of these.
-For instance, it is common to see `copy` return the type of the
-item copied into, the type of the item copied from, or `void`.
-
-**Note C:** No `std` `Oak` files use `C++`-style streams, but
+**Note B:** No `std` `Oak` files use `C++`-style streams, but
 there is nothing in the language stopping them from working.
 However, the obfuscation they add to programmers only familiar
 with modern languages most likely outweighs any benefit they
@@ -5105,8 +5106,8 @@ let regex_match(
 let New(self: ^regex) -> void;
 let Del(self: ^regex) -> void;
 
-let Copy(self: ^regex, pattern: string) -> void;
-let Copy(self: ^regex, pattern: str) -> void;
+let Copy(self: ^regex, pattern: string) -> ^regex;
+let Copy(self: ^regex, pattern: str) -> ^regex;
 
 // To be externally defined in C++
 let New(self: ^regex_smatch) -> void;
@@ -5168,7 +5169,7 @@ extern "C"
         }
     }
 
-    void Copy_FN_PTR_regex_JOIN_PTR_string_MAPS_void(regex *self, string *pattern)
+    regex *Copy_FN_PTR_regex_JOIN_PTR_string_MAPS_PTR_regex(regex *self, string *pattern)
     {
         if (self->re != nullptr)
         {
@@ -5176,9 +5177,11 @@ extern "C"
         }
 
         self->re = new boost::regex(pattern->data);
+
+        return self;
     }
 
-    void Copy_FN_PTR_regex_JOIN_str_MAPS_void(regex *self, str pattern)
+    regex *Copy_FN_PTR_regex_JOIN_str_MAPS_PTR_regex(regex *self, str pattern)
     {
         if (self->re != nullptr)
         {
@@ -5186,6 +5189,8 @@ extern "C"
         }
 
         self->re = new boost::regex(pattern);
+
+        return self;
     }
 
     void New_FN_PTR_regex_smatch_MAPS_void(regex_smatch *self)

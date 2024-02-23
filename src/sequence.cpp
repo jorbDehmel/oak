@@ -363,10 +363,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                         std::list<Token> lexedType = dfa_lexer.lex_list(toStr(&type));
 
                         // Push lexed vec to front of From
-                        for (auto iter = lexedType.rbegin(); iter != lexedType.rend(); iter++)
-                        {
-                            From.push_front(*iter);
-                        }
+                        From.insert(From.begin(), lexedType.begin(), lexedType.end());
 
                         continue;
                     }
@@ -522,6 +519,28 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                                                      "' must have exactly one argument. Instead, type '" +
                                                      toStr(&type) + "'.");
                         }
+                    }
+
+                    // Restrictions upon return types
+                    if (name == "Copy")
+                    {
+                        sm_assert(argsWithType.size() >= 2, "Method '" + name + "' must take at least two arguments.");
+
+                        Type expected(argsWithType.front().second);
+                        while (expected[0].info == pointer)
+                        {
+                            expected.pop_front();
+                        }
+
+                        Type observed(settings.currentReturnType);
+                        while (observed[0].info == pointer)
+                        {
+                            observed.pop_front();
+                        }
+
+                        sm_assert(observed == expected, "Illegal method definition! Method '" + name +
+                                                            "' must return " + toStr(&expected) + ". Instead, " +
+                                                            toStr(&observed) + ".");
                     }
 
                     // Restrictions upon main functions
@@ -908,7 +927,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
         }
         else if (From.front() == "c_panic!")
         {
-            std::string message = settings.curFile + ":" + std::to_string(settings.curLine) + ":c_panic! ";
+            std::string message = settings.curFile.string() + ":" + std::to_string(settings.curLine) + ":c_panic! ";
 
             int count = 0;
             sm_assert(!From.empty(), "Cannot pop from front of empty list.");
@@ -940,7 +959,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
         }
         else if (From.front() == "c_warn!")
         {
-            std::string message = settings.curFile + ":" + std::to_string(settings.curLine) + ":c_warn! ";
+            std::string message = settings.curFile.string() + ":" + std::to_string(settings.curLine) + ":c_warn! ";
 
             int count = 0;
             sm_assert(!From.empty(), "Cannot pop from front of empty list.");
@@ -1053,7 +1072,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
             ASTNode temp = __createSequence(contents, settings);
             std::string name = toC(temp, settings);
 
-            while (contents.front() == ",")
+            while (!contents.empty() && contents.front() == ",")
             {
                 contents.pop_front();
             }
@@ -1279,6 +1298,10 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
         for (const auto &j : out.items)
         {
             i++;
+            if (i == 0)
+            {
+                continue;
+            }
 
             if (j.raw == "")
             {
@@ -1598,9 +1621,6 @@ Type resolveFunctionInternal(std::list<Token> &What, std::list<Token>::iterator 
     {
         return nullType;
     }
-
-    // std::cout << "resolveFunctionInternal called on " << What[start].text << " " << What[start].file << ":"
-    //           << What[start].line << '\n';
 
     // Pointer check
     if (*start == "@")
@@ -2059,13 +2079,6 @@ Type resolveFunctionInternal(std::list<Token> &What, std::list<Token>::iterator 
                 }
             }
 
-            std::cout << name << ":\n";
-            for (const auto &item : validCandidates)
-            {
-                std::cout << toStr(&candidates[item].type) << '\n';
-            }
-            std::cout << '\n';
-
             // Error checking
             if (validCandidates.size() == 0)
             {
@@ -2090,7 +2103,6 @@ Type resolveFunctionInternal(std::list<Token> &What, std::list<Token>::iterator 
             else
             {
                 c.push_back(mangleSymb(name, mangleType(candidates[validCandidates.front()].type)));
-                std::cout << c.back() << '\n';
                 c.push_back("(");
             }
 

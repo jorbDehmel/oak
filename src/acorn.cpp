@@ -23,6 +23,7 @@ GPLv3 held by author
 
 #include "oakc_fns.hpp"
 #include "options.hpp"
+#include <filesystem>
 
 // Dummy wrapper function for updating
 void update()
@@ -512,7 +513,6 @@ int main(const int argc, const char *argv[])
 
         if (!files.empty())
         {
-
             // Actual calls
             if (settings.debug)
             {
@@ -521,6 +521,7 @@ int main(const int argc, const char *argv[])
 
             for (auto f : files)
             {
+                settings.entryPoint = fs::absolute(f);
                 doFile(f, settings);
             }
 

@@ -15,7 +15,7 @@ let cmp: struct
 }
 
 // Copy from the result of strcmp (or other analogous function).
-let Copy(self: ^cmp, from: i8) -> void
+let Copy(self: ^cmp, from: i8) -> ^cmp
 {
     if (from == 0)
     {
@@ -29,12 +29,15 @@ let Copy(self: ^cmp, from: i8) -> void
     {
         self.data = 1;
     }
+
+    self
 }
 
 // Copy from another cmp result.
-let Copy(self: ^cmp, other: cmp) -> void
+let Copy(self: ^cmp, other: cmp) -> ^cmp
 {
     self.data = other.data;
+    self
 }
 
 // The remaining functions are all ways of collapsing the

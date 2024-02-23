@@ -22,7 +22,8 @@ let New<g, b>(self: ^result<g, b>) -> void
     wrap_none(self);
 }
 
-let Copy<g, b>(self: ^result<g, b>, other: result<g, b>) -> void
+let Copy<g, b>(self: ^result<g, b>, other: result<g, b>
+    ) -> ^result<g, b>
 {
     match (other)
     {
@@ -41,4 +42,6 @@ let Copy<g, b>(self: ^result<g, b>, other: result<g, b>) -> void
             wrap_none(self);
         }
     }
+
+    self
 }

@@ -16,8 +16,9 @@ let extra::regex: struct
 let New(self: ^extra::regex) -> void;
 let Del(self: ^extra::regex) -> void;
 
-let Copy(self: ^extra::regex, pattern: ^string) -> void;
-let Copy(self: ^extra::regex, pattern: str) -> void;
+let Copy(self: ^extra::regex, pattern: ^string
+    ) -> ^extra::regex;
+let Copy(self: ^extra::regex, pattern: str) -> ^extra::regex;
 
 let extra::regex_smatch: struct
 {

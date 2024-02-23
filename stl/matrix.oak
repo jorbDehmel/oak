@@ -74,7 +74,8 @@ let Del<t>(self: ^stl::matrix<t>) -> void
     }
 }
 
-let Copy<t>(self: ^stl::matrix<t>, w: u128, h: u128) -> void
+let Copy<t>(self: ^stl::matrix<t>, w: u128, h: u128
+    ) -> ^stl::matrix<t>
 {
     assert!(w > 0u128);
     assert!(h > 0u128);
@@ -93,10 +94,12 @@ let Copy<t>(self: ^stl::matrix<t>, w: u128, h: u128) -> void
 
     self.w = w;
     self.h = h;
+
+    self
 }
 
 let Copy<t>(self: ^stl::matrix<t>, other: stl::matrix<t>
-    ) -> void
+    ) -> ^stl::matrix<t>
 {
     self.responsible = other.responsible;
 
@@ -127,6 +130,8 @@ let Copy<t>(self: ^stl::matrix<t>, other: stl::matrix<t>
         self.h = other.h;
         ptrcpy!(self.data, other.data);
     }
+
+    self
 }
 
 let Get<t>(self: ^stl::matrix<t>, x: u128, y: u128) -> t

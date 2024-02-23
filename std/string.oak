@@ -152,7 +152,7 @@ let clear(self: ^string) -> void
 ////////////////////////////////////////////////////////////////
 
 // Copy from a string literal.
-let Copy(self: ^string, from: str) -> void
+let Copy(self: ^string, from: str) -> ^string
 {
     self.current_length = strlen(from) + 1;
 
@@ -168,10 +168,12 @@ let Copy(self: ^string, from: str) -> void
     }
 
     strncpy(self.data, from, self.current_length);
+
+    self
 }
 
 // Copy from another string.
-let Copy(self: ^string, other: string) -> void
+let Copy(self: ^string, other: string) -> ^string
 {
     Del(self);
 
@@ -179,10 +181,12 @@ let Copy(self: ^string, other: string) -> void
     strncpy(self.data, other.data, other.current_length);
     Get(self.data, other.current_length) = 0;
     self.current_length = strlen(self.data);
+
+    self
 }
 
 // Copy from a char array string.
-let Copy(self: ^string, other: []i8) -> void
+let Copy(self: ^string, other: []i8) -> ^string
 {
     self.current_length = strlen(other) + 1;
 
@@ -197,6 +201,8 @@ let Copy(self: ^string, other: []i8) -> void
     }
 
     strncpy(self.data, other, self.current_length);
+
+    self
 }
 
 // Append another string onto this.

@@ -1,0 +1,21 @@
+/*
+Tests the std/pair structure for Oak.
+Jordan Dehmel, 2024
+jdehmel@outlook.com
+*/
+
+package!("std");
+use_rule!("std");
+include!("std/pair.oak");
+
+let main() -> i32
+{
+    let item: pair<i32, f64>;
+    item = (12, 13.0);
+
+    print(item.first);
+    endl();
+    print(item.second);
+
+    0
+}

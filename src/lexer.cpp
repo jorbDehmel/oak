@@ -391,7 +391,7 @@ void join_numbers(std::list<Token> &what)
         {
             it++;
 
-            while (it->state == numerical_state)
+            while (it != what.end() && it->state == numerical_state)
             {
                 std::string temp = it->text;
                 it--;
@@ -399,6 +399,11 @@ void join_numbers(std::list<Token> &what)
                 it++;
 
                 it = what.erase(it);
+            }
+
+            if (it == what.end())
+            {
+                break;
             }
 
             // Join numerical type-suffixes

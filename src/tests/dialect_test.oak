@@ -14,9 +14,10 @@ let obj: struct
     a: i32,
 }
 
-let obj.Copy(what: i32) -> void
+let obj.Copy(what: i32) -> ^obj
 {
     self.a = what;
+    self
 }
 
 let obj.method() -> void

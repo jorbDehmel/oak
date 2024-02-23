@@ -394,7 +394,8 @@ std::string instantiateGeneric(const std::string &what, const std::list<std::lis
                     }
                     else
                     {
-                        errors.back().append(" (" + settings.curFile + ":" + std::to_string(settings.curLine) + ")");
+                        errors.back().append(" (" + settings.curFile.string() + ":" + std::to_string(settings.curLine) +
+                                             ")");
                     }
 
                     // Else, failed with this template. Not an overall failure.
@@ -407,7 +408,7 @@ std::string instantiateGeneric(const std::string &what, const std::list<std::lis
             }
             else
             {
-                errors.push_back("Did not match generic substitution. (" + settings.curFile + ":" +
+                errors.push_back("Did not match generic substitution. (" + settings.curFile.string() + ":" +
                                  std::to_string(settings.curLine) + ")");
             }
         }

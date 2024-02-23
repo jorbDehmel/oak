@@ -12,7 +12,6 @@ package!("std");
 use_rule!("std");
 
 include!("std/opt.oak");
-include!("std/conv_extra.oak");
 
 ////////////////////////////////////////////////////////////////
 
@@ -55,7 +54,8 @@ let New<t>(self: ^stl::vec<t>) -> void
 }
 
 // Deep copy from another vector
-let Copy<t>(self: ^stl::vec<t>, other: stl::vec<t>) -> void
+let Copy<t>(self: ^stl::vec<t>, other: stl::vec<t>
+    ) -> ^stl::vec<t>
 {
     self.size = other.size;
 
@@ -77,6 +77,8 @@ let Copy<t>(self: ^stl::vec<t>, other: stl::vec<t>) -> void
         Copy(ptrarr!(self.data, i), ptrarr!(other.data, i));
         i += 1;
     }
+
+    self
 }
 
 // Free the heap memory associated.

@@ -19,77 +19,79 @@ include!("std/unit.oak");
 ////////////////////////////////////////////////////////////////
 // Struct and enum definitions
 
-let sdl_key_event_data: struct
+let sdl::key_event_data: struct
 {
     keycode: i128,
 }
 
-let sdl_mouse_move_event_data: struct
+let sdl::mouse_move_event_data: struct
 {
     x, y: i128,
 }
 
-let sdl_mouse_button_event_data: struct
+let sdl::mouse_button_event_data: struct
 {
     x, y: i128,
     code: i8,
 }
 
-let sdl_event: enum
+let sdl::event: enum
 {
-    sdl_key_down_event: sdl_key_event_data,
-    sdl_key_up_event: sdl_key_event_data,
+    sdl::key_down_event: sdl::key_event_data,
+    sdl::key_up_event: sdl::key_event_data,
 
-    sdl_mouse_move_event: sdl_mouse_move_event_data,
-    sdl_mouse_button_down_event: sdl_mouse_button_event_data,
-    sdl_mouse_button_up_event: sdl_mouse_button_event_data,
+    sdl::mouse_move_event: sdl::mouse_move_event_data,
+    sdl::mouse_button_down_event: sdl::mouse_button_event_data,
+    sdl::mouse_button_up_event: sdl::mouse_button_event_data,
 
-    sdl_none: unit,
+    sdl::none: unit,
 }
 
 ////////////////////////////////////////////////////////////////
 // Interfacial functions
 
-let sdl_poll_event() -> sdl_event;
-let sdl_keycode_to_str(keycode: i128) -> str;
+let sdl::poll_event() -> sdl::event;
+let sdl::keycode_to_str(keycode: i128) -> str;
 
 ////////////////////////////////////////////////////////////////
 // Internal method definitions
 
-let Copy(self: ^sdl_event, other: sdl_event) -> void
+let Copy(self: ^sdl::event, other: sdl::event) -> ^sdl::event
 {
     match (other)
     {
-        case sdl_key_down_event(data)
+        case sdl::key_down_event(data)
         {
             wrap_sdl_key_down_event(self, ^data);
         }
 
-        case sdl_key_up_event(data)
+        case sdl::key_up_event(data)
         {
             wrap_sdl_key_up_event(self, ^data);
         }
 
-        case sdl_mouse_move_event(data)
+        case sdl::mouse_move_event(data)
         {
             wrap_sdl_mouse_move_event(self, ^data);
         }
 
-        case sdl_mouse_button_down_event(data)
+        case sdl::mouse_button_down_event(data)
         {
             wrap_sdl_mouse_button_down_event(self, ^data);
         }
 
-        case sdl_mouse_button_up_event(data)
+        case sdl::mouse_button_up_event(data)
         {
             wrap_sdl_mouse_button_up_event(self, ^data);
         }
 
-        case sdl_none()
+        case sdl::none()
         {
             wrap_sdl_none(self);
         }
     }
+
+    self
 }
 
 ////////////////////////////////////////////////////////////////

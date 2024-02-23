@@ -4,11 +4,11 @@ Jordan Dehmel, 2023
 jdehmel@outlook.com
 */
 
+#include <arpa/inet.h>
+#include <memory.h>
+#include <netdb.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <netdb.h>
-#include <memory.h>
-#include <arpa/inet.h>
 
 #include <stdio.h>
 
@@ -49,21 +49,21 @@ void Del_FN_PTR_server_sock_MAPS_void(struct server_sock *self)
 }
 
 // Copies in data, but does NOT begin listening yet
-i32 Copy_FN_PTR_server_sock_JOIN_str_JOIN_u16_MAPS_i32(struct server_sock *self, str addr, u16 port)
+struct server_sock *Copy_FN_PTR_server_sock_JOIN_str_JOIN_u16_JOIN_PTR_i32_MAPS_PTR_server_sock(
+    struct server_sock *self, str addr, u16 port, i32 *result)
 {
     int yes = 1;
-    int status = 0;
 
     // Set options for IPv4
     memset(&self->address, 0, sizeof(self->address));
     self->address.sin_family = AF_INET;
 
-    status = inet_pton(AF_INET, addr, &(self->address.sin_addr));
+    *result = inet_pton(AF_INET, addr, &(self->address.sin_addr));
 
-    if (status != 1)
+    if (*result != 1)
     {
         puts("inet_pton error");
-        return status;
+        return self;
     }
 
     self->address.sin_port = htons(port); // converts to needed endianness
@@ -75,22 +75,23 @@ i32 Copy_FN_PTR_server_sock_JOIN_str_JOIN_u16_MAPS_i32(struct server_sock *self,
     if (self->id == -1)
     {
         puts("socket error");
-        return -1;
+        *result = -1;
+        return self;
     }
 
     // Set socket options
-    status = setsockopt(self->id, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
+    *result = setsockopt(self->id, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
 
-    if (status)
+    if (*result)
     {
         puts("setsockopt error");
-        return status;
+        return self;
     }
 
     // Bind
-    status = bind(self->id, (struct sockaddr *)(&self->address), sizeof(self->address));
+    *result = bind(self->id, (struct sockaddr *)(&self->address), sizeof(self->address));
 
-    return status;
+    return self;
 }
 
 i32 listen_FN_PTR_server_sock_MAPS_i32(struct server_sock *self)
@@ -163,21 +164,21 @@ void Del_FN_PTR_client_sock_MAPS_void(struct client_sock *self)
 }
 
 // Copies in data, but does NOT begin listening yet
-i32 Copy_FN_PTR_client_sock_JOIN_str_JOIN_u16_MAPS_i32(struct client_sock *self, str addr, u16 port)
+struct client_sock *Copy_FN_PTR_client_sock_JOIN_str_JOIN_u16_JOIN_PTR_i32_MAPS_PTR_client_sock(
+    struct client_sock *self, str addr, u16 port, i32 *result)
 {
     int yes = 1;
-    int status = 0;
 
     // Set options for IPv4
     memset(&self->address, 0, sizeof(self->address));
     self->address.sin_family = AF_INET;
 
-    status = inet_pton(AF_INET, addr, &(self->address.sin_addr));
+    *result = inet_pton(AF_INET, addr, &(self->address.sin_addr));
 
-    if (status != 1)
+    if (*result != 1)
     {
         puts("inet_pton error");
-        return status - 1;
+        return self;
     }
 
     self->address.sin_port = htons(port); // converts to needed endianness
@@ -187,23 +188,23 @@ i32 Copy_FN_PTR_client_sock_JOIN_str_JOIN_u16_MAPS_i32(struct client_sock *self,
     self->id = socket(AF_INET, SOCK_STREAM, 0);
 
     // Set socket options
-    status = setsockopt(self->id, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
+    *result = setsockopt(self->id, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
 
-    if (status != 0)
+    if (*result)
     {
         puts("setsockopt error");
-        return status;
+        return self;
     }
 
     // Connect
-    status = connect(self->id, (struct sockaddr *)(&self->address), self->addr_size);
+    *result = connect(self->id, (struct sockaddr *)(&self->address), self->addr_size);
 
-    if (status)
+    if (*result)
     {
         puts("connect error");
     }
 
-    return status;
+    return self;
 }
 
 struct string recv_FN_PTR_client_sock_JOIN_u128_MAPS_string(struct client_sock *self, u128 size)

@@ -169,7 +169,7 @@ Type toType(const std::list<Token> &WhatIn, AcornSettings &settings)
             catch (...)
             {
                 throw sequencing_error("Array size must be a compile-time constant positive integer, instead '" +
-                                       itGet(What, it, 1).text + "' (" + settings.curFile + ":" +
+                                       itGet(What, it, 1).text + "' (" + settings.curFile.string() + ":" +
                                        std::to_string(itGet(What, it, 1).line) + ")");
             }
 
@@ -1288,18 +1288,6 @@ std::list<int> getExactCandidates(const std::list<std::list<Type>> &candArgs, co
         auto l = j.begin();
         auto r = argTypes.begin();
 
-        // std::cout << "Comparing ";
-        // for (const auto &item : j)
-        // {
-        //     std::cout << toStr(&item) << ' ';
-        // }
-        // std::cout << " to ";
-        // for (const auto &item : argTypes)
-        // {
-        //     std::cout << toStr(&item) << ' ';
-        // }
-        // std::cout << '\n';
-
         for (int k = 0; k < j.size(); k++)
         {
             if (!typesAreSameExact(&*l, &*r))
@@ -1328,17 +1316,16 @@ std::list<int> getCastingCandidates(const std::list<std::list<Type>> &candArgs, 
     bool isMatch;
 
     // Min number of conversions
-    int min = argTypes.size();
-    auto iOfMin = 0;
     int cur;
+    auto minIter = out.end();
 
     // Check for exact match for each candidate
     int j_ind = -1;
-    for (auto &j : candArgs)
+    for (auto j = candArgs.begin(); j != candArgs.end(); j++)
     {
         j_ind++;
 
-        if (j.size() != argTypes.size())
+        if (j->size() != argTypes.size())
         {
             // Cannot match if number of arguments is different
             continue;
@@ -1349,10 +1336,10 @@ std::list<int> getCastingCandidates(const std::list<std::list<Type>> &candArgs, 
         // Iterate over argument types
         cur = 0;
 
-        auto l = j.begin();
+        auto l = j->begin();
         auto r = argTypes.begin();
 
-        for (int k = 0; k < j.size(); k++)
+        for (int k = 0; k < j->size(); k++)
         {
             if (!typesAreSameCast(&*l, &*r, cur))
             {
@@ -1366,25 +1353,20 @@ std::list<int> getCastingCandidates(const std::list<std::list<Type>> &candArgs, 
 
         if (isMatch)
         {
-            if (cur < min)
-            {
-                min = cur;
-                iOfMin = j_ind;
-            }
-
             out.push_back(j_ind);
+            if (minIter == out.end() || cur < *minIter)
+            {
+                minIter = std::prev(out.end());
+            }
         }
     }
 
     // Make the occurrence with the fewest casts first
-    if (iOfMin != 0)
+    if (minIter != out.end())
     {
-        // Costly call:
-        auto it = std::next(out.begin(), iOfMin);
-
         auto temp = out.front();
-        out.front() = *it;
-        *it = temp;
+        out.front() = *minIter;
+        *minIter = temp;
     }
 
     return out;
@@ -1396,7 +1378,8 @@ std::list<int> getReferenceCandidates(const std::list<std::list<Type>> &candArgs
 {
     std::list<int> out;
     bool isMatch;
-    int min = 999, iOfMin = 0, cur;
+    int cur;
+    auto minIter = out.end();
 
     // Check for exact match for each candidate
     int j_ind = -1;
@@ -1433,25 +1416,20 @@ std::list<int> getReferenceCandidates(const std::list<std::list<Type>> &candArgs
 
         if (isMatch)
         {
-            if (cur < min)
-            {
-                min = cur;
-                iOfMin = j_ind;
-            }
-
             out.push_back(j_ind);
+            if (minIter == out.end() || cur < *minIter)
+            {
+                minIter = std::prev(out.end());
+            }
         }
     }
 
     // Make the occurrence with the fewest casts first
-    if (iOfMin != 0)
+    if (minIter != out.end())
     {
-        // Costly call:
-        auto it = std::next(out.begin(), iOfMin);
-
         auto temp = out.front();
-        out.front() = *it;
-        *it = temp;
+        out.front() = *minIter;
+        *minIter = temp;
     }
 
     return out;

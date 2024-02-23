@@ -311,8 +311,6 @@ bool typesAreSame(const Type *const A, const Type *const B, int &changes)
         }
     }
 
-    std::cout << toStr(A) << " and " << toStr(B) << " match after referencing.\n";
-
     return true;
 }
 
@@ -468,8 +466,6 @@ bool typesAreSameCast(const Type *const A, const Type *const B, int &changes)
             return false;
         }
     }
-
-    std::cout << toStr(A) << " and " << toStr(B) << " match after cast.\n";
 
     return true;
 }

@@ -1,0 +1,44 @@
+/*
+A struct representing two items of arbitrary type in Oak. This
+idea taken from C++.
+
+Jordan Dehmel, 2024
+*/
+
+// A struct holding two items: A first and a second.
+let pair<l, r>: struct
+{
+    first: l,
+    second: r,
+}
+pre
+{
+    // Ensure that `l` and `r` have copy operators.
+    Copy<l>(_: ^l, _: l);
+    Copy<r>(_: ^r, _: r);
+}
+post
+{
+    // Instantiate the pair copy operator.
+    Copy<l, r>(_: ^pair<l, r>, _: l, _: r);
+
+    // A convenience function.
+    make_pair<l, r>(_: l, _: r);
+}
+
+// Copy into a pair from two items.
+let Copy<l, r>(self: ^pair<l, r>, first: l, second: r
+    ) -> ^pair<l, r>
+{
+    self.first = first;
+    self.second = second;
+    self
+}
+
+// Construct a pair from two items.
+let make_pair<l, r>(first: l, second: r) -> pair<l, r>
+{
+    let out: pair<l, r>;
+    out = (first, second);
+    out
+}

@@ -10,53 +10,71 @@ jdehmel@outlook.com, GPLv3
 
 include!("std/math_inter.oak");
 include!("std/conv_inter.oak");
+c_warn!(
+    "`std/conv_extra.oak` is depreceated; Try without it."
+);
 
 // Copy from a standard int
-let Copy(self: ^i8, other: i32) -> void { self = to_i8(other); }
+let Copy(self: ^i8, other: i32) -> ^i8
+{
+    self = to_i8(other);
+    self
+}
 
 // Copy from a standard int
-let Copy(self: ^u8, other: i32) -> void { self = to_u8(other); }
+let Copy(self: ^u8, other: i32) -> ^u8
+{
+    self = to_u8(other);
+    self
+}
 
 // Copy from a standard int
-let Copy(self: ^i16, other: i32) -> void
+let Copy(self: ^i16, other: i32) -> ^i16
 {
     self = to_i16(other);
+    self
 }
 
 // Copy from a standard int
-let Copy(self: ^u16, other: i32) -> void
+let Copy(self: ^u16, other: i32) -> ^u16
 {
     self = to_u16(other);
+    self
 }
 
 // Copy from a standard int
-let Copy(self: ^u32, other: i32) -> void
+let Copy(self: ^u32, other: i32) -> ^u32
 {
     self = to_u32(other);
+    self
 }
 
 // Copy from a standard int
-let Copy(self: ^i64, other: i32) -> void
+let Copy(self: ^i64, other: i32) -> ^i64
 {
     self = to_i64(other);
+    self
 }
 
 // Copy from a standard int
-let Copy(self: ^u64, other: i32) -> void
+let Copy(self: ^u64, other: i32) -> ^u64
 {
     self = to_u64(other);
+    self
 }
 
 // Copy from a standard int
-let Copy(self: ^i128, other: i32) -> void
+let Copy(self: ^i128, other: i32) -> ^i128
 {
     self = to_i128(other);
+    self
 }
 
 // Copy from a standard int
-let Copy(self: ^u128, other: i32) -> void
+let Copy(self: ^u128, other: i32) -> ^u128
 {
     self = to_u128(other);
+    self
 }
 
 // Add from a standard int

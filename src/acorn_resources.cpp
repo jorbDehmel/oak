@@ -9,6 +9,7 @@ GPLv3 held by author
 #include "oakc_fns.hpp"
 #include "oakc_structs.hpp"
 #include "tags.hpp"
+#include <filesystem>
 
 // Prints the cumulative disk usage of Oak (in human-readable)
 void getDiskUsage()
@@ -49,10 +50,10 @@ void doFile(const std::string &From, AcornSettings &settings)
     settings.activeRules.clear();
 
     unsigned long long oldLineNum = settings.curLine;
-    std::string oldFile = settings.curFile;
+    fs::path oldFile = settings.curFile;
 
     settings.curLine = 1;
-    settings.curFile = From;
+    settings.curFile = fs::absolute(From);
 
     std::list<Token> lexed, lexedCopy;
 
@@ -606,7 +607,7 @@ void doFile(const std::string &From, AcornSettings &settings)
                 std::list<Token> lexedOutput = dfa_lexer.lex_list(output, name);
 
                 // Reset preproc defs, as they tend to break w/ macros
-                settings.preprocDefines["prev_file!"] = (oldFile == "" ? "\"NULL\"" : ("\"" + oldFile + "\""));
+                settings.preprocDefines["prev_file!"] = (oldFile == "" ? "\"NULL\"" : ("\"" + oldFile.string() + "\""));
                 settings.preprocDefines["file!"] = '"' + From + '"';
 
                 // Insert the new code
@@ -677,7 +678,7 @@ void doFile(const std::string &From, AcornSettings &settings)
 
         // H: Preproc definition insertion
 
-        settings.preprocDefines["prev_file!"] = (oldFile == "" ? "\"NULL\"" : ("\"" + oldFile + "\""));
+        settings.preprocDefines["prev_file!"] = (oldFile == "" ? "\"NULL\"" : ("\"" + oldFile.string() + "\""));
         settings.preprocDefines["file!"] = '"' + From + '"';
         settings.preprocDefines["comp_time!"] = std::to_string(time(NULL));
         settings.preprocDefines["oak_version!"] = "\"" + std::string(VERSION) + "\"";
@@ -804,73 +805,122 @@ void doFile(const std::string &From, AcornSettings &settings)
     }
     catch (rule_error &e)
     {
-        std::cout << tags::red_bold << "Caught rule error '" << e.what() << "'\n" << tags::reset;
+        if (settings.curFile == settings.entryPoint)
+        {
+            std::cout << tags::red_bold << "Caught rule error:\n" << e.what() << "\n" << tags::reset;
+        }
 
         std::string name = purifyStr(From) + ".oak.log";
         dump(lexed, name, From, settings.curLine, ASTNode(), lexedCopy, e.what(), settings);
-        std::cout << "Dump saved in " << name << "\n";
 
-        throw std::runtime_error("Failure in file '" + From + "': " + e.what());
+        if (settings.debug)
+        {
+            std::cout << "Dump saved in " << name << "\n";
+        }
+
+        throw std::runtime_error("Failure in file '" + From + "':\n" + e.what());
     }
     catch (sequencing_error &e)
     {
-        std::cout << tags::red_bold << "Caught sequencing error '" << e.what() << "'\n" << tags::reset;
+        if (settings.curFile == settings.entryPoint)
+        {
+            std::cout << tags::red_bold << "Caught sequencing error:\n" << e.what() << "\n" << tags::reset;
+        }
 
         std::string name = purifyStr(From) + ".oak.log";
         dump(lexed, name, From, settings.curLine, ASTNode(), lexedCopy, e.what(), settings);
-        std::cout << "Dump saved in " << name << "\n";
 
-        throw std::runtime_error("Failure in file '" + From + "': " + e.what());
+        if (settings.debug)
+        {
+            std::cout << "Dump saved in " << name << "\n";
+        }
+
+        throw std::runtime_error("Failure in file '" + From + "':\n" + e.what());
     }
     catch (parse_error &e)
     {
-        std::cout << tags::red_bold << "Caught parse error '" << e.what() << "'\n" << tags::reset;
+        if (settings.curFile == settings.entryPoint)
+        {
+            std::cout << tags::red_bold << "Caught parse error:\n" << e.what() << "\n" << tags::reset;
+        }
 
         std::string name = purifyStr(From) + ".oak.log";
         dump(lexed, name, From, settings.curLine, ASTNode(), lexedCopy, e.what(), settings);
-        std::cout << "Dump saved in " << name << "\n";
 
-        throw std::runtime_error("Failure in file '" + From + "': " + e.what());
+        if (settings.debug)
+        {
+            std::cout << "Dump saved in " << name << "\n";
+        }
+
+        throw std::runtime_error("Failure in file '" + From + "':\n" + e.what());
     }
     catch (package_error &e)
     {
-        std::cout << tags::red_bold << "Caught package error '" << e.what() << "'\n" << tags::reset;
+        if (settings.curFile == settings.entryPoint)
+        {
+            std::cout << tags::red_bold << "Caught package error:\n" << e.what() << "\n" << tags::reset;
+        }
 
         std::string name = purifyStr(From) + ".oak.log";
         dump(lexed, name, From, settings.curLine, ASTNode(), lexedCopy, e.what(), settings);
-        std::cout << "Dump saved in " << name << "\n";
 
-        throw std::runtime_error("Failure in file '" + From + "': " + e.what());
+        if (settings.debug)
+        {
+            std::cout << "Dump saved in " << name << "\n";
+        }
+
+        throw std::runtime_error("Failure in file '" + From + "':\n" + e.what());
     }
     catch (generic_error &e)
     {
-        std::cout << tags::red_bold << "Caught generic error '" << e.what() << "'\n" << tags::reset;
+        if (settings.curFile == settings.entryPoint)
+        {
+            std::cout << tags::red_bold << "Caught generic error:\n" << e.what() << "\n" << tags::reset;
+        }
 
         std::string name = purifyStr(From) + ".oak.log";
         dump(lexed, name, From, settings.curLine, ASTNode(), lexedCopy, e.what(), settings);
-        std::cout << "Dump saved in " << name << "\n";
 
-        throw std::runtime_error("Failure in file '" + From + "': " + e.what());
+        if (settings.debug)
+        {
+            std::cout << "Dump saved in " << name << "\n";
+        }
+
+        throw std::runtime_error("Failure in file '" + From + "':\n" + e.what());
     }
     catch (std::runtime_error &e)
     {
-        std::cout << tags::red_bold << "Caught runtime error '" << e.what() << "'\n" << tags::reset;
+        if (settings.curFile == settings.entryPoint)
+        {
+            std::cout << tags::red_bold << "Caught runtime error:\n" << e.what() << "\n" << tags::reset;
+        }
 
         std::string name = purifyStr(From) + ".oak.log";
         dump(lexed, name, From, settings.curLine, ASTNode(), lexedCopy, e.what(), settings);
-        std::cout << "Dump saved in " << name << "\n";
 
-        throw std::runtime_error("Failure in file '" + From + "': " + e.what());
+        if (settings.debug)
+        {
+            std::cout << "Dump saved in " << name << "\n";
+        }
+
+        throw std::runtime_error("Failure in file '" + From + "':\n" + e.what());
     }
     catch (std::exception &e)
     {
-        std::cout << tags::red_bold << "Caught exception '" << e.what() << "'\n" << tags::reset;
+        if (settings.curFile == settings.entryPoint)
+        {
+            std::cout << tags::red_bold << "Caught exception:\n" << e.what() << "\n" << tags::reset;
+        }
 
         std::string name = purifyStr(From) + ".oak.log";
         dump(lexed, name, From, settings.curLine, ASTNode(), lexedCopy, e.what(), settings);
-        std::cout << "Dump saved in " << name << "\n";
 
-        throw std::runtime_error("Failure in file '" + From + "': " + e.what());
+        if (settings.debug)
+        {
+            std::cout << "Dump saved in " << name << "\n";
+        }
+
+        throw std::runtime_error("Failure in file '" + From + "':\n" + e.what());
     }
     catch (...)
     {

@@ -1,6 +1,6 @@
 #include "/usr/include/oak/std_oak_header.h"
-#include <time.h>
 #include <stdio.h>
+#include <time.h>
 
 struct ns
 {
@@ -12,9 +12,10 @@ void New_FN_PTR_ns_MAPS_void(struct ns *self)
     memset(&self->raw, 0, sizeof(self->raw));
 }
 
-void Copy_FN_PTR_ns_JOIN_ns_MAPS_void(struct ns *self, struct ns other)
+struct ns *Copy_FN_PTR_ns_JOIN_ns_MAPS_PTR_ns(struct ns *self, struct ns other)
 {
     self->raw = other.raw;
+    return self;
 }
 
 void now_FN_PTR_ns_MAPS_void(struct ns *self)

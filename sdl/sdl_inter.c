@@ -90,14 +90,14 @@ void ExtInit_FN_PTR_sdl_window_MAPS_void(struct sdl_window *self)
     return;
 }
 
-void Copy_FN_PTR_sdl_window_JOIN_u64_JOIN_u64_MAPS_void(struct sdl_window *self, u64 w, u64 h)
+struct sdl_window *Copy_FN_PTR_sdl_window_JOIN_u64_JOIN_u64_MAPS_PTR_sdl_window(struct sdl_window *self, u64 w, u64 h)
 {
     self->width = w;
     self->height = h;
 
     SDL_SetWindowSize(self->wind, w, h);
 
-    return;
+    return self;
 }
 
 void ExtDel_FN_PTR_sdl_window_MAPS_void(struct sdl_window *window)
@@ -132,21 +132,26 @@ void fill_FN_PTR_sdl_window_JOIN_sdl_color_MAPS_void(struct sdl_window *window, 
     return;
 }
 
-void draw_dot_FN_PTR_sdl_window_JOIN_sdl_coord_JOIN_sdl_color_MAPS_void(struct sdl_window *window, struct sdl_coord point, struct sdl_color color)
+void draw_dot_FN_PTR_sdl_window_JOIN_sdl_coord_JOIN_sdl_color_MAPS_void(struct sdl_window *window,
+                                                                        struct sdl_coord point, struct sdl_color color)
 {
     SDL_SetRenderDrawColor(window->rend, color.r, color.g, color.b, color.a);
     SDL_RenderDrawPoint(window->rend, point.x, point.y);
     return;
 }
 
-void draw_line_FN_PTR_sdl_window_JOIN_sdl_coord_JOIN_sdl_coord_JOIN_sdl_color_MAPS_void(struct sdl_window *window, struct sdl_coord point_a, struct sdl_coord point_b, struct sdl_color color)
+void draw_line_FN_PTR_sdl_window_JOIN_sdl_coord_JOIN_sdl_coord_JOIN_sdl_color_MAPS_void(struct sdl_window *window,
+                                                                                        struct sdl_coord point_a,
+                                                                                        struct sdl_coord point_b,
+                                                                                        struct sdl_color color)
 {
     SDL_SetRenderDrawColor(window->rend, color.r, color.g, color.b, color.a);
     SDL_RenderDrawLine(window->rend, point_a.x, point_a.y, point_b.x, point_b.y);
     return;
 }
 
-void draw_rect_FN_PTR_sdl_window_JOIN_sdl_rect_JOIN_sdl_color_MAPS_void(struct sdl_window *window, struct sdl_rect rect, struct sdl_color color)
+void draw_rect_FN_PTR_sdl_window_JOIN_sdl_rect_JOIN_sdl_color_MAPS_void(struct sdl_window *window, struct sdl_rect rect,
+                                                                        struct sdl_color color)
 {
     SDL_SetRenderDrawColor(window->rend, color.r, color.g, color.b, color.a);
 

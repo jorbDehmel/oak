@@ -23,16 +23,18 @@ let New<l, r>(self: ^pair<l, r>) -> void
     New(@self.second);
 }
 
-let Copy<l, r>(self: ^pair<l, r>, first: l, second: r) -> void
+let Copy<l, r>(self: ^pair<l, r>, first: l, second: r) -> ^pair<l, r>
 {
     self.first = first;
     self.second = second;
+    self
 }
 
-let Copy<l, r>(self: ^pair<l, r>, other: pair<l, r>) -> void
+let Copy<l, r>(self: ^pair<l, r>, other: pair<l, r>) -> ^pair<l, r>
 {
     self.first = other.first;
     self.second = other.second;
+    self
 }
 
 let make_pair<l, r>(first: l, second: r) -> pair<l, r>
