@@ -184,6 +184,7 @@ void toStr(const Type *const What, const std::list<TypeNode>::const_iterator &po
         builder.push_back("(");
         break;
     case var_name:
+        builder.push_back(pos->name);
         builder.push_back(":");
         break;
     default:
@@ -302,6 +303,16 @@ bool typesAreSame(const Type *const A, const Type *const B, int &changes)
         right++;
     }
 
+    if (left == A->internal.end() || right == B->internal.end())
+    {
+        if (!(left == A->internal.end() && right == B->internal.end()))
+        {
+            return false;
+        }
+    }
+
+    std::cout << toStr(A) << " and " << toStr(B) << " match after referencing.\n";
+
     return true;
 }
 
@@ -325,7 +336,7 @@ bool typesAreSameExact(const Type *const A, const Type *const B)
 
         if (left == A->internal.end() || right == B->internal.end())
         {
-            break;
+            return false;
         }
 
         if (left->info != right->info && !(left->info == sarr && right->info == arr) &&
@@ -346,6 +357,14 @@ bool typesAreSameExact(const Type *const A, const Type *const B)
         // Success; Move on
         left++;
         right++;
+    }
+
+    if (left == A->internal.end() || right == B->internal.end())
+    {
+        if (!(left == A->internal.end() && right == B->internal.end()))
+        {
+            return false;
+        }
     }
 
     return true;
@@ -441,6 +460,16 @@ bool typesAreSameCast(const Type *const A, const Type *const B, int &changes)
         left++;
         right++;
     }
+
+    if (left == A->internal.end() || right == B->internal.end())
+    {
+        if (!(left == A->internal.end() && right == B->internal.end()))
+        {
+            return false;
+        }
+    }
+
+    std::cout << toStr(A) << " and " << toStr(B) << " match after cast.\n";
 
     return true;
 }

@@ -836,6 +836,7 @@ void doRuleAcorn(std::list<Token> &From, std::list<Token>::iterator &i, Rule &cu
         }
 
         // Erase old contents
+        templ = *i;
         while (i != posInFrom)
         {
             if (settings.doRuleLogFile)
@@ -843,6 +844,13 @@ void doRuleAcorn(std::list<Token> &From, std::list<Token>::iterator &i, Rule &cu
                 settings.ruleLogFile << i->text << ' ';
             }
             i = From.erase(i);
+        }
+
+        // Correct lines and files
+        for (auto it = newContents.begin(); it != newContents.end(); it++)
+        {
+            it->file = templ.file;
+            it->line = templ.line;
         }
 
         if (settings.doRuleLogFile)

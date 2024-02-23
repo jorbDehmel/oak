@@ -1285,15 +1285,31 @@ std::list<int> getExactCandidates(const std::list<std::list<Type>> &candArgs, co
         isMatch = true;
 
         // Iterate over argument types
-        auto j_item = j.begin();
-        auto arg_item = argTypes.begin();
+        auto l = j.begin();
+        auto r = argTypes.begin();
+
+        // std::cout << "Comparing ";
+        // for (const auto &item : j)
+        // {
+        //     std::cout << toStr(&item) << ' ';
+        // }
+        // std::cout << " to ";
+        // for (const auto &item : argTypes)
+        // {
+        //     std::cout << toStr(&item) << ' ';
+        // }
+        // std::cout << '\n';
+
         for (int k = 0; k < j.size(); k++)
         {
-            if (!typesAreSameExact(&*j_item, &*arg_item))
+            if (!typesAreSameExact(&*l, &*r))
             {
                 isMatch = false;
                 break;
             }
+
+            l++;
+            r++;
         }
 
         if (isMatch)

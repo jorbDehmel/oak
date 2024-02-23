@@ -477,15 +477,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                     settings.table[p.first].push_back(MultiTableSymbol{ASTNode(), p.second, false, settings.curFile});
                 }
 
-                bool isSingleArg = true;
-                for (int ptr = 0; ptr < type.size(); ptr++)
-                {
-                    if (type[ptr].info == join)
-                    {
-                        isSingleArg = false;
-                        break;
-                    }
-                }
+                bool isSingleArg = argsWithType.size() == 1;
 
                 sm_assert(settings.currentReturnType == nullType, "Cannot nest function definitions.");
                 settings.currentReturnType = getReturnType(type, settings);
@@ -1061,8 +1053,6 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
             ASTNode temp = __createSequence(contents, settings);
             std::string name = toC(temp, settings);
 
-            debugPrint(temp);
-
             while (contents.front() == ",")
             {
                 contents.pop_front();
@@ -1073,8 +1063,6 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
 
             Type tempType = temp.type;
             Type numType = numSeq.type;
-
-            std::cout << __FILE__ << ":" << __LINE__ << " " << toStr(&tempType) << '\t' << toStr(&numType) << '\n';
 
             sm_assert(tempType.size() > 0, "'alloc!' received a malformed first argument.");
 
@@ -2071,6 +2059,13 @@ Type resolveFunctionInternal(std::list<Token> &What, std::list<Token>::iterator 
                 }
             }
 
+            std::cout << name << ":\n";
+            for (const auto &item : validCandidates)
+            {
+                std::cout << toStr(&candidates[item].type) << '\n';
+            }
+            std::cout << '\n';
+
             // Error checking
             if (validCandidates.size() == 0)
             {
@@ -2095,6 +2090,7 @@ Type resolveFunctionInternal(std::list<Token> &What, std::list<Token>::iterator 
             else
             {
                 c.push_back(mangleSymb(name, mangleType(candidates[validCandidates.front()].type)));
+                std::cout << c.back() << '\n';
                 c.push_back("(");
             }
 
@@ -2303,8 +2299,6 @@ Type resolveFunctionInternal(std::list<Token> &What, std::list<Token>::iterator 
 
             throw e;
         }
-
-        start = std::next(start, 2);
 
         c.push_back(".");
 

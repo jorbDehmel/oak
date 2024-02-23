@@ -206,7 +206,12 @@ void doSub(std::list<Token> &from, std::list<Token>::iterator &pos, const std::s
     }
 
     // Insert new
-    pre = from.insert(pre, toAdd.begin(), toAdd.end());
+    for (const auto &item : toAdd)
+    {
+        templ.text = item;
+        pre = from.insert(pre, templ);
+        pre++;
+    }
 
     pos = pre;
     pos--;
