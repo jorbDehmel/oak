@@ -14,7 +14,7 @@ package!("std");
 use_rule!("std");
 include!("std/string.oak");
 
-c_warn!(
+c::warn!(
     "std/string_ops.oak is currently under construction.\n"
     "Some aspects will not work."
 );

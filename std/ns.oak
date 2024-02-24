@@ -6,8 +6,8 @@ Jordan Dehmel, 2024
 jdehmel@outlook.com
 */
 
-// Raise depreciation error and halt compilation.
-c_panic!(
+// Raise deprecation warning.
+c::warn!(
     "The `std/ns.oak` file is deprecated; Namespaces are "
     "built-in as of version 0.4.26."
 );

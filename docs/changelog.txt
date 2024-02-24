@@ -4,6 +4,12 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.5.1           | 2/23/24  | Allowed multiple main functions for
+                |          | a given translation unit. Also
+                |          | changed protocol for `c_` family
+                |          | of compile-time macros to be `c::`
+                |          | for easier memorization.
+                |          |
 0.5.0           | 2/23/24  | Switched internal representation
                 |          | of token streams to lists from
                 |          | vectors. Also limited return type

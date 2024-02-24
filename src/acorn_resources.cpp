@@ -53,7 +53,7 @@ void doFile(const std::string &From, AcornSettings &settings)
     fs::path oldFile = settings.curFile;
 
     settings.curLine = 1;
-    settings.curFile = fs::absolute(From);
+    settings.curFile = fs::canonical(From);
 
     std::list<Token> lexed, lexedCopy;
 
@@ -93,7 +93,7 @@ void doFile(const std::string &From, AcornSettings &settings)
             return;
         }
 
-        settings.visitedFiles[From] = 0;
+        settings.visitedFiles[fs::canonical(From)] = 0;
 
         if (settings.debug)
         {
@@ -302,19 +302,21 @@ void doFile(const std::string &From, AcornSettings &settings)
 
                         for (std::string a : args)
                         {
+                            auto base = settings.curFile.parent_path();
+
                             // If local, do that
-                            if (fs::exists(a))
+                            if (fs::exists(base / a))
                             {
                                 if (fs::exists(OAK_DIR_PATH + a) &&
                                     settings.visitedFiles.count(OAK_DIR_PATH + a) == 0 &&
                                     settings.visitedFiles.count(a) == 0)
                                 {
-                                    std::cout << tags::yellow_bold << "Warning: Including './" << a
+                                    std::cout << tags::yellow_bold << "Warning: Including '" << base / a
                                               << "' over package file '" << OAK_DIR_PATH << a << "'.\n"
                                               << tags::reset;
                                 }
 
-                                doFile(a, settings);
+                                doFile(base / a, settings);
                             }
 
                             // Else, look in OAK_DIR_PATH

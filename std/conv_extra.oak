@@ -10,9 +10,9 @@ jdehmel@outlook.com, GPLv3
 
 include!("std/math_inter.oak");
 include!("std/conv_inter.oak");
-c_warn!(
-    "`std/conv_extra.oak` is depreceated; Try without it."
-);
+
+// Fly warning about deprecation.
+c::warn!("`std/conv_extra.oak` is deprecated.");
 
 // Copy from a standard int
 let Copy(self: ^i8, other: i32) -> ^i8

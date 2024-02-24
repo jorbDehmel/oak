@@ -48,6 +48,5 @@ test_clean:
 .PHONY: clean
 clean:
 	$(MAKE_SRC) clean
-	$(MAKE) test_clean
 
 ################################################################

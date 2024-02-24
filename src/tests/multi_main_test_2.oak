@@ -1,0 +1,17 @@
+/*
+THIS IS PAIRED W/ `./multi_main_test_1.oak`! It does not
+represent a complete test case on its own.
+
+Tests the concept of having multiple main functions depending
+on the compiler's entry point. This would be useful for unit
+testing.
+*/
+
+package!("std");
+include!("multi_main_test_1.oak");
+
+let main() -> i32
+{
+    print("Hello from main 2!\n");
+    0
+}

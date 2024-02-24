@@ -1,6 +1,6 @@
 
 # The Oak Programming Language
-## Version 0.5.0
+## Version 0.5.1
 
 ![](./logo_trimmed.png)
 
@@ -2372,8 +2372,8 @@ basic `Oak` package called `sdl` which interfaces with the
 ## Translation Units
 
 Unlike the `C` family of languages, `Oak` has a built-in build
-system. No `makefiles` or command-line flags are necessary (or,
-for the latter, allowed).
+system. No `makefiles` or command-line library flags are
+necessary (or, for the latter, allowed).
 
 For instance, to compile a file using `SDL2` in `C++`, you would
 need to say something like
@@ -2383,14 +2383,17 @@ need to say something like
 With proper library construction, the corresponding `Oak`
 command can be simply `acorn foobar.oak`.
 
-This auto-build system necessitates the concept of the
-**translation unit**.
+This auto-build system necessitates the concepts of
+**translation units** and **entry points**.
 
 The term **translation unit** has been thrown around without
 explanation several times in this document. A translation unit
 in the context of `Oak` is the network of `.oak`, `.o`, `.od`,
 `.cpp`, `.hpp`, `.h`, and `.c` files used by `acorn` during a
 given command.
+
+The **entry point** of a given translation unit is the file
+which began the compiler's exploration of the unit.
 
 For instance, the command `acorn tests/macro_test.oak` would
 begin with a translation unit containing only
@@ -2400,10 +2403,6 @@ include the file listed under `INCLUDE=` in the `std` package.
 This file (`std/std.oak`), would likely contain `link!`,
 `include!`, and possibly even `package!` macros, all of which
 would expand the translation unit.
-
-When addendum VI mentioned that only one thread function may be
-defined per translation unit, that means that a file is barred
-from using multithreading if any of its "parent" files use it.
 
 ## Member Padding in Interface Libraries
 
@@ -2981,18 +2980,24 @@ its own file, **you generally should do so.** For example,
 because it does not **need** to have anything more. `Oak` code 
 and, by extension, `.oak` files should be minimalist.
 
-## `c_print!`, `c_sys!` and `c_panic!`
+## `c::print!`, `c::sys!`, `c::warn!` and `c::panic!`
 
-`c_print!` prints a message at compile time, concatenating the 
-passed strings. `c_panic!` does the same thing, but throws the 
-result as a compile error. `c_sys!` runs a command at compile
-time. In any of these cases, the message will be prefaced by its
-originating file and line number. Since these macros are
-compile-time only, any variables passed will not be evaluated;
-Only their names will be printed.
+`c::print!` prints a message at compile time, concatenating the 
+passed strings. `c::panic!` does the same thing, but throws the 
+result as a compile error. `c::sys!` runs a command at compile
+time. `c::warn!` will immediately raise a warning. In any of
+these cases, the message will be prefaced by its originating
+file and line number. Since these macros are compile-time only,
+any variables passed will not be evaluated; Only their names
+will be printed.
 
 The `c` refers to compilation, not to the `C` programming
 language.
+
+**Note:** As of version `0.5.0`, there are no compile-time
+conditional macros. This means that there cannot be conditional
+compile-time warnings or errors. This will likely change in a
+future version of `Oak`.
 
 ## Pointer Macros
 
@@ -3023,7 +3028,40 @@ instance, the `std/interface.oak` file provides erased structs
 of various sizes for use in struct interfaces. These items can 
 never be accessed, but still take up space within a struct.
 
-## Test Suites and Unit Testing
+## Multiple Main Functions
+
+As should be obvious, only one main function may exist in a
+given executable. However, in `Oak`, multiple main files can
+coexist. This is because `acorn` will skip over any main
+function which is not in the **entry point** file (the file
+which `acorn` was called on that necessitated the construction
+of a translation unit).
+
+This means that, for example, a library could have unit tests
+for each source file in main functions without ever causing a
+name collision. These main functions would only ever be
+acknowledged when their file was compiled as an entry point,
+and would take trivial computation otherwise.
+
+This concept is rooted in `Python`, where files can be both
+modules (library files) and scripts (executable files) by use
+of the following structure.
+
+```py
+# Within some arbitrary Python file
+
+# This code will run whether this is a module or a script.
+
+if __name__ == "__main__":
+    # This code will only execute if this file was launched as
+    # a script. If this file was imported into another, this
+    # code will not execute.
+
+    print("Hello, world!")
+
+```
+
+## Test Suites
 
 A test suite is a set of unit tests that `acorn` will compile
 and optionally execute in order to test the validity of a build.
@@ -3344,6 +3382,119 @@ In addition to taking up less space and being more maintainable,
 the above change caused a non-trivial speed boost to all
 compilation involving the `std` package, as function plural
 instantiations save compiler time.
+
+## Unit Testing via Non-Entry-Point Main Functions
+
+Consider the following `Oak` project structure.
+
+```ascii
+my_folder
+        |
+        +-- main.oak
+        |
+        +-- resource_1.oak
+        |
+        +-- resource_2.oak
+```
+
+Suppose that `main.oak` contains the code:
+
+```rust
+// my_folder/main.oak
+
+/*
+Main script interface w/ the `resource_1` and `resource_2`
+files.
+*/
+
+package!("std");
+use_rule!("std");
+
+include!("resource_1.oak", "resource_2.oak");
+
+let main() -> i32
+{
+    let a: foo;
+    let b: bar;
+
+    print("Hello from the main script!\n");
+
+    0
+}
+
+```
+
+`resource_1.oak` contains the code:
+
+```rust
+// my_folder/resource_1.oak
+
+/*
+Provide the vital `foo` resource.
+*/
+
+package!("std");
+use_rule!("std");
+
+let foo: struct
+{
+    item: bool,
+}
+
+////////////////////////////////////////////////////////////////
+
+let main() -> void
+{
+    print("Hello from resource 1!\n");
+
+    0
+}
+
+```
+
+And `resource_2.oak` contains the code:
+
+```rust
+// my_folder/resource_2.oak
+
+/*
+Provide the vital `bar` resource.
+*/
+
+package!("std");
+use_rule!("std");
+
+let bar: struct
+{
+    item: u128,
+}
+
+////////////////////////////////////////////////////////////////
+
+let main() -> void
+{
+    print("Hello from resource 2!\n");
+
+    0
+}
+
+```
+
+Although it may seem like the three versions of `main` will
+cause a conflict, this is actually a special case of `acorn`'s
+compilation process. In this case, the compiler will only
+select the main function from the entry point file, no matter
+which that is. For instance, the following three calls would
+produce the presented three different outcomes.
+
+```bash
+acorn my_folder/main.oak --execute
+"Hello from the main script!"
+acorn my_folder/resource_1.oak --execute
+"Hello from resource 1!"
+acorn my_folder/resource_2.oak --execute
+"Hello from resource 2!"
+```
 
 # `Oak` Compiler Structure
 

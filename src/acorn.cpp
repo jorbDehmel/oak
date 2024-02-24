@@ -521,7 +521,7 @@ int main(const int argc, const char *argv[])
 
             for (auto f : files)
             {
-                settings.entryPoint = fs::absolute(f);
+                settings.entryPoint = fs::canonical(f);
                 doFile(f, settings);
             }
 
@@ -893,6 +893,15 @@ int main(const int argc, const char *argv[])
         // Build file vector
         for (auto test_iter : fs::directory_iterator("./tests"))
         {
+            if (fs::is_directory(test_iter))
+            {
+                continue;
+            }
+            if (test_iter.path().extension() != ".oak")
+            {
+                continue;
+            }
+
             files.insert(test_iter.path().string());
         }
 

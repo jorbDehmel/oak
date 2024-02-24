@@ -5,20 +5,20 @@ jdehmel@outlook.com
 */
 
 // Run a command at compile time
-c_sys!(
+c::sys!(
     "pwd",
     "echo hi"
 );
 
 // Print something at compile time
-c_print!(
+c::print!(
     "you're",
     "mother",
     "hahah lol"
 );
 
 // Halt compilation
-// c_panic!(
+// c::panic!(
 //     "alalalala",
 //     "gloobelsnirt"
 // );

@@ -504,6 +504,12 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
 
                 for (auto name : names)
                 {
+                    if (name == "main" && settings.curFile != settings.entryPoint)
+                    {
+                        settings.currentReturnType = nullType;
+                        continue;
+                    }
+
                     // Restrictions upon some types of methods
                     if (name == "New" || name == "Del")
                     {
@@ -522,7 +528,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                     }
 
                     // Restrictions upon return types
-                    if (name == "Copy")
+                    else if (name == "Copy")
                     {
                         sm_assert(argsWithType.size() >= 2, "Method '" + name + "' must take at least two arguments.");
 
@@ -543,10 +549,18 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                                                             toStr(&observed) + ".");
                     }
 
-                    // Restrictions upon main functions
-                    if (name == "main" && !From.empty() && !toAdd.empty())
+                    // Restrictions upon plural definitions
+                    if (names.size() > 1 && (name == "New" || name == "Del" || name == "main"))
                     {
-                        sm_assert(settings.table[name].size() == 0, "Function 'main' cannot be overloaded.");
+                        throw sequencing_error("Name '" + name + "' is not allowed in plural definitions.");
+                    }
+
+                    // Insert explicit symbol
+                    // Restrictions upon main functions
+                    if (name == "main" && !toAdd.empty())
+                    {
+                        sm_assert(settings.table["main"].size() == 0,
+                                  "Function 'main' cannot be defined multiple times in a single entry point.");
                         sm_assert(settings.currentReturnType[0].info == atomic &&
                                       (settings.currentReturnType[0].name == "i32" ||
                                        settings.currentReturnType[0].name == "void"),
@@ -573,13 +587,6 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                         }
                     }
 
-                    // Restrictions upon plural definitions
-                    if (names.size() > 1 && (name == "New" || name == "Del" || name == "main"))
-                    {
-                        throw sequencing_error("Name '" + name + "' is not allowed in plural definitions.");
-                    }
-
-                    // Insert explicit symbol
                     if (!toAdd.empty())
                     {
                         destroyUnits(name, type, true, settings);
@@ -670,7 +677,6 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                     }
 
                     auto destructors = restoreSymbolTable(oldTable, settings.table);
-                    // insertDestructors(table[name].back().seq, destructors);
 
                     settings.currentReturnType = nullType;
                 }
