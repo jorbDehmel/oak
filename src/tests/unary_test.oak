@@ -1,0 +1,33 @@
+/*
+Tests the unary operators (++, --, and !) in Oak.
+Jordan Dehmel, 2024
+jdehmel@outlook.com
+*/
+
+package!("std");
+
+let main() -> i32
+{
+    let x: i32;
+    x = 0;
+
+    print(x);
+    endl();
+
+    ++x;
+
+    print(x);
+    endl();
+
+    --x;
+
+    print(x);
+    endl();
+
+    if (!false)
+    {
+        print("Hello!\n");
+    }
+
+    0
+}

@@ -10,8 +10,14 @@ testing.
 package!("std");
 include!("multi_main_test_1.oak");
 
+let bar() -> void
+{
+    print("foo\n");
+}
+
 let main() -> i32
 {
     print("Hello from main 2!\n");
+    foo();
     0
 }

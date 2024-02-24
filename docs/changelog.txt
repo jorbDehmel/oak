@@ -4,6 +4,10 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.5.2           | 2/24/24  | Added incrementation,
+                |          | decrementation, and negation unary
+                |          | operators (all prefix).
+                |          |
 0.5.1           | 2/23/24  | Allowed multiple main functions for
                 |          | a given translation unit. Also
                 |          | changed protocol for `c_` family

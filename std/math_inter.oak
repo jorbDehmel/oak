@@ -20,6 +20,7 @@ let New(self: ^u8) -> void;
 let Del(self: ^u8) -> void {}
 let Copy, AddEq, SubEq, MultEq, DivEq, ModEq, AndEq, OrEq
     (self: ^u8, other: u8) -> u8;
+let Incr, Decr, Not(self: ^u8) -> u8;
 
 // u16
 let Add, Sub, Mult, Div, Mod, And, Or, Lbs, Rbs
@@ -30,6 +31,7 @@ let New(self: ^u16) -> void;
 let Del(self: ^u16) -> void {}
 let Copy, AddEq, SubEq, MultEq, DivEq, ModEq, AndEq, OrEq
     (self: ^u16, other: u16) -> u16;
+let Incr, Decr, Not(self: ^u16) -> u16;
 
 // u32
 let Add, Sub, Mult, Div, Mod, And, Or, Lbs, Rbs
@@ -40,6 +42,7 @@ let New(self: ^u32) -> void;
 let Del(self: ^u32) -> void {}
 let Copy, AddEq, SubEq, MultEq, DivEq, ModEq, AndEq, OrEq
     (self: ^u32, other: u32) -> u32;
+let Incr, Decr, Not(self: ^u32) -> u32;
 
 // u64
 let Add, Sub, Mult, Div, Mod, And, Or, Lbs, Rbs
@@ -50,6 +53,7 @@ let New(self: ^u64) -> void;
 let Del(self: ^u64) -> void {}
 let Copy, AddEq, SubEq, MultEq, DivEq, ModEq, AndEq, OrEq
     (self: ^u64, other: u64) -> u64;
+let Incr, Decr, Not(self: ^u64) -> u64;
 
 // u128
 let Add, Sub, Mult, Div, Mod, And, Or, Lbs, Rbs
@@ -60,6 +64,7 @@ let New(self: ^u128) -> void;
 let Del(self: ^u128) -> void {}
 let Copy, AddEq, SubEq, MultEq, DivEq, ModEq, AndEq, OrEq
     (self: ^u128, other: u128) -> u128;
+let Incr, Decr, Not(self: ^u128) -> u128;
 
 // i8
 let Add, Sub, Mult, Div, Mod, And, Or, Lbs, Rbs
@@ -70,6 +75,7 @@ let New(self: ^i8) -> void;
 let Del(self: ^i8) -> void {}
 let Copy, AddEq, SubEq, MultEq, DivEq, ModEq, AndEq, OrEq
     (self: ^i8, other: i8) -> i8;
+let Incr, Decr, Not(self: ^i8) -> i8;
 
 // i16
 let Add, Sub, Mult, Div, Mod, And, Or, Lbs, Rbs
@@ -80,6 +86,7 @@ let New(self: ^i16) -> void;
 let Del(self: ^i16) -> void {}
 let Copy, AddEq, SubEq, MultEq, DivEq, ModEq, AndEq, OrEq
     (self: ^i16, other: i16) -> i16;
+let Incr, Decr, Not(self: ^i16) -> i16;
 
 // i32
 let Add, Sub, Mult, Div, Mod, And, Or, Lbs, Rbs
@@ -90,6 +97,7 @@ let New(self: ^i32) -> void;
 let Del(self: ^i32) -> void {}
 let Copy, AddEq, SubEq, MultEq, DivEq, ModEq, AndEq, OrEq
     (self: ^i32, other: i32) -> i32;
+let Incr, Decr, Not(self: ^i32) -> i32;
 
 // i64
 let Add, Sub, Mult, Div, Mod, And, Or, Lbs, Rbs
@@ -100,6 +108,7 @@ let New(self: ^i64) -> void;
 let Del(self: ^i64) -> void {}
 let Copy, AddEq, SubEq, MultEq, DivEq, ModEq, AndEq, OrEq
     (self: ^i64, other: i64) -> i64;
+let Incr, Decr, Not(self: ^i64) -> i64;
 
 // i128
 let Add, Sub, Mult, Div, Mod, And, Or, Lbs, Rbs
@@ -110,6 +119,7 @@ let New(self: ^i128) -> void;
 let Del(self: ^i128) -> void {}
 let Copy, AddEq, SubEq, MultEq, DivEq, ModEq, AndEq, OrEq
     (self: ^i128, other: i128) -> i128;
+let Incr, Decr, Not(self: ^i128) -> i128;
 
 // Floats
 let Add, Sub, Mult, Div

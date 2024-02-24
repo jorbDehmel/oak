@@ -1,6 +1,6 @@
 
 # The Oak Programming Language
-## Version 0.5.1
+## Version 0.5.2
 
 ![](./logo_trimmed.png)
 
@@ -1469,6 +1469,8 @@ Div    | /         | Division
 Mod    | %         | Modulo / remainder
 AddEq  | +=        | Increment by a number
 SubEq  | -=        | Decrement by a number
+Incr   | ++        | Increment by one
+Decr   | --        | Decrement by one
 MultEq | *=        | Multiply and assign
 DivEq  | /=        | Divide and assign
 ModEq  | %=        | Modulo and assign
@@ -1479,9 +1481,11 @@ Rbs    | >>        | Right bitshift
 New    | TYPE_NAME | Instantiation
 Del    | N/A       | Deletion
 
-**Note A:** There is no `Oak` equivalent to `C++`'s increment
-and decrement operators, although such a rule would be trivial
-to write.
+**Note A:** `Oak` increment and decrement operators are
+prefix-only operators. This means that they always precede the
+item they operate on. This is unlike `C/C++`, where they can
+either come before or after their operand. They return their
+values *after* performing their operations.
 
 **Note B:** No `std` `Oak` files use `C++`-style streams, but
 there is nothing in the language stopping them from working.

@@ -147,7 +147,56 @@ void getOperands(std::list<Token> &from, std::list<Token>::iterator &pre, std::l
     return;
 }
 
-// Substitute a single operation as identified
+// Moves post to include the operand to a binary
+// operator. Oak only has prefix unaries.
+// Assumes that pre = i - 1, post = i + 1, i = index of bin op
+void getOperandUnary(std::list<Token> &from, const std::list<Token>::iterator &pre, std::list<Token>::iterator &post)
+{
+    int count = 0;
+
+    // Increment post to point to the end of the right operand
+    // If useLine, increment until a semicolon.
+    count = 0;
+    do
+    {
+        if (*post == "(")
+        {
+            count++;
+        }
+        else if (*post == ")")
+        {
+            count--;
+        }
+
+        while (post != from.end() && (*post == "^" || *post == "@"))
+        {
+            post++;
+        }
+
+        if (count == 0)
+        {
+            // Function call
+            if (operators.count(*post) == 0 && itCmp(from, post, 1, "("))
+            {
+                post++;
+                count = 1;
+            }
+        }
+
+        post++;
+    } while (post != from.end() && count != 0);
+
+    // Member access, references and dereferences
+    while (itIsInRange(from, post, 2) && *post == ".")
+    {
+        post++;
+        post++;
+    }
+
+    return;
+}
+
+// Substitute a single binary operation as identified
 void doSub(std::list<Token> &from, std::list<Token>::iterator &pos, const std::string &name)
 {
     auto pre = pos, post = pos;
@@ -217,12 +266,91 @@ void doSub(std::list<Token> &from, std::list<Token>::iterator &pos, const std::s
     pos--;
 }
 
+// Substitute a single unary operation as identified
+void doSubUnary(std::list<Token> &from, std::list<Token>::iterator &pos, const std::string &name)
+{
+    auto pre = pos, post = pos;
+    pre--;
+    post++;
+
+    std::list<std::string> toAdd;
+
+    // Identify operands
+    getOperandUnary(from, pre, post);
+    pre++;
+
+    // Reconstruct into valid output
+    auto start = pre, end = pos;
+
+    while (itCmp(from, start, 0, "(") && itCmp(from, end, -1, ")"))
+    {
+        start++;
+        end--;
+    }
+
+    toAdd = {name, "("};
+
+    start = pos;
+    start++;
+
+    end = post;
+    while (itCmp(from, start, 0, "(") && itCmp(from, end, -1, ")"))
+    {
+        start++;
+        end--;
+    }
+
+    for (auto i = start; i != end; i++)
+    {
+        toAdd.push_back(*i);
+    }
+    toAdd.push_back(")");
+
+    // Erase old (all items pre <= i < post)
+    Token templ = *pre; // Ensures line, file info are copied over
+
+    while (pre != post)
+    {
+        pre = from.erase(pre);
+    }
+
+    // Insert new
+    for (const auto &item : toAdd)
+    {
+        templ.text = item;
+        pre = from.insert(pre, templ);
+        pre++;
+    }
+
+    pos = pre;
+    pos--;
+}
+
 // O(n)
 // These are some common rule-like token stream manipulations
 // which would be too hard (or perhaps impossible) to implement
 // with the rule system.
 void operatorSub(std::list<Token> &From)
 {
+    // Level -1: Prefix unaries
+    for (auto it = From.begin(); it != From.end(); it++)
+    {
+        std::string cur = it->text;
+
+        if (cur == "++")
+        {
+            doSubUnary(From, it, "Incr");
+        }
+        else if (cur == "--")
+        {
+            doSubUnary(From, it, "Decr");
+        }
+        else if (cur == "!")
+        {
+            doSubUnary(From, it, "Not");
+        }
+    }
+
     // Level 1: Multiplication, division and modulo
     for (auto it = From.begin(); it != From.end(); it++)
     {

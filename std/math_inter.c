@@ -411,6 +411,18 @@ u8 XorEq_FN_PTR_u8_JOIN_u8_MAPS_u8(u8 *self, u8 other)
     (*self) ^= other;
     return (*self);
 }
+u8 Incr_FN_PTR_u8_MAPS_u8(u8 *self)
+{
+    return ++(*self);
+}
+u8 Decr_FN_PTR_u8_MAPS_u8(u8 *self)
+{
+    return --(*self);
+}
+u8 Not_FN_PTR_u8_MAPS_u8(u8 *self)
+{
+    return !(*self);
+}
 
 // u16
 u16 Add_FN_u16_JOIN_u16_MAPS_u16(u16 self, u16 other)
@@ -526,6 +538,18 @@ u16 XorEq_FN_PTR_u16_JOIN_u16_MAPS_u16(u16 *self, u16 other)
 {
     (*self) ^= other;
     return (*self);
+}
+u16 Incr_FN_PTR_u16_MAPS_u16(u16 *self)
+{
+    return ++(*self);
+}
+u16 Decr_FN_PTR_u16_MAPS_u16(u16 *self)
+{
+    return --(*self);
+}
+u16 Not_FN_PTR_u16_MAPS_u16(u16 *self)
+{
+    return !(*self);
 }
 
 // u32
@@ -643,6 +667,18 @@ u32 XorEq_FN_PTR_u32_JOIN_u32_MAPS_u32(u32 *self, u32 other)
     (*self) ^= other;
     return (*self);
 }
+u32 Incr_FN_PTR_u32_MAPS_u32(u32 *self)
+{
+    return ++(*self);
+}
+u32 Decr_FN_PTR_u32_MAPS_u32(u32 *self)
+{
+    return --(*self);
+}
+u32 Not_FN_PTR_u32_MAPS_u32(u32 *self)
+{
+    return !(*self);
+}
 
 // u64
 u64 Add_FN_u64_JOIN_u64_MAPS_u64(u64 self, u64 other)
@@ -758,6 +794,18 @@ u64 XorEq_FN_PTR_u64_JOIN_u64_MAPS_u64(u64 *self, u64 other)
 {
     (*self) ^= other;
     return (*self);
+}
+u64 Incr_FN_PTR_u64_MAPS_u64(u64 *self)
+{
+    return ++(*self);
+}
+u64 Decr_FN_PTR_u64_MAPS_u64(u64 *self)
+{
+    return --(*self);
+}
+u64 Not_FN_PTR_u64_MAPS_u64(u64 *self)
+{
+    return !(*self);
 }
 
 // u128
@@ -875,6 +923,18 @@ u128 XorEq_FN_PTR_u128_JOIN_u128_MAPS_u128(u128 *self, u128 other)
     (*self) ^= other;
     return (*self);
 }
+u128 Incr_FN_PTR_u128_MAPS_u128(u128 *self)
+{
+    return ++(*self);
+}
+u128 Decr_FN_PTR_u128_MAPS_u128(u128 *self)
+{
+    return --(*self);
+}
+u128 Not_FN_PTR_u128_MAPS_u128(u128 *self)
+{
+    return !(*self);
+}
 
 // i8
 i8 Add_FN_i8_JOIN_i8_MAPS_i8(i8 self, i8 other)
@@ -990,6 +1050,18 @@ i8 XorEq_FN_PTR_i8_JOIN_i8_MAPS_i8(i8 *self, i8 other)
 {
     (*self) ^= other;
     return (*self);
+}
+i8 Incr_FN_PTR_i8_MAPS_i8(i8 *self)
+{
+    return ++(*self);
+}
+i8 Decr_FN_PTR_i8_MAPS_i8(i8 *self)
+{
+    return --(*self);
+}
+i8 Not_FN_PTR_i8_MAPS_i8(i8 *self)
+{
+    return !(*self);
 }
 
 // i16
@@ -1107,6 +1179,18 @@ i16 XorEq_FN_PTR_i16_JOIN_i16_MAPS_i16(i16 *self, i16 other)
     (*self) ^= other;
     return (*self);
 }
+i16 Incr_FN_PTR_i16_MAPS_i16(i16 *self)
+{
+    return ++(*self);
+}
+i16 Decr_FN_PTR_i16_MAPS_i16(i16 *self)
+{
+    return --(*self);
+}
+i16 Not_FN_PTR_i16_MAPS_i16(i16 *self)
+{
+    return !(*self);
+}
 
 // i32
 i32 Add_FN_i32_JOIN_i32_MAPS_i32(i32 self, i32 other)
@@ -1222,6 +1306,18 @@ i32 XorEq_FN_PTR_i32_JOIN_i32_MAPS_i32(i32 *self, i32 other)
 {
     (*self) ^= other;
     return (*self);
+}
+i32 Incr_FN_PTR_i32_MAPS_i32(i32 *self)
+{
+    return ++(*self);
+}
+i32 Decr_FN_PTR_i32_MAPS_i32(i32 *self)
+{
+    return --(*self);
+}
+i32 Not_FN_PTR_i32_MAPS_i32(i32 *self)
+{
+    return !(*self);
 }
 
 // i64
@@ -1339,6 +1435,18 @@ i64 XorEq_FN_PTR_i64_JOIN_i64_MAPS_i64(i64 *self, i64 other)
     (*self) ^= other;
     return (*self);
 }
+i64 Incr_FN_PTR_i64_MAPS_i64(i64 *self)
+{
+    return ++(*self);
+}
+i64 Decr_FN_PTR_i64_MAPS_i64(i64 *self)
+{
+    return --(*self);
+}
+i64 Not_FN_PTR_i64_MAPS_i64(i64 *self)
+{
+    return !(*self);
+}
 
 // i128
 i128 Add_FN_i128_JOIN_i128_MAPS_i128(i128 self, i128 other)
@@ -1454,4 +1562,16 @@ i128 XorEq_FN_PTR_i128_JOIN_i128_MAPS_i128(i128 *self, i128 other)
 {
     (*self) ^= other;
     return (*self);
+}
+i128 Incr_FN_PTR_i128_MAPS_i128(i128 *self)
+{
+    return ++(*self);
+}
+i128 Decr_FN_PTR_i128_MAPS_i128(i128 *self)
+{
+    return --(*self);
+}
+i128 Not_FN_PTR_i128_MAPS_i128(i128 *self)
+{
+    return !(*self);
 }

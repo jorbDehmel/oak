@@ -7,11 +7,17 @@ on the compiler's entry point. This would be useful for unit
 testing.
 */
 
-include!("multi_main_test_2.oak");
 package!("std");
+include!("multi_main_test_2.oak");
+
+let foo() -> void
+{
+    print("bar\n");
+}
 
 let main() -> i32
 {
     print("Hello from main 1!\n");
+    bar();
     0
 }

@@ -132,6 +132,7 @@ Lexer::Lexer()
 
     // Dash stuff
     dfa[delim_state][(unsigned int)'-'] = dash_state;
+    dfa[dash_state][(unsigned int)'-'] = dash_state;
     dfa[dash_state][(unsigned int)'>'] = operator_state;
 
     // Operator stuff
