@@ -76,29 +76,29 @@ let size(self: ^i_file) -> u128;
 let read(self: ^i_file, size: u128) -> string
 {
     let out: string;
-    reserve(out, size + to_u128(1));
+    reserve(out, size + 1u128);
 
     let pos: u128;
-    pos = to_u128(0);
+    pos = 0u128;
     while (pos < size)
     {
         Get(out.data, pos) = read_char(self);
-        pos += to_u128(1);
+        pos += 1u128;
     }
 
-    Get(out.data, pos) = 0;
-    out.current_length = pos + 1;
+    Get(out.data, pos) = 0i8;
+    out.current_length = pos + 1u128;
 
     out
 }
 
-let write(self: ^o_file, data: string) -> void
+let write(self: ^o_file, data: ^string) -> void
 {
     let pos: u128;
-    pos = to_u128(0);
+    pos = 0u128;
     while (pos < data.current_length)
     {
         write_char(self, Get(data, pos));
-        pos += to_u128(1);
+        pos += 1u128;
     }
 }

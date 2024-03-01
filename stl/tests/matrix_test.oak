@@ -21,7 +21,7 @@ let main() -> i32
         let x: u128 = 0;
         while x < 3
         {
-            m.set(x, y, x * y);
+            m.set(x, y, to_i32(x * y));
 
             x += 1;
         }

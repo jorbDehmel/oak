@@ -151,7 +151,7 @@ let stl::math_arr<t>: trait
 }
 post
 {
-    Mult<t>(_: ^stl::arr<t>, _: stl::arr<t>);
+    Mult<t>(_: ^stl::arr<t>, _: ^stl::arr<t>);
     sum<t>(_: ^stl::arr<t>);
     partial_sums<t>(_: ^stl::arr<t>);
     diff<t>(_: ^stl::arr<t>);
@@ -162,7 +162,7 @@ post
 /*
 Return the dot product of two arrays.
 */
-let Mult<t>(self: ^stl::arr<t>, other: stl::arr<t>) -> t
+let Mult<t>(self: ^stl::arr<t>, other: ^stl::arr<t>) -> t
 {
     assert!(self.l == other.l);
 

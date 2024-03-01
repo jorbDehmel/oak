@@ -30,6 +30,7 @@ jdehmel@outlook.com
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <set>
 #include <sstream>
 #include <string>
 
@@ -143,7 +144,6 @@ enum TypeInfo
     var_name, // A variable name for functions.
     arr,      // Unsized array. Equivalent to pointer.
     sarr,     // Sized array. like var_name, has size in `name`.
-    mut,      // Mutable keyword for future work.
 };
 
 // A single node in a type; For instance, in `[]i8`, both
@@ -227,6 +227,8 @@ struct MultiTableSymbol
 
     bool erased = false;
     std::string sourceFilePath = "";
+
+    std::set<std::string> tags;
 };
 
 // Alias for the symbol table.

@@ -37,24 +37,25 @@ post
 // Implementations
 ////////////////////////////////////////////////////////////////
 
+// Get the given bit, given that it is in range.
 let Get<size>(self: ^extra::bitset<size>, i: u128) -> opt<bool>
 {
     let out: opt<bool>;
     out.wrap_none();
 
-    if i > to_u128(size * 8)
+    if i > to_u128(size * 8u128)
     {
         return out;
     }
 
-    let byte_i: u128 = i / to_u128(8);
-    let bit_i: u8 = to_u8(i % to_u128(8));
-    bit_i = 7 - bit_i;
+    let byte_i: u128 = i / 8u128;
+    let bit_i: u8 = to_u8(to_i32(i % 8u128));
+    bit_i = 7u8 - bit_i;
     let got: u8 = Get(self.data, byte_i);
-    let mask: u8 = Lbs(1, bit_i);
+    let mask: u8 = 1u8 << bit_i;
     got &= mask;
 
-    if got != 0
+    if got != 0u8
     {
         out.wrap_some(true);
     }
@@ -66,30 +67,33 @@ let Get<size>(self: ^extra::bitset<size>, i: u128) -> opt<bool>
     out
 }
 
+// Set the given bit.
 let set<size>(self: ^extra::bitset<size>, i: u128) -> void
 {
-    let byte_i: u128 = i / to_u128(8);
-    let bit_i: u8 = to_u8(i % to_u128(8));
-    bit_i = 7 - bit_i;
-    let mask: u8 = Lbs(1, bit_i);
+    let byte_i: u128 = i / 8u128;
+    let bit_i: u8 = to_u8(to_i32(i % 8u128));
+    bit_i = 7u8 - bit_i;
+    let mask: u8 = 1u8 << bit_i;
 
     Get(self.data, byte_i) |= mask;
 }
 
+// Clear the given bit.
 let clear<size>(self: ^extra::bitset<size>, i: u128) -> void
 {
-    let byte_i: u128 = i / to_u128(8);
-    let bit_i: u8 = to_u8(i % to_u128(8));
-    bit_i = 7 - bit_i;
-    let mask: u8 = Lbs(1, bit_i);
-    mask = 255 - mask;
+    let byte_i: u128 = i / 8u128;
+    let bit_i: u8 = to_u8(to_i32(i % 8u128));
+    bit_i = 7u8 - bit_i;
+    let mask: u8 = 1u8 << bit_i;
+    mask = 255u8 - mask;
 
     Get(self.data, byte_i) &= mask;
 }
 
+// Flip the given bit.
 let flip<size>(self: ^extra::bitset<size>, i: u128) -> void
 {
-    let res = self.Get(i);
+    let res = Get(self, i);
 
     if unwrap(res)
     {
@@ -101,9 +105,9 @@ let flip<size>(self: ^extra::bitset<size>, i: u128) -> void
     }
 }
 
+// Defines how to print a bitset.
 let print<size>(what: ^extra::bitset<size>) -> void
 {
     extra::bit_print<extra::bitset<size>>(_: ^extra::bitset<size>);
-
     extra::bit_print(what);
 }

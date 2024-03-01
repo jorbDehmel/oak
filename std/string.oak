@@ -14,7 +14,6 @@ jdehmel@outlook.com
 package!("std");
 use_rule!("std");
 include!("std/cstr.oak");
-link!("std/string.o");
 
 // A smart resizing string. This may be referred to as a `std`
 // string in other files, as opposed to other implementations of
@@ -28,9 +27,11 @@ let string: struct
 
 ////////////////////////////////////////////////////////////////
 
-// Extern C function.
 // This returns a raw pointer into the data. Do not modify.
-let c_str(self: ^string) -> str;
+let c_str(self: ^string) -> str
+{
+    raw_c!("return self->data;");
+}
 
 ////////////////////////////////////////////////////////////////
 
@@ -99,7 +100,7 @@ let Shrink(self: ^string) -> void
         // Copy over old data
         strncpy(self.data, old, self.capacity);
 
-        ptrarr!(self.data, self.capacity - 1) = 0;
+        ptrarr!(self.data, self.capacity - 1) = 0i8;
 
         // Free old data
         free!(old);
@@ -179,7 +180,7 @@ let Copy(self: ^string, other: string) -> ^string
 
     self.reserve(other.capacity);
     strncpy(self.data, other.data, other.current_length);
-    Get(self.data, other.current_length) = 0;
+    Get(self.data, other.current_length) = 0i8;
     self.current_length = strlen(self.data);
 
     self
@@ -463,8 +464,8 @@ http://www.cse.yorku.ca/~oz/hash.html
 */
 let hash(self: ^string) -> u128
 {
-    let out: u128 = 5 381;
-    let cur: i8 = 0;
+    let out: u128 = 5 381u128;
+    let cur: i8 = 0i8;
 
     let i: u128 = 0;
     while i < self.current_length

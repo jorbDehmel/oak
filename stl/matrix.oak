@@ -165,7 +165,7 @@ let row<t>(self: ^stl::matrix<t>, r: u128) -> stl::arr<t>
 
     let out: stl::arr<t>;
     out.l = self.w;
-    ptrcpy!(out.data, @Get(self.data, r * self.w));
+    ptrcpy!(out.data, @ptrarr!(self.data, r * self.w));
     out.responsible = false;
 
     out

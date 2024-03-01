@@ -209,8 +209,9 @@ const static std::set<std::string> operators = {
     "&&", "||", "<", ">", "==", "!=", "<=", ">=", "&",  "|",  ",",  "(",  ")",  ";"};
 
 // Used for implicit casting.
-const std::set<std::string> intLiterals = {"u8", "i8", "u16", "i16", "u32", "i32", "u64", "i64", "u128", "i128"};
-const std::set<std::string> floatLiterals = {"f32", "f64", "f128"};
+const std::map<std::string, unsigned char> intLiterals = {{"u8", 0},  {"i8", 0},  {"u16", 1}, {"i16", 1},  {"u32", 2},
+                                                          {"i32", 2}, {"u64", 3}, {"i64", 3}, {"u128", 4}, {"i128", 4}};
+const std::map<std::string, unsigned char> floatLiterals = {{"f32", 0}, {"f64", 1}, {"f128", 2}};
 
 // Settings structure. Holds all information which used to be
 // non-const globals.

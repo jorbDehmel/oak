@@ -372,17 +372,19 @@ bool typesAreSameExact(const Type *const A, const Type *const B)
 Compares two types. Returns true if they match exactly, if they
 match using auto-reference/auto-dereference, or internal literal
 casting. The number of changes is recorded in `changes`.
+
+A is passed, B is candidate
 */
-bool typesAreSameCast(const Type *const A, const Type *const B, int &changes)
+bool typesAreSameCast(const Type *const passed, const Type *const candidate, int &changes)
 {
     bool castIsLegal = true;
 
-    auto left = A->internal.begin();
-    auto right = B->internal.begin();
+    auto left = passed->internal.begin();
+    auto right = candidate->internal.begin();
 
-    while (left != A->internal.end() && right != B->internal.end())
+    while (left != passed->internal.end() && right != candidate->internal.end())
     {
-        while (left != A->internal.end() && (left->info == var_name || left->info == pointer))
+        while (left != passed->internal.end() && (left->info == var_name || left->info == pointer))
         {
             if (left->info == pointer)
             {
@@ -397,7 +399,7 @@ bool typesAreSameCast(const Type *const A, const Type *const B, int &changes)
             left++;
         }
 
-        while (right != B->internal.end() && (right->info == var_name || right->info == pointer))
+        while (right != candidate->internal.end() && (right->info == var_name || right->info == pointer))
         {
             if (right->info == pointer)
             {
@@ -412,7 +414,7 @@ bool typesAreSameCast(const Type *const A, const Type *const B, int &changes)
             right++;
         }
 
-        if (left == A->internal.end() || right == B->internal.end())
+        if (left == passed->internal.end() || right == candidate->internal.end())
         {
             break;
         }
@@ -432,14 +434,17 @@ bool typesAreSameCast(const Type *const A, const Type *const B, int &changes)
                     castIsLegal = false;
 
                     // Case 1: Int cast
-                    if (intLiterals.count(left->name) != 0 && intLiterals.count(right->name) != 0)
+                    if (intLiterals.count(left->name) != 0 && intLiterals.count(right->name) != 0 &&
+                        intLiterals.at(left->name) <= intLiterals.at(right->name))
                     {
                         changes++;
                         castIsLegal = true;
                     }
 
                     // Case 2: Float cast
-                    if (!castIsLegal && (floatLiterals.count(left->name) != 0 && floatLiterals.count(right->name) != 0))
+                    if (!castIsLegal &&
+                        (floatLiterals.count(left->name) != 0 && floatLiterals.count(right->name) != 0) &&
+                        floatLiterals.at(left->name) <= floatLiterals.at(right->name))
                     {
                         changes++;
                         castIsLegal = true;
@@ -459,9 +464,9 @@ bool typesAreSameCast(const Type *const A, const Type *const B, int &changes)
         right++;
     }
 
-    if (left == A->internal.end() || right == B->internal.end())
+    if (left == passed->internal.end() || right == candidate->internal.end())
     {
-        if (!(left == A->internal.end() && right == B->internal.end()))
+        if (!(left == passed->internal.end() && right == candidate->internal.end()))
         {
             return false;
         }

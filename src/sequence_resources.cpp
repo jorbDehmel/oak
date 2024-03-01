@@ -1341,7 +1341,7 @@ std::list<int> getCastingCandidates(const std::list<std::list<Type>> &candArgs, 
 
         for (int k = 0; k < j->size(); k++)
         {
-            if (!typesAreSameCast(&*l, &*r, cur))
+            if (!typesAreSameCast(&*r, &*l, cur))
             {
                 isMatch = false;
                 break;

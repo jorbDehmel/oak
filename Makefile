@@ -7,6 +7,7 @@
 ################################################################
 
 MAKE_SRC := $(MAKE) -C src
+TEST := acorn -eTT ; acorn -e
 
 ################################################################
 
@@ -28,10 +29,11 @@ reinstall:
 
 .PHONY: test
 test:
-	$(MAKE_SRC) test
-	cd extra && acorn -TT && acorn -e && cd ..
-	cd stl && acorn -TT && acorn -e && cd ..
-	cd turtle && acorn -TT && acorn -e && cd ..
+	cd std && $(TEST) && cd ..
+	cd sdl && $(TEST) && cd ..
+	cd extra && $(TEST) && cd ..
+	cd stl && $(TEST) && cd ..
+	cd turtle && $(TEST) && cd ..
 
 .PHONY: docs
 docs: README.md docs/manual.md docs/source_code_guidelines.md
@@ -43,7 +45,7 @@ docs: README.md docs/manual.md docs/source_code_guidelines.md
 .PHONY:	test_clean
 test_clean:
 	acorn -e
-	rm */*.log ; rm */*.tlog ; rm *.log ; rm *.tlog ; rm *.out ; rm */a.out
+	rm */*.log ; rm */*.tlog ; rm *.log ; rm *.tlog ; rm *.out ; rm */a.out ; rm -r */.oak_build
 
 .PHONY: clean
 clean:

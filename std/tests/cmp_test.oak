@@ -12,7 +12,7 @@ let compare(l: i32, r: i32) -> cmp
     out
 }
 
-let print(what: cmp) -> void
+let print(what: ^cmp) -> void
 {
     if (what.less())
     {

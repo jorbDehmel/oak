@@ -7,10 +7,17 @@ package!("std");
 use_rule!("std");
 
 // Pi to 8 decimal places
-let math_pi! = 3.14159265;
+let math::pi! = 3.14159265;
 
 // Euler's constant e to 8 decimal places
-let math_e! = 2.71828182;
+let math::e! = 2.71828182;
+
+// A complex number. Not widely used.
+let complex: struct
+{
+    real: f64,
+    imaginary: f64,
+}
 
 // Returns true if a is even. This is an artifact from when the
 // operator precedence in Oak was broken and this needed to be
@@ -273,9 +280,7 @@ let round(x: f64) -> i32
         out -= 0.5;
     }
 
-    floor(out)
-
-    out
+    to_i32(floor(out))
 }
 
 /*
@@ -283,32 +288,38 @@ Return the square root of a float.
 Uses Newtonian iteration
 To find \sqrt{k}:
 x_{n + 1} = 0.5 * (x_n + \frac{k}{x_n})
+If x is negative, returns -1.0.
 */
 let sqrt(x: f64) -> f64
 {
-    // Get a decent guess
-    let out: f64;
-    out = x / 2.0;
-
-    // Ensure guess is not one
-    out += 1.0;
-
-    let counter: i32;
-    let temp: f64;
-
-    counter = 10;
-    while (counter > 0)
+    if (x >= 0.0)
     {
-        temp = out;
-        temp += x / out;
-        temp /= 2.0;
+        // Get a decent guess
+        let out: f64;
+        out = x / 2.0;
 
-        out = temp;
+        // Ensure guess is not one
+        out += 1.0;
 
-        counter -= 1;
+        let counter: i32;
+        let temp: f64;
+
+        counter = 10;
+        while (counter > 0)
+        {
+            temp = out;
+            temp += x / out;
+            temp /= 2.0;
+
+            out = temp;
+
+            counter -= 1;
+        }
+
+        out
     }
 
-    out
+    -1.0
 }
 
 // Return the remainder of a / b.

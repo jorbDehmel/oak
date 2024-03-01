@@ -24,11 +24,11 @@ East, 180 is South, and 270 is West. 360 is North again.
 */
 let turtle::turtle: struct
 {
-    x, y: i128,
+    x, y: u64,
     pen_is_down, is_running: bool,
     orientation, speed, radius: f64,
 
-    w, h, delay: u128,
+    w, h, delay: u64,
     window: sdl::window,
     bg_color, pen_color, turtle_color: sdl::color,
     pixels: [][]sdl::color,
@@ -68,11 +68,11 @@ let New(self: ^turtle::turtle) -> void
     self.window = (self.w, self.h);
 
     // Initialize pixels array
-    alloc!(self.pixels, self.h);
+    alloc!(self.pixels, to_u128(self.h));
 
     for (let i: u128 = 0; i < self.h; i += 1)
     {
-        alloc!(ptrarr!(self.pixels, i), self.w);
+        alloc!(ptrarr!(self.pixels, i), to_u128(self.w));
 
         for (let j: u128 = 0; j < self.w; j += 1)
         {
@@ -109,8 +109,8 @@ otherwise.
 let is_filled(self: ^turtle::turtle, x: i128, y: i128) -> bool
 {
     // Modulo inputs by sizes to avoid overflow
-    let real_x: i128 = to_i128(x) % to_i128(self.w);
-    let real_y: i128 = to_i128(y) % to_i128(self.h);
+    let real_x: i128 = x % to_i128(to_i32(self.w));
+    let real_y: i128 = y % to_i128(to_i32(self.h));
 
     ptrarr!(ptrarr!(self.pixels, real_y), real_x)
         != self.bg_color
@@ -123,8 +123,8 @@ let sleep(self: ^turtle::turtle, s: f64) -> void
 {
     if self.is_running
     {
-        let ms: u128;
-        ms = floor(s * 1000.0);
+        let ms: i32;
+        ms = to_i32(floor(s * 1000.0));
         sdl::delay(ms);
         self.refresh();
     }
@@ -185,11 +185,11 @@ let turtle::rotate(
 
         let c: f64 = sdl::cos(degrees_to_radians(360.0 - rot));
         let s: f64 = sdl::sin(degrees_to_radians(360.0 - rot));
-        let x: f64 = to_f64(what.x);
-        let y: f64 = to_f64(what.y);
+        let x: f64 = to_f64(to_i32(what.x));
+        let y: f64 = to_f64(to_i32(what.y));
 
-        what.x = f_to_i(x * c - y * s);
-        what.y = f_to_i(y * c + x * s);
+        what.x = to_i32(x * c - y * s);
+        what.y = to_i32(y * c + x * s);
 
         what.x += about.x;
         what.y += about.y;
@@ -240,11 +240,11 @@ let refresh(self: ^turtle::turtle) -> void
         let b: sdl::coord;
         let c: sdl::coord;
 
-        a = (self.x, f_to_i(to_f64(self.y) + self.radius));
-        b = (f_to_i(to_f64(self.x) - self.radius),
-             f_to_i(to_f64(self.y) - self.radius));
-        c = (f_to_i(to_f64(self.x) + self.radius),
-             f_to_i(to_f64(self.y) - self.radius));
+        a = (to_i32(self.x), to_i32(to_f64(to_i32(self.y)) + self.radius));
+        b = (to_i32(to_f64(to_i32(self.x)) - self.radius),
+             to_i32(to_f64(to_i32(self.y)) - self.radius));
+        c = (to_i32(to_f64(to_i32(self.x)) + self.radius),
+             to_i32(to_f64(to_i32(self.y)) - self.radius));
 
         let center: sdl::coord;
         center = (self.x, self.y);
@@ -295,7 +295,7 @@ let refresh(self: ^turtle::turtle) -> void
 
         if elapsed < self.delay
         {
-            sdl::delay(self.delay - elapsed);
+            sdl::delay(to_i32(self.delay - elapsed));
         }
     }
 }
@@ -325,7 +325,7 @@ Turn the turtle left by a given number of degrees.
 */
 let left(self: ^turtle::turtle, by: f64) -> void
 {
-    let frames: i32 = floor(by / self.speed);
+    let frames: i128 = floor(by / self.speed);
     let dt: f64 = by / to_f64(frames);
 
     let start_orientation = self.orientation;

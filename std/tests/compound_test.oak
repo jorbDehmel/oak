@@ -7,14 +7,14 @@ use_rule!("std");
 
 let main() -> i32
 {
-	let one: u8 = 1;
+	let one: u8 = 1u8;
 	if (one != to_u8(1) == false)
 	{
 		print("Worked!\n");
 	}
 
-	one = 1;
-	if ((one != to_u8(1)) == false)
+	one = 1u8;
+	if ((one != 1u8) == false)
 	{
 		print("Worked!\n");
 	}

@@ -17,17 +17,17 @@ let cmp: struct
 // Copy from the result of strcmp (or other analogous function).
 let Copy(self: ^cmp, from: i8) -> ^cmp
 {
-    if (from == 0)
+    if (from == 0i8)
     {
-        self.data = 0;
+        self.data = 0i8;
     }
-    else if (from < 0)
+    else if (from < 0i8)
     {
-        self.data = -1;
+        self.data = -1i8;
     }
     else
     {
-        self.data = 1;
+        self.data = 1i8;
     }
 
     self
@@ -45,30 +45,30 @@ let Copy(self: ^cmp, other: cmp) -> ^cmp
 
 let eq(self: ^cmp) -> bool
 {
-    return self.data == 0;
+    return self.data == 0i8;
 }
 
 let neq(self: ^cmp) -> bool
 {
-    return self.data != 0;
+    return self.data != 0i8;
 }
 
 let less(self: ^cmp) -> bool
 {
-    return self.data == -1;
+    return self.data == -1i8;
 }
 
 let leq(self: ^cmp) -> bool
 {
-    return self.data <= 0;
+    return self.data <= 0i8;
 }
 
 let great(self: ^cmp) -> bool
 {
-    return self.data == 1;
+    return self.data == 1i8;
 }
 
 let greq(self: ^cmp) -> bool
 {
-    return self.data >= 0;
+    return self.data >= 0i8;
 }

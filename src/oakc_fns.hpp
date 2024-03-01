@@ -345,6 +345,9 @@ bool typesAreSameExact(const Type *const a, const Type *const b);
 Compares two types. Returns true if they match exactly, if they
 match using auto-reference/auto-dereference, or internal literal
 casting. The number of changes is recorded in `changes`.
+
+Assumes that `a` is the passed argument, and `b` is the
+candidate.
 */
 bool typesAreSameCast(const Type *const a, const Type *const b, int &changes);
 

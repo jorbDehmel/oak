@@ -20,7 +20,7 @@ let main() -> i32
     let x: u128 = 0;
     while x < size!
     {
-        a.set(x, x);
+        a.set(x, to_i32(x));
 
         x += 1;
     }

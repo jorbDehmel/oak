@@ -1,0 +1,34 @@
+/*
+Tests bitshift operations (<< and >>) in Oak.
+Jordan Dehmel, 2024
+jdehmel@outlook.com
+*/
+
+package!("std");
+include!("std/printf.oak");
+
+let main() -> i32
+{
+    let i: u128;
+    i = 1;
+
+    // Test leftward bitshifts
+    print("Left bitshifts:\n");
+    while (i != 0u128)
+    {
+        i = i << 1u128;
+        printf!("%\n", i);
+    }
+
+    i = 123456789;
+
+    // Test rightward bitshifts
+    print("Right bitshifts:\n");
+    while (i != 0u128)
+    {
+        i = i >> 1u128;
+        printf!("%\n", i);
+    }
+
+    0
+}

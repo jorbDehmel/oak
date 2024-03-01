@@ -39,7 +39,7 @@ post
 
 let New<k>(self: ^stl::set_node<k>) -> void
 {
-    self.state = 0;
+    self.state = 0u8;
 }
 
 let Copy<k>(self: ^stl::set_node<k>, key: k
@@ -47,14 +47,14 @@ let Copy<k>(self: ^stl::set_node<k>, key: k
 {
     self.key = key;
     self.hash = hash(self.key);
-    self.state = 1;
+    self.state = 1u8;
 
     self
 }
 
 let erase<k>(self: ^stl::set_node<k>) -> void
 {
-    self.state = 2;
+    self.state = 2u8;
 }
 
 ////////////////////////////////////////////////////////////////
@@ -128,7 +128,7 @@ let has<k>(self: ^stl::set<k>, key: k) -> bool
     while sentinel
     {
         // Get
-        ptrcpy!(cur, @Get(self.data, i));
+        ptrcpy!(cur, @ptrarr!(self.data, i));
 
         // If empty, break
         if cur.state == 0
@@ -187,7 +187,7 @@ let insert<k>(self: ^stl::set<k>, key: k) -> void
     while sentinel
     {
         // Get
-        ptrcpy!(cur, @Get(self.data, i));
+        ptrcpy!(cur, @ptrarr!(self.data, i));
 
         // If empty, break
         if cur.state == 0
@@ -196,8 +196,8 @@ let insert<k>(self: ^stl::set<k>, key: k) -> void
 
             // Update occupancy ratio
             self.occupied += 1;
-            self.alpha = to_f64(self.occupied);
-            self.alpha /= to_f64(self.size);
+            self.alpha = to_f64(to_i32(self.occupied));
+            self.alpha /= to_f64(to_i32(self.size));
 
             // Expand if need be
             while self.alpha > stl::set::max_alpha!
@@ -257,7 +257,7 @@ let erase<k>(self: stl::set<k>, key: k) -> void
     while sentinel
     {
         // Get
-        ptrcpy!(cur, @Get(self.data, i));
+        ptrcpy!(cur, @ptrarr!(self.data, i));
 
         // If empty, break
         if cur.state == 0
@@ -345,7 +345,7 @@ let expand<k>(self: ^stl::set<k>) -> void
             while sentinel
             {
                 // Get
-                ptrcpy!(cur, @Get(self.data, cur_key));
+                ptrcpy!(cur, @ptrarr!(self.data, cur_key));
 
                 // If found
                 if cur.key == key
@@ -360,8 +360,8 @@ let expand<k>(self: ^stl::set<k>) -> void
 
                     // Update occupancy ratio
                     self.occupied += 1;
-                    self.alpha = to_f64(self.occupied);
-                    self.alpha /= to_f64(self.size);
+                    self.alpha = to_f64(to_i32(self.occupied));
+                    self.alpha /= to_f64(to_i32(self.size));
 
                     sentinel = false;
                 }

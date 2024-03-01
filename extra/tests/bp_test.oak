@@ -9,7 +9,7 @@ let main() -> i32
     extra::bit_print<u8>(_: ^u8);
     extra::hex_print<u8>(_: ^u8);
 
-    j = 0;
+    j = 0u8;
     while (j < to_u8(255))
     {
         extra::bit_print(j);
@@ -18,7 +18,7 @@ let main() -> i32
         extra::hex_print(j);
         print("\n");
 
-        j += 1;
+        j += 1u8;
     }
 
     0

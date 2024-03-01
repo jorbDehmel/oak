@@ -41,7 +41,7 @@ post
 
 let New<k, d>(self: ^stl::map_node<k, d>) -> void
 {
-    self.state = 0;
+    self.state = 0u8;
 }
 
 let Copy<k, d>(self: ^stl::map_node<k, d>, key: k, data: d
@@ -50,13 +50,13 @@ let Copy<k, d>(self: ^stl::map_node<k, d>, key: k, data: d
     self.key = key;
     self.data = data;
     self.hash = hash(self.key);
-    self.state = 1;
+    self.state = 1u8;
     self
 }
 
 let erase<k, d>(self: ^stl::map_node<k, d>) -> void
 {
-    self.state = 2;
+    self.state = 2u8;
 }
 
 ////////////////////////////////////////////////////////////////
@@ -136,7 +136,7 @@ let Get<k, d>(self: ^stl::map<k, d>, key: k) -> opt<d>
     while sentinel
     {
         // Get
-        ptrcpy!(cur, @Get(self.data, i));
+        ptrcpy!(cur, @ptrarr!(self.data, i));
 
         // If empty, break
         if cur.state == 0
@@ -196,7 +196,7 @@ let has<k, d>(self: ^stl::map<k, d>, key: k) -> bool
     while sentinel
     {
         // Get
-        ptrcpy!(cur, @Get(self.data, i));
+        ptrcpy!(cur, @ptrarr!(self.data, i));
 
         // If empty, break
         if cur.state == 0
@@ -260,7 +260,7 @@ let set<k, d>(self: ^stl::map<k, d>, key: k, data: d) -> void
     while sentinel
     {
         // Get
-        ptrcpy!(cur, @Get(self.data, i));
+        ptrcpy!(cur, @ptrarr!(self.data, i));
 
         // If empty, break
         if cur.state == 0
@@ -269,8 +269,8 @@ let set<k, d>(self: ^stl::map<k, d>, key: k, data: d) -> void
 
             // Update occupancy ratio
             self.occupied += 1;
-            self.alpha = to_f64(self.occupied);
-            self.alpha /= to_f64(self.size);
+            self.alpha = to_f64(to_i32(self.occupied));
+            self.alpha /= to_f64(to_i32(self.size));
 
             // Expand if need be
             while self.alpha > max_alpha!
@@ -331,7 +331,7 @@ let erase<k, d>(self: stl::map<k, d>, key: k) -> void
     while sentinel
     {
         // Get
-        ptrcpy!(cur, @Get(self.data, i));
+        ptrcpy!(cur, @ptrarr!(self.data, i));
 
         // If empty, break
         if cur.state == 0
@@ -420,7 +420,7 @@ let expand<k, d>(self: ^stl::map<k, d>) -> void
             while sentinel
             {
                 // Get
-                ptrcpy!(cur, @Get(self.data, cur_key));
+                ptrcpy!(cur, @ptrarr!(self.data, cur_key));
 
                 // If found
                 if cur.key == key
@@ -436,8 +436,8 @@ let expand<k, d>(self: ^stl::map<k, d>) -> void
 
                     // Update occupancy ratio
                     self.occupied += 1;
-                    self.alpha = to_f64(self.occupied);
-                    self.alpha /= to_f64(self.size);
+                    self.alpha = to_f64(to_i32(self.occupied));
+                    self.alpha /= to_f64(to_i32(self.size));
 
                     sentinel = false;
                 }

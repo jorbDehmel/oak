@@ -1,0 +1,33 @@
+/*
+Tests the raw_c! macro, whose power I have not been properly
+utilizing thus far.
+
+Jordan Dehmel, 2024
+jdehmel@outlook.com
+*/
+
+package!("std");
+
+let test_fn(what: i32) -> f64
+{
+    let out: f64;
+
+    // You can use it for quick and easy interfacing
+    raw_c!("out = what;");
+
+    out
+}
+
+let main() -> i32
+{
+    let a: i32;
+    a = 5;
+
+    let b: f64;
+    b = 0.0;
+
+    b = test_fn(a);
+
+    print(b);
+    endl();
+}

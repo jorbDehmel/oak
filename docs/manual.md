@@ -1364,6 +1364,27 @@ advanced rules and dialects.
 **Note:** You will have to follow the `Oak` mangling process, as
 detailed below.
 
+## `oak2c`
+
+`oak2c` is a command line utility which is installed with
+`acorn`. It takes an `Oak` function signature and prints the
+mangled `C` function signature. Since the mangler's nuances are
+best displayed by example, several are listed below.
+
+```bash
+a@b:~$ oak2c "let function(arg1: some_struct, arg2: i32) -> void"
+void function_FN_some_struct_JOIN_i32_MAPS_void(struct some_struct arg1, i32 arg2)
+a@b:~$ oak2c "let a_thing(_: i32) -> u128"
+u128 a_thing_FN_i32_MAPS_u128(i32 _)
+a@b:~$ oak2c "let thing() -> i32"
+i32 thing_FN_MAPS_i32(void)
+a@b:~$ oak2c "let main() -> i32" # Special case!
+i32 main(void)
+```
+
+This is an invaluable resource when developing interfacial `Oak`
+files!
+
 ## Conforming to the Oak Mangler
 
 The `Oak` function signatures

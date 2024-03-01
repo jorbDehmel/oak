@@ -905,6 +905,12 @@ int main(const int argc, const char *argv[])
             files.insert(test_iter.path().string());
         }
 
+        if (files.size() == 0)
+        {
+            std::cout << tags::red_bold << "Error: `./tests` exists but is empty.\n" << tags::reset;
+            return -10;
+        }
+
         std::cout << tags::violet_bold << "Running " << files.size() << " tests...\n"
                   << tags::reset << "[compiling, " << (settings.execute ? "" : "NOT ") << "executing,"
                   << (settings.testFail ? "" : " NOT") << " halting on failure]\n";

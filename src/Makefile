@@ -22,13 +22,14 @@ TEST := acorn
 ################################################################
 
 .PHONY:	install
-install: bin/acorn.out std_oak_header.h
+install: bin/acorn.out bin/oak2c.out std_oak_header.h
 	sudo mkdir -p /usr/include/oak
 
 	sudo cp std_oak_header.h /usr/include/oak
 	sudo cp packages_list.txt /usr/include/oak
 
 	sudo cp bin/acorn.out /usr/bin/acorn
+	sudo cp bin/oak2c.out /usr/bin/oak2c
 	sudo cp ../std/*.sh /usr/include/oak/
 
 .PHONY:	packages
@@ -48,10 +49,6 @@ uninstall:
 reinstall:
 	$(MAKE) -C . uninstall clean install
 
-.PHONY:	test
-test:
-	$(TEST) -eTT && acorn -e
-
 ################################################################
 
 .PHONY:	dirs
@@ -67,6 +64,9 @@ build/%.o:	%.cpp $(HEADS)
 
 bin/acorn.out:	dirs build/acorn.o $(OBJS) $(HEADS)
 	$(CC) $(FLAGS) -o $@ build/acorn.o $(OBJS)
+
+bin/oak2c.out:	dirs build/oak2c.o $(OBJS) $(HEADS)
+	$(CC) $(FLAGS) -o $@ build/oak2c.o $(OBJS)
 
 ################################################################
 

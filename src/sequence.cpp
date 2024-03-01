@@ -472,6 +472,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                 for (std::pair<std::string, Type> p : argsWithType)
                 {
                     settings.table[p.first].push_back(MultiTableSymbol{ASTNode(), p.second, false, settings.curFile});
+                    settings.table[p.first].back().tags.insert("arg");
                 }
 
                 bool isSingleArg = argsWithType.size() == 1;
@@ -1467,7 +1468,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
         out.items.push_back(__createSequence(From, settings));
 
         int garbage = 0;
-        sm_assert(typesAreSameCast(&out.items.back().type, &settings.currentReturnType, garbage),
+        sm_assert(typesAreSameCast(&settings.currentReturnType, &out.items.back().type, garbage),
                   "Cannot return '" + toStr(&out.items.back().type) + "' from a function w/ return type '" +
                       toStr(&settings.currentReturnType) + "'");
 
@@ -1588,7 +1589,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
     ASTNode temp;
     temp.info = atom;
 
-    std::list<Token> tempVec; /*  */
+    std::list<Token> tempVec;
     for (auto i : From)
     {
         tempVec.push_back(i);
@@ -1635,6 +1636,17 @@ Type resolveFunctionInternal(std::list<Token> &What, std::list<Token>::iterator 
         c.push_back("&");
 
         std::string name = *start;
+
+        if (settings.table.count(name) != 0 && settings.table[name].front().tags.count("arg") != 0 &&
+            *std::next(start) != ".")
+        {
+            throw sequencing_error("Cannot take address of argument `" + name + "`.");
+        }
+        else if (*start != "(" && std::next(start) != What.end() && *std::next(start) == "(" && start->size() > 0 &&
+                 start->back() != '!')
+        {
+            throw sequencing_error("Cannot take address of temporary return value from `" + name + "`.");
+        }
 
         std::string followingC = "";
         Type type = resolveFunction(What, start, followingC, settings);
@@ -2172,6 +2184,12 @@ Type resolveFunctionInternal(std::list<Token> &What, std::list<Token>::iterator 
                 }
                 else if (numDeref == -1)
                 {
+                    if (settings.table.count(argStrs[j_ind]) != 0 &&
+                        settings.table[argStrs[j_ind]].front().tags.count("arg") != 0)
+                    {
+                        throw sequencing_error("Cannot take address of argument `" + argStrs[j_ind] + "`.");
+                    }
+
                     c.push_back("&");
                 }
                 else if (numDeref != 0)
