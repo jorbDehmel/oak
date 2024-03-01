@@ -25,7 +25,7 @@ let main() -> i32
         b = c;
 
         t.forward(10);
-        t.orientation = to_f64(a % 360u128);
+        t.orientation = to_f64(to_i32(a % 360u128));
     }
 
     0

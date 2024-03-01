@@ -4,6 +4,9 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.5.3           | 3/1/24   | Disallowed precision-losing
+                |          | implicit casts.
+                |          |
 0.5.2           | 2/24/24  | Added incrementation,
                 |          | decrementation, and negation unary
                 |          | operators (all prefix).
