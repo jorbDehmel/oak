@@ -1041,7 +1041,7 @@ void ensureSyntax(const std::string &text, const bool &fatal, const std::string 
             }
 
             // Single-line comment
-            if (curLineVec.size() > 2 && curLineVec[0] == '/' && curLineVec[0] == '/')
+            if (curLineVec.size() > 2 && curLineVec[0] == '/' && curLineVec[1] == '/')
             {
                 if (curLineVec[2] != ' ' && curLineVec[2] != '/')
                 {

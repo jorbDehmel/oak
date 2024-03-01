@@ -38,6 +38,13 @@ let turtle::turtle: struct
 // Basic methods
 ////////////////////////////////////////////////////////////////
 
+let turtle::__draw_line(
+    self: ^turtle::turtle,
+    start_x: u64,
+    start_y: u64,
+    end_x: u64,
+    end_y: u64) -> void;
+
 // Early definition to avoid errors
 let refresh(_: ^turtle::turtle) -> void;
 
@@ -240,7 +247,8 @@ let refresh(self: ^turtle::turtle) -> void
         let b: sdl::coord;
         let c: sdl::coord;
 
-        a = (to_i32(self.x), to_i32(to_f64(to_i32(self.y)) + self.radius));
+        a = (to_i32(self.x), to_i32(to_f64(to_i32(self.y))
+            + self.radius));
         b = (to_i32(to_f64(to_i32(self.x)) - self.radius),
              to_i32(to_f64(to_i32(self.y)) - self.radius));
         c = (to_i32(to_f64(to_i32(self.x)) + self.radius),
@@ -326,7 +334,7 @@ Turn the turtle left by a given number of degrees.
 let left(self: ^turtle::turtle, by: f64) -> void
 {
     let frames: i128 = floor(by / self.speed);
-    let dt: f64 = by / to_f64(frames);
+    let dt: f64 = by / to_f64(to_i32(frames));
 
     let start_orientation = self.orientation;
 
@@ -364,8 +372,8 @@ Turn the turtle right by a given number of degrees.
 */
 let right(self: ^turtle::turtle, by: f64) -> void
 {
-    let frames: i32 = floor(by / self.speed);
-    let dt: f64 = by / to_f64(frames);
+    let frames: i128 = floor(by / self.speed);
+    let dt: f64 = by / to_f64(to_i32(frames));
 
     let start_orientation = self.orientation;
 
@@ -404,23 +412,28 @@ down, it will make markings in the current pen color.
 */
 let forward(self: ^turtle::turtle, by: i128) -> void
 {
-    let frames: i32 = floor(to_f64(by) / self.speed);
+    let frames: i128 = floor(to_f64(to_i32(by)) / self.speed);
 
-    let dx: f64 = to_f64(by) * sdl::sin(
-        degrees_to_radians(self.orientation)) / to_f64(frames);
-    let dy: f64 = to_f64(by) * sdl::cos(
-        degrees_to_radians(self.orientation)) / to_f64(frames);
+    let origin_x = self.x;
+    let origin_y = self.y;
+
+    let dx: f64 = to_f64(to_i32(by)) * sdl::sin(
+        degrees_to_radians(self.orientation))
+        / to_f64(to_i32(frames));
+    let dy: f64 = to_f64(to_i32(by)) * sdl::cos(
+        degrees_to_radians(self.orientation))
+        / to_f64(to_i32(frames));
 
     let real_x: f64 = i_to_f(self.x);
     let real_y: f64 = i_to_f(self.y);
 
-    for (let frame: i32 = 0; frame < frames; frame += 1)
+    for (let frame: i32 = 0; frame < frames; ++frame)
     {
         real_x += dx;
         real_y += dy;
 
-        self.x = floor(real_x);
-        self.y = floor(real_y);
+        self.x = to_i32(floor(real_x));
+        self.y = to_i32(floor(real_y));
 
         while self.x < 0i128
         {
@@ -442,6 +455,13 @@ let forward(self: ^turtle::turtle, by: i128) -> void
 
         self.refresh();
     }
+
+    turtle::__draw_line(
+        self,
+        origin_x,
+        origin_y,
+        self.x,
+        self.y);
 }
 
 /*
@@ -451,19 +471,24 @@ forward or backward.
 let set_position(self: ^turtle::turtle, x: i128, y: i128)
     -> void
 {
+    let origin_x = self.x;
+    let origin_y = self.y;
+
     let t1 = x - self.x;
     let t2 = y - self.y;
-    let by: f64 = sqrt(i_to_f(t1 * t1 + t2 * t2));
+    let by: f64 = sqrt(to_f64(to_i32(t1 * t1 + t2 * t2)));
 
-    let frames: i32 = floor(by / self.speed);
+    let frames: i128 = floor(by / self.speed);
 
-    if frames == 0
+    if frames == 0i128
     {
-        frames = 1;
+        frames = 1i128;
     }
 
-    let dx: f64 = to_f64(x - self.x) / to_f64(frames);
-    let dy: f64 = to_f64(y - self.y) / to_f64(frames);
+    let dx: f64 = to_f64(to_i32(x - self.x))
+        / to_f64(to_i32(frames));
+    let dy: f64 = to_f64(to_i32(y - self.y))
+        / to_f64(to_i32(frames));
 
     let real_x: f64 = i_to_f(self.x);
     let real_y: f64 = i_to_f(self.y);
@@ -473,8 +498,8 @@ let set_position(self: ^turtle::turtle, x: i128, y: i128)
         real_x += dx;
         real_y += dy;
 
-        self.x = floor(real_x);
-        self.y = floor(real_y);
+        self.x = to_i32(floor(real_x));
+        self.y = to_i32(floor(real_y));
 
         while self.x < 0i128
         {
@@ -496,6 +521,13 @@ let set_position(self: ^turtle::turtle, x: i128, y: i128)
 
         self.refresh();
     }
+
+    turtle::__draw_line(
+        self,
+        origin_x,
+        origin_y,
+        self.x,
+        self.y);
 }
 
 /*
@@ -503,8 +535,8 @@ Set the current orientation, regardless of the current one.
 */
 let set_orientation(self: ^turtle::turtle, to: f64) -> void
 {
-    let frames: i32 = floor(to / self.speed);
-    let dt: f64 = to_f64(to) / to_f64(frames);
+    let frames: i128 = floor(to / self.speed);
+    let dt: f64 = to / to_f64(to_i32(frames));
 
     for (let frame: i32 = 0; frame < frames; frame += 1)
     {
@@ -531,12 +563,17 @@ down, it will make markings.
 */
 let backward(self: ^turtle::turtle, by: i128) -> void
 {
-    let frames: i32 = floor(to_f64(by) / self.speed);
+    let origin_x = self.x;
+    let origin_y = self.y;
 
-    let dx: f64 = to_f64(by) * sdl::sin(
-        degrees_to_radians(self.orientation)) / to_f64(frames);
-    let dy: f64 = to_f64(by) * sdl::cos(
-        degrees_to_radians(self.orientation)) / to_f64(frames);
+    let frames: i128 = floor(to_f64(to_i32(by)) / self.speed);
+
+    let dx: f64 = to_f64(to_i32(by)) * sdl::sin(
+        degrees_to_radians(self.orientation))
+        / to_f64(to_i32(frames));
+    let dy: f64 = to_f64(to_i32(by)) * sdl::cos(
+        degrees_to_radians(self.orientation))
+        / to_f64(to_i32(frames));
 
     let real_x: f64 = i_to_f(self.x);
     let real_y: f64 = i_to_f(self.y);
@@ -546,8 +583,8 @@ let backward(self: ^turtle::turtle, by: i128) -> void
         real_x -= dx;
         real_y -= dy;
 
-        self.x = floor(real_x);
-        self.y = floor(real_y);
+        self.x = to_i32(floor(real_x));
+        self.y = to_i32(floor(real_y));
 
         while self.x < 0i128
         {
@@ -569,6 +606,13 @@ let backward(self: ^turtle::turtle, by: i128) -> void
 
         self.refresh();
     }
+
+    turtle::__draw_line(
+        self,
+        origin_x,
+        origin_y,
+        self.x,
+        self.y);
 }
 
 /*
@@ -592,6 +636,74 @@ let down(self: ^turtle::turtle) -> void
 let save(self: ^turtle::turtle, filepath: []i8) -> void
 {
     sdl::save(self.window, filepath);
+}
+
+////////////////////////////////////////////////////////////////
+
+// Break point for recursive line draw
+let turtle::__draw_line::break_delta! = 2u64;
+
+// Recursive function to completely fill a line between two
+// points.
+let turtle::__draw_line(
+    self: ^turtle::turtle,
+    start_x: u64,
+    start_y: u64,
+    end_x: u64,
+    end_y: u64) -> void
+{
+    if self.pen_is_down
+    {
+        let dx, dy: i128;
+        dx = end_x - start_x;
+        dy = end_y - start_y;
+
+        if abs(to_i32(dx)) < turtle::__draw_line::break_delta!
+            || abs(to_i32(dy)) < turtle::__draw_line::break_delta!
+        {
+            // Base case
+
+            let x, y: i128;
+            x = start_x;
+            y = start_y;
+
+            while x < end_x
+            {
+                // Fill this point
+                ptrarr!(ptrarr!(self.pixels, y), x)
+                    = self.pen_color;
+
+                ++x;
+            }
+
+            while y < end_y
+            {
+                // Fill this point
+                ptrarr!(ptrarr!(self.pixels, y), x)
+                    = self.pen_color;
+
+                ++y;
+            }
+        }
+        else
+        {
+            // Recursive case
+
+            turtle::__draw_line(
+                self,
+                start_x,
+                start_y,
+                start_x + to_u64(to_i32(dx / 2i128)),
+                start_y + to_u64(to_i32(dy / 2i128)));
+
+            turtle::__draw_line(
+                self,
+                start_x + to_u64(to_i32(dx / 2i128)),
+                start_y + to_u64(to_i32(dy / 2i128)),
+                end_x,
+                end_y);
+        }
+    }
 }
 
 ////////////////////////////////////////////////////////////////
