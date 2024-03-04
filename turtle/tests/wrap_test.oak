@@ -3,32 +3,21 @@
 
 package!("std", "turtle");
 include!("std/printf.oak");
-include!("std/rand.oak");
 use_rule!("std");
 
 let main() -> i32
 {
-    seed_rand();
-
     let t: turtle::turtle;
-    let dr: i128;
-    let dt: f64;
-
-    t.resize(1024, 1024);
-    t.radius = 10.0;
-    t.speed = 4.0;
 
     t.x = 256;
     t.y = 256;
+    t.orientation = 175.0;
+
     t.down();
 
     while t.is_running
     {
-        dr = rand(0, 10);
-        dt = to_f64(rand(-90, 90));
-
-        t.orientation += dt;
-        t.forward(dr);
+        t.forward(20);
     }
 
     0

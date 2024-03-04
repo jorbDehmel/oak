@@ -17,6 +17,11 @@ jdehmel@outlook.com, GPLv3
 ////////////////////////////////////////////////////////////////
 // Struct definitions
 
+struct unit
+{
+    char __a;
+};
+
 struct sdl_key_event_data
 {
     i128 keycode;
@@ -35,9 +40,14 @@ struct sdl_mouse_move_event_data
     i128 y;
 };
 
-struct unit
+struct sdl_misc_data
 {
-    char __a;
+    i32 code;
+};
+
+struct sdl_quit_data
+{
+    struct unit __a;
 };
 
 // Enumeration definitions
@@ -50,34 +60,39 @@ struct sdl_event
         sdl_mouse_move_event,
         sdl_mouse_button_down_event,
         sdl_mouse_button_up_event,
+        sdl_misc_event,
+        sdl_quit_event,
         sdl_none,
 
     } __info;
-    union
-    {
+    union {
         struct sdl_key_event_data sdl_key_down_event_data;
         struct sdl_key_event_data sdl_key_up_event_data;
         struct sdl_mouse_move_event_data sdl_mouse_move_event_data;
         struct sdl_mouse_button_event_data sdl_mouse_button_down_event_data;
         struct sdl_mouse_button_event_data sdl_mouse_button_up_event_data;
+        struct sdl_misc_data sdl_misc_data;
+        struct sdl_quit_data sdl_quit_data;
         struct unit sdl_none_data;
-
     } __data;
 };
 
 ////////////////////////////////////////////////////////////////
 // Interfacial definitions (defined by Oak)
 
-void wrap_sdl_key_down_event_FN_PTR_sdl_event_JOIN_sdl_key_event_data_MAPS_void(
-    struct sdl_event *self, struct sdl_key_event_data data);
-void wrap_sdl_key_up_event_FN_PTR_sdl_event_JOIN_sdl_key_event_data_MAPS_void(
-    struct sdl_event *self, struct sdl_key_event_data data);
+void wrap_sdl_key_down_event_FN_PTR_sdl_event_JOIN_sdl_key_event_data_MAPS_void(struct sdl_event *self,
+                                                                                struct sdl_key_event_data data);
+void wrap_sdl_key_up_event_FN_PTR_sdl_event_JOIN_sdl_key_event_data_MAPS_void(struct sdl_event *self,
+                                                                              struct sdl_key_event_data data);
 void wrap_sdl_mouse_move_event_FN_PTR_sdl_event_JOIN_sdl_mouse_move_event_data_MAPS_void(
     struct sdl_event *self, struct sdl_mouse_move_event_data data);
 void wrap_sdl_mouse_button_down_event_FN_PTR_sdl_event_JOIN_sdl_mouse_button_event_data_MAPS_void(
     struct sdl_event *self, struct sdl_mouse_button_event_data data);
 void wrap_sdl_mouse_button_up_event_FN_PTR_sdl_event_JOIN_sdl_mouse_button_event_data_MAPS_void(
     struct sdl_event *self, struct sdl_mouse_button_event_data data);
+void wrap_sdl_misc_event_FN_PTR_sdl_event_JOIN_sdl_misc_data_MAPS_void(struct sdl_event *self,
+                                                                       struct sdl_misc_data data);
+void wrap_sdl_quit_event_FN_PTR_sdl_event_MAPS_void(struct sdl_event *self);
 void wrap_sdl_none_FN_PTR_sdl_event_MAPS_void(struct sdl_event *self);
 
 ////////////////////////////////////////////////////////////////
@@ -86,53 +101,73 @@ void wrap_sdl_none_FN_PTR_sdl_event_MAPS_void(struct sdl_event *self);
 struct sdl_event sdl_poll_event_FN_MAPS_sdl_event(void)
 {
     struct sdl_event out;
+    wrap_sdl_none_FN_PTR_sdl_event_MAPS_void(&out);
 
     SDL_Event event;
-    if (!SDL_PollEvent(&event))
+    if (SDL_PollEvent(&event))
     {
-        // Nothing in queue; Return sdl_none
-        wrap_sdl_none_FN_PTR_sdl_event_MAPS_void(&out);
-    }
-    else if (event.type == SDL_KEYDOWN)
-    {
-        struct sdl_key_event_data to_wrap;
-        to_wrap.keycode = event.key.keysym.sym;
-        wrap_sdl_key_down_event_FN_PTR_sdl_event_JOIN_sdl_key_event_data_MAPS_void(&out, to_wrap);
-    }
-    else if (event.type == SDL_KEYUP)
-    {
-        struct sdl_key_event_data to_wrap;
-        to_wrap.keycode = event.key.keysym.sym;
-        wrap_sdl_key_up_event_FN_PTR_sdl_event_JOIN_sdl_key_event_data_MAPS_void(&out, to_wrap);
-    }
-    else if (event.type == SDL_MOUSEMOTION)
-    {
-        struct sdl_mouse_move_event_data to_wrap;
+        switch (event.type)
+        {
+        case SDL_KEYDOWN: {
+            struct sdl_key_event_data to_wrap;
+            to_wrap.keycode = event.key.keysym.sym;
+            wrap_sdl_key_down_event_FN_PTR_sdl_event_JOIN_sdl_key_event_data_MAPS_void(&out, to_wrap);
 
-        to_wrap.x = event.motion.x;
-        to_wrap.y = event.motion.y;
+            break;
+        }
+        case SDL_KEYUP: {
+            struct sdl_key_event_data to_wrap;
+            to_wrap.keycode = event.key.keysym.sym;
+            wrap_sdl_key_up_event_FN_PTR_sdl_event_JOIN_sdl_key_event_data_MAPS_void(&out, to_wrap);
 
-        wrap_sdl_mouse_move_event_FN_PTR_sdl_event_JOIN_sdl_mouse_move_event_data_MAPS_void(&out, to_wrap);
-    }
-    else if (event.type == SDL_MOUSEBUTTONDOWN)
-    {
-        struct sdl_mouse_button_event_data to_wrap;
+            break;
+        }
+        case SDL_MOUSEMOTION: {
+            struct sdl_mouse_move_event_data to_wrap;
 
-        to_wrap.x = event.button.x;
-        to_wrap.y = event.button.y;
-        to_wrap.code = event.button.button;
+            to_wrap.x = event.motion.x;
+            to_wrap.y = event.motion.y;
 
-        wrap_sdl_mouse_button_down_event_FN_PTR_sdl_event_JOIN_sdl_mouse_button_event_data_MAPS_void(&out, to_wrap);
-    }
-    else if (event.type == SDL_MOUSEBUTTONUP)
-    {
-        struct sdl_mouse_button_event_data to_wrap;
+            wrap_sdl_mouse_move_event_FN_PTR_sdl_event_JOIN_sdl_mouse_move_event_data_MAPS_void(&out, to_wrap);
 
-        to_wrap.x = event.button.x;
-        to_wrap.y = event.button.y;
-        to_wrap.code = event.button.button;
+            break;
+        }
+        case SDL_MOUSEBUTTONDOWN: {
+            struct sdl_mouse_button_event_data to_wrap;
 
-        wrap_sdl_mouse_button_down_event_FN_PTR_sdl_event_JOIN_sdl_mouse_button_event_data_MAPS_void(&out, to_wrap);
+            to_wrap.x = event.button.x;
+            to_wrap.y = event.button.y;
+            to_wrap.code = event.button.button;
+
+            wrap_sdl_mouse_button_down_event_FN_PTR_sdl_event_JOIN_sdl_mouse_button_event_data_MAPS_void(&out, to_wrap);
+
+            break;
+        }
+        case SDL_MOUSEBUTTONUP: {
+
+            struct sdl_mouse_button_event_data to_wrap;
+
+            to_wrap.x = event.button.x;
+            to_wrap.y = event.button.y;
+            to_wrap.code = event.button.button;
+
+            wrap_sdl_mouse_button_down_event_FN_PTR_sdl_event_JOIN_sdl_mouse_button_event_data_MAPS_void(&out, to_wrap);
+
+            break;
+        }
+        case SDL_QUIT:
+        case SDL_APP_TERMINATING: {
+            wrap_sdl_quit_event_FN_PTR_sdl_event_MAPS_void(&out);
+
+            break;
+        }
+        default: {
+            struct sdl_misc_data to_wrap;
+            to_wrap.code = event.type;
+
+            wrap_sdl_misc_event_FN_PTR_sdl_event_JOIN_sdl_misc_data_MAPS_void(&out, to_wrap);
+        }
+        }
     }
 
     return out;

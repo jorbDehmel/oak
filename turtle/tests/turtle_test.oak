@@ -32,6 +32,9 @@ let main() -> i32
         t.set_position(256, 256);
         t.draw_shape(i, 50);
 
+        t.flood();
+        t.sleep(1.0);
+
         i += 1;
     }
 

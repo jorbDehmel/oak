@@ -28,57 +28,57 @@ int main(int argc, char *argv[])
         printHelp();
         return 1;
     }
-    else if (argc > 2)
-    {
-        std::cout << "Only one argument is allowed: The function signature to convert.\n";
-        return 2;
-    }
     else if (strcmp(argv[1], "--help") == 0)
     {
         printHelp();
         return 0;
     }
 
-    try
+    for (int i = 1; i < argc; i++)
     {
-        // Needed variables
-        AcornSettings settings;
-        Lexer lexer;
-
-        // Lex the input
-        auto lexed = lexer.lex_list(argv[1]);
-        if (lexed.front() != "let")
+        try
         {
-            std::cout << "Error: Must provide a valid Oak function signature (beginning w/ 'let').\n";
-            return 3;
+            std::cout << "// " << argv[i] << '\n';
+
+            // Needed variables
+            AcornSettings settings;
+            Lexer lexer;
+
+            // Lex the input
+            auto lexed = lexer.lex_list(argv[i]);
+            if (lexed.front() != "let")
+            {
+                std::cout << "Error: Must provide a valid Oak function signature (beginning w/ 'let').\n";
+                return 3;
+            }
+
+            // Ensure that all structs referenced are seen as valid
+            for (auto item : lexed)
+            {
+                settings.structData[item] = StructLookupData();
+                settings.structData[item].members["__DUMMY"] = nullType;
+            }
+
+            // Fetch the name of the fn
+            std::string name = *std::next(lexed.begin());
+
+            // Get the type of the fn
+            Type t = toType(lexed, settings);
+
+            // Get mangled version of fn and output
+            auto out = toStrCFunction(&t, settings, name);
+            std::cout << out;
+        }
+        catch (std::runtime_error &e)
+        {
+            std::cout << "c::panic!(\"oak2c: Runtime error '" << e.what() << "'\")";
+        }
+        catch (...)
+        {
+            std::cout << "c::panic!(\"oak2c: Unknown error\")";
         }
 
-        // Ensure that all structs referenced are seen as valid
-        for (auto item : lexed)
-        {
-            settings.structData[item] = StructLookupData();
-            settings.structData[item].members["__DUMMY"] = nullType;
-        }
-
-        // Fetch the name of the fn
-        std::string name = *std::next(lexed.begin());
-
-        // Get the type of the fn
-        Type t = toType(lexed, settings);
-
-        // Get mangled version of fn and output
-        auto out = toStrCFunction(&t, settings, name);
-        std::cout << out;
-    }
-    catch (std::runtime_error &e)
-    {
-        std::cout << "c::panic!(\"oak2c: Runtime error '" << e.what() << "'\");";
-        return 4;
-    }
-    catch (...)
-    {
-        std::cout << "c::panic!(\"oak2c: Unknown error\");";
-        return 4;
+        std::cout << ";\n";
     }
 
     return 0;

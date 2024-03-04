@@ -1,5 +1,5 @@
 NAME = "sdl"
-VERSION = "0.0.2"
+VERSION = "0.0.3"
 SOURCE = "github.com/jorbDehmel"
 PATH = "sdl"
 ABOUT = "Oak interface with SDL2 via C++ library"

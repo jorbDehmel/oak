@@ -36,7 +36,7 @@ jdehmel@outlook.com
 namespace fs = std::filesystem;
 
 // The current version of Oak.
-const static std::string VERSION = "0.5.3";
+const static std::string VERSION = "0.5.4";
 
 // The license that this version of Oak uses.
 const static std::string LICENSE = "GPLv3";

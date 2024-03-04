@@ -35,15 +35,20 @@ let sdl::mouse_button_event_data: struct
     code: i8,
 }
 
+let sdl::misc_data: struct
+{
+    code: i32,
+}
+
 let sdl::event: enum
 {
     sdl::key_down_event: sdl::key_event_data,
     sdl::key_up_event: sdl::key_event_data,
-
     sdl::mouse_move_event: sdl::mouse_move_event_data,
     sdl::mouse_button_down_event: sdl::mouse_button_event_data,
     sdl::mouse_button_up_event: sdl::mouse_button_event_data,
-
+    sdl::misc_event: sdl::misc_data,
+    sdl::quit_event: unit,
     sdl::none: unit,
 }
 
@@ -83,6 +88,16 @@ let Copy(self: ^sdl::event, other: sdl::event) -> ^sdl::event
         case sdl::mouse_button_up_event(data)
         {
             wrap_sdl_mouse_button_up_event(self, ^data);
+        }
+
+        case sdl::misc_event(data)
+        {
+            wrap_sdl_misc_event(self, ^data);
+        }
+
+        case sdl::quit_event()
+        {
+            wrap_sdl_quit_event(self);
         }
 
         case sdl::none()

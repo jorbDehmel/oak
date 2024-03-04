@@ -4,6 +4,10 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.5.4           | 3/2/24   | Added some more `to_*` fns to avoid
+                |          | stupid nested calls. Also allowed
+                |          | multiple inputs to `oak2c`.
+                |          |
 0.5.3           | 3/1/24   | Disallowed precision-losing
                 |          | implicit casts.
                 |          |

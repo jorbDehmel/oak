@@ -1,9 +1,0 @@
-/*
-Linkage file for the turtle library.
-Jordan Dehmel, 2024
-jdehmel@outlook.com
-
-GPLv3
-*/
-
-include!("turtle/turtle.oak");
