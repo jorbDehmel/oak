@@ -8,6 +8,7 @@ GPLv3 held by author
 
 #include "oakc_fns.hpp"
 #include "options.hpp"
+#include "tags.hpp"
 
 #define pm_assert(expression, message)                                                                                 \
     ((bool)(expression) ? true : throw package_error(message " (Failed assertion: '" #expression "')"))
@@ -230,7 +231,8 @@ PackageInfo loadPackageInfo(const std::string &Filepath, AcornSettings &settings
         }
         else
         {
-            throw package_error("Invalid item '" + name + "'");
+            std::cout << tags::yellow_bold << "Warning: Ignoring unknown package documentation field '" << name
+                      << "'.\n";
         }
     }
 
@@ -239,10 +241,6 @@ PackageInfo loadPackageInfo(const std::string &Filepath, AcornSettings &settings
     if (toAdd.name == "")
     {
         throw package_error("Malformed package file '" + Filepath + "': Must inclue NAME field.");
-    }
-    else if (toAdd.source == "")
-    {
-        throw package_error("Malformed package file '" + Filepath + "': Must inclue SOURCE field.");
     }
 
     settings.packages[toAdd.name] = toAdd;

@@ -54,6 +54,7 @@ void queryPackage(const std::string &name, AcornSettings &settings)
     catch (...)
     {
         std::cout << tags::red_bold << "Failed to query package " << name << ": It is most likely not installed.\n"
+                  << "Try `acorn -S " << name << "`\n"
                   << tags::reset;
         throw package_error("Failed to query package");
     }
@@ -63,6 +64,16 @@ void queryPackage(const std::string &name, AcornSettings &settings)
 
 int main(const int argc, const char *argv[])
 {
+    if (argc == 1)
+    {
+        std::cout << helpText << '\n'
+                  << "All Oak data can be found at: " << OAK_DIR_PATH << '\n'
+                  << "Version: " << VERSION << '\n'
+                  << "License: " << LICENSE << '\n'
+                  << INFO << '\n';
+        return 1;
+    }
+
     auto start = std::chrono::high_resolution_clock::now(), end = start, compStart = start, compEnd = start;
     unsigned long long int oakElapsed = 0, reconstructionElapsed = 0;
 
@@ -908,7 +919,7 @@ int main(const int argc, const char *argv[])
         if (files.size() == 0)
         {
             std::cout << tags::red_bold << "Error: `./tests` exists but is empty.\n" << tags::reset;
-            return -10;
+            return 16;
         }
 
         std::cout << tags::violet_bold << "Running " << files.size() << " tests...\n"

@@ -1,6 +1,6 @@
 
 # The Oak Programming Language
-## Version 0.5.3
+## Version 0.5.5
 
 ![](./logo_trimmed.png)
 
@@ -5588,11 +5588,13 @@ will return the return value of that execution, no matter what.
 Code | Meaning
 -----|-----------------
  0   | Success
+ 1   | No arguments provided
  2   | Runtime error caught
  3   | Unknown error caught
  7   | Failed to create test suite file
  10  | Aborted Acorn update or install
  15  | Failed to begin test suite
+ 16  | Empty test suite
  19  | Test suite failed
 
 Most compile-time errors will have meaningful descriptions in

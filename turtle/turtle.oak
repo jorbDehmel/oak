@@ -3,7 +3,7 @@
 /*
 A basic turtle with a pen. Concept based off of the Python
 turtle package. Note: To close a turtle window at any time,
-press escape.
+press escape or 'x'-out of the window.
 
 Jordan Dehmel, 2024
 jdehmel@outlook.com
@@ -144,16 +144,24 @@ otherwise.
 let is_filled(self: ^turtle::turtle, x: i128, y: i128) -> bool
 {
     // Modulo inputs by sizes to avoid overflow
-    let real_x: i128 = x % to_i128(self.w);
-    let real_y: i128 = y % to_i128(self.h);
-
     if x < 0 || x >= self.w || y < 0 || y >= self.h
     {
         return false;
     }
 
-    ptrarr!(ptrarr!(self.pixels, real_y), real_x)
-        != self.bg_color
+    ptrarr!(ptrarr!(self.pixels, y), x) != self.bg_color
+}
+
+/*
+Writes the given color to the given position.
+*/
+let fill(self: ^turtle::turtle, x: u64, y: u64, to: sdl::color
+    ) -> void
+{
+    if 0 <= x && x < self.w && 0 <= y && y < self.h
+    {
+        ptrarr!(ptrarr!(self.pixels, y), x) = to;
+    }
 }
 
 /*
@@ -351,11 +359,11 @@ Clear the canvas of any pen marks.
 */
 let clear(self: ^turtle::turtle) -> void
 {
-    for (let y: u128 = 0; y < self.h; y += 1)
+    for (let y: u64 = 0; y < self.h; y += 1)
     {
-        for (let x: u128 = 0; x < self.w; x += 1)
+        for (let x: u64 = 0; x < self.w; x += 1)
         {
-            ptrarr!(ptrarr!(self.pixels, y), x) = self.bg_color;
+            self.fill(x, y, self.bg_color);
         }
     }
 
@@ -660,8 +668,7 @@ let save(self: ^turtle::turtle, filepath: []i8) -> void
 include!("std/printf.oak");
 let flood(self: ^turtle::turtle) -> void
 {
-    ptrarr!(ptrarr!(self.pixels, self.y), self.x)
-        = self.bg_color;
+    self.fill(self.x, self.y, self.bg_color);
 
     let q: stl::queue<sdl::coord>;
     let temp: sdl::coord = (self.x, self.y);
@@ -677,8 +684,7 @@ let flood(self: ^turtle::turtle) -> void
             && temp.y >= 0 && temp.y < self.h
             && !self.is_filled(temp.x, temp.y)
         {
-            ptrarr!(ptrarr!(self.pixels, temp.y), temp.x)
-                = self.pen_color;
+            self.fill(temp.x, temp.y, self.pen_color);
 
             temp = (temp.x - 1u64, temp.y);
 
@@ -739,15 +745,14 @@ let turtle::__draw_line(
         {
             // Base case
 
-            let x, y: i128;
+            let x, y: i64;
             x = start_x;
             y = start_y;
 
             while x < end_x && x < self.w
             {
                 // Fill this point
-                ptrarr!(ptrarr!(self.pixels, y), x)
-                    = self.pen_color;
+                self.fill(x, y, self.pen_color);
 
                 ++x;
             }
@@ -755,8 +760,7 @@ let turtle::__draw_line(
             while x > end_x && x >= 0
             {
                 // Fill this point
-                ptrarr!(ptrarr!(self.pixels, y), x)
-                    = self.pen_color;
+                self.fill(x, y, self.pen_color);
 
                 --x;
             }
@@ -764,8 +768,7 @@ let turtle::__draw_line(
             while y < end_y && y < self.h
             {
                 // Fill this point
-                ptrarr!(ptrarr!(self.pixels, y), x)
-                    = self.pen_color;
+                self.fill(x, y, self.pen_color);
 
                 ++y;
             }
@@ -773,8 +776,7 @@ let turtle::__draw_line(
             while y > end_y && y >= 0
             {
                 // Fill this point
-                ptrarr!(ptrarr!(self.pixels, y), x)
-                    = self.pen_color;
+                self.fill(x, y, self.pen_color);
 
                 --y;
             }
