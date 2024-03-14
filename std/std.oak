@@ -1,4 +1,5 @@
 ////////////////////////////////////////////////////////////////
+// Info
 
 /*
 Jordan Dehmel, 2023 - present
@@ -7,6 +8,7 @@ jdehmel@outlook.com
 */
 
 ////////////////////////////////////////////////////////////////
+// Linkage
 
 include!(
     "std/io_inter.oak",     // Interface to system I/O
@@ -16,6 +18,7 @@ include!(
 );
 
 ////////////////////////////////////////////////////////////////
+// Rules
 
 // Access rule
 new_rule!(
@@ -62,7 +65,8 @@ new_rule!(
 new_rule!(
     "for_2",
     "for ( let $a = $*c ; $*d ; $*e ) $~ $<${$}$> $>f",
-    "{ let $a : type! ( $c ) ; $a = $c ; while ( $d ) { $f $e ; } }"
+    "{ let $a : type! ( $c ) ; $a = $c ; "
+        "while ( $d ) { $f $e ; } }"
 );
 new_rule!(
     "for_3",
@@ -77,24 +81,57 @@ new_rule!(
     "struct {} pre"
 );
 
+// Clause rules
+new_rule!(
+    "does",
+    "ensure $a does $b ( $*c )",
+    "$b < $a > ( $c )"
+);
+new_rule!(
+    "is",
+    "ensure $a is $b",
+    "$b < $a >"
+);
+new_rule!(
+    "has",
+    "ensure $a has $b",
+    "{ let __a : $a ; __a . $b ; }"
+);
+new_rule!(
+    "needs",
+    "needs",
+    "pre"
+);
+new_rule!(
+    "implies",
+    "implies",
+    "post"
+);
+
 ////////////////////////////////////////////////////////////////
+// Bundle all `std` rules
 
 // Bundle everything together
 bundle_rule!(
-    "std",
-    "get_method",
-    "void_return",
-    "auto_if_paren",
-    "auto_while_paren",
-    "auto_match_paren",
-    "easy_method",
-    "method",
-    "auto_init",
-    "def_init",
-    "for_1",
-    "for_2",
-    "for_3",
-    "trait"
+    "std",              // Name of the bundle
+    "get_method",       // Make `[]` be `Get`
+    "void_return",      // Add void returns where needed
+    "auto_if_paren",    // Parenthesize if statements
+    "auto_while_paren", // Parenthesize while loops
+    "auto_match_paren", // Parenthesize match statements
+    "easy_method",      // Allow `let type.name()` notation
+    "method",           // Allow method-call notation
+    "auto_init",        // Allows `let a: type = b;` notation
+    "def_init",         // Allows `let a = b;` notation
+    "for_1",            // Allow for loop syntax
+    "for_2",            // Allow for loop syntax
+    "for_3",            // Allow for loop syntax
+    "trait",            // Allows traits.
+    "does",             // Clause keyword aliases
+    "is",               // Clause keyword aliases
+    "has",              // Clause keyword aliases
+    "needs",            // Clause keyword aliases
+    "implies"           // Clause keyword aliases
 );
 
 ////////////////////////////////////////////////////////////////

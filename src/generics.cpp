@@ -8,6 +8,7 @@ Jordan Dehmel, 2023
 #include "oakc_fns.hpp"
 #include "oakc_structs.hpp"
 #include "options.hpp"
+#include "tags.hpp"
 #include <unistd.h>
 
 // Returns true if template substitution would make the two typeVecs the same
@@ -419,43 +420,43 @@ std::string instantiateGeneric(const std::string &what, const std::list<std::lis
 
     if (!didInstantiate)
     {
-        std::cout << tags::yellow_bold << "Desired:\n\t" << what << " w/ type ";
+        std::cout << "No valid instantiation candidate could be found. Candidates:\n"
+                  << tags::yellow_bold << "Desired:\n  " << what << " w/ type ";
 
         for (auto item : typeVec)
         {
             std::cout << item << ' ';
         }
 
-        std::cout << "\nWith generics substitutions:\n";
+        std::cout << "\nWith substitutions:\n";
 
         for (auto item : genericSubs)
         {
-            std::cout << "\t'";
-
+            std::cout << "  '";
             for (auto b : item)
             {
                 std::cout << b << ' ';
             }
 
-            std::cout << "' (mangle: " << mangle(item) << ")" << '\n';
+            std::cout << "'\n";
         }
 
-        std::cout << "Against:\n\n";
+        std::cout << "Against:\n";
 
         auto it = errors.begin();
         for (auto item : settings.generics[what])
         {
-            std::cout << what << " w/ type ";
+            std::cout << tags::yellow_bold << "  " << what << " w/ type ";
             for (auto b : item.typeVec)
             {
                 std::cout << b << ' ';
             }
-            std::cout << '\n' << "Failed with error:\n\t" << (it != errors.end() ? *it : "Unknown error") << '\n';
+            std::cout << tags::reset << ": " << (it != errors.end() ? *it : "Unknown error") << '\n';
 
             it++;
         }
 
-        std::cout << tags::reset;
+        std::cout << '\n' << tags::reset;
 
         throw generic_error("Error: Candidates exist for template '" + what + "', but none are viable.");
     }

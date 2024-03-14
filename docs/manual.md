@@ -1491,7 +1491,7 @@ Mod    | %         | Modulo / remainder
 AddEq  | +=        | Increment by a number
 SubEq  | -=        | Decrement by a number
 Incr   | ++        | Increment by one
-Decr   | --        | Decrement by one
+Decr   | \-\-      | Decrement by one
 MultEq | *=        | Multiply and assign
 DivEq  | /=        | Divide and assign
 ModEq  | %=        | Modulo and assign
@@ -2932,6 +2932,93 @@ let main() -> i32
     0
 }
 
+```
+
+## Clause Aliases for Ease-Of-Use
+
+Without `std` `Oak`:
+```rust
+// Iterable
+let iterable<t>: struct {}
+{
+    t.foobar;
+
+    begin<t>(_: ^t);
+    end<t>(_: ^t);
+    cur<t>(_: ^t);
+    Incr<t>(_: ^t);
+}
+
+// "inherits" from `iterable`
+// Bidirectional iterable
+let b_iterable<t>: trait
+{
+    iterable<t>;
+    Decr<t>(_: ^t);
+}
+
+// "inherits" from `biterable`
+// Random iterable
+let r_iterable<t>: trait
+{
+    b_iterable<t>;
+    Get<t>(_: ^t, _: i128);
+}
+
+let a<t>: struct {}
+let b<t>: struct {}
+
+// Multiple "inheritance"
+let c<t>: struct {}
+{
+    a<t>;
+    b<t>;
+}
+```
+
+The above syntax is very esoteric, bordering on
+incomprehensibility. The `std` syntax offers some help in
+understanding what is going on.
+
+With `std` `Oak`:
+```rust
+// Iterable
+let iterable<t>: trait
+{
+    where t has foobar;
+
+    where t does begin(_: ^t);
+    where t does end(_: ^t);
+    where t does cur(_: ^t);
+
+    where t does Incr(_: ^t);
+}
+
+// "inherits" from `iterable`
+// Bidirectional iterable
+let b_iterable<t>: trait
+{
+    where t is iterable;
+    where t does Decr(_: ^t);
+}
+
+// "inherits" from `biterable`
+// Random iterable
+let r_iterable<t>: trait
+{
+    where t is b_iterable;
+    where t does Get(_: ^t, _: i128);
+}
+
+let a<t>: trait {}
+let b<t>: trait {}
+
+// Multiple "inheritance"
+let c<t>: trait
+{
+    where t is a;
+    where t is b;
+}
 ```
 
 ## Explicit, Implicit / Casual, and Autogen Function Definitions

@@ -273,8 +273,6 @@ void doFile(const std::string &From, AcornSettings &settings)
 
             for (auto it = lexed.begin(); it != lexed.end(); it++)
             {
-                Token curTok = *it;
-
                 if (*it != "!" && it->back() == '!' && itCmp(lexed, it, 1, "("))
                 {
                     // File handling / translation unit macros
@@ -541,61 +539,15 @@ void doFile(const std::string &From, AcornSettings &settings)
 
         for (auto it = lexed.begin(); it != lexed.end(); it++)
         {
-            Token curTok = *it;
-
             // We can assume that no macro definitions remain
             if (*it != "!" && it->back() == '!' && itCmp(lexed, it, 1, "("))
             {
-                // Special cases: Memory macros
-                if (*it == "alloc!" || *it == "free!" || *it == "free_arr!")
-                {
-                    continue;
-                }
+                const static std::set<std::string> specialCases = {
+                    "alloc!", "free!",   "free_arr!", "erase!",    "c_print!",  "c_panic!",
+                    "c_sys!", "c_warn!", "new_rule!", "use_rule!", "rem_rule!", "bundle_rule!",
+                    "type!",  "size!",   "raw_c!",    "ptrcpy!",   "ptrarr!"};
 
-                // Another special case: Erasure macro
-                else if (*it == "erase!")
-                {
-                    continue;
-                }
-
-                // More special cases
-                else if (*it == "c_print!")
-                {
-                    continue;
-                }
-                else if (*it == "c_panic!")
-                {
-                    continue;
-                }
-                else if (*it == "c_sys!")
-                {
-                    continue;
-                }
-                else if (*it == "c_warn!")
-                {
-                    continue;
-                }
-
-                // More special cases: Rule macros
-                else if (*it == "new_rule!" || *it == "use_rule!" || *it == "rem_rule!" || *it == "bundle_rule!")
-                {
-                    continue;
-                }
-
-                // Extra bonus special cases: Typing and sizing
-                else if (*it == "type!" || *it == "size!")
-                {
-                    continue;
-                }
-
-                // Raw C insertion
-                else if (*it == "raw_c!")
-                {
-                    continue;
-                }
-
-                // Super secret special cases: Pointer manipulation
-                else if (*it == "ptrcpy!" || *it == "ptrarr!")
+                if (specialCases.count(*it) != 0)
                 {
                     continue;
                 }
@@ -629,8 +581,6 @@ void doFile(const std::string &From, AcornSettings &settings)
         // Preprocessor definition finding
         for (auto it = ++lexed.begin(); ++it != lexed.end();)
         {
-            Token curTok = *it;
-
             if (it->back() == '!' && *it != "!" && itCmp(lexed, it, -1, "let"))
             {
                 if (itCmp(lexed, it, 1, "="))
@@ -707,8 +657,6 @@ void doFile(const std::string &From, AcornSettings &settings)
 
         for (auto it = lexed.begin(); it != lexed.end(); it++)
         {
-            Token curTok = *it;
-
             settings.preprocDefines["line!"] = std::to_string(it->line);
             if (settings.preprocDefines.count(*it) != 0)
             {

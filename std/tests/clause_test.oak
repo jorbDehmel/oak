@@ -1,0 +1,71 @@
+/*
+Tests the clause keywords
+(ensure, does, is, has, needs, implies) in std Oak.
+
+Jordan Dehmel, 2024
+jdehmel@outlook.com
+*/
+
+package!("std");
+use_rule!("std");
+
+////////////////////////////////////////////////////////////////
+// generic definitions
+
+let b<t>(what: ^t) -> void
+{
+    print("Hello from b!\n");
+}
+
+let f<t>(what: ^t) -> void
+{
+    print("Hello from f!\n");
+}
+
+////////////////////////////////////////////////////////////////
+// trait definitions
+
+let a<t>: trait
+{
+    ensure t does b(_: ^t);
+    ensure t has c;
+}
+
+let d<t>: trait
+{
+    ensure t is a;
+    ensure t has e;
+}
+implies
+{
+    f(_: ^t);
+}
+
+////////////////////////////////////////////////////////////////
+// struct definitions
+
+// foo_struct satisfies a
+let foo_struct: struct
+{
+    c: i32,
+}
+
+// bar_struct satisfies a and d
+let bar_struct: struct
+{
+    c: i32,
+    e: f64,
+}
+
+////////////////////////////////////////////////////////////////
+// Main fn
+
+let main() -> i32
+{
+    ensure foo_struct is a;
+    ensure bar_struct is a;
+
+    ensure bar_struct is d;
+
+    0
+}
