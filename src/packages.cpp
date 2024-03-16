@@ -112,12 +112,12 @@ void install(const std::string &What, AcornSettings &settings)
 // Remove any leading or trailing quotes
 void cleanString(std::string &What)
 {
-    while (What.front() == '"' || What.front() == '\'')
+    while (!What.empty() && (What.front() == '"' || What.front() == '\''))
     {
         What.erase(What.begin());
     }
 
-    while (What.back() == '"' || What.back() == '\'')
+    while (!What.empty() && (What.back() == '"' || What.back() == '\''))
     {
         What.pop_back();
     }

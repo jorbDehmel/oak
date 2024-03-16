@@ -3021,6 +3021,42 @@ let c<t>: trait
 }
 ```
 
+This same subset of the `std` ruleset provides the `needs` and
+`implies` keywords, which are aliasses for `pre` and `post`,
+respectively. These names make more sense to the layperson.
+
+Without `std` `Oak`:
+```rust
+let s<t>: struct
+{
+    ,
+}
+pre
+{
+    // Some conditions which need to be met
+}
+post
+{
+    // Some items which logically follow from instantiation
+}
+```
+
+With `std` `Oak`:
+```rust
+let s<t>: struct
+{
+    ,
+}
+needs
+{
+    // Some conditions which need to be met
+}
+implies
+{
+    // Some items which logically follow from instantiation
+}
+```
+
 ## Explicit, Implicit / Casual, and Autogen Function Definitions
 
 It is often useful to separate the declaration of a function

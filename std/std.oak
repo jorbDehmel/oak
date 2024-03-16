@@ -81,21 +81,24 @@ new_rule!(
     "struct {} pre"
 );
 
+// This is instantiable if and only if a has a member named b.
+let __has<a, b>() -> void { let __item: a; New(__item.b); }
+
 // Clause rules
 new_rule!(
     "does",
-    "ensure $a does $b ( $*c )",
+    "where $a does $b ( $*c )",
     "$b < $a > ( $c )"
 );
 new_rule!(
     "is",
-    "ensure $a is $b",
+    "where $a is $b",
     "$b < $a >"
 );
 new_rule!(
     "has",
-    "ensure $a has $b",
-    "{ let __a : $a ; __a . $b ; }"
+    "where $a has $b",
+    "__has < $a , $b > ( )"
 );
 new_rule!(
     "needs",

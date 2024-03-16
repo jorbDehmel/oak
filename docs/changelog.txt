@@ -4,6 +4,12 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.5.6           | 3/15/24  | Added memcheck requirement for push
+                |          | to main, added clause keywords
+                |          | (where, is, does, has, needs, and
+                |          | implies). Also minor issue fixes w/
+                |          | lexer.
+                |          |
 0.5.5           | 3/3/24   | Expanded packages list, minor
                 |          | changes to return values of acorn,
                 |          | bug fixes in turtle package.

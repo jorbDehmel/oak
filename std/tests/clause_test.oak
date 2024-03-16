@@ -1,6 +1,6 @@
 /*
 Tests the clause keywords
-(ensure, does, is, has, needs, implies) in std Oak.
+(where, does, is, has, needs, implies) in std Oak.
 
 Jordan Dehmel, 2024
 jdehmel@outlook.com
@@ -27,18 +27,18 @@ let f<t>(what: ^t) -> void
 
 let a<t>: trait
 {
-    ensure t does b(_: ^t);
-    ensure t has c;
+    where t does b(_: ^t);
+    where t has c;
 }
 
 let d<t>: trait
 {
-    ensure t is a;
-    ensure t has e;
+    where t is a;
+    where t has e;
 }
 implies
 {
-    f(_: ^t);
+    where t does f(_: ^t);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -62,10 +62,17 @@ let bar_struct: struct
 
 let main() -> i32
 {
-    ensure foo_struct is a;
-    ensure bar_struct is a;
+    where foo_struct is a;
+    where bar_struct is a;
+    where bar_struct is d;
 
-    ensure bar_struct is d;
+    let foo: foo_struct;
+    let bar: bar_struct;
+
+    foo.b();
+    bar.b();
+
+    bar.f();
 
     0
 }

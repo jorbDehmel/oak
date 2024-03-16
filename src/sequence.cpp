@@ -695,6 +695,11 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                     toAdd.push_back(From.front());
 
                     From.pop_front();
+
+                    if (From.empty() || From.front() == "{" || From.front() == ";")
+                    {
+                        throw sequencing_error("Malformed templated function definition; Expected return type.");
+                    }
                 }
 
                 toAdd.push_back(From.front());
