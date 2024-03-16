@@ -6,6 +6,7 @@ jdehmel@outlook.com
 */
 
 #include "lexer.hpp"
+#include <stdexcept>
 
 bool Lexer::is_initialized = false;
 LexerState **Lexer::dfa = nullptr;
@@ -147,7 +148,7 @@ Lexer::Lexer()
     dfa[operator_state][(unsigned int)'['] = delim_state;
 
     // String literal stuff
-    for (int i = 0; i < 256; i++)
+    for (int i = 0; i < number_chars; i++)
     {
         dfa[string_literal_state_single][i] = string_literal_state_single;
         dfa[string_literal_state_double][i] = string_literal_state_double;
@@ -258,6 +259,11 @@ void Lexer::file(const std::string &filepath)
 
 Token Lexer::single()
 {
+    if (done())
+    {
+        throw std::runtime_error("Cannot lex finished text.");
+    }
+
     // Assume we are in null_state right now
     LexerState prev_state = delim_state;
     Token out;
@@ -269,7 +275,7 @@ Token Lexer::single()
     bool skip = false;
     do
     {
-        if (text[pos] == '\n' && pos != out.pos)
+        if (pos < text.size() && text[pos] == '\n' && pos != out.pos)
         {
             if (state == string_literal_state_single || state == string_literal_state_double)
             {
@@ -285,7 +291,7 @@ Token Lexer::single()
             skip = false;
             continue;
         }
-        else if (text[pos] == '\\')
+        else if (pos < text.size() && text[pos] == '\\')
         {
             skip = true;
             pos++;
@@ -293,7 +299,16 @@ Token Lexer::single()
         }
 
         prev_state = state;
-        state = dfa[state][(unsigned char)text[pos]];
+
+        if (pos <= text.size())
+        {
+            state = dfa[state][(unsigned char)text[pos]];
+        }
+        else
+        {
+            state = delim_state;
+        }
+
         pos++;
     } while (state != delim_state);
 

@@ -8,6 +8,8 @@
 
 MAKE_SRC := $(MAKE) -C src
 TEST := acorn -eTT && acorn -e
+MEMCHECK := valgrind --track-origins=yes --error-exitcode=1 \
+	-s --
 
 ################################################################
 
@@ -34,6 +36,10 @@ test:
 	cd extra && $(TEST) && cd ..
 	cd stl && $(TEST) && cd ..
 	cd turtle && $(TEST) && cd ..
+
+.PHONY:	memcheck
+memcheck:
+	$(MEMCHECK) acorn std/tests/demo.oak
 
 .PHONY: docs
 docs: README.md docs/manual.md docs/source_code_guidelines.md
