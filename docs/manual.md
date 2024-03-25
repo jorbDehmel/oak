@@ -11,27 +11,37 @@ github.com/jorbDehmel/oak
 
 ## Overview
 
-`Oak` is a modern low-level functional programming language with
-compile-time modifiable syntax. Its usecase is in low-level
-language and compiler design (see the later section on
-dialects). `Oak` also aims to have an integrated build system,
-necessitating only one call to the compiler per executable.
+`Oak` (apocryphally, Ornately Adorned `C`) is a modern low-level
+general-purpose programming language with compile-time
+modifiable syntax. Its usecase is in low-level language and
+compiler design (see the later section on dialects). `Oak` also
+aims to have an integrated build system, necessitating only one
+call to the compiler per executable. Although it may not appear
+so at first blush, `Oak` is essentially a set of increasingly
+ornate adornments on top of the `C` programming language. It
+draws inspiration from `C`/`C++`, `Rust`, `RegEx` (see `rules`
+later on), and `Python`.
 
-`Oak` is most closely related to `C`, but also has strong
-macro support, modern typing, generics, compile-time syntax
-modification and integrated package management. An interesting
-consequence of `Oak`'s compile-time modifiable syntax is that
+`Oak` has strong macro support, modern typing, generics,
+compile-time syntax modification and integrated package
+management. An interesting consequence of `Oak`'s compile-time
+modifiable syntax is that
 **`Oak` can be a high or low level language**, depending on the
-rules / dialect applied.
+rules/macros/dialects applied. Using more of these systems will
+make the language higher-level, but will increase compilation
+and run-time overhead. In this way, `Oak` allows entire langauge
+features (like `for` loops, for example) to be cost-free if they
+are not used.
 
 This document outlines the basics of `Oak`, as well as the
 canonical formatting of `Oak` code. Deviation from this
 formatting style is unadvisable, and considered bad form.
 
-`Oak` is, as of now, a translated language; `Oak` code is
-translated via the `acorn` utility (see later) into `C`.
-`acorn` can also compile `Oak` into object code and link it to
-create executables via `clang` and `clang++`, respectively.
+`Oak` code is translated via the `acorn` utility (see later)
+into `C`. `acorn` can also compile `Oak` into object code and
+link it to create executables via `clang` and `clang++`,
+respectively. It also has an integrated package manager and
+program testing system.
 
 ## Did You Say "Compile-Time-Modifiable Syntax"?
 
@@ -1347,7 +1357,14 @@ returns an **unsized array** of the newly allocated values.
 Otherwise, it returns a **pointer** to the single newly
 allocated space.
 
-## Interoperability With C
+## Interfaces
+
+One of `Oak`'s primary functions is as an interfacial language.
+An interface in the context of `Oak` is an API- a cross-language
+set of operations. Since `Oak` is built on top of `C`, it is
+easiest to interface with `C`. **Note:** Some languages use
+"interface" to refer to what `Oak` calls `traits`. This is not
+what this word means in this document.
 
 You can declare only the function signatures in `Oak` and define
 them in `C`, as is done in the `Oak` `std` (standard) package.
@@ -1620,7 +1637,7 @@ numerical literals.
 let main() -> i32
 {
     let a: u8;
-    
+
     a = 123u8;
     a = 5u8;
     a = 15 u8;
@@ -1656,7 +1673,7 @@ using the `<t>` notation as below.
 
 ```rust
 // Where t is the generic type to be inserted later
-let generic_fn_demo<t>(arg1: t, arg2: bool, arg3: *t) -> t;
+let generic_fn_demo<t>(arg1: t, arg2: bool, arg3: ^t) -> t;
 ```
 
 This allows a generic type `t` (you can use whatever name you
