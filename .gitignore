@@ -6,6 +6,7 @@ old/
 
 *.out
 *.o
+*.so
 *.log
 a.*
 hi.txt
