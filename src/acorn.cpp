@@ -582,6 +582,19 @@ int main(const int argc, const char *argv[])
             }
             else
             {
+                if (settings.prettify)
+                {
+                    if (system((PRETTIFIER + " .oak_build/*.c 2>&1 >/dev/null").c_str()) != 0)
+                    {
+                        throw sequencing_error("Failed to prettify output source files.");
+                    }
+
+                    if (system((PRETTIFIER + " .oak_build/*.h 2>&1 >/dev/null").c_str()) != 0)
+                    {
+                        throw sequencing_error("Failed to prettify output header files.");
+                    }
+                }
+
                 compStart = std::chrono::high_resolution_clock::now();
 
                 if (settings.compile)
@@ -1047,19 +1060,6 @@ int main(const int argc, const char *argv[])
                 fs::remove_all("*.log");
             }
             return 19;
-        }
-    }
-
-    if (settings.prettify)
-    {
-        if (system((PRETTIFIER + " .oak_build/*.c 2>&1 >/dev/null").c_str()) != 0)
-        {
-            throw sequencing_error("Failed to prettify output source files.");
-        }
-
-        if (system((PRETTIFIER + " .oak_build/*.h 2>&1 >/dev/null").c_str()) != 0)
-        {
-            throw sequencing_error("Failed to prettify output header files.");
         }
     }
 

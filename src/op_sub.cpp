@@ -424,13 +424,28 @@ void operatorSub(std::list<Token> &From)
             auto j = it;
             j++;
             int depth = 1;
+            int parenDepth = 0;
 
             for (; j != From.end(); j++)
             {
-                if (*j == ";" || *j == ")")
+                if (*j == ";")
                 {
                     isTemplating = false;
                     break;
+                }
+                else if (*j == "(")
+                {
+                    parenDepth++;
+                }
+                else if (*j == ")")
+                {
+                    if (parenDepth == 0)
+                    {
+                        isTemplating = false;
+                        break;
+                    }
+
+                    parenDepth--;
                 }
                 else if (*j == ">")
                 {

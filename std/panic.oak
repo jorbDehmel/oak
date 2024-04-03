@@ -2,4 +2,7 @@
 Passthrough file
 */
 
+// Ensure that this will work with other dialects
+tag!("no_dialect");
+
 include!("std/panic_inter.oak");

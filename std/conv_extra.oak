@@ -8,6 +8,9 @@ Jordan Dehmel, 2023 - present
 jdehmel@outlook.com, GPLv3
 */
 
+// Ensure that this will work with other dialects
+tag!("no_dialect");
+
 include!("std/math_inter.oak");
 include!("std/conv_inter.oak");
 

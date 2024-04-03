@@ -72,6 +72,51 @@ Type toType(const std::list<Token> &WhatIn, AcornSettings &settings)
         {
             out.append(pointer);
         }
+        else if (cur == "type!")
+        {
+            // Case for type!() macro
+
+            // Scrape entire type!(what) call to a std::list
+            std::list<Token> toAnalyze;
+            int count = 0;
+
+            it = What.erase(it);
+
+            do
+            {
+                if (*it == "(")
+                {
+                    count++;
+                }
+                else if (*it == ")")
+                {
+                    count--;
+                }
+
+                if (!((*it == "(" && count == 1) || (*it == ")" && count == 0)))
+                {
+                    toAnalyze.push_back(*it);
+                }
+
+                it = What.erase(it);
+            } while (count != 0);
+
+            // Garbage to feed to resolveFunction
+            std::string junk = "";
+            auto pos = toAnalyze.begin();
+
+            // Analyze type of std::list
+            Type type = resolveFunction(toAnalyze, pos, junk, settings);
+
+            // Convert type to lexed std::string vec
+            Lexer dfa_lexer;
+            std::list<Token> lexedType = dfa_lexer.lex_list(toStr(&type));
+
+            // Push lexed vec to front of From
+            What.insert(it, lexedType.begin(), lexedType.end());
+
+            continue;
+        }
         else if (cur == "<")
         {
             if (out == nullType)

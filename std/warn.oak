@@ -2,6 +2,9 @@
 Standard warning messages for Oak. Useful in package creation.
 */
 
+// Ensure that this will work with other dialects
+tag!("no_dialect");
+
 include!("std/io_inter.oak");
 include!("std/color.oak");
 include!("std/string.oak");

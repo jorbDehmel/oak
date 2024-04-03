@@ -7,6 +7,9 @@ Linkage file for the Oak standard (std) package.
 jdehmel@outlook.com
 */
 
+// Ensure that this will work with other dialects
+tag!("no_dialect");
+
 ////////////////////////////////////////////////////////////////
 // Linkage
 
@@ -20,57 +23,86 @@ include!(
 ////////////////////////////////////////////////////////////////
 // Rules
 
-// Access rule
-new_rule!(
-    "access",
-    "$[$;$^$@$,$[$]$($)${$}$] $*p [ $*a ]",
-    "$p . Get ( $a )"
-);
-
 // Void return rule
 new_rule!(
     "void_return",
-    "let $a ( $*b ) {",
-    "let $a ( $b ) -> void {"
+    "let $~ $$ $>a ( $~ $*/[$)$] $>b ) {",
+    "let $~ $$ $>a ( $~ $$ $>b ) -> void {"
+);
+
+// `ptr` (^void) alias rule
+new_rule!(
+    "ptr",
+    "ptr",
+    "^ void"
 );
 
 // Auto-parenthesize rules
-new_rule!("auto_if_paren", "if $*a {", "if ( $a ) {");
-new_rule!("auto_while_paren", "while $*a {", "while ( $a ) {");
-new_rule!("auto_match_paren", "match $*a {", "match ( $a ) {");
+new_rule!(
+    "auto_if_paren",
+    "if $~ $*/[${$] $>a {",
+    "if ( $a ) {"
+);
+new_rule!(
+    "auto_while_paren",
+    "while $~ $*/[${$] $>a {",
+    "while ( $a ) {"
+);
+new_rule!(
+    "auto_match_paren",
+    "match $~ $*/[${$] $>a {",
+    "match ( $a ) {"
+);
 
 // Easy method rules
 new_rule!(
     "easy_method",
-    "let $a . $b (",
+    "let $~ $$ $>a . $~ $$ $>b (",
     "let $b ( self : ^ $a ,"
 );
-new_rule!("get_method", "$/<$let $a . Get (", "Get ( @ $a ,");
-new_rule!("method", "$/<$let $a . $b (", "$b ( $a ,");
+new_rule!(
+    "get_method",
+    "$/<$let $~ $$ $>a . Get (",
+    "Get ( @ $a ,"
+);
+new_rule!(
+    "method",
+    "$/<$let $~ $$ $>a . $~ $$ $>b (",
+    "$b ( $a ,"
+);
 
 // Definition-Instantiation rules
-new_rule!("def_init", "let $a : $b = ", "let $a : $b ; $a = ");
+new_rule!(
+    "def_init",
+    "let $~ $$ $>a : $~ $$ $>b = ",
+    "let $a : $b ; $a = "
+);
 new_rule!(
     "auto_init",
-    "let $a = $*b ;",
+    "let $~ $$ $>a = $~ $*/[$;$] $>b ;",
     "let $a : type! ( $b ) ; $a = $b ;"
 );
 
 // For loop rules
 new_rule!(
     "for_1",
-    "for ( let $*a : $*b = $*c ; $*d ; $*e ) $~ $<${$}$> $>f",
+    "for ( let $~ $*/[$:$] $>a : $~ $*/[$=$] $>b "
+        "= $~ $*/[$;$] $>c ; $~ $*/[$;$] $>d ;"
+        "$~ $*/[$)$] $>e ) $~ $<${$}$> $>f",
     "{ let $a : $b ; $a = $c ; while ( $d ) { $f $e ; } }"
 );
 new_rule!(
     "for_2",
-    "for ( let $a = $*c ; $*d ; $*e ) $~ $<${$}$> $>f",
+    "for ( let $~ $*/[$:$] $>a = $~ $*/[$;$] $>c ;"
+        "$~ $*/[$;$] $>d ;"
+        "$~ $*/[$)$] $>e ) $~ $<${$}$> $>f",
     "{ let $a : type! ( $c ) ; $a = $c ; "
         "while ( $d ) { $f $e ; } }"
 );
 new_rule!(
     "for_3",
-    "for ( $*a ; $*b ; $*c ) $~ $<${$}$> $>g",
+    "for ( let $~ $*/[$:$] $>a ; $~ $*/[$;$] $>b ;"
+        "$~ $*/[$)$] $>c ) $~ $<${$}$> $>g",
     "{ $a ; while ( $b ) { $g $c ; } }"
 );
 
@@ -87,17 +119,18 @@ let __has<a, b>() -> void { let __item: a; New(__item.b); }
 // Clause rules
 new_rule!(
     "does",
-    "where $a does $b ( $*c )",
+    "where $~ $*/[$is$has$;$] $>a does $~ $$ $>b"
+        "( $~ $*/[$)$] $>c )",
     "$b < $a > ( $c )"
 );
 new_rule!(
     "is",
-    "where $a is $b",
+    "where $~ $*/[$does$has$;$] $>a is $~ $$ $>b",
     "$b < $a >"
 );
 new_rule!(
     "has",
-    "where $a has $b",
+    "where $~ $*/[$is$does$;$] $>a has $~ $$ $>b",
     "__has < $a , $b > ( )"
 );
 new_rule!(
@@ -117,6 +150,7 @@ new_rule!(
 // Bundle everything together
 bundle_rule!(
     "std",              // Name of the bundle
+    "ptr",              // Make `ptr` mean `^ void`
     "get_method",       // Make `[]` be `Get`
     "void_return",      // Add void returns where needed
     "auto_if_paren",    // Parenthesize if statements

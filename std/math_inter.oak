@@ -9,6 +9,9 @@ definitions in functions. This will likely be the most expensive
 file in most low-level programs.
 */
 
+// Ensure that this will work with other dialects
+tag!("no_dialect");
+
 link!("std/math_inter.o");
 
 // u8

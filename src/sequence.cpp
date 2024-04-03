@@ -9,9 +9,6 @@ GPLv3 held by author
 #include "oakc_fns.hpp"
 #include "oakc_structs.hpp"
 
-// The current depth of createSequence
-unsigned long long int depth = 0;
-
 // Internal consumptive version: Erases from std::list, so not safe for frontend
 ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings);
 
@@ -95,6 +92,10 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
 
     else if (From.front() == "let")
     {
+        // FOR DEMONSTRATION PURPOSES: REMOVE THIS THING
+        int *foo = nullptr;
+        int bar = *foo;
+
         // Get name
         sm_assert(!From.empty(), "Cannot pop from front of empty list.");
         From.pop_front(); // let
@@ -311,7 +312,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
             {
                 // Non-struct definition; Local var, not function
 
-                sm_assert(depth != 0, "Global variables are not allowed.");
+                sm_assert(settings.depth != 0, "Global variables are not allowed.");
                 sm_assert(generics.empty(), "Variable declaration must not be templated.");
 
                 // Scrape entire definition for this
@@ -500,7 +501,7 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                         toAdd.push_back(From.front());
 
                         From.pop_front();
-                    } while (count != 0);
+                    } while (count != 0 && !From.empty());
                 }
 
                 for (auto name : names)
@@ -626,11 +627,11 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                             }
                         }
 
-                        depth++;
+                        settings.depth++;
                         std::list<Token> temp;
                         temp.assign(toAdd.begin(), toAdd.end());
                         settings.table[name].back().seq = __createSequence(temp, settings);
-                        depth--;
+                        settings.depth--;
 
                         if (name == "Del")
                         {
@@ -1809,12 +1810,17 @@ Type resolveFunctionInternal(std::list<Token> &What, std::list<Token>::iterator 
         Type oldType = settings.currentReturnType;
         settings.currentReturnType = nullType;
 
-        auto oldDepth = depth;
-        depth = 0;
+        auto oldDepth = settings.depth;
+        settings.depth = 1;
+
+        auto backup = settings.table;
 
         std::string result = instantiateGeneric(name, generics, typeVec, settings);
 
-        depth = oldDepth;
+        settings.depth = oldDepth;
+
+        restoreSymbolTable(backup, settings.table);
+
         settings.currentReturnType = oldType;
 
         start--;
@@ -2310,6 +2316,7 @@ Type resolveFunctionInternal(std::list<Token> &What, std::list<Token>::iterator 
 
             start = std::next(start, 2);
 
+            sm_assert(start != What.end(), "Malformed '.' expression on " + structName + ".");
             sm_assert(settings.structData[structName].members.count(*start) != 0,
                       "Struct '" + structName + "' has no member '" + start->text + "'.");
         }

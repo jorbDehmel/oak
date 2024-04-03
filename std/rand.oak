@@ -1,3 +1,6 @@
 // Linkage file
 
+// Ensure that this will work with other dialects
+tag!("no_dialect");
+
 include!("std/rand_inter.oak");

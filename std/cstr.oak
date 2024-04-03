@@ -1,5 +1,8 @@
 link!("std/cstr.o");
 
+// Ensure that this will work with other dialects
+tag!("no_dialect");
+
 ////////////////////////////////////////////////////////////////
 
 let strlen(what: []i8) -> u128;

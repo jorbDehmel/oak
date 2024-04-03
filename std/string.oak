@@ -11,6 +11,9 @@ jdehmel@outlook.com
 
 ////////////////////////////////////////////////////////////////
 
+// Ensure that this will work with other dialects
+tag!("no_dialect");
+
 package!("std");
 use_rule!("std");
 include!("std/cstr.oak");

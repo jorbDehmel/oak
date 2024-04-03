@@ -217,6 +217,13 @@ const std::map<std::string, unsigned char> floatLiterals = {{"f32", 0}, {"f64", 
 // non-const globals.
 struct AcornSettings
 {
+    // Holds information about the file where useful. Reset each
+    // file transition.
+    std::map<std::string, std::map<std::string, std::string>> file_tags;
+
+    // The current depth of createSequence
+    unsigned long long int depth = 0;
+
     // The file whose analysis began this translation unit.
     fs::path entryPoint;
 

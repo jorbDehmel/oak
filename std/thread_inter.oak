@@ -7,6 +7,9 @@ objects.
 As of 0.0.10, mutex is experimental.
 */
 
+// Ensure that this will work with other dialects
+tag!("no_dialect");
+
 link!("std/thread_inter.o");
 include!("std/opt.oak");
 include!("std/interface.oak");

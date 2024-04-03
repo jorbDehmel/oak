@@ -14,6 +14,9 @@ Jordan Dehmel, 2023-
 jdehmel@outlook.com
 */
 
+// Ensure that this will work with other dialects
+tag!("no_dialect");
+
 include!("std/io_inter.oak");
 include!("std/string.oak");
 
