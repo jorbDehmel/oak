@@ -59,13 +59,13 @@ dirs:
 README.pdf:	README.md
 	pandoc README.md -o README.pdf
 
-build/%.o:	%.cpp $(HEADS)
+build/%.o:	%.cpp $(HEADS) Makefile
 	$(CC) $(FLAGS) -c -o $@ $<
 
-bin/acorn.out:	dirs build/acorn.o $(OBJS) $(HEADS)
+bin/acorn.out:	dirs build/acorn.o $(OBJS) $(HEADS) Makefile
 	$(CC) $(FLAGS) -o $@ build/acorn.o $(OBJS)
 
-bin/oak2c.out:	dirs build/oak2c.o $(OBJS) $(HEADS)
+bin/oak2c.out:	dirs build/oak2c.o $(OBJS) $(HEADS) Makefile
 	$(CC) $(FLAGS) -o $@ build/oak2c.o $(OBJS)
 
 ################################################################
