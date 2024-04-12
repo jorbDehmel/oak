@@ -33,6 +33,7 @@ install: bin/acorn.out bin/oak2c.out \
 	sudo cp bin/oak2c.out /usr/bin/oak2c
 	sudo cp ../std/*.sh /usr/include/oak/
 
+# Shared object (static library) file for use in unit testing.
 .PHONY:	so
 so:	bin/oakc.so
 

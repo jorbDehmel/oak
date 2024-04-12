@@ -29,9 +29,9 @@ void getOperands(std::list<Token> &from, std::list<Token>::iterator &pre, std::l
         {
             count++;
 
-            if (count == 0 && operators.count(itGet(from, pre, -1)) == 0)
+            if (count == 0 && OPERATORS.count(itGet(from, pre, -1)) == 0)
             {
-                if (operators.count(itGet(from, pre, -1)) == 0)
+                if (OPERATORS.count(itGet(from, pre, -1)) == 0)
                 {
                     // Is function call
                     pre--;
@@ -126,7 +126,7 @@ void getOperands(std::list<Token> &from, std::list<Token>::iterator &pre, std::l
             if (count == 0)
             {
                 // Function call
-                if (operators.count(*post) == 0 && itCmp(from, post, 1, "("))
+                if (OPERATORS.count(*post) == 0 && itCmp(from, post, 1, "("))
                 {
                     post++;
                     count = 1;
@@ -176,7 +176,7 @@ void getOperandUnary(std::list<Token> &from, const std::list<Token>::iterator &p
         if (count == 0)
         {
             // Function call
-            if (operators.count(*post) == 0 && itCmp(from, post, 1, "("))
+            if (OPERATORS.count(*post) == 0 && itCmp(from, post, 1, "("))
             {
                 post++;
                 count = 1;

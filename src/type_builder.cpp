@@ -434,8 +434,8 @@ bool typesAreSameCast(const Type *const passed, const Type *const candidate, int
                     castIsLegal = false;
 
                     // Case 1: Int cast
-                    if (intLiterals.count(left->name) != 0 && intLiterals.count(right->name) != 0 &&
-                        intLiterals.at(left->name) <= intLiterals.at(right->name))
+                    if (INT_LITERALS.count(left->name) != 0 && INT_LITERALS.count(right->name) != 0 &&
+                        INT_LITERALS.at(left->name) <= INT_LITERALS.at(right->name))
                     {
                         changes++;
                         castIsLegal = true;
@@ -443,8 +443,8 @@ bool typesAreSameCast(const Type *const passed, const Type *const candidate, int
 
                     // Case 2: Float cast
                     if (!castIsLegal &&
-                        (floatLiterals.count(left->name) != 0 && floatLiterals.count(right->name) != 0) &&
-                        floatLiterals.at(left->name) <= floatLiterals.at(right->name))
+                        (FLOAT_LITERALS.count(left->name) != 0 && FLOAT_LITERALS.count(right->name) != 0) &&
+                        FLOAT_LITERALS.at(left->name) <= FLOAT_LITERALS.at(right->name))
                     {
                         changes++;
                         castIsLegal = true;

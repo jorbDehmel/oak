@@ -119,18 +119,18 @@ let __has<a, b>() -> void { let __item: a; New(__item.b); }
 // Clause rules
 new_rule!(
     "does",
-    "where $~ $*/[$is$has$;$] $>a does $~ $$ $>b"
+    "where $~ $*/[$is$has$does$;$] $>a does $~ $$ $>b "
         "( $~ $*/[$)$] $>c )",
     "$b < $a > ( $c )"
 );
 new_rule!(
     "is",
-    "where $~ $*/[$does$has$;$] $>a is $~ $$ $>b",
+    "where $~ $*/[$is$has$does$;$] $>a is $~ $$ $>b",
     "$b < $a >"
 );
 new_rule!(
     "has",
-    "where $~ $*/[$is$does$;$] $>a has $~ $$ $>b",
+    "where $~ $*/[$is$has$does$;$] $>a has $~ $$ $>b",
     "__has < $a , $b > ( )"
 );
 new_rule!(

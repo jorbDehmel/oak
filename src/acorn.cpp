@@ -66,7 +66,7 @@ int main(const int argc, const char *argv[])
 {
     if (argc == 1)
     {
-        std::cout << helpText << '\n'
+        std::cout << HELP_TEXT << '\n'
                   << "All Oak data can be found at: " << OAK_DIR_PATH << '\n'
                   << "Version: " << VERSION << '\n'
                   << "License: " << LICENSE << '\n'
@@ -106,7 +106,7 @@ int main(const int argc, const char *argv[])
                     // Verbose options
                     if (cur == "--help")
                     {
-                        std::cout << helpText << '\n'
+                        std::cout << HELP_TEXT << '\n'
                                   << "All Oak data can be found at: " << OAK_DIR_PATH << '\n'
                                   << "Version: " << VERSION << '\n'
                                   << "License: " << LICENSE << '\n'
@@ -338,6 +338,13 @@ int main(const int argc, const char *argv[])
                             {
                                 fs::remove_all(".oak_build");
                                 fs::remove_all("*.log");
+
+                                // If on linux, do this recursively.
+#if (defined(LINUX) || defined(__linux__))
+                                system("find . \\( -name '*.log' -o -name '*.tlog'"
+                                       " -o -name 'a.out' -o -name '.oak_build' "
+                                       "\\) -exec rm -r '{}' \\;");
+#endif
                             }
 
                             break;
@@ -352,7 +359,7 @@ int main(const int argc, const char *argv[])
 
                             break;
                         case 'h':
-                            std::cout << helpText << '\n'
+                            std::cout << HELP_TEXT << '\n'
                                       << "All Oak data can be found at: " << OAK_DIR_PATH << '\n'
                                       << "Version: " << VERSION << '\n'
                                       << "License: " << LICENSE << '\n'

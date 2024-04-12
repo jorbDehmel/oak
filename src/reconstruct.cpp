@@ -400,7 +400,7 @@ std::string toStrC(const Type *What, AcornSettings &settings, const std::string 
     switch ((*What)[pos].info)
     {
     case atomic:
-        if (atomics.count((*What)[pos].name) == 0)
+        if (ATOMICS.count((*What)[pos].name) == 0)
         {
             out += "struct ";
         }

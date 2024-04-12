@@ -70,41 +70,41 @@ const static std::string PRETTIFIER = "clang-format --style=Microsoft -i ";
 const static unsigned long long MAX_CACHE_KB = 2000;
 
 // The text to be shown upon `-h` or `--help`
-const static std::string helpText = "Acorn - Oak Standard Translator\n"
-                                    "For the Oak programming language\n"
-                                    "Translates and compiles .oak files\n\n"
-                                    "Option | Verbose     | Purpose\n"
-                                    "-------|-------------|-------------------------------\n"
-                                    " -a    |             | Update acorn\n"
-                                    " -A    |             | Uninstall acorn\n"
-                                    " -c    | --compile   | Produce object files\n"
-                                    " -d    | --debug     | Toggle debug mode\n"
-                                    " -D    | --dialect   | Uses a dialect file\n"
-                                    " -e    | --clean     | Toggle erasure (default off)\n"
-                                    " -E    | --execute   | Run executable when done\n"
-                                    " -g    | --exe_debug | Use LLVM debug flag\n"
-                                    " -h    | --help      | Show this\n"
-                                    " -i    | --install   | Install a package\n"
-                                    " -l    | --link      | Produce executables\n"
-                                    " -m    | --manual    | Produce a .md doc\n"
-                                    " -M    |             | Used for macros\n"
-                                    " -n    | --no_save   | Produce nothing\n"
-                                    " -o    | --output    | Set the output file\n"
-                                    " -O    | --optimize  | Use LLVM optimization O3\n"
-                                    " -p    | --prettify  | Use clang-format on output C\n"
-                                    " -q    | --quit      | Quit immediately\n"
-                                    " -Q    | --query     | Query an installed package\n"
-                                    " -r    | --reinstall | Reinstall a package\n"
-                                    " -R    | --remove    | Uninstalls a package\n"
-                                    " -s    | --size      | Show Oak disk usage\n"
-                                    " -S    | --install   | Install a package\n"
-                                    " -t    | --translate | Produce C++ files\n"
-                                    " -T    | --test      | Compile and run tests/*.oak\n"
-                                    " -u    | --dump      | Save dump files\n"
-                                    " -U    |             | Save rule log files\n"
-                                    " -v    | --version   | Show version\n"
-                                    " -w    | --new       | Create a new package\n"
-                                    " -x    | --syntax    | Ignore syntax errors\n";
+const static std::string HELP_TEXT = "Acorn - Oak Standard Translator\n"
+                                     "For the Oak programming language\n"
+                                     "Translates and compiles .oak files\n\n"
+                                     "Option | Verbose     | Purpose\n"
+                                     "-------|-------------|-------------------------------\n"
+                                     " -a    |             | Update acorn\n"
+                                     " -A    |             | Uninstall acorn\n"
+                                     " -c    | --compile   | Produce object files\n"
+                                     " -d    | --debug     | Toggle debug mode\n"
+                                     " -D    | --dialect   | Uses a dialect file\n"
+                                     " -e    | --clean     | Toggle erasure (default off)\n"
+                                     " -E    | --execute   | Run executable when done\n"
+                                     " -g    | --exe_debug | Use LLVM debug flag\n"
+                                     " -h    | --help      | Show this\n"
+                                     " -i    | --install   | Install a package\n"
+                                     " -l    | --link      | Produce executables\n"
+                                     " -m    | --manual    | Produce a .md doc\n"
+                                     " -M    |             | Used for macros\n"
+                                     " -n    | --no_save   | Produce nothing\n"
+                                     " -o    | --output    | Set the output file\n"
+                                     " -O    | --optimize  | Use LLVM optimization O3\n"
+                                     " -p    | --prettify  | Use clang-format on output C\n"
+                                     " -q    | --quit      | Quit immediately\n"
+                                     " -Q    | --query     | Query an installed package\n"
+                                     " -r    | --reinstall | Reinstall a package\n"
+                                     " -R    | --remove    | Uninstalls a package\n"
+                                     " -s    | --size      | Show Oak disk usage\n"
+                                     " -S    | --install   | Install a package\n"
+                                     " -t    | --translate | Produce C++ files\n"
+                                     " -T    | --test      | Compile and run tests/*.oak\n"
+                                     " -u    | --dump      | Save dump files\n"
+                                     " -U    |             | Save rule log files\n"
+                                     " -v    | --version   | Show version\n"
+                                     " -w    | --new       | Create a new package\n"
+                                     " -x    | --syntax    | Ignore syntax errors\n";
 
 // A temporary place to store packages during installation.
 // These will be deleted after install.
@@ -123,95 +123,93 @@ const static std::string PACKAGES_LIST_PATH = "/usr/include/oak/packages_list.tx
 const static std::string CLONE_COMMAND = "git clone ";
 
 // Contains all the atomic types (ints, floats, bools, etc)
-const static std::map<std::string, unsigned long long> atomics = {
-    {"u8", 1},   {"i8", 1},     {"u16", 2},   {"i16", 2},   {"u32", 4},
-    {"i32", 4},  {"u64", 8},    {"i64", 8},   {"u128", 16}, {"i128", 16},
-    {"f32", 4},  {"f64", 8},    {"f128", 16}, {"bool", 1},  {"str", sizeof(void *)},
-    {"void", 1}, {"struct", 1}, {"enum", 1}};
+const static std::set<std::string> ATOMICS = {"u8",   "i8",  "u16", "i16",  "u32",  "i32", "u64",  "i64",    "u128",
+                                              "i128", "f32", "f64", "f128", "bool", "str", "void", "struct", "enum"};
 
 // Where to look for the standard `oak` header file. This is
 // included at the top of all target `C` files.
 const static std::string OAK_HEADER_PATH = "/usr/include/oak/std_oak_header.h";
 
 // Used for keyword collision avoidance. All `Oak` keywords.
-const static std::set<std::string> oakKeywords = {"if",    "else",  "let",    "case", "default",
-                                                  "match", "while", "return", "pre",  "post"};
+const static std::set<std::string> OAK_KEYWORDS = {"if",    "else",  "let",    "case", "default",
+                                                   "match", "while", "return", "pre",  "post"};
 
 // Used for keyword collision avoidance. "All" `C` keywords.
-const static std::set<std::string> cKeywords = {"alignas",
-                                                "alignof",
-                                                "auto",
-                                                "break",
-                                                "case",
-                                                "const",
-                                                "constexpr",
-                                                "continue",
-                                                "default",
-                                                "do",
-                                                "else",
-                                                "extern",
-                                                "for",
-                                                "goto",
-                                                "if",
-                                                "inline",
-                                                "nullptr",
-                                                "register",
-                                                "restrict",
-                                                "return",
-                                                "signed",
-                                                "sizeof",
-                                                "static",
-                                                "static_assert",
-                                                "switch",
-                                                "thread_local",
-                                                "typedef",
-                                                "typeof",
-                                                "typeof_unqual",
-                                                "union",
-                                                "unsigned",
-                                                "volatile",
-                                                "while",
-                                                "_Alignas",
-                                                "_Alignof",
-                                                "_Atomic",
-                                                "_BitInt",
-                                                "_Bool",
-                                                "_Complex",
-                                                "_Decimal128",
-                                                "_Decimal32",
-                                                "_Decimal64",
-                                                "_Generic",
-                                                "_Imaginary",
-                                                "_Noreturn",
-                                                "_Static_assert",
-                                                "_Thread_local",
-                                                "_Pragma",
-                                                "asm",
-                                                "fortran",
-                                                "int",
-                                                "char",
-                                                "float",
-                                                "double",
-                                                "long"};
+const static std::set<std::string> C_KEYWORDS = {"alignas",
+                                                 "alignof",
+                                                 "auto",
+                                                 "break",
+                                                 "case",
+                                                 "const",
+                                                 "constexpr",
+                                                 "continue",
+                                                 "default",
+                                                 "do",
+                                                 "else",
+                                                 "extern",
+                                                 "for",
+                                                 "goto",
+                                                 "if",
+                                                 "inline",
+                                                 "nullptr",
+                                                 "register",
+                                                 "restrict",
+                                                 "return",
+                                                 "signed",
+                                                 "sizeof",
+                                                 "static",
+                                                 "static_assert",
+                                                 "switch",
+                                                 "thread_local",
+                                                 "typedef",
+                                                 "typeof",
+                                                 "typeof_unqual",
+                                                 "union",
+                                                 "unsigned",
+                                                 "volatile",
+                                                 "while",
+                                                 "_Alignas",
+                                                 "_Alignof",
+                                                 "_Atomic",
+                                                 "_BitInt",
+                                                 "_Bool",
+                                                 "_Complex",
+                                                 "_Decimal128",
+                                                 "_Decimal32",
+                                                 "_Decimal64",
+                                                 "_Generic",
+                                                 "_Imaginary",
+                                                 "_Noreturn",
+                                                 "_Static_assert",
+                                                 "_Thread_local",
+                                                 "_Pragma",
+                                                 "asm",
+                                                 "fortran",
+                                                 "int",
+                                                 "char",
+                                                 "float",
+                                                 "double",
+                                                 "long"};
 
 // The set of all default compiler macros.
-const static std::set<std::string> compilerMacros = {"include!", "package!", "link!", "flag!"};
+const static std::set<std::string> COMPILER_MACROS = {"include!", "package!", "link!", "flag!"};
 
 // Constants used for markdown conversion.
-const std::string hline = "---";
-const std::string headerStart = "# ";
-const std::string fileStart = "## ";
-const std::string fnStart = "### ";
+const std::string H_LINE = "---";
+const std::string HEADER_START = "# ";
+const std::string FILE_START = "## ";
+const std::string FN_START = "### ";
 
 // Operations set for operator substitution.
-const static std::set<std::string> operators = {
+const static std::set<std::string> OPERATORS = {
     "+",  "-",  "/", "*", "%",  "=",  "-=", "+=", "/=", "*=", "%=", "&=", "|=", "<<", ">>",
     "&&", "||", "<", ">", "==", "!=", "<=", ">=", "&",  "|",  ",",  "(",  ")",  ";"};
 
 // Used for implicit casting.
-const std::map<std::string, unsigned char> intLiterals = {{"u8", 0},  {"i8", 0},  {"u16", 1}, {"i16", 1},  {"u32", 2},
-                                                          {"i32", 2}, {"u64", 3}, {"i64", 3}, {"u128", 4}, {"i128", 4}};
-const std::map<std::string, unsigned char> floatLiterals = {{"f32", 0}, {"f64", 1}, {"f128", 2}};
+const std::map<std::string, unsigned char> INT_LITERALS = {{"u8", 0},   {"i8", 0},  {"u16", 1}, {"i16", 1},
+                                                           {"u32", 2},  {"i32", 2}, {"u64", 3}, {"i64", 3},
+                                                           {"u128", 4}, {"i128", 4}};
+const std::map<std::string, unsigned char> FLOAT_LITERALS = {{"f32", 0}, {"f64", 1}, {"f128", 2}};
 
 // Settings structure. Holds all information which used to be
 // non-const globals.

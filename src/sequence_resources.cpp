@@ -252,9 +252,9 @@ Type toType(const std::list<Token> &WhatIn, AcornSettings &settings)
         if (what.info == atomic)
         {
             sm_assert(settings.structData.count(what.name) != 0 || settings.enumData.count(what.name) ||
-                          atomics.count(what.name) != 0 || what.name == "struct" || what.name == "enum",
+                          ATOMICS.count(what.name) != 0 || what.name == "struct" || what.name == "enum",
                       "Type '" + what.name + "' does not exist.");
-            sm_assert(atomics.count(what.name) != 0 || settings.structData[what.name].members.size() != 0 ||
+            sm_assert(ATOMICS.count(what.name) != 0 || settings.structData[what.name].members.size() != 0 ||
                           settings.enumData[what.name].options.size() != 0,
                       "Non-atomic struct with zero members may not be instantiated. You are likely trying to "
                       "instantiate a unit generic (used for traits), which is not valid usage.");
@@ -421,7 +421,7 @@ void toCInternal(const ASTNode &What, std::list<std::string> &out, AcornSettings
 
                         std::string captureType = mangleType(clone);
 
-                        if (atomics.count(captureType) == 0)
+                        if (ATOMICS.count(captureType) == 0)
                         {
                             out.push_back("struct ");
                         }

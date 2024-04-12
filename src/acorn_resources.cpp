@@ -605,7 +605,7 @@ void doFile(const std::string &From, AcornSettings &settings)
             compilerMacrosLeft = false;
             for (const auto &item : lexed)
             {
-                if (compilerMacros.count(item) != 0)
+                if (COMPILER_MACROS.count(item) != 0)
                 {
                     compilerMacrosLeft = true;
                     break;
@@ -710,7 +710,7 @@ void doFile(const std::string &From, AcornSettings &settings)
         // Clean out any C keywords
         for (auto it = lexed.begin(); it != lexed.end(); it++)
         {
-            if (cKeywords.count(*it) != 0 && oakKeywords.count(*it) == 0)
+            if (C_KEYWORDS.count(*it) != 0 && OAK_KEYWORDS.count(*it) == 0)
             {
                 // Is a c keyword but not an oak keyword: replace it.
                 // The `__KWA` suffix stands for `key word avoidance`.

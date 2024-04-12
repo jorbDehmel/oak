@@ -92,10 +92,6 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
 
     else if (From.front() == "let")
     {
-        // FOR DEMONSTRATION PURPOSES: REMOVE THIS THING
-        int *foo = nullptr;
-        int bar = *foo;
-
         // Get name
         sm_assert(!From.empty(), "Cannot pop from front of empty list.");
         From.pop_front(); // let
@@ -390,9 +386,9 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                 for (auto name : names)
                 {
                     // Ensure this is a safe name
-                    sm_assert(oakKeywords.count(name) == 0,
+                    sm_assert(OAK_KEYWORDS.count(name) == 0,
                               "Variable name conflicts w/ canonical Oak keyword '" + name + "'");
-                    sm_assert(settings.structData.count(name) == 0 && atomics.count(name) == 0,
+                    sm_assert(settings.structData.count(name) == 0 && ATOMICS.count(name) == 0,
                               "Variable name conflicts w/ existing struct name '" + name + "'");
                     sm_assert(settings.enumData.count(name) == 0,
                               "Variable name conflicts w/ existing enum name '" + name + "'");
@@ -733,7 +729,8 @@ ASTNode __createSequence(std::list<Token> &From, AcornSettings &settings)
                     toAdd.push_back(From.front());
 
                     From.pop_front();
-                } while (count != 0);
+                } while (!From.empty() && count != 0);
+                sm_assert(count == 0, "Unaligned curly brackets on template definition.");
 
                 // Check for needs / inst block here
                 std::list<Token> preBlock, postBlock;

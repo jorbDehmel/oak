@@ -43,8 +43,6 @@ docs: README.md docs/manual.md docs/source_code_guidelines.md
 .PHONY:	test_clean
 test_clean:
 	acorn -e
-	find . \( -name '*.log' -o -name '*.tlog' -o -name 'a.out' \
-		-o -name '.oak_build' \) -exec rm -r '{}' \;
 
 .PHONY: clean
 clean:

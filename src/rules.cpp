@@ -430,12 +430,14 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
 {
     auto posInText = i;
     std::list<std::string> memory;
-    std::map<std::string, std::string> ruleVars;
+    std::map<std::string, std::list<Token>> ruleVars;
     bool isMatch = true;
+
+    // std::cout << __FILE__ << ":" << __LINE__ << "\n" << std::flush;
+
     for (int k = 0; posInText != Text.end() && k < curRule.inputPattern.size(); k++)
     {
         std::string curPatternToken = curRule.inputPattern[k];
-        memory.push_back(*posInText);
 
         if (posInText == Text.end())
         {
@@ -446,6 +448,8 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
         // Wildcard; Un-stored match
         if (curPatternToken == "$$")
         {
+            memory.push_back(*posInText);
+
             posInText++;
             continue;
         }
@@ -454,12 +458,14 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
         else if (curPatternToken == "$*")
         {
             rm_assert(k + 1 < curRule.inputPattern.size(), "Glob card '$*' must not be end of rule.");
+            rm_assert(curRule.inputPattern[k + 1][0] != '$', "Glob card '$*' must be followed by literal.");
+
             std::string nextSymb = curRule.inputPattern[k + 1];
 
             while (*posInText != nextSymb)
             {
-                posInText++;
                 memory.push_back(*posInText);
+                posInText++;
 
                 if (posInText == Text.end())
                 {
@@ -473,6 +479,7 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
         else if (curPatternToken == "$+")
         {
             rm_assert(k + 1 < curRule.inputPattern.size(), "Glob card '$+' must not be end of rule.");
+            rm_assert(curRule.inputPattern[k + 1][0] != '$', "Glob card '$+' must be followed by literal.");
             std::string nextSymb = curRule.inputPattern[k + 1];
 
             if (*posInText == nextSymb)
@@ -482,8 +489,8 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
 
             while (*posInText != nextSymb)
             {
-                posInText++;
                 memory.push_back(*posInText);
+                posInText++;
 
                 if (posInText == Text.end())
                 {
@@ -503,24 +510,13 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
         }
 
         // Pipe memory onto end of variable
-        else if (curPatternToken.size() == 3 && curPatternToken.substr(0, 2) == "$>")
+        else if (curPatternToken.size() >= 3 && curPatternToken.substr(0, 2) == "$>")
         {
-            std::string name = curPatternToken.substr(0, 1) + curPatternToken.substr(2, 1);
+            std::string name = "$" + curPatternToken.substr(2, 1);
 
-            std::string concatenatedMemory = "";
-            for (const std::string &item : memory)
+            for (auto it = memory.cbegin(); it != memory.cend(); it++)
             {
-                concatenatedMemory.append(item);
-                concatenatedMemory.append(" ");
-            }
-
-            if (ruleVars.count(name) == 0)
-            {
-                ruleVars[name] += " " + concatenatedMemory;
-            }
-            else
-            {
-                ruleVars[name] = concatenatedMemory;
+                ruleVars[name].push_back(*it);
             }
 
             continue;
@@ -597,6 +593,8 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
 
                 end++;
             }
+
+            memory.push_back(*posInText);
         }
 
         // Negated suite
@@ -633,6 +631,8 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
 
                 end++;
             }
+
+            memory.push_back(*posInText);
         }
 
         // Glob suit
@@ -667,6 +667,7 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
             {
                 if (items.count(posInText->text) != 0)
                 {
+                    memory.push_back(*posInText);
                     posInText++;
                 }
                 else
@@ -680,13 +681,12 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
         // $*/[$negated$suit$of$cards$]
         else if (curPatternToken.size() > 5 && curPatternToken.substr(0, 5) == "$*/[$")
         {
-            // Matches any of the items within any number of times
+            // Matches anything but the items within any number of times
 
             std::set<std::string> items;
             int start, end;
             end = 5;
 
-            std::cout << "Building negated glob suit...\n";
             while (end < curPatternToken.size())
             {
                 // Advance end to the next dollar sign
@@ -701,8 +701,6 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
                     break;
                 }
 
-                std::cout << curPatternToken.substr(start, end - start) << '\n';
-
                 items.insert(curPatternToken.substr(start, end - start));
 
                 end++;
@@ -710,9 +708,9 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
 
             while (posInText != Text.end())
             {
-                std::cout << posInText->text << '\n';
                 if (items.count(posInText->text) == 0)
                 {
+                    memory.push_back(*posInText);
                     posInText++;
                 }
                 else
@@ -753,6 +751,8 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
                     break;
                 }
 
+                memory.push_back(*posInText);
+
                 if (*posInText == opener)
                 {
                     count++;
@@ -763,7 +763,6 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
                 }
 
                 posInText++;
-                memory.push_back(*posInText);
             } while (posInText != Text.end() && count != 0);
 
             if (!isMatch || posInText == beginningPosition || posInText == std::next(beginningPosition))
@@ -778,13 +777,15 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
         // Variable; Stored match
         else if (curPatternToken[0] == '$')
         {
-            throw rule_error("Invalid $apling card '" + curPatternToken + "'.");
+            throw rule_error("Invalid $apling input card '" + curPatternToken + "'.");
         }
 
         // Literal; Must match verbatim
         else if (curPatternToken == posInText->text)
         {
+            memory.push_back(*posInText);
             posInText++;
+
             continue;
         }
 
@@ -811,44 +812,40 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
         {
             std::string s = curRule.outputPattern[sIndex];
 
-            if (ruleVars.count(s) != 0)
+            if (s.size() > 1 && s[0] == '$')
             {
-                std::string raw = ruleVars[s];
-
-                Lexer dfa_lexer;
-                std::list<Token> lexed = dfa_lexer.lex_list(raw);
-                for (auto s : lexed)
+                if (ruleVars.count(s) != 0)
                 {
-                    newContents.push_back(s);
+                    newContents.insert(newContents.end(), ruleVars[s].begin(), ruleVars[s].end());
                 }
-            }
-            else if (s == "$<")
-            {
-                // Merge operator
-                rm_assert(!newContents.empty(), "Cannot use merge card '$<' on empty output.");
-                rm_assert(sIndex + 1 < curRule.outputPattern.size(), "Merge card '$<' must not be end of rule.");
-
-                std::string toInsert = curRule.outputPattern[sIndex + 1];
-
-                if (ruleVars.count(toInsert) != 0)
+                else if (s == "$<")
                 {
-                    Lexer dfa_lexer;
-                    std::string raw = ruleVars[toInsert];
-                    std::list<Token> lexed = dfa_lexer.lex_list(raw);
+                    // Merge operator
+                    rm_assert(!newContents.empty(), "Cannot use merge card '$<' on empty output.");
+                    rm_assert(sIndex + 1 < curRule.outputPattern.size(), "Merge card '$<' must not be end of rule.");
 
-                    toInsert = "";
-                    for (auto str : lexed)
+                    std::string toInsert = curRule.outputPattern[sIndex + 1];
+
+                    if (ruleVars.count(toInsert) != 0)
                     {
-                        toInsert.append(str);
+                        toInsert = "";
+                        for (const auto &str : ruleVars[toInsert])
+                        {
+                            toInsert.append(str);
+                        }
                     }
-                }
 
-                if (sIndex + 1 < curRule.outputPattern.size())
+                    if (sIndex + 1 < curRule.outputPattern.size())
+                    {
+                        sIndex++;
+                    }
+
+                    newContents.back().text += toInsert;
+                }
+                else
                 {
-                    sIndex++;
+                    throw rule_error("Invalid $apling output card '" + s + "'");
                 }
-
-                newContents.back().text += toInsert;
             }
             else
             {
@@ -912,6 +909,8 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
     }
 
     ruleVars.clear();
+
+    // std::cout << __FILE__ << ":" << __LINE__ << "\n" << std::flush;
 }
 
 void addEngine(const std::string &name,
