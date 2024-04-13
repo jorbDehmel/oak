@@ -11,7 +11,7 @@ and the ternary must be added via rules, if at all.
 */
 
 #include "oakc_fns.hpp"
-#include <iterator>
+#include "options.hpp"
 
 // Moves pre and post to include the operands to a binary
 // operator
@@ -326,13 +326,116 @@ void doSubUnary(std::list<Token> &from, std::list<Token>::iterator &pos, const s
     pos--;
 }
 
+// Fixes method call notation.
+// All iterators within the given range will be invalidated.
+void fixMethod(std::list<Token> &from, std::list<Token>::iterator &beginObj, std::list<Token>::iterator &beginCall,
+               Token &fnName)
+{
+    // beginCall points to "("
+
+    /*
+    a.b.c.d.e.f.g(
+    ^            ^ fnName = "g"
+    */
+
+    // Erase beginCall, beginCall - 1
+    // a.b.c.d.e.f
+    beginCall--;
+    beginCall = from.erase(beginCall);
+    beginCall = from.erase(beginCall);
+
+    // Put "," at end
+    // g(a.b.c.d.e.f,
+    if (*beginCall != ")")
+    {
+        *std::prev(beginCall) = Token(",");
+    }
+    else
+    {
+        from.erase(std::prev(beginCall));
+    }
+
+    // Insert fnName, "(" at beginning
+    // g(a.b.c.d.e.f
+    from.emplace(beginObj, fnName);
+    from.emplace(beginObj, "(");
+
+    // Return
+    return;
+}
+
 // O(n)
 // These are some common rule-like token stream manipulations
 // which would be too hard (or perhaps impossible) to implement
 // with the rule system.
 void operatorSub(std::list<Token> &From)
 {
-    // Level -1: Prefix unaries
+    // Level -1: Method resolution
+    // This one works via DFA
+    {
+        int state = 0;
+        std::list<Token>::iterator startOfObj;
+        Token methodName;
+
+        for (auto it = From.begin(); it != From.end(); it++)
+        {
+            std::string cur = it->text;
+
+            if (state == 0)
+            {
+                if (OPERATORS.count(cur) == 0)
+                {
+                    startOfObj = it;
+                    state = 1;
+                }
+            }
+            else if (state == 1)
+            {
+                if (cur == ".")
+                {
+                    state = 2;
+                }
+                else if (OPERATORS.count(cur) != 0)
+                {
+                    state = 0;
+                }
+            }
+            else if (state == 2)
+            {
+                if (OPERATORS.count(cur) == 0)
+                {
+                    methodName = cur;
+                    state = 3;
+                }
+                else
+                {
+                    state = 0;
+                }
+            }
+            else if (state == 3)
+            {
+                if (cur == ".")
+                {
+                    state = 2;
+                }
+                else if (cur == "(")
+                {
+                    // Match; Do replacement here
+                    auto startOfCall = it;
+                    it++; // So that it does not get invalidated
+                    fixMethod(From, startOfObj, startOfCall, methodName);
+                    it--; // So it is in the right spot
+                    state = 0;
+                }
+                else if (OPERATORS.count(cur) != 0)
+                {
+                    state = 0;
+                }
+            }
+        }
+    }
+
+    // Level 0: Prefix unaries
     for (auto it = From.begin(); it != From.end(); it++)
     {
         std::string cur = it->text;

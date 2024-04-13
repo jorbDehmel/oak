@@ -9,46 +9,54 @@ jdehmel@outlook.com
 #define TEST_HPP
 
 #include "../oakc_fns.hpp"
-#include <cassert>
 #include <stdexcept>
+#include <string>
 
-#define STR_INTERNAL(INP) #INP
-#define STR(INP) STR_INTERNAL(INP)
+#define fakeAssert(c)                                                                                                  \
+    if (!(c))                                                                                                          \
+        throw std::runtime_error("Failed assertion: " #c);
 
-static void assertEqual(const std::list<Token> &A, const std::list<Token> &B)
+static void assertEqual(const std::list<Token> &obs, const std::list<Token> &exp)
 {
-    assert(A.size() == B.size());
-
-    auto a = A.cbegin();
-    auto b = B.cbegin();
-
     bool isEqual = true;
-    while (a != A.cend() && b != B.cend())
-    {
-        if (a->text != b->text)
-        {
-            isEqual = false;
-            break;
-        }
 
-        ++a;
-        ++b;
+    if (obs.size() != exp.size())
+    {
+        isEqual = false;
+    }
+    else
+    {
+        auto a = obs.cbegin();
+        auto b = exp.cbegin();
+
+        while (a != obs.cend() && b != exp.cend())
+        {
+            if (a->text != b->text)
+            {
+                isEqual = false;
+                break;
+            }
+
+            ++a;
+            ++b;
+        }
     }
 
     if (!isEqual)
     {
-        for (const auto &item : A)
+        std::cerr << "Observed:\n";
+        for (const auto &item : obs)
         {
             std::cerr << item.text << ' ';
         }
-        std::cerr << "\nIs not equal to\n";
-        for (const auto &item : B)
+        std::cerr << "\nIs not equal to expected:\n";
+        for (const auto &item : exp)
         {
             std::cerr << item.text << ' ';
         }
         std::cerr << '\n';
 
-        throw std::runtime_error(__FUNCTION__ STR(__LINE__));
+        throw std::runtime_error(__FUNCTION__ + std::string(":") + std::to_string(__LINE__));
     }
 }
 

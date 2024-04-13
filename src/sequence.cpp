@@ -2342,7 +2342,7 @@ Type resolveFunctionInternal(std::list<Token> &What, std::list<Token>::iterator 
 
             std::cout << "'\n" << tags::reset;
 
-            throw e;
+            throw;
         }
 
         c.push_back(".");

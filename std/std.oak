@@ -65,11 +65,11 @@ new_rule!(
     "$/<$let $~ $$ $>a . Get (",
     "Get ( @ $a ,"
 );
-new_rule!(
-    "method",
-    "$/<$let $~ $$ $>a . $~ $$ $>b (",
-    "$b ( $a ,"
-);
+// new_rule!(
+//     "method",
+//     "$/<$let $~ $$ $>a . $~ $$ $>b (",
+//     "$b ( $a ,"
+// );
 
 // Definition-Instantiation rules
 new_rule!(
@@ -157,7 +157,7 @@ bundle_rule!(
     "auto_while_paren", // Parenthesize while loops
     "auto_match_paren", // Parenthesize match statements
     "easy_method",      // Allow `let type.name()` notation
-    "method",           // Allow method-call notation
+//    "method",           // Allow method-call notation
     "auto_init",        // Allows `let a: type = b;` notation
     "def_init",         // Allows `let a = b;` notation
     "for_1",            // Allow for loop syntax

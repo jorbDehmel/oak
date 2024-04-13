@@ -65,7 +65,7 @@ let get(self: ^a_iterator) -> ^i32
 
 new_rule!(
     "foreach",
-    "for $a in $b $~ $<${$}$> $>c ",
+    "for $~ $$ $>a in $~ $$ $>b $~ $<${$}$> $>c ",
     "{ "
         "let oakc::__iter = $b . begin ( ) ; "
         "while ( ! end ( $b , oakc::__iter ) ) { "
