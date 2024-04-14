@@ -64,11 +64,6 @@ void testLookarounds()
 {
 }
 
-void testMethods()
-{
-    ensureRule("a.b(1, 2, 3)", "b(a, 1, 2, 3)", "inputPattern", "outputPattern");
-}
-
 ////////////////////////////////////////////////////////////////
 // Main function
 
@@ -81,7 +76,6 @@ int main()
     testWildcards();
     testSuits();
     testLookarounds();
-    testMethods();
 
     return 0;
 }

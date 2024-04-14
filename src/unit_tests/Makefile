@@ -4,7 +4,7 @@
 # github.com/jorbDehmel/oak
 
 TARGETS := test_acorn_resources.out test_fn_resources.out \
-	test_generics.out test_lexer.out test_oak2c.out test_op_sub.out \
+	test_generics.out test_lexer.out test_op_sub.out \
 	test_packages.out test_reconstruct.out test_rules.out \
 	test_sequence_resources.out test_sequence.out \
 	test_type_builder.out

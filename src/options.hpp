@@ -202,8 +202,8 @@ const std::string FN_START = "### ";
 
 // Operations set for operator substitution.
 const static std::set<std::string> OPERATORS = {
-    "+",  "-",  "/", "*", "%",  "=",  "-=", "+=", "/=", "*=", "%=", "&=", "|=", "<<", ">>",
-    "&&", "||", "<", ">", "==", "!=", "<=", ">=", "&",  "|",  ",",  "(",  ")",  ";"};
+    "+",  "-", "/", "*",  "%",  "=",  "-=", "+=", "/=", "*=", "%=", "&=", "|=", "<<", ">>", "&&",
+    "||", "<", ">", "==", "!=", "<=", ">=", "&",  "|",  ",",  "(",  ")",  ";",  "++", "--", "!"};
 
 // Used for implicit casting.
 const std::map<std::string, unsigned char> INT_LITERALS = {{"u8", 0},   {"i8", 0},  {"u16", 1}, {"i16", 1},

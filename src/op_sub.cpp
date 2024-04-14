@@ -338,27 +338,41 @@ void fixMethod(std::list<Token> &from, std::list<Token>::iterator &beginObj, std
     ^            ^ fnName = "g"
     */
 
+    /*
+    out . wrap_some ( ptrarr! ( self . data , index ) ) ;
+    ^               ^ fnName="wrap_some"
+    */
+
     // Erase beginCall, beginCall - 1
     // a.b.c.d.e.f
     beginCall--;
     beginCall = from.erase(beginCall);
     beginCall = from.erase(beginCall);
 
+    auto templ = *beginCall;
+
     // Put "," at end
     // g(a.b.c.d.e.f,
     if (*beginCall != ")")
     {
-        *std::prev(beginCall) = Token(",");
+        std::prev(beginCall)->text = ",";
     }
     else
     {
-        from.erase(std::prev(beginCall));
+        beginCall--;
+        beginCall = from.erase(beginCall);
     }
 
     // Insert fnName, "(" at beginning
     // g(a.b.c.d.e.f
-    from.emplace(beginObj, fnName);
-    from.emplace(beginObj, "(");
+    templ.text = fnName;
+    from.emplace(beginObj, templ);
+
+    templ.text = "(";
+    from.emplace(beginObj, templ);
+
+    // Fix position
+    beginCall--;
 
     // Return
     return;
@@ -421,10 +435,7 @@ void operatorSub(std::list<Token> &From)
                 else if (cur == "(")
                 {
                     // Match; Do replacement here
-                    auto startOfCall = it;
-                    it++; // So that it does not get invalidated
-                    fixMethod(From, startOfObj, startOfCall, methodName);
-                    it--; // So it is in the right spot
+                    fixMethod(From, startOfObj, it, methodName);
                     state = 0;
                 }
                 else if (OPERATORS.count(cur) != 0)
