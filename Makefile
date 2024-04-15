@@ -13,21 +13,12 @@ MEMCHECK := valgrind --track-origins=yes --error-exitcode=1 \
 
 ################################################################
 
-.PHONY: install
+.PHONY:	install
 install:
-	$(MAKE_SRC) install
+	$(MAKE_SRC) -j 4 $@
 
-.PHONY: packages
-packages:
-	$(MAKE_SRC) packages
-
-.PHONY: uninstall
-uninstall:
-	$(MAKE_SRC) uninstall
-
-.PHONY: reinstall
-reinstall:
-	$(MAKE_SRC) reinstall
+%:
+	$(MAKE_SRC) $@
 
 .PHONY: test
 test:
@@ -36,6 +27,8 @@ test:
 	cd extra && $(TEST) && cd ..
 	cd stl && $(TEST) && cd ..
 	cd turtle && $(TEST) && cd ..
+	$(MAKE) -C src/unit_tests
+	$(MAKE) memcheck
 
 .PHONY:	memcheck
 memcheck:
@@ -51,7 +44,6 @@ docs: README.md docs/manual.md docs/source_code_guidelines.md
 .PHONY:	test_clean
 test_clean:
 	acorn -e
-	rm */*.log ; rm */*.tlog ; rm *.log ; rm *.tlog ; rm *.out ; rm */a.out ; rm -r */.oak_build
 
 .PHONY: clean
 clean:

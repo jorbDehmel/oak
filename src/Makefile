@@ -4,7 +4,7 @@
 # github.com/jorbDehmel/oak
 ################################################################
 
-CC := clang++
+CC := clang++ -g
 
 OBJS := build/acorn_resources.o \
 	build/fn_resources.o build/generics.o build/lexer.o \
@@ -22,7 +22,8 @@ TEST := acorn
 ################################################################
 
 .PHONY:	install
-install: bin/acorn.out bin/oak2c.out std_oak_header.h
+install: bin/acorn.out bin/oak2c.out \
+		std_oak_header.h
 	sudo mkdir -p /usr/include/oak
 
 	sudo cp std_oak_header.h /usr/include/oak
@@ -31,6 +32,10 @@ install: bin/acorn.out bin/oak2c.out std_oak_header.h
 	sudo cp bin/acorn.out /usr/bin/acorn
 	sudo cp bin/oak2c.out /usr/bin/oak2c
 	sudo cp ../std/*.sh /usr/include/oak/
+
+# Shared object (static library) file for use in unit testing.
+.PHONY:	so
+so:	bin/oakc.so
 
 .PHONY:	packages
 packages:
@@ -62,11 +67,20 @@ README.pdf:	README.md
 build/%.o:	%.cpp $(HEADS) Makefile
 	$(CC) $(FLAGS) -c -o $@ $<
 
-bin/acorn.out:	dirs build/acorn.o $(OBJS) $(HEADS) Makefile
+build/%.o.pic:	%.cpp $(HEADS)
+	$(CC) $(FLAGS) -fPIC -c -o $@ $<
+
+bin/acorn.out:	dirs build/acorn.o $(OBJS) $(HEADS)
 	$(CC) $(FLAGS) -o $@ build/acorn.o $(OBJS)
 
 bin/oak2c.out:	dirs build/oak2c.o $(OBJS) $(HEADS) Makefile
 	$(CC) $(FLAGS) -o $@ build/oak2c.o $(OBJS)
+
+################################################################
+
+PIC_OBJS := $(OBJS:.o=.o.pic)
+bin/oakc.so:	dirs $(PIC_OBJS) $(HEADS)
+	$(CC) $(FLAGS) -shared -o $@ $(PIC_OBJS)
 
 ################################################################
 

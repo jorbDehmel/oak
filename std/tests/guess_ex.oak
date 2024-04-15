@@ -21,19 +21,18 @@ let main() -> i32
         high!
     );
 
-    let current_guess: i32;
-    for (current_guess = 0;
+    for (let current_guess: i32 = 0;
         current_guess < num_guesses! && has_chosen_incorrectly;
         current_guess += 1)
     {
         print("Guess: ");
-        let guess = to_i32(get_i128());
+        let guess: i32 = to_i32(get_i128());
 
-        if (guess < chosen)
+        if guess < chosen
         {
             print("Too low...\n");
         }
-        else if (guess > chosen)
+        else if guess > chosen
         {
             print("Too high...\n");
         }

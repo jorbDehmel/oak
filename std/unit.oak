@@ -1,7 +1,8 @@
 // This file provides the unit struct, and nothing else
 // Jordan Dehmel, 2023
 
-include!("std/math_inter.oak");
+// Ensure that this will work with other dialects
+tag!("no_dialect");
 
 // The minimal struct size is 1 byte, and C
 // produces a warning for actual empty structs.

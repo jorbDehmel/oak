@@ -4,7 +4,12 @@ Jordan Dehmel, 2023
 
 Takes a format string and some number of
 other things.
+*/
 
+// Ensure that this will work with other dialects
+tag!("no_dialect");
+
+/*
 Any percentage sign % in the format string
 will be replaced by the corresponding thing.
 Note that this does not use the C system

@@ -258,6 +258,57 @@ void doFile(const std::string &From, AcornSettings &settings)
             curPhase++;
         }
 
+        // Preprocessor definition finding
+        for (auto it = ++lexed.begin(); ++it != lexed.end();)
+        {
+            if (it->back() == '!' && *it != "!" && itCmp(lexed, it, -1, "let"))
+            {
+                if (itCmp(lexed, it, 1, "="))
+                {
+                    // Preproc definition; Not a full macro
+
+                    // Safety checks
+                    if (settings.preprocDefines.count(*it) != 0)
+                    {
+                        throw sequencing_error("Preprocessor definition '" + it->text + "' cannot be overridden.");
+                    }
+                    else if (hasMacro(*it, settings))
+                    {
+                        throw sequencing_error("Preprocessor definition '" + it->text +
+                                               "' cannot overwrite macro of same name.");
+                    }
+
+                    std::string name = *it;
+
+                    // Erase as needed
+                    it--;
+                    it = lexed.erase(it); // Let
+                    it = lexed.erase(it); // Name!
+                    it = lexed.erase(it); // =
+
+                    // Scrape until next semicolon
+                    std::string contents = "";
+                    while (*it != ";")
+                    {
+                        contents.append(*it);
+                        it = lexed.erase(it);
+                    }
+
+                    it = lexed.erase(it); // ;
+
+                    // Insert
+                    settings.preprocDefines[name] = contents;
+                }
+                else if (!itCmp(lexed, it, 1, "("))
+                {
+                    throw sequencing_error("Error: `let " + it->text +
+                                           "` must be followed by `=` (preprocessor definition) or "
+                                           "`(` (macro definition). Instead, `" +
+                                           (++it)->text + "`.");
+                }
+            }
+        }
+
         bool compilerMacrosLeft;
         int compilerMacroPos = curPhase;
         do
@@ -322,6 +373,39 @@ void doFile(const std::string &From, AcornSettings &settings)
                             {
                                 doFile(OAK_DIR_PATH + a, settings);
                             }
+                        }
+
+                        it--;
+                    }
+                    else if (*it == "tag!")
+                    {
+                        if (settings.debug)
+                        {
+                            std::cout << settings.debugTreePrefix << "`tag!`\n";
+                        }
+
+                        std::list<std::string> args = getMacroArgs(lexed, it);
+
+                        if (args.size() == 1)
+                        {
+                            std::string name = cleanMacroArgument(args.front());
+
+                            if (settings.file_tags[settings.curFile].count(name) == 0)
+                            {
+                                settings.file_tags[settings.curFile][name] = "";
+                            }
+                        }
+                        else if (args.size() == 2)
+                        {
+                            std::string name = cleanMacroArgument(args.front());
+                            args.pop_front();
+
+                            settings.file_tags[settings.curFile][name] = cleanMacroArgument(args.front());
+                        }
+                        else
+                        {
+                            throw sequencing_error("Compiler macro `tag!` must take one or two arguments:"
+                                                   "The tag, and optionally a value.");
                         }
 
                         it--;
@@ -521,7 +605,7 @@ void doFile(const std::string &From, AcornSettings &settings)
             compilerMacrosLeft = false;
             for (const auto &item : lexed)
             {
-                if (compilerMacros.count(item) != 0)
+                if (COMPILER_MACROS.count(item) != 0)
                 {
                     compilerMacrosLeft = true;
                     break;
@@ -578,56 +662,6 @@ void doFile(const std::string &From, AcornSettings &settings)
             curPhase++;
         }
 
-        // Preprocessor definition finding
-        for (auto it = ++lexed.begin(); ++it != lexed.end();)
-        {
-            if (it->back() == '!' && *it != "!" && itCmp(lexed, it, -1, "let"))
-            {
-                if (itCmp(lexed, it, 1, "="))
-                {
-                    // Preproc definition; Not a full macro
-
-                    // Safety checks
-                    if (settings.preprocDefines.count(*it) != 0)
-                    {
-                        throw sequencing_error("Preprocessor definition '" + it->text + "' cannot be overridden.");
-                    }
-                    else if (hasMacro(*it, settings))
-                    {
-                        throw sequencing_error("Preprocessor definition '" + it->text +
-                                               "' cannot overwrite macro of same name.");
-                    }
-
-                    std::string name = *it;
-
-                    // Erase as needed
-                    it--;
-                    it = lexed.erase(it); // Let
-                    it = lexed.erase(it); // Name!
-                    it = lexed.erase(it); // =
-
-                    // Scrape until next semicolon
-                    std::string contents = "";
-                    while (*it != ";")
-                    {
-                        contents.append(*it);
-                        it = lexed.erase(it);
-                    }
-
-                    it = lexed.erase(it); // ;
-
-                    // Insert
-                    settings.preprocDefines[name] = contents;
-                }
-                else if (!itCmp(lexed, it, 1, "("))
-                {
-                    throw sequencing_error("Error: `let NAME!` must be followed by `=` (preprocessor definition) or "
-                                           "`(` (macro definition). Instead, `" +
-                                           (++it)->text + "`.");
-                }
-            }
-        }
-
         // H: Preproc definition insertion
 
         settings.preprocDefines["prev_file!"] = (oldFile == "" ? "\"NULL\"" : ("\"" + oldFile.string() + "\""));
@@ -676,7 +710,7 @@ void doFile(const std::string &From, AcornSettings &settings)
         // Clean out any C keywords
         for (auto it = lexed.begin(); it != lexed.end(); it++)
         {
-            if (cKeywords.count(*it) != 0 && oakKeywords.count(*it) == 0)
+            if (C_KEYWORDS.count(*it) != 0 && OAK_KEYWORDS.count(*it) == 0)
             {
                 // Is a c keyword but not an oak keyword: replace it.
                 // The `__KWA` suffix stands for `key word avoidance`.

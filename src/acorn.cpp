@@ -66,7 +66,7 @@ int main(const int argc, const char *argv[])
 {
     if (argc == 1)
     {
-        std::cout << helpText << '\n'
+        std::cout << HELP_TEXT << '\n'
                   << "All Oak data can be found at: " << OAK_DIR_PATH << '\n'
                   << "Version: " << VERSION << '\n'
                   << "License: " << LICENSE << '\n'
@@ -106,7 +106,7 @@ int main(const int argc, const char *argv[])
                     // Verbose options
                     if (cur == "--help")
                     {
-                        std::cout << helpText << '\n'
+                        std::cout << HELP_TEXT << '\n'
                                   << "All Oak data can be found at: " << OAK_DIR_PATH << '\n'
                                   << "Version: " << VERSION << '\n'
                                   << "License: " << LICENSE << '\n'
@@ -338,6 +338,13 @@ int main(const int argc, const char *argv[])
                             {
                                 fs::remove_all(".oak_build");
                                 fs::remove_all("*.log");
+
+                                // If on linux, do this recursively.
+#if (defined(LINUX) || defined(__linux__))
+                                system("find . \\( -name '*.log' -o -name '*.tlog'"
+                                       " -o -name 'a.out' -o -name '.oak_build' "
+                                       "\\) -exec rm -r '{}' \\;");
+#endif
                             }
 
                             break;
@@ -352,7 +359,7 @@ int main(const int argc, const char *argv[])
 
                             break;
                         case 'h':
-                            std::cout << helpText << '\n'
+                            std::cout << HELP_TEXT << '\n'
                                       << "All Oak data can be found at: " << OAK_DIR_PATH << '\n'
                                       << "Version: " << VERSION << '\n'
                                       << "License: " << LICENSE << '\n'
@@ -469,6 +476,12 @@ int main(const int argc, const char *argv[])
                             break;
                         case 'U':
                             settings.doRuleLogFile = !settings.doRuleLogFile;
+
+                            if (settings.doRuleLogFile)
+                            {
+                                fs::remove(".oak_build/__rule_log.log");
+                            }
+
                             break;
                         case 'v':
                             std::cout << "Version: " << VERSION << '\n'
@@ -582,6 +595,19 @@ int main(const int argc, const char *argv[])
             }
             else
             {
+                if (settings.prettify)
+                {
+                    if (system((PRETTIFIER + " .oak_build/*.c 2>&1 >/dev/null").c_str()) != 0)
+                    {
+                        throw sequencing_error("Failed to prettify output source files.");
+                    }
+
+                    if (system((PRETTIFIER + " .oak_build/*.h 2>&1 >/dev/null").c_str()) != 0)
+                    {
+                        throw sequencing_error("Failed to prettify output header files.");
+                    }
+                }
+
                 compStart = std::chrono::high_resolution_clock::now();
 
                 if (settings.compile)
@@ -1047,19 +1073,6 @@ int main(const int argc, const char *argv[])
                 fs::remove_all("*.log");
             }
             return 19;
-        }
-    }
-
-    if (settings.prettify)
-    {
-        if (system((PRETTIFIER + " .oak_build/*.c 2>&1 >/dev/null").c_str()) != 0)
-        {
-            throw sequencing_error("Failed to prettify output source files.");
-        }
-
-        if (system((PRETTIFIER + " .oak_build/*.h 2>&1 >/dev/null").c_str()) != 0)
-        {
-            throw sequencing_error("Failed to prettify output header files.");
         }
     }
 

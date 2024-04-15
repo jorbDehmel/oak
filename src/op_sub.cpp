@@ -11,7 +11,7 @@ and the ternary must be added via rules, if at all.
 */
 
 #include "oakc_fns.hpp"
-#include <iterator>
+#include "options.hpp"
 
 // Moves pre and post to include the operands to a binary
 // operator
@@ -29,9 +29,9 @@ void getOperands(std::list<Token> &from, std::list<Token>::iterator &pre, std::l
         {
             count++;
 
-            if (count == 0 && operators.count(itGet(from, pre, -1)) == 0)
+            if (count == 0 && OPERATORS.count(itGet(from, pre, -1)) == 0)
             {
-                if (operators.count(itGet(from, pre, -1)) == 0)
+                if (OPERATORS.count(itGet(from, pre, -1)) == 0)
                 {
                     // Is function call
                     pre--;
@@ -126,7 +126,7 @@ void getOperands(std::list<Token> &from, std::list<Token>::iterator &pre, std::l
             if (count == 0)
             {
                 // Function call
-                if (operators.count(*post) == 0 && itCmp(from, post, 1, "("))
+                if (OPERATORS.count(*post) == 0 && itCmp(from, post, 1, "("))
                 {
                     post++;
                     count = 1;
@@ -176,7 +176,7 @@ void getOperandUnary(std::list<Token> &from, const std::list<Token>::iterator &p
         if (count == 0)
         {
             // Function call
-            if (operators.count(*post) == 0 && itCmp(from, post, 1, "("))
+            if (OPERATORS.count(*post) == 0 && itCmp(from, post, 1, "("))
             {
                 post++;
                 count = 1;
@@ -326,13 +326,127 @@ void doSubUnary(std::list<Token> &from, std::list<Token>::iterator &pos, const s
     pos--;
 }
 
+// Fixes method call notation.
+// All iterators within the given range will be invalidated.
+void fixMethod(std::list<Token> &from, std::list<Token>::iterator &beginObj, std::list<Token>::iterator &beginCall,
+               Token &fnName)
+{
+    // beginCall points to "("
+
+    /*
+    a.b.c.d.e.f.g(
+    ^            ^ fnName = "g"
+    */
+
+    /*
+    out . wrap_some ( ptrarr! ( self . data , index ) ) ;
+    ^               ^ fnName="wrap_some"
+    */
+
+    // Erase beginCall, beginCall - 1
+    // a.b.c.d.e.f
+    beginCall--;
+    beginCall = from.erase(beginCall);
+    beginCall = from.erase(beginCall);
+
+    auto templ = *beginCall;
+
+    // Put "," at end
+    // g(a.b.c.d.e.f,
+    if (*beginCall != ")")
+    {
+        std::prev(beginCall)->text = ",";
+    }
+    else
+    {
+        beginCall--;
+        beginCall = from.erase(beginCall);
+    }
+
+    // Insert fnName, "(" at beginning
+    // g(a.b.c.d.e.f
+    templ.text = fnName;
+    from.emplace(beginObj, templ);
+
+    templ.text = "(";
+    from.emplace(beginObj, templ);
+
+    // Fix position
+    beginCall--;
+
+    // Return
+    return;
+}
+
 // O(n)
 // These are some common rule-like token stream manipulations
 // which would be too hard (or perhaps impossible) to implement
 // with the rule system.
 void operatorSub(std::list<Token> &From)
 {
-    // Level -1: Prefix unaries
+    // Level -1: Method resolution
+    // This one works via DFA
+    {
+        int state = 0;
+        std::list<Token>::iterator startOfObj;
+        Token methodName;
+
+        for (auto it = From.begin(); it != From.end(); it++)
+        {
+            std::string cur = it->text;
+
+            if (state == 0)
+            {
+                if (OPERATORS.count(cur) == 0)
+                {
+                    startOfObj = it;
+                    state = 1;
+                }
+            }
+            else if (state == 1)
+            {
+                if (cur == ".")
+                {
+                    state = 2;
+                }
+                else if (OPERATORS.count(cur) != 0)
+                {
+                    state = 0;
+                }
+            }
+            else if (state == 2)
+            {
+                if (OPERATORS.count(cur) == 0)
+                {
+                    methodName = cur;
+                    state = 3;
+                }
+                else
+                {
+                    state = 0;
+                }
+            }
+            else if (state == 3)
+            {
+                if (cur == ".")
+                {
+                    state = 2;
+                }
+                else if (cur == "(")
+                {
+                    // Match; Do replacement here
+                    fixMethod(From, startOfObj, it, methodName);
+                    state = 0;
+                }
+                else if (OPERATORS.count(cur) != 0)
+                {
+                    state = 0;
+                }
+            }
+        }
+    }
+
+    // Level 0: Prefix unaries
     for (auto it = From.begin(); it != From.end(); it++)
     {
         std::string cur = it->text;
@@ -424,13 +538,28 @@ void operatorSub(std::list<Token> &From)
             auto j = it;
             j++;
             int depth = 1;
+            int parenDepth = 0;
 
             for (; j != From.end(); j++)
             {
-                if (*j == ";" || *j == ")")
+                if (*j == ";")
                 {
                     isTemplating = false;
                     break;
+                }
+                else if (*j == "(")
+                {
+                    parenDepth++;
+                }
+                else if (*j == ")")
+                {
+                    if (parenDepth == 0)
+                    {
+                        isTemplating = false;
+                        break;
+                    }
+
+                    parenDepth--;
                 }
                 else if (*j == ">")
                 {

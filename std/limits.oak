@@ -8,6 +8,9 @@ Jordan Dehmel, 2024
 jdehmel@outlook.com
 */
 
+// Ensure that this will work with other dialects
+tag!("no_dialect");
+
 let u8_min!   = 0;
 let u16_min!  = 0;
 let u32_min!  = 0;

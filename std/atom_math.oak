@@ -9,7 +9,10 @@ definitions in functions. This will likely be the most expensive
 file in most low-level programs.
 */
 
-link!("std/math_inter.o");
+// Ensure that this will work with other dialects
+tag!("no_dialect");
+
+link!("std/atom_math.o");
 
 // u8
 let Add, Sub, Mult, Div, Mod, And, Or, Lbs, Rbs

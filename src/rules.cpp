@@ -5,6 +5,7 @@ jdehmel@outlook.com
 */
 
 #include "oakc_fns.hpp"
+#include "oakc_structs.hpp"
 
 #define rm_assert(expression, message)                                                                                 \
     ((bool)(expression) ? true : throw rule_error(message " (Failed assertion: '" #expression "')"))
@@ -174,6 +175,7 @@ void doRules(std::list<Token> &From, AcornSettings &settings)
                 j.erase(0, 1);
             }
 
+            // Clear all non-dialect rules
             if (args.size() == 0)
             {
                 settings.activeRules.clear();
@@ -228,7 +230,16 @@ void doRules(std::list<Token> &From, AcornSettings &settings)
         // Regular case; Non-rule-macro symbol. Check against active rules.
         else
         {
-            for (int ruleIndex = 0; ruleIndex < settings.dialectRules.size() + settings.activeRules.size(); ruleIndex++)
+            int ruleIndex = 0;
+
+            // Special case for dialect-skipping files
+            if (settings.file_tags.count(settings.curFile) != 0 &&
+                settings.file_tags[settings.curFile].count("no_dialect") != 0)
+            {
+                ruleIndex = settings.dialectRules.size();
+            }
+
+            for (; ruleIndex < settings.dialectRules.size() + settings.activeRules.size(); ruleIndex++)
             {
                 Rule curRule;
                 if (ruleIndex < settings.dialectRules.size())
@@ -271,8 +282,6 @@ void doRules(std::list<Token> &From, AcornSettings &settings)
             }
         }
     }
-
-    // cout << "Done.\n";
 
     if (settings.doRuleLogFile && settings.ruleLogFile.is_open())
     {
@@ -417,50 +426,47 @@ void loadDialectFile(const std::string &File, AcornSettings &settings)
     return;
 }
 
-void doRuleAcorn(std::list<Token> &From, std::list<Token>::iterator &i, Rule &curRule, AcornSettings &settings)
+void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &curRule, AcornSettings &settings)
 {
-    auto posInFrom = i;
+    auto posInText = i;
     std::list<std::string> memory;
-    std::map<std::string, std::string> ruleVars;
+    std::map<std::string, std::list<Token>> ruleVars;
     bool isMatch = true;
-    for (int k = 0; posInFrom != From.end() && k < curRule.inputPattern.size(); k++)
+
+    int k = 0;
+    for (k = 0; posInText != Text.end() && k < curRule.inputPattern.size(); k++)
     {
-        std::string match = curRule.inputPattern[k];
+        std::string curPatternToken = curRule.inputPattern[k];
 
-        if (posInFrom == From.end())
-        {
-            isMatch = false;
-            break;
-        }
-
-        // Macro; Cannot overwrite with rules
-        if (posInFrom->size() > 1 && posInFrom->back() == '!')
+        if (posInText == Text.end())
         {
             isMatch = false;
             break;
         }
 
         // Wildcard; Un-stored match
-        if (match == "$$")
+        if (curPatternToken == "$$")
         {
-            memory.push_back(*posInFrom);
+            memory.push_back(*posInText);
 
-            posInFrom++;
+            posInText++;
             continue;
         }
 
         // Globs; Un-stored multi-symbol matches
-        else if (match == "$*")
+        else if (curPatternToken == "$*")
         {
             rm_assert(k + 1 < curRule.inputPattern.size(), "Glob card '$*' must not be end of rule.");
+            rm_assert(curRule.inputPattern[k + 1][0] != '$', "Glob card '$*' must be followed by literal.");
+
             std::string nextSymb = curRule.inputPattern[k + 1];
 
-            while (*posInFrom != nextSymb)
+            while (*posInText != nextSymb)
             {
-                memory.push_back(*posInFrom);
-                posInFrom++;
+                memory.push_back(*posInText);
+                posInText++;
 
-                if (posInFrom == From.end())
+                if (posInText == Text.end())
                 {
                     isMatch = false;
                     break;
@@ -469,22 +475,23 @@ void doRuleAcorn(std::list<Token> &From, std::list<Token>::iterator &i, Rule &cu
 
             continue;
         }
-        else if (match == "$+")
+        else if (curPatternToken == "$+")
         {
             rm_assert(k + 1 < curRule.inputPattern.size(), "Glob card '$+' must not be end of rule.");
+            rm_assert(curRule.inputPattern[k + 1][0] != '$', "Glob card '$+' must be followed by literal.");
             std::string nextSymb = curRule.inputPattern[k + 1];
 
-            if (*posInFrom == nextSymb)
+            if (*posInText == nextSymb)
             {
                 isMatch = false;
             }
 
-            while (*posInFrom != nextSymb)
+            while (*posInText != nextSymb)
             {
-                memory.push_back(*posInFrom);
-                posInFrom++;
+                memory.push_back(*posInText);
+                posInText++;
 
-                if (posInFrom == From.end())
+                if (posInText == Text.end())
                 {
                     isMatch = false;
                     break;
@@ -495,51 +502,40 @@ void doRuleAcorn(std::list<Token> &From, std::list<Token>::iterator &i, Rule &cu
         }
 
         // Memory clear
-        else if (match == "$~")
+        else if (curPatternToken == "$~")
         {
             memory.clear();
             continue;
         }
 
         // Pipe memory onto end of variable
-        else if (match.size() == 3 && match.substr(0, 2) == "$>")
+        else if (curPatternToken.size() >= 3 && curPatternToken.substr(0, 2) == "$>")
         {
-            std::string name = match.substr(0, 1) + match.substr(2, 1);
+            std::string name = "$" + curPatternToken.substr(2, 1);
 
-            std::string concatenatedMemory = "";
-            for (const std::string &item : memory)
+            for (auto it = memory.cbegin(); it != memory.cend(); it++)
             {
-                concatenatedMemory.append(item);
-                concatenatedMemory.append(" ");
-            }
-
-            if (ruleVars.count(name) == 0)
-            {
-                ruleVars[name] += " " + concatenatedMemory;
-            }
-            else
-            {
-                ruleVars[name] = concatenatedMemory;
+                ruleVars[name].push_back(*it);
             }
 
             continue;
         }
 
         // Go back to previous match item unless literal
-        else if (match.size() > 2 && match.substr(0, 2) == "$-")
+        else if (curPatternToken.size() > 2 && curPatternToken.substr(0, 2) == "$-")
         {
-            if (*posInFrom == match.substr(2))
+            if (*posInText == curPatternToken.substr(2))
             {
                 k--;
             }
         }
 
         // Negative lookbehind
-        // Not prefixed by some literal
-        else if (match.size() > 4 && match.substr(0, 4) == "$/<$")
+        // Not prefaced by some literal
+        else if (curPatternToken.size() > 4 && curPatternToken.substr(0, 4) == "$/<$")
         {
             // PosInFrom does not advance upon success
-            if (itCmp(From, posInFrom, -1, match.substr(4)))
+            if (itCmp(Text, posInText, -1, curPatternToken.substr(4)))
             {
                 isMatch = false;
                 break;
@@ -550,10 +546,10 @@ void doRuleAcorn(std::list<Token> &From, std::list<Token>::iterator &i, Rule &cu
 
         // Negative lookahead
         // Not followed by some literal
-        else if (match.size() > 4 && match.substr(0, 4) == "$/>$")
+        else if (curPatternToken.size() > 4 && curPatternToken.substr(0, 4) == "$/>$")
         {
             // PosInFrom does not advance upon success
-            if (itCmp(From, posInFrom, 1, match.substr(4)))
+            if (itCmp(Text, posInText, 1, curPatternToken.substr(4)))
             {
                 isMatch = false;
                 break;
@@ -564,23 +560,23 @@ void doRuleAcorn(std::list<Token> &From, std::list<Token>::iterator &i, Rule &cu
 
         // Suite
         // $[$suite$of$cards$]
-        else if (match.size() > 3 && match.substr(0, 3) == "$[$")
+        else if (curPatternToken.size() > 3 && curPatternToken.substr(0, 3) == "$[$")
         {
             // Matches any of the items within
 
             int start, end;
             end = 3;
 
-            while (end < match.size())
+            while (end < curPatternToken.size())
             {
                 // Advance end to the next dollar sign
                 start = end;
                 do
                 {
                     end++;
-                } while (end < match.size() && match[end] != '$');
+                } while (end < curPatternToken.size() && curPatternToken[end] != '$');
 
-                if (end >= match.size())
+                if (end >= curPatternToken.size())
                 {
                     isMatch = false;
                     break;
@@ -588,160 +584,224 @@ void doRuleAcorn(std::list<Token> &From, std::list<Token>::iterator &i, Rule &cu
 
                 // Do actual compare here
                 // If matches, isMatch. Otherwise, keep going.
-                if (match.substr(start, end - start) == posInFrom->text)
+                if (curPatternToken.substr(start, end - start) == posInText->text)
                 {
-                    posInFrom++;
+                    posInText++;
                     break;
                 }
+
+                end++;
             }
 
-            memory.push_back(*posInFrom);
+            memory.push_back(*posInText);
         }
 
         // Negated suite
         // $/[$negated$suite$of$cards$]
-        else if (match.size() > 4 && match.substr(0, 4) == "$/[$")
+        else if (curPatternToken.size() > 4 && curPatternToken.substr(0, 4) == "$/[$")
         {
             // Matches anything but the items within
 
             int start, end;
             end = 4;
 
-            while (end < match.size())
+            while (end < curPatternToken.size())
             {
                 // Advance end to the next dollar sign
                 start = end;
                 do
                 {
                     end++;
-                } while (end < match.size() && match[end] != '$');
+                } while (end < curPatternToken.size() && curPatternToken[end] != '$');
 
-                if (end >= match.size())
+                if (end >= curPatternToken.size())
                 {
-                    posInFrom++;
+                    posInText++;
                     break;
                 }
 
                 // Do actual compare here
                 // If matches, is not match. Otherwise, keep going.
-                if (match.substr(start, end - start) == posInFrom->text)
+                if (curPatternToken.substr(start, end - start) == posInText->text)
                 {
                     isMatch = false;
                     break;
                 }
+
+                end++;
             }
 
-            memory.push_back(*posInFrom);
+            memory.push_back(*posInText);
+        }
+
+        // Glob suit
+        // $*[$suit$of$cards$]
+        else if (curPatternToken.size() > 4 &&
+                 (curPatternToken.substr(0, 4) == "$*[$" || curPatternToken.substr(0, 4) == "$+[$"))
+        {
+            // Matches any of the items within any number of times
+
+            std::set<std::string> items;
+            int start, end;
+            end = 4;
+            while (end < curPatternToken.size())
+            {
+                // Advance end to the next dollar sign
+                start = end;
+                do
+                {
+                    end++;
+                } while (end < curPatternToken.size() && curPatternToken[end] != '$');
+
+                if (end >= curPatternToken.size())
+                {
+                    break;
+                }
+
+                items.insert(curPatternToken.substr(start, end - start));
+
+                end++;
+            }
+
+            int n = 0;
+            while (posInText != Text.end())
+            {
+                if (items.count(posInText->text) != 0)
+                {
+                    memory.push_back(*posInText);
+                    posInText++;
+                    n++;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            if (curPatternToken[1] == '+' && n == 0)
+            {
+                isMatch = false;
+            }
+        }
+
+        // Negated glob suit
+        // $*/[$negated$suit$of$cards$]
+        else if (curPatternToken.size() > 5 &&
+                 (curPatternToken.substr(0, 5) == "$*/[$" || curPatternToken.substr(0, 5) == "$+/[$"))
+        {
+            // Matches anything but the items within any number of times
+
+            std::set<std::string> items;
+            int start, end;
+            end = 5;
+
+            while (end < curPatternToken.size())
+            {
+                // Advance end to the next dollar sign
+                start = end;
+                do
+                {
+                    end++;
+                } while (end < curPatternToken.size() && curPatternToken[end] != '$');
+
+                if (end >= curPatternToken.size())
+                {
+                    break;
+                }
+
+                items.insert(curPatternToken.substr(start, end - start));
+
+                end++;
+            }
+
+            int n = 0;
+            while (posInText != Text.end())
+            {
+                if (items.count(posInText->text) == 0)
+                {
+                    memory.push_back(*posInText);
+                    posInText++;
+                    n++;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            if (curPatternToken[1] == '+' && n == 0)
+            {
+                isMatch = false;
+            }
         }
 
         // $<$open$close$>
         // Pair matching
-        else if (match.size() > 7 && match.substr(0, 3) == "$<$")
+        else if (curPatternToken.size() > 7 && curPatternToken.substr(0, 3) == "$<$")
         {
             int endOfOpener = 3;
-            while (endOfOpener < match.size() && match[endOfOpener] != '$')
+            while (endOfOpener < curPatternToken.size() && curPatternToken[endOfOpener] != '$')
             {
                 endOfOpener++;
             }
 
             int endOfCloser = endOfOpener + 1;
-            while (endOfCloser < match.size() && match[endOfCloser] != '$')
+            while (endOfCloser < curPatternToken.size() && curPatternToken[endOfCloser] != '$')
             {
                 endOfCloser++;
             }
 
-            std::string opener = match.substr(3, endOfOpener - 3),
-                        closer = match.substr(endOfOpener + 1, endOfCloser - endOfOpener - 1);
+            std::string opener = curPatternToken.substr(3, endOfOpener - 3),
+                        closer = curPatternToken.substr(endOfOpener + 1, endOfCloser - endOfOpener - 1);
             long long count = 0;
 
-            auto beginningPosition = posInFrom;
+            auto beginningPosition = posInText;
 
             do
             {
-                if (posInFrom == From.end())
+                if (posInText == Text.end())
                 {
                     // Out of range w/o closure: Failure case
                     isMatch = false;
                     break;
                 }
 
-                memory.push_back(*posInFrom);
+                memory.push_back(*posInText);
 
-                if (*posInFrom == opener)
+                if (*posInText == opener)
                 {
                     count++;
                 }
-                else if (*posInFrom == closer)
+                else if (*posInText == closer)
                 {
                     count--;
                 }
 
-                posInFrom++;
-            } while (posInFrom != From.end() && count != 0);
+                posInText++;
+            } while (posInText != Text.end() && count != 0);
 
-            if (!isMatch || posInFrom == beginningPosition || posInFrom == std::next(beginningPosition))
+            if (!isMatch || posInText == beginningPosition || posInText == std::next(beginningPosition))
             {
                 isMatch = false;
+                posInText = beginningPosition;
+                posInText--;
                 break;
             }
 
             continue;
         }
 
-        // Variable glob; Stored multi-symbol match
-        else if (match.size() == 3 && match.substr(0, 2) == "$*")
-        {
-            std::string name = match.substr(0, 1) + match.substr(2, 1);
-
-            rm_assert(k + 1 < curRule.inputPattern.size(), "Glob card '$*' must not be end of rule.");
-            std::string nextSymb = curRule.inputPattern[k + 1];
-
-            while (posInFrom != From.end() && *posInFrom != nextSymb)
-            {
-                if (ruleVars.count(name) == 0)
-                {
-                    ruleVars[name] += *posInFrom;
-                }
-                else
-                {
-                    ruleVars[name] += " " + posInFrom->text;
-                }
-
-                memory.push_back(*posInFrom);
-
-                posInFrom++;
-                if (posInFrom == From.end())
-                {
-                    isMatch = false;
-                    break;
-                }
-            }
-
-            continue;
-        }
-
         // Variable; Stored match
-        else if (match[0] == '$')
+        else if (curPatternToken[0] == '$')
         {
-            if (ruleVars.count(match) == 0)
-            {
-                ruleVars[match] = *posInFrom;
-            }
-            else
-            {
-                ruleVars[match] += " " + posInFrom->text;
-            }
-
-            memory.push_back(*posInFrom);
-
-            posInFrom++;
+            throw rule_error("Invalid $apling input card '" + curPatternToken + "'.");
         }
 
         // Literal; Must match verbatim
-        else if (match == posInFrom->text)
+        else if (curPatternToken == posInText->text)
         {
-            posInFrom++;
-            memory.push_back(*posInFrom);
+            memory.push_back(*posInText);
+            posInText++;
 
             continue;
         }
@@ -752,6 +812,11 @@ void doRuleAcorn(std::list<Token> &From, std::list<Token>::iterator &i, Rule &cu
             isMatch = false;
             break;
         }
+    }
+
+    if (posInText == Text.end() && k < curRule.inputPattern.size())
+    {
+        isMatch = false;
     }
 
     // If match, do replacement
@@ -769,44 +834,37 @@ void doRuleAcorn(std::list<Token> &From, std::list<Token>::iterator &i, Rule &cu
         {
             std::string s = curRule.outputPattern[sIndex];
 
-            if (ruleVars.count(s) != 0)
+            if (s.size() > 1 && s[0] == '$')
             {
-                std::string raw = ruleVars[s];
-
-                Lexer dfa_lexer;
-                std::list<Token> lexed = dfa_lexer.lex_list(raw);
-                for (auto s : lexed)
+                if (ruleVars.count(s) != 0)
                 {
-                    newContents.push_back(s);
+                    newContents.insert(newContents.end(), ruleVars[s].begin(), ruleVars[s].end());
                 }
-            }
-            else if (s == "$<")
-            {
-                // Merge operator
-                rm_assert(!newContents.empty(), "Cannot use merge card '$<' on empty output.");
-                rm_assert(sIndex + 1 < curRule.outputPattern.size(), "Merge card '$<' must not be end of rule.");
-
-                std::string toInsert = curRule.outputPattern[sIndex + 1];
-
-                if (ruleVars.count(toInsert) != 0)
+                else if (s == "$<")
                 {
-                    Lexer dfa_lexer;
-                    std::string raw = ruleVars[toInsert];
-                    std::list<Token> lexed = dfa_lexer.lex_list(raw);
+                    // Merge operator
+                    rm_assert(!newContents.empty(), "Cannot use merge card '$<' on empty output.");
+                    rm_assert(sIndex + 1 < curRule.outputPattern.size(), "Merge card '$<' must not be end of rule.");
 
-                    toInsert = "";
-                    for (auto str : lexed)
+                    std::string toInsert = curRule.outputPattern[sIndex + 1];
+
+                    if (ruleVars.count(toInsert) != 0)
                     {
-                        toInsert.append(str);
+                        std::string varName = toInsert;
+                        toInsert = "";
+                        for (const auto &str : ruleVars[varName])
+                        {
+                            toInsert.append(str);
+                        }
                     }
-                }
 
-                if (sIndex + 1 < curRule.outputPattern.size())
-                {
-                    sIndex++;
-                }
+                    if (sIndex + 1 < curRule.outputPattern.size())
+                    {
+                        sIndex++;
+                    }
 
-                newContents.back().text += toInsert;
+                    newContents.back().text += toInsert;
+                }
             }
             else
             {
@@ -832,18 +890,18 @@ void doRuleAcorn(std::list<Token> &From, std::list<Token>::iterator &i, Rule &cu
                 settings.ruleLogFile << "'" << what.text << "' ";
             }
 
-            settings.ruleLogFile << "\nMatch '";
+            settings.ruleLogFile << "\nAbout line " << i->line << "\nMatch '";
         }
 
         // Erase old contents
         templ = *i;
-        while (i != posInFrom)
+        while (i != posInText)
         {
             if (settings.doRuleLogFile)
             {
                 settings.ruleLogFile << i->text << ' ';
             }
-            i = From.erase(i);
+            i = Text.erase(i);
         }
 
         // Correct lines and files
@@ -866,7 +924,7 @@ void doRuleAcorn(std::list<Token> &From, std::list<Token>::iterator &i, Rule &cu
         }
 
         // Insert new contents
-        i = From.insert(i, newContents.begin(), newContents.end());
+        i = Text.insert(i, newContents.begin(), newContents.end());
     }
 
     ruleVars.clear();

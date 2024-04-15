@@ -3,6 +3,9 @@ A basic math package for Oak.
 Jordan Dehmel, 2023
 */
 
+// Ensure that this will work with other dialects
+tag!("no_dialect");
+
 package!("std");
 use_rule!("std");
 

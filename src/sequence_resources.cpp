@@ -72,6 +72,51 @@ Type toType(const std::list<Token> &WhatIn, AcornSettings &settings)
         {
             out.append(pointer);
         }
+        else if (cur == "type!")
+        {
+            // Case for type!() macro
+
+            // Scrape entire type!(what) call to a std::list
+            std::list<Token> toAnalyze;
+            int count = 0;
+
+            it = What.erase(it);
+
+            do
+            {
+                if (*it == "(")
+                {
+                    count++;
+                }
+                else if (*it == ")")
+                {
+                    count--;
+                }
+
+                if (!((*it == "(" && count == 1) || (*it == ")" && count == 0)))
+                {
+                    toAnalyze.push_back(*it);
+                }
+
+                it = What.erase(it);
+            } while (count != 0);
+
+            // Garbage to feed to resolveFunction
+            std::string junk = "";
+            auto pos = toAnalyze.begin();
+
+            // Analyze type of std::list
+            Type type = resolveFunction(toAnalyze, pos, junk, settings);
+
+            // Convert type to lexed std::string vec
+            Lexer dfa_lexer;
+            std::list<Token> lexedType = dfa_lexer.lex_list(toStr(&type));
+
+            // Push lexed vec to front of From
+            What.insert(it, lexedType.begin(), lexedType.end());
+
+            continue;
+        }
         else if (cur == "<")
         {
             if (out == nullType)
@@ -207,9 +252,9 @@ Type toType(const std::list<Token> &WhatIn, AcornSettings &settings)
         if (what.info == atomic)
         {
             sm_assert(settings.structData.count(what.name) != 0 || settings.enumData.count(what.name) ||
-                          atomics.count(what.name) != 0 || what.name == "struct" || what.name == "enum",
+                          ATOMICS.count(what.name) != 0 || what.name == "struct" || what.name == "enum",
                       "Type '" + what.name + "' does not exist.");
-            sm_assert(atomics.count(what.name) != 0 || settings.structData[what.name].members.size() != 0 ||
+            sm_assert(ATOMICS.count(what.name) != 0 || settings.structData[what.name].members.size() != 0 ||
                           settings.enumData[what.name].options.size() != 0,
                       "Non-atomic struct with zero members may not be instantiated. You are likely trying to "
                       "instantiate a unit generic (used for traits), which is not valid usage.");
@@ -376,7 +421,7 @@ void toCInternal(const ASTNode &What, std::list<std::string> &out, AcornSettings
 
                         std::string captureType = mangleType(clone);
 
-                        if (atomics.count(captureType) == 0)
+                        if (ATOMICS.count(captureType) == 0)
                         {
                             out.push_back("struct ");
                         }

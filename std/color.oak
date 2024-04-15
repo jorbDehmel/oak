@@ -14,7 +14,10 @@ Jordan Dehmel, 2023-
 jdehmel@outlook.com
 */
 
-include!("std/io_inter.oak");
+// Ensure that this will work with other dialects
+tag!("no_dialect");
+
+include!("std/io.oak");
 include!("std/string.oak");
 
 let ansi_code_end! = "\033[0;0m";

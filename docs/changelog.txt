@@ -4,6 +4,13 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.6.0           | 4/14/24  | Revamped `std` package, rules
+                |          | system, added unittests. Ensured
+                |          | compliance to new rule system; Code
+                |          | written before this likely will not
+                |          | work. Also, integrated method call
+                |          | notation.
+                |          |
 0.5.6           | 3/15/24  | Added memcheck requirement for push
                 |          | to main, added clause keywords
                 |          | (where, is, does, has, needs, and

@@ -1,5 +1,95 @@
 /*
-Passthrough file
+Panic function for Oak
+Jordan Dehmel, 2023-
+jdehmel@outlook.com
 */
 
-include!("std/panic_inter.oak");
+// Ensure that this will work with other dialects
+tag!("no_dialect");
+
+// Include the object file containing the definition for
+// internal_panic.
+link!("std/panic.o");
+
+// The underlying function used to cause a kernel panic. This
+// should probably not be used by the user.
+let internal_panic() -> void;
+
+// Cause a kernel panic with the given message(s).
+let panic!(argc: i32, argv: [][]i8) -> i32
+{
+    // Include needed files
+    include!(
+        "std/io.oak",
+        "std/atom_math.oak"
+    );
+
+    // Print an opening line
+    print(
+        "print(\""
+        "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\\n"
+        "\");\n"
+    );
+
+    // Print some details about where the panic came from
+    print("print(\"Panic: \");\n");
+    print("print(file!);\n");
+    print("print(\":\");\n");
+    print("print(line!);\n");
+
+    // If a message was provided, print that
+    if (argc == 2)
+    {
+        print("print(\"\\n");
+        print(ptrarr!(argv, 1));
+        print("\");\n");
+    }
+
+    // Print a closing line
+    print(
+        "print(\"\\n"
+        "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\\n"
+        "\");\n"
+    );
+
+    // Call a kernel panic
+    print("internal_panic();\n");
+
+    0
+}
+
+// If the first value is false, cause a kernel panic with any
+// messages which are passed after.
+let assert!(argc: i32, argv: [][]i8) -> i32
+{
+    include!(
+        "std/io.oak",
+        "std/atom_math.oak"
+    );
+
+    let out: i32;
+    out = 1;
+
+    if (argc == 2)
+    {
+        print("if (");
+        print(ptrarr!(argv, 1));
+        print(") {} else { panic!(\"");
+        print(ptrarr!(argv, 1));
+        print("\"); }\n");
+
+        out = 0;
+    }
+    else if (argc == 3)
+    {
+        print("if (");
+        print(ptrarr!(argv, 1));
+        print(") {} else { panic!(\"");
+        print(ptrarr!(argv, 2));
+        print("\"); }\n");
+
+        out = 0;
+    }
+
+    out
+}

@@ -9,7 +9,10 @@ Jordan Dehmel, 2023
 jdehmel@outlook.com
 */
 
-include!("std/math_inter.oak");
+// Ensure that this will work with other dialects
+tag!("no_dialect");
+
+include!("std/atom_math.oak");
 
 // A single hidden byte
 let hidden_byte: struct

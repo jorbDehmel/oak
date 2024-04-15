@@ -1,3 +1,36 @@
-// Linkage file
+/*
+C Random number interface for Oak
 
-include!("std/rand_inter.oak");
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+// Ensure that this will work with other dialects
+tag!("no_dialect");
+
+include!("std/limits.oak");
+link!("std/rand.o");
+
+// Seeds RNG with current time
+let seed_rand() -> void;
+
+// Seeds RNG with a given number
+let seed_rand(with: i32) -> void;
+
+// Generates a random number
+let rand(low: i32, high: i32) -> i32;
+let rand() -> i32;
+
+// Generate a random floating point number
+let rand(low: f64, high: f64) -> f64
+{
+    let r: i32;
+    let f: f64;
+
+    r = rand();
+    f = to_f64(r) / to_f64(i32_max!);
+    f *= (high - low);
+    f += low;
+
+    f
+}

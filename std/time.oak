@@ -1,3 +1,33 @@
-// Linkage file
+/*
+Some extra time definitions for Oak.
+This is an interfacial file to the chrono C++ library.
 
-include!("std/time_inter.oak");
+Jordan Dehmel, 2023
+jdehmel@outlook.com
+*/
+
+// Ensure that this will work with other dialects
+tag!("no_dialect");
+
+link!("std/time.o");
+include!("std/interface.oak");
+
+let ns: struct
+{
+    // Hidden internals via C++ linking
+    internal: hidden_64_bytes,
+}
+
+let New(self: ^ns) -> void;
+
+let Copy(self: ^ns, other: ns) -> ^ns;
+let now(self: ^ns) -> void;
+let count(start: ^ns, end: ^ns) -> i128;
+
+// Get UNIX timestamp
+let time() -> i64;
+
+// Get the ctime version of a time
+let c_time(when: i32) -> str;
+let c_time(when: i64) -> str;
+

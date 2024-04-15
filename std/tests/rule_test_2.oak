@@ -3,23 +3,7 @@
 // Passed Aug 3, 23
 
 package!("std");
-
-new_rule!("auto_if_paren", "if $*a {", "if ( $a ) {");
-new_rule!("auto_while_paren", "while $*a {", "while ( $a ) {");
-bundle_rule!("paren", "auto_if_paren", "auto_while_paren");
-
-use_rule!("paren");
-
-new_rule!("cast", "( $a ) ( $*b )", "to_ $< $a ( $b )");
-use_rule!("cast");
-
-new_rule!("for",
-    "for ( $*a ; $*b ; $*c ) { $*d }",
-    "{ $a ; while ( $b ) { $d $c ; } }");
-use_rule!("for");
-
-new_rule!("def_init", "let $a : $b = ", "let $a : $b ; $a = ");
-use_rule!("def_init");
+use_rule!("std");
 
 let main() -> i32
 {
