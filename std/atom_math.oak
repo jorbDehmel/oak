@@ -12,7 +12,7 @@ file in most low-level programs.
 // Ensure that this will work with other dialects
 tag!("no_dialect");
 
-link!("std/math_inter.o");
+link!("std/atom_math.o");
 
 // u8
 let Add, Sub, Mult, Div, Mod, And, Or, Lbs, Rbs

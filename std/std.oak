@@ -14,10 +14,10 @@ tag!("no_dialect");
 // Linkage
 
 include!(
-    "std/io_inter.oak",     // Interface to system I/O
-    "std/math_inter.oak",   // Interface to C atomic operations
-    "std/conv_inter.oak",   // Interface to C type conversions
-    "std/unit.oak"          // Provides unit (1-byte) struct
+    "std/io.oak",        // Interface to system I/O
+    "std/atom_math.oak", // Interface to C atomic operations
+    "std/conv.oak",      // Interface to C type conversions
+    "std/unit.oak"       // Provides unit (1-byte) struct
 );
 
 ////////////////////////////////////////////////////////////////
@@ -40,17 +40,17 @@ new_rule!(
 // Auto-parenthesize rules
 new_rule!(
     "auto_if_paren",
-    "if $~ $*/[${$] $>a {",
+    "if $~ $+/[${$] $>a {",
     "if ( $a ) {"
 );
 new_rule!(
     "auto_while_paren",
-    "while $~ $*/[${$] $>a {",
+    "while $~ $+/[${$] $>a {",
     "while ( $a ) {"
 );
 new_rule!(
     "auto_match_paren",
-    "match $~ $*/[${$] $>a {",
+    "match $~ $+/[${$] $>a {",
     "match ( $a ) {"
 );
 
@@ -65,11 +65,6 @@ new_rule!(
     "$/<$let $~ $$ $>a . Get (",
     "Get ( @ $a ,"
 );
-// new_rule!(
-//     "method",
-//     "$/<$let $~ $$ $>a . $~ $$ $>b (",
-//     "$b ( $a ,"
-// );
 
 // Definition-Instantiation rules
 new_rule!(
@@ -85,25 +80,10 @@ new_rule!(
 
 // For loop rules
 new_rule!(
-    "for_1",
-    "for ( let $~ $*/[$:$] $>a : $~ $*/[$=$] $>b "
-        "= $~ $*/[$;$] $>c ; $~ $*/[$;$] $>d ;"
-        "$~ $*/[$)$] $>e ) $~ $<${$}$> $>f",
-    "{ let $a : $b ; $a = $c ; while ( $d ) { $f $e ; } }"
-);
-new_rule!(
-    "for_2",
-    "for ( let $~ $*/[$:$] $>a = $~ $*/[$;$] $>c ;"
-        "$~ $*/[$;$] $>d ;"
-        "$~ $*/[$)$] $>e ) $~ $<${$}$> $>f",
-    "{ let $a : type! ( $c ) ; $a = $c ; "
-        "while ( $d ) { $f $e ; } }"
-);
-new_rule!(
-    "for_3",
-    "for ( let $~ $*/[$:$] $>a ; $~ $*/[$;$] $>b ;"
-        "$~ $*/[$)$] $>c ) $~ $<${$}$> $>g",
-    "{ $a ; while ( $b ) { $g $c ; } }"
+    "for",
+    "for ( $~ $+/[$;$] $>a ; $~ $*/[$;$] $>b ; "
+        "$~ $*/[$)$] $>c ) $~ $<${$}$> $>d",
+    "{ $a ; while ( $b ) { $d $c ; } }"
 );
 
 // Trait rule
@@ -113,7 +93,8 @@ new_rule!(
     "struct {} pre"
 );
 
-// This is instantiable if and only if a has a member named b.
+// This is instantiable if and only if `a` has a member named
+// `b`.
 let __has<a, b>() -> void { let __item: a; New(__item.b); }
 
 // Clause rules
@@ -157,12 +138,9 @@ bundle_rule!(
     "auto_while_paren", // Parenthesize while loops
     "auto_match_paren", // Parenthesize match statements
     "easy_method",      // Allow `let type.name()` notation
-//    "method",           // Allow method-call notation
     "auto_init",        // Allows `let a: type = b;` notation
     "def_init",         // Allows `let a = b;` notation
-    "for_1",            // Allow for loop syntax
-    "for_2",            // Allow for loop syntax
-    "for_3",            // Allow for loop syntax
+    "for",              // Allow for loop syntax
     "trait",            // Allows traits.
     "does",             // Clause keyword aliases
     "is",               // Clause keyword aliases

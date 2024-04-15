@@ -1,6 +1,81 @@
-// Linkage file
+/*
+Jordan Dehmel, 2023
+
+Basic Oak multithreading functions and
+objects.
+
+As of 0.0.10, mutex is experimental.
+*/
 
 // Ensure that this will work with other dialects
 tag!("no_dialect");
 
-include!("std/thread_inter.oak");
+link!("std/thread.o");
+include!("std/opt.oak");
+include!("std/interface.oak");
+
+// Mutex (experimental)
+let mutex<t>: struct
+{
+    in_use: bool,
+    data: t,
+}
+post
+{
+    wait_for_lock<t>(_: ^mutex<t>);
+    get_data<t>(_: ^mutex<t>, _: ^^t);
+    return_data<t>(_: ^mutex<t>, _: ^^t);
+}
+
+let wait_for_lock<t>(self: ^mutex<t>) -> void
+{
+    while (self.in_use)
+    {
+        ;
+    }
+}
+
+let get_data<t>(self: ^mutex<t>, into: ^^t) -> bool
+{
+    if (self.in_use)
+    {
+        return false;
+    }
+    else
+    {
+        self.in_use = true;
+        ptrcpy!(^into, @self.data);
+
+        return true;
+    }
+}
+
+let return_data<t>(self: ^mutex<t>, into: ^^t) -> void
+{
+    ptrcpy!(^into, 0);
+    self.in_use = false;
+}
+
+////////////////////////////////////////////////////////////////
+
+// Threads
+let thread: struct
+{
+    // C++ member padding; Don't mess with
+    internal: hidden_64_bytes,
+}
+
+// Defined in C++
+let ExtInit(self: ^thread) -> void;
+let start(self: ^thread, to_do: ^() -> void) -> void;
+let join(self: ^thread) -> void;
+
+let New(self: ^thread) -> void
+{
+    ExtInit(self);
+}
+
+let Del(self: ^thread) -> void
+{
+    join(self);
+}

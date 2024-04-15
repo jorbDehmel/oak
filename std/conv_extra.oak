@@ -11,8 +11,8 @@ jdehmel@outlook.com, GPLv3
 // Ensure that this will work with other dialects
 tag!("no_dialect");
 
-include!("std/math_inter.oak");
-include!("std/conv_inter.oak");
+include!("std/atom_math.oak");
+include!("std/conv.oak");
 
 // Fly warning about deprecation.
 c::warn!("`std/conv_extra.oak` is deprecated.");

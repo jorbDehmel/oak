@@ -65,7 +65,7 @@ void doRules(std::list<Token> &From, AcornSettings &settings)
 {
     if (settings.doRuleLogFile)
     {
-        settings.ruleLogFile.open(".oak_build/__rule_log.log", std::ios::out);
+        settings.ruleLogFile.open(".oak_build/__rule_log.log", std::ios::out | std::ios::app);
         if (!settings.ruleLogFile.is_open())
         {
             throw rule_error("Failed to open rule log file '.oak_build/__rule_log.log'");
@@ -433,9 +433,8 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
     std::map<std::string, std::list<Token>> ruleVars;
     bool isMatch = true;
 
-    // std::cout << __FILE__ << ":" << __LINE__ << "\n" << std::flush;
-
-    for (int k = 0; posInText != Text.end() && k < curRule.inputPattern.size(); k++)
+    int k = 0;
+    for (k = 0; posInText != Text.end() && k < curRule.inputPattern.size(); k++)
     {
         std::string curPatternToken = curRule.inputPattern[k];
 
@@ -637,7 +636,8 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
 
         // Glob suit
         // $*[$suit$of$cards$]
-        else if (curPatternToken.size() > 4 && curPatternToken.substr(0, 4) == "$*[$")
+        else if (curPatternToken.size() > 4 &&
+                 (curPatternToken.substr(0, 4) == "$*[$" || curPatternToken.substr(0, 4) == "$+[$"))
         {
             // Matches any of the items within any number of times
 
@@ -663,23 +663,31 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
                 end++;
             }
 
+            int n = 0;
             while (posInText != Text.end())
             {
                 if (items.count(posInText->text) != 0)
                 {
                     memory.push_back(*posInText);
                     posInText++;
+                    n++;
                 }
                 else
                 {
                     break;
                 }
             }
+
+            if (curPatternToken[1] == '+' && n == 0)
+            {
+                isMatch = false;
+            }
         }
 
         // Negated glob suit
         // $*/[$negated$suit$of$cards$]
-        else if (curPatternToken.size() > 5 && curPatternToken.substr(0, 5) == "$*/[$")
+        else if (curPatternToken.size() > 5 &&
+                 (curPatternToken.substr(0, 5) == "$*/[$" || curPatternToken.substr(0, 5) == "$+/[$"))
         {
             // Matches anything but the items within any number of times
 
@@ -706,17 +714,24 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
                 end++;
             }
 
+            int n = 0;
             while (posInText != Text.end())
             {
                 if (items.count(posInText->text) == 0)
                 {
                     memory.push_back(*posInText);
                     posInText++;
+                    n++;
                 }
                 else
                 {
                     break;
                 }
+            }
+
+            if (curPatternToken[1] == '+' && n == 0)
+            {
+                isMatch = false;
             }
         }
 
@@ -768,6 +783,8 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
             if (!isMatch || posInText == beginningPosition || posInText == std::next(beginningPosition))
             {
                 isMatch = false;
+                posInText = beginningPosition;
+                posInText--;
                 break;
             }
 
@@ -795,6 +812,11 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
             isMatch = false;
             break;
         }
+    }
+
+    if (posInText == Text.end() && k < curRule.inputPattern.size())
+    {
+        isMatch = false;
     }
 
     // If match, do replacement
@@ -828,8 +850,9 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
 
                     if (ruleVars.count(toInsert) != 0)
                     {
+                        std::string varName = toInsert;
                         toInsert = "";
-                        for (const auto &str : ruleVars[toInsert])
+                        for (const auto &str : ruleVars[varName])
                         {
                             toInsert.append(str);
                         }
@@ -841,10 +864,6 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
                     }
 
                     newContents.back().text += toInsert;
-                }
-                else
-                {
-                    throw rule_error("Invalid $apling output card '" + s + "'");
                 }
             }
             else
@@ -871,7 +890,7 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
                 settings.ruleLogFile << "'" << what.text << "' ";
             }
 
-            settings.ruleLogFile << "\nMatch '";
+            settings.ruleLogFile << "\nAbout line " << i->line << "\nMatch '";
         }
 
         // Erase old contents
@@ -909,8 +928,6 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
     }
 
     ruleVars.clear();
-
-    // std::cout << __FILE__ << ":" << __LINE__ << "\n" << std::flush;
 }
 
 void addEngine(const std::string &name,

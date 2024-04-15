@@ -3,7 +3,7 @@
 
 package!("std");
 use_rule!("std");
-include!("std/cmp.oak");
+include!("extra/cmp.oak");
 
 let compare(l: i32, r: i32) -> cmp
 {

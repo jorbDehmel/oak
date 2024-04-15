@@ -36,7 +36,7 @@ jdehmel@outlook.com
 namespace fs = std::filesystem;
 
 // The current version of Oak.
-const static std::string VERSION = "0.5.6";
+const static std::string VERSION = "0.6.0";
 
 // The license that this version of Oak uses.
 const static std::string LICENSE = "GPLv3";
@@ -202,8 +202,8 @@ const std::string FN_START = "### ";
 
 // Operations set for operator substitution.
 const static std::set<std::string> OPERATORS = {
-    "+",  "-", "/", "*",  "%",  "=",  "-=", "+=", "/=", "*=", "%=", "&=", "|=", "<<", ">>", "&&",
-    "||", "<", ">", "==", "!=", "<=", ">=", "&",  "|",  ",",  "(",  ")",  ";",  "++", "--", "!"};
+    "+",  "-",  "/",  "*", "%", "=", "-=", "+=", "/=", "*=", "%=", "&=", "|=", "<<", ">>", "&&", "||", "<", ">", "==",
+    "!=", "<=", ">=", "&", "|", ",", "(",  ")",  ";",  "++", "--", "!",  "{",  "}",  "[",  "]",  "[]", "^", "@"};
 
 // Used for implicit casting.
 const std::map<std::string, unsigned char> INT_LITERALS = {{"u8", 0},   {"i8", 0},  {"u16", 1}, {"i16", 1},

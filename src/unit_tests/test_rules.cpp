@@ -31,7 +31,11 @@ void ensureRule(const std::string &text, const std::string &expected, const std:
     auto it = lexedText.begin();
 
     // Apply rule
-    doRuleAcorn(lexedText, it, r, settings);
+    while (it != lexedText.end())
+    {
+        doRuleAcorn(lexedText, it, r, settings);
+        it++;
+    }
 
     // Assert equality
     assertEqual(lexedText, lexedExpected);
@@ -64,6 +68,17 @@ void testLookarounds()
 {
 }
 
+void testPairMatching()
+{
+    ensureRule("foo {} bar", "foo hi bar", "$~ $<${$}$> $>v", "hi");
+    ensureRule("foo {{}} bar", "foo hi bar", "$~ $<${$}$> $>v", "hi");
+    ensureRule("foo {{{}{}}{}} bar", "foo hi bar", "$~ $<${$}$> $>v", "hi");
+    ensureRule("foo {<>} bar", "foo hi bar", "$~ $<${$}$> $>v", "hi");
+    ensureRule("foo {()} bar", "foo hi bar", "$~ $<${$}$> $>v", "hi");
+    ensureRule("foo {[]} bar", "foo hi bar", "$~ $<${$}$> $>v", "hi");
+    ensureRule("foo { a<foo>; } bar", "foo hi bar", "$~ $<${$}$> $>v", "hi");
+}
+
 ////////////////////////////////////////////////////////////////
 // Main function
 
@@ -76,6 +91,7 @@ int main()
     testWildcards();
     testSuits();
     testLookarounds();
+    testPairMatching();
 
     return 0;
 }

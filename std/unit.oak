@@ -4,8 +4,6 @@
 // Ensure that this will work with other dialects
 tag!("no_dialect");
 
-include!("std/math_inter.oak");
-
 // The minimal struct size is 1 byte, and C
 // produces a warning for actual empty structs.
 let unit: struct

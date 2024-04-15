@@ -15,7 +15,7 @@ MEMCHECK := valgrind --track-origins=yes --error-exitcode=1 \
 
 .PHONY:	install
 install:
-	$(MAKE_SRC) $@
+	$(MAKE_SRC) -j 4 $@
 
 %:
 	$(MAKE_SRC) $@
@@ -28,6 +28,7 @@ test:
 	cd stl && $(TEST) && cd ..
 	cd turtle && $(TEST) && cd ..
 	$(MAKE) -C src/unit_tests
+	$(MAKE) memcheck
 
 .PHONY:	memcheck
 memcheck:

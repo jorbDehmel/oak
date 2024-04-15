@@ -5,13 +5,6 @@
 package!("std");
 use_rule!("std");
 
-new_rule!(
-    "cast",
-    "( $~ $$ $>a ) ( $~ $/*[$)$] $>b )",
-    "to_ $< $a ( $b )"
-);
-use_rule!("cast");
-
 let main() -> i32
 {
     if true
@@ -28,8 +21,6 @@ let main() -> i32
         print(i);
         print("\n");
     }
-
-    print((i32)(0u128));
 
     0
 }

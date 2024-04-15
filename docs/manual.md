@@ -1,6 +1,6 @@
 
 # The Oak Programming Language
-## Version 0.5.6
+## Version 0.6.0
 
 ![](./logo_trimmed.png)
 
@@ -1096,44 +1096,6 @@ if condition
 }
 ```
 
-### Object method "dot" call notation
-
-Without `std`:
-```rust
-let obj: struct
-{
-    member: i32,
-}
-
-let fn(self: ^obj) -> void
-{
-    print(self.member);
-}
-
-let main() -> i32
-{
-    let inst: obj;
-
-    fn(inst);
-    
-    0
-}
-```
-
-With `std`:
-```rust
-// <as above>
-
-let main() -> i32
-{
-    let inst: obj;
-
-    inst.fn();
-    
-    0
-}
-```
-
 ### "Easy" method declarations
 
 Without `std`:
@@ -1915,11 +1877,12 @@ operator) are not as native to `Oak` as to other languages, they
 are critical to package development.
 **`Oak` packages (except `std`) must use these.** All structs,
 enums, and non-method functions **must** begin with the prefix
-`NAME_`. For instance, all such symbols in the `stl` (standard
-templated library) package begin with `stl_`, followed by their
-name. The `list` data structure is then `stl_list`. This naming
-convention is expected for all packages which are not `std`. The
-`std` package is allowed to be namespace-free.
+`NAME::` (which is equivalent to `NAME_`). For instance, all
+such symbols in the `stl` (standard templated library) package
+begin with `stl::`, followed by their name. The `list` data
+structure is then `stl::list`. This naming convention is
+expected for all packages which are not `std`. The `std` package
+is allowed to be namespace-free.
 
 **Note:** In `Oak`, all namespaces must always be fully
 qualified. While in languages like `C++` you may say
@@ -2147,22 +2110,6 @@ these symbols will be destroyed by the meow menace
 Any file which calls `include!("source.oak");` would have access
 to the `remove_everything` rule, but it would always be off by 
 default.
-
-Here is the source code of the `std_method` bundle, which does 
-automatic method reformatting.
-
-```rust
-new_rule!("argless_mut_method", "$a . . $b ( )", "$b ( @ $a )");
-new_rule!("argless_method", "$a . $b ( )", "$b ( $a )");
-new_rule!("mut_method", "$a . . $b (", "$b ( @ $a ,");
-new_rule!("const_method", "$a . $b (", "$b ( $a ,");
-
-bundle_rule!("std_method",
-    "argless_mut_method",
-    "argless_method",
-    "mut_method",
-    "const_method");
-```
 
 ### Stored Globs
 

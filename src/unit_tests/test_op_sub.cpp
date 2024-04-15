@@ -24,6 +24,7 @@ int main()
     // Methods
     test("a.b.c.d.e()", "e(a.b.c.d)");
     test("a.b(c, d, e)", "b(a, c, d, e)");
+    test("{ a.b(c); d.e(f); }", "{ b(a, c); e(d, f); }");
 
     // Math and logic
     test("1 + 2", "Add(1, 2)");

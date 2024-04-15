@@ -5,7 +5,7 @@ Standard warning messages for Oak. Useful in package creation.
 // Ensure that this will work with other dialects
 tag!("no_dialect");
 
-include!("std/io_inter.oak");
+include!("std/io.oak");
 include!("std/color.oak");
 include!("std/string.oak");
 include!("std/printf.oak");
@@ -44,8 +44,8 @@ let end_warn() -> void
 // Warning formatted like a normal printf! call
 let warnf!(c: i32, v: []str) -> i32
 {
-    include!("std/io_inter.oak");
-    include!("std/math_inter.oak");
+    include!("std/io.oak");
+    include!("std/atom_math.oak");
 
     print(
         "begin_warn();\n"

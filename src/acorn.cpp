@@ -476,6 +476,12 @@ int main(const int argc, const char *argv[])
                             break;
                         case 'U':
                             settings.doRuleLogFile = !settings.doRuleLogFile;
+
+                            if (settings.doRuleLogFile)
+                            {
+                                fs::remove(".oak_build/__rule_log.log");
+                            }
+
                             break;
                         case 'v':
                             std::cout << "Version: " << VERSION << '\n'
