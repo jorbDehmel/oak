@@ -2,6 +2,8 @@
 # The Oak Programming Language
 ## Summary README: See `docs/manual.md` for full documentation.
 
+![Test Badge](https://github.com/jorbDehmel/oak/actions/workflows/ci-test.yml/badge.svg)
+
 ![](docs/logo_trimmed.png)
 
 Jordan Dehmel, jdehmel@outlook.com \
