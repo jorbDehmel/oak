@@ -9,6 +9,7 @@ GPLv3 held by author
 #include "oakc_fns.hpp"
 #include "options.hpp"
 #include "tags.hpp"
+#include <filesystem>
 
 #define pm_assert(expression, message)                                                                                 \
     ((bool)(expression) ? true : throw package_error(message " (Failed assertion: '" #expression "')"))
@@ -32,14 +33,15 @@ std::ostream &operator<<(std::ostream &strm, const PackageInfo &info)
 
 void install(const std::string &What, AcornSettings &settings)
 {
-    std::string line;
-
+    // If no installation command is known, attempt to fetch
+    // distribution.
     if (settings.installCommand == "")
     {
         // Get os-release info
         pm_assert(system("cat /etc/os-release | grep ^ID= > .oak_build/temp.txt") == 0, "Failed to poll OS name");
 
         std::ifstream osName(".oak_build/temp.txt");
+        std::string line;
         pm_assert(osName.is_open(), "Failed to poll OS name");
         getline(osName, line);
         osName.close();
@@ -60,17 +62,14 @@ void install(const std::string &What, AcornSettings &settings)
         }
         else if (line == "ubuntu")
         {
-            settings.installCommand = "sudo apt-get install ";
+            settings.installCommand = "sudo apt install -y ";
         }
         else if (line == "fedora")
         {
             settings.installCommand = "sudo dnf install ";
         }
-    }
 
-    int result = -1;
-    while (result != 0)
-    {
+        // If no distribution package manager is known, ask for one.
         if (settings.installCommand == "")
         {
             std::cout << tags::yellow_bold
@@ -84,26 +83,28 @@ void install(const std::string &What, AcornSettings &settings)
                       << "Command: " << tags::reset;
 
             getline(std::cin, settings.installCommand);
-            if (settings.installCommand == "MANUAL")
+            if (settings.installCommand == "MANUAL" || settings.installCommand == "")
             {
                 std::cout << tags::yellow_bold << "Skipping automatic installation. Be sure to manually install\n"
                           << "package(s) '" << What << "' or things may break!\n"
                           << tags::reset << std::flush;
-                break;
+                return;
             }
         }
+    }
 
-        std::string command = settings.installCommand + " " + What + " 2>&1 > /dev/null";
-        result = system(command.c_str());
+    // Attempt install
+    std::string command = settings.installCommand + " " + What + " > /dev/null";
+    int result = system(command.c_str());
 
-        if (result != 0)
-        {
-            std::cout << tags::red_bold << "Command `" << command << "` failed. Please check your install command.\n"
-                      << "Note: If this is persistant, enter 'MANUAL' to skip this step. However, be\n"
-                      << "sure to install the requested package(s) ('" << What << "') manually.\n"
-                      << tags::reset;
-            settings.installCommand = "";
-        }
+    // If install failed, update user
+    if (result != 0)
+    {
+        std::cout << tags::red_bold << "Command `" << command << "` failed. Please check your install command.\n"
+                  << "Note: If this is persistant, enter 'MANUAL' to skip this step. However, be\n"
+                  << "sure to install the requested package(s) ('" << What << "') manually.\n"
+                  << tags::reset;
+        settings.installCommand = "";
     }
 
     return;
@@ -422,21 +423,6 @@ void downloadPackage(const std::string &URLArg, AcornSettings &settings, const b
         // Prepare destination
         std::string destFolderName = PACKAGE_INCLUDE_PATH + info.name;
 
-        try
-        {
-            if (fs::exists(destFolderName))
-            {
-                fs::remove_all(destFolderName);
-            }
-
-            fs::create_directories(destFolderName);
-        }
-        catch (fs::filesystem_error &e)
-        {
-            std::cout << tags::red_bold << e.what() << ": Retry as sudo/admin.\n" << tags::reset;
-            throw package_error("Failed to create package file(s).");
-        }
-
         // Install system deps
         if (info.sysDeps != "")
         {
@@ -481,12 +467,23 @@ void downloadPackage(const std::string &URLArg, AcornSettings &settings, const b
             }
         }
 
+        try
+        {
+            if (fs::exists(destFolderName))
+            {
+                fs::remove_all(destFolderName);
+            }
+
+            fs::create_directories(destFolderName);
+        }
+        catch (fs::filesystem_error &e)
+        {
+            std::cout << tags::red_bold << e.what() << ": Retry as sudo/admin.\n" << tags::reset;
+            throw package_error("Failed to create package file(s).");
+        }
+
         // Copy files
-        system(("sudo cp " + tempFolderName + "/" + path + "/*.c " + destFolderName).c_str());
-        system(("sudo cp " + tempFolderName + "/" + path + "/*.h " + destFolderName).c_str());
-        system(("sudo cp " + tempFolderName + "/" + path + "/*.o " + destFolderName).c_str());
-        system(("sudo cp " + tempFolderName + "/" + path + "/*.oak " + destFolderName).c_str());
-        system(("sudo cp " + tempFolderName + "/" + path + "/*.txt " + destFolderName).c_str());
+        fs::copy(tempFolderName, destFolderName);
 
         // Clean up garbage; Doesn't really matter if this fails
         if (fs::remove_all(PACKAGE_TEMP_LOCATION) == 0)
