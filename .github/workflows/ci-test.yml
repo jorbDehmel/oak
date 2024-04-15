@@ -1,0 +1,23 @@
+name: GitHub Actions CI/CD
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install dependencies
+      run: |
+        sudo apt install clang boost
+        make install packages
+    - name: Run tests
+      run: |
+        make test

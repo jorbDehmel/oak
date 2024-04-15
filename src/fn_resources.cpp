@@ -316,11 +316,16 @@ void generate(const std::list<std::string> &Files, const std::string &Output)
         // Reconstruct into output document
         for (std::pair<std::string, std::string> cur : data)
         {
+            if (cur.first.empty())
+            {
+                continue;
+            }
+
             out << FN_START << cur.first << "\n\n";
 
             if (cur.second == "")
             {
-                std::cout << "(No documentation was provided)\n\n";
+                out << "(No documentation was provided)\n\n";
             }
             else
             {

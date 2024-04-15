@@ -14,10 +14,10 @@ LIB_OBJ := ../bin/oakc.so
 FLAGS := -O3 -g -Wall -pedantic
 
 .PHONY:	test
-all:	$(TARGETS) clean
+all:	$(TARGETS)
 
 %.out:	%.cpp $(LIB_OBJ)
-	$(CC) $(FLAGS) -o $@ $^ && ./$@
+	$(CC) $(FLAGS) -o $@ $^ && ./$@ && rm $@
 
 $(LIB_OBJ):
 	$(MAKE) -C .. so
