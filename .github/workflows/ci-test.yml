@@ -17,7 +17,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt update && sudo apt upgrade -y
-        sudo apt install -y clang libboost-all-dev git
+        sudo apt install -y valgrind clang libboost-all-dev git
         sudo apt install -y libsdl2-dev colorized-logs
         make install packages so
     - name: Run tests
