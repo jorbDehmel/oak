@@ -6,10 +6,10 @@ all:
 		time.o panic.o sock.o cstr.o string.o
 
 %.o:	%.c
-	clang $(FLAGS) -c -o $@ $<
+	clang -std=c17 $(FLAGS) -c -o $@ $<
 
 %.o:	%.cpp
-	clang++ $(FLAGS) -c -o $@ $<
+	clang++ -std=c++17 $(FLAGS) -c -o $@ $<
 
 clean:
 	rm *.o

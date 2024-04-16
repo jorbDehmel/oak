@@ -8,7 +8,8 @@ jdehmel@outlook.com
 #include "../oakc_fns.hpp"
 #include "test.hpp"
 
-static void assertEqual(const std::list<Token> &obs, const std::list<Token> &exp)
+static void assertEqual(const std::list<Token> &obs,
+                        const std::list<Token> &exp)
 {
     bool isEqual = true;
 
@@ -48,7 +49,9 @@ static void assertEqual(const std::list<Token> &obs, const std::list<Token> &exp
         }
         std::cerr << '\n';
 
-        throw std::runtime_error(__FUNCTION__ + std::string(":") + std::to_string(__LINE__));
+        throw std::runtime_error(__FUNCTION__ +
+                                 std::string(":") +
+                                 std::to_string(__LINE__));
     }
 }
 
@@ -73,7 +76,8 @@ int main()
     // Math and logic
     test("1 + 2", "Add(1, 2)");
     test("20.0 / 10.0", "Div(20.0, 10.0)");
-    test("1 + 2 / 3 * 4 + 5", "Add(Add(1, Mult(Div(2, 3), 4)), 5)");
+    test("1 + 2 / 3 * 4 + 5",
+         "Add(Add(1, Mult(Div(2, 3), 4)), 5)");
     test("a && !b && c", "Andd(Andd(a, Not(b)), c)");
     test("a || !b || c", "Orr(Orr(a, Not(b)), c)");
 

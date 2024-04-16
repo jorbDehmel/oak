@@ -74,11 +74,15 @@ class Token
     unsigned int line, pos;
     std::string file;
 
-    Token() : text(""), state(alpha_state), line(-1), pos(-1), file("NULL")
+    Token()
+        : text(""), state(alpha_state), line(-1), pos(-1),
+          file("NULL")
     {
     }
 
-    Token(const std::string &other) : text(other), state(alpha_state), line(-1), pos(-1), file("NULL")
+    Token(const std::string &other)
+        : text(other), state(alpha_state), line(-1), pos(-1),
+          file("NULL")
     {
     }
 
@@ -100,7 +104,8 @@ class Token
         return text;
     }
 
-    inline Token operator+(const std::string &other) const noexcept
+    inline Token operator+(
+        const std::string &other) const noexcept
     {
         Token out = *this;
         out.text += other;
@@ -166,7 +171,9 @@ class Token
         return text.c_str();
     }
 
-    inline std::string substr(const int &start, const unsigned long long &n) const noexcept
+    inline std::string substr(
+        const int &start,
+        const unsigned long long &n) const noexcept
     {
         if (start + n > text.size())
         {
@@ -212,13 +219,16 @@ class Lexer
     void file(const std::string &filepath);
 
     // Load from a file, but still with a filepath
-    void str(const std::string &from, const std::string &filepath) noexcept;
+    void str(const std::string &from,
+             const std::string &filepath) noexcept;
 
     // Load a full token stream from a given string
     std::list<Token> str_all(const std::string &from) noexcept;
 
     // Load a full token stream from a given string (w/ file)
-    std::list<Token> str_all(const std::string &from, const std::string &filepath) noexcept;
+    std::list<Token> str_all(
+        const std::string &from,
+        const std::string &filepath) noexcept;
 
     // Yield a single token
     Token single();
@@ -226,8 +236,10 @@ class Lexer
     // Returns true when exhausted
     bool done() const noexcept;
 
-    // std::vector<Token> lex(const std::string &What, const std::string &filepath = "");
-    std::list<Token> lex_list(const std::string &What, const std::string &filepath = "");
+    // std::vector<Token> lex(const std::string &What, const
+    // std::string &filepath = "");
+    std::list<Token> lex_list(const std::string &What,
+                              const std::string &filepath = "");
 
   private:
     // Text handling members

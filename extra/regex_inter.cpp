@@ -1,5 +1,7 @@
 #include "/usr/include/oak/std/string.c"
 #include "/usr/include/oak/std_oak_header.h"
+
+#define BOOST_REGEX_STANDALONE
 #include <boost/regex.hpp>
 
 struct extra_regex

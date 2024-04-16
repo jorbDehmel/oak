@@ -50,10 +50,13 @@ int main()
 
     // Don't forget about function mangling!
     a = toType("(a: i32, b: f32) -> void");
-    fakeAssert(toStrCFunction(&a, s, "foo") == "void foo_FN_i32_JOIN_f32_MAPS_void(i32 a, f32 b)");
+    fakeAssert(
+        toStrCFunction(&a, s, "foo") ==
+        "void foo_FN_i32_JOIN_f32_MAPS_void(i32 a, f32 b)");
 
     a.prepend(pointer);
-    fakeAssert(toStrCFunctionRef(&a, s, "foo") == "void (*foo)(i32, f32)");
+    fakeAssert(toStrCFunctionRef(&a, s, "foo") ==
+               "void (*foo)(i32, f32)");
 
     // Check literal tests
     fakeAssert(checkLiteral("foobar") == nullType);
@@ -62,10 +65,13 @@ int main()
     fakeAssert(checkLiteral("123.456") == Type(atomic, "f64"));
     fakeAssert(checkLiteral("true") == Type(atomic, "bool"));
     fakeAssert(checkLiteral("false") == Type(atomic, "bool"));
-    fakeAssert(checkLiteral("0b11110000") == Type(atomic, "u8"));
+    fakeAssert(checkLiteral("0b11110000") ==
+               Type(atomic, "u8"));
     fakeAssert(checkLiteral("0xFF00") == Type(atomic, "u16"));
-    fakeAssert(checkLiteral("'foobar foo'") == Type(atomic, "str"));
-    fakeAssert(checkLiteral("\"foobar foo\"") == Type(atomic, "str"));
+    fakeAssert(checkLiteral("'foobar foo'") ==
+               Type(atomic, "str"));
+    fakeAssert(checkLiteral("\"foobar foo\"") ==
+               Type(atomic, "str"));
 
     return 0;
 }

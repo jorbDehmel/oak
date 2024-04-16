@@ -4,6 +4,9 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.6.1           | 4/15/24  | Added makefile rule for formatting.
+                |          | Also minor bug fixes.
+                |          |
 0.6.0           | 4/14/24  | Revamped `std` package, rules
                 |          | system, added unittests. Ensured
                 |          | compliance to new rule system; Code

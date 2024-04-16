@@ -7,12 +7,17 @@ jdehmel@outlook.com
 #include "oakc_fns.hpp"
 #include "oakc_structs.hpp"
 
-#define rm_assert(expression, message)                                                                                 \
-    ((bool)(expression) ? true : throw rule_error(message " (Failed assertion: '" #expression "')"))
+#define rm_assert(expression, message)                         \
+    ((bool)(expression)                                        \
+         ? true                                                \
+         : throw rule_error(                                   \
+               message " (Failed assertion: '" #expression     \
+                       "')"))
 
 // I is the point in Lexed at which a macro name was found
 // CONSUMPTIVE!
-std::list<std::string> getMacroArgs(std::list<Token> &lexed, std::list<Token>::iterator &it)
+std::list<std::string> getMacroArgs(
+    std::list<Token> &lexed, std::list<Token>::iterator &it)
 {
     std::list<std::string> out;
 
@@ -20,7 +25,8 @@ std::list<std::string> getMacroArgs(std::list<Token> &lexed, std::list<Token>::i
 
     if (*it != "(")
     {
-        throw std::runtime_error("Internal error; Malformed call to getMacroArgs.");
+        throw std::runtime_error(
+            "Internal error; Malformed call to getMacroArgs.");
     }
 
     // Erase opening parenthesis
@@ -40,7 +46,8 @@ std::list<std::string> getMacroArgs(std::list<Token> &lexed, std::list<Token>::i
             count--;
         }
 
-        if ((*it == "," && count == 1) || (*it == ")" && count == 0))
+        if ((*it == "," && count == 1) ||
+            (*it == ")" && count == 0))
         {
             out.push_back(cur);
             cur = "";
@@ -65,13 +72,18 @@ void doRules(std::list<Token> &From, AcornSettings &settings)
 {
     if (settings.doRuleLogFile)
     {
-        settings.ruleLogFile.open(".oak_build/__rule_log.log", std::ios::out | std::ios::app);
+        settings.ruleLogFile.open(".oak_build/__rule_log.log",
+                                  std::ios::out |
+                                      std::ios::app);
         if (!settings.ruleLogFile.is_open())
         {
-            throw rule_error("Failed to open rule log file '.oak_build/__rule_log.log'");
+            throw rule_error("Failed to open rule log file "
+                             "'.oak_build/__rule_log.log'");
         }
 
-        settings.ruleLogFile << "\n\n/////////// In file " << settings.curFile << " ///////////\n\n";
+        settings.ruleLogFile << "\n\n/////////// In file "
+                             << settings.curFile
+                             << " ///////////\n\n";
     }
 
     for (auto it = From.begin(); it != From.end(); it++)
@@ -82,14 +94,21 @@ void doRules(std::list<Token> &From, AcornSettings &settings)
             auto args = getMacroArgs(From, it);
             for (auto &j : args)
             {
-                rm_assert(j.size() >= 2, "Rule macro argument is of insufficient size.");
-                rm_assert((j.front() == '"' && j.back() == '"') || (j.front() == '\'' && j.back() == '\''),
-                          "All rule macro arguments must be strings.");
+                rm_assert(j.size() >= 2,
+                          "Rule macro argument is of "
+                          "insufficient size.");
+                rm_assert(
+                    (j.front() == '"' && j.back() == '"') ||
+                        (j.front() == '\'' && j.back() == '\''),
+                    "All rule macro arguments must be "
+                    "strings.");
                 j.pop_back();
                 j.erase(0, 1);
             }
 
-            rm_assert(args.size() == 3 || args.size() == 4, "new_rule! requires three or four arguments.");
+            rm_assert(
+                args.size() == 3 || args.size() == 4,
+                "new_rule! requires three or four arguments.");
 
             std::string name = args.front();
             Rule toAdd;
@@ -115,8 +134,10 @@ void doRules(std::list<Token> &From, AcornSettings &settings)
             {
                 // Custom rule engine: Look up in engine table
 
-                rm_assert(settings.engines.count(*argIter) != 0,
-                          "Failed to load unknown rule engine '" + *argIter + "'");
+                rm_assert(
+                    settings.engines.count(*argIter) != 0,
+                    "Failed to load unknown rule engine '" +
+                        *argIter + "'");
                 toAdd.engineName = *argIter;
             }
 
@@ -131,19 +152,29 @@ void doRules(std::list<Token> &From, AcornSettings &settings)
             auto args = getMacroArgs(From, it);
             for (auto &j : args)
             {
-                rm_assert(j.size() >= 2, "Rule macro argument is of insufficient size.");
-                rm_assert((j.front() == '"' && j.back() == '"') || (j.front() == '\'' && j.back() == '\''),
-                          "All rule macro arguments must be strings.");
+                rm_assert(j.size() >= 2,
+                          "Rule macro argument is of "
+                          "insufficient size.");
+                rm_assert(
+                    (j.front() == '"' && j.back() == '"') ||
+                        (j.front() == '\'' && j.back() == '\''),
+                    "All rule macro arguments must be "
+                    "strings.");
                 j.pop_back();
                 j.erase(0, 1);
             }
 
-            rm_assert(args.size() > 0, "use_rule! requires at least one argument.");
+            rm_assert(
+                args.size() > 0,
+                "use_rule! requires at least one argument.");
 
             for (auto arg : args)
             {
-                rm_assert(settings.rules.count(arg) != 0 || settings.bundles.count(arg) != 0,
-                          "Rule '" + arg + "' does not exist and is not a bundle.");
+                rm_assert(settings.rules.count(arg) != 0 ||
+                              settings.bundles.count(arg) != 0,
+                          "Rule '" + arg +
+                              "' does not exist and is not a "
+                              "bundle.");
 
                 // bundles override rules with the same name
                 if (settings.bundles.count(arg) != 0)
@@ -168,9 +199,14 @@ void doRules(std::list<Token> &From, AcornSettings &settings)
             auto args = getMacroArgs(From, it);
             for (auto &j : args)
             {
-                rm_assert(j.size() >= 2, "Rule macro argument is of insufficient size.");
-                rm_assert((j.front() == '"' && j.back() == '"') || (j.front() == '\'' && j.back() == '\''),
-                          "All rule macro arguments must be strings.");
+                rm_assert(j.size() >= 2,
+                          "Rule macro argument is of "
+                          "insufficient size.");
+                rm_assert(
+                    (j.front() == '"' && j.back() == '"') ||
+                        (j.front() == '\'' && j.back() == '\''),
+                    "All rule macro arguments must be "
+                    "strings.");
                 j.pop_back();
                 j.erase(0, 1);
             }
@@ -184,17 +220,20 @@ void doRules(std::list<Token> &From, AcornSettings &settings)
             for (auto arg : args)
             {
                 bool found = false;
-                for (int j = settings.activeRules.size() - 1; j >= 0; j--)
+                for (int j = settings.activeRules.size() - 1;
+                     j >= 0; j--)
                 {
                     if (settings.activeRules[j] == arg)
                     {
                         found = true;
-                        settings.activeRules.erase(settings.activeRules.begin() + j);
+                        settings.activeRules.erase(
+                            settings.activeRules.begin() + j);
                         break;
                     }
                 }
 
-                rm_assert(found, "Rule '" + arg + "' is not in use.");
+                rm_assert(found,
+                          "Rule '" + arg + "' is not in use.");
             }
         }
 
@@ -206,14 +245,21 @@ void doRules(std::list<Token> &From, AcornSettings &settings)
             auto args = getMacroArgs(From, it);
             for (auto &j : args)
             {
-                rm_assert(j.size() >= 2, "Rule macro argument is of insufficient size.");
-                rm_assert((j.front() == '"' && j.back() == '"') || (j.front() == '\'' && j.back() == '\''),
-                          "All rule macro arguments must be strings.");
+                rm_assert(j.size() >= 2,
+                          "Rule macro argument is of "
+                          "insufficient size.");
+                rm_assert(
+                    (j.front() == '"' && j.back() == '"') ||
+                        (j.front() == '\'' && j.back() == '\''),
+                    "All rule macro arguments must be "
+                    "strings.");
                 j.pop_back();
                 j.erase(0, 1);
             }
 
-            rm_assert(args.size() > 1, "bundle_rule! requires at least two arguments.");
+            rm_assert(args.size() > 1,
+                      "bundle_rule! requires at least two "
+                      "arguments.");
 
             std::string name = args.front();
             for (auto it = args.begin(); it != args.end(); it++)
@@ -227,41 +273,60 @@ void doRules(std::list<Token> &From, AcornSettings &settings)
             }
         }
 
-        // Regular case; Non-rule-macro symbol. Check against active rules.
+        // Regular case; Non-rule-macro symbol. Check against
+        // active rules.
         else
         {
             int ruleIndex = 0;
 
             // Special case for dialect-skipping files
-            if (settings.file_tags.count(settings.curFile) != 0 &&
-                settings.file_tags[settings.curFile].count("no_dialect") != 0)
+            if (settings.file_tags.count(settings.curFile) !=
+                    0 &&
+                settings.file_tags[settings.curFile].count(
+                    "no_dialect") != 0)
             {
                 ruleIndex = settings.dialectRules.size();
             }
 
-            for (; ruleIndex < settings.dialectRules.size() + settings.activeRules.size(); ruleIndex++)
+            for (; ruleIndex < settings.dialectRules.size() +
+                                   settings.activeRules.size();
+                 ruleIndex++)
             {
                 Rule curRule;
                 if (ruleIndex < settings.dialectRules.size())
                 {
-                    if (settings.rules.count(settings.dialectRules[ruleIndex]) == 0)
+                    if (settings.rules.count(
+                            settings.dialectRules[ruleIndex]) ==
+                        0)
                     {
                         continue;
                     }
 
-                    curRule = settings.rules[settings.dialectRules[ruleIndex]];
+                    curRule =
+                        settings.rules
+                            [settings.dialectRules[ruleIndex]];
                 }
                 else
                 {
-                    if (settings.rules.count(settings.activeRules[ruleIndex - settings.dialectRules.size()]) == 0)
+                    if (settings.rules.count(
+                            settings.activeRules
+                                [ruleIndex -
+                                 settings.dialectRules
+                                     .size()]) == 0)
                     {
                         continue;
                     }
 
-                    curRule = settings.rules[settings.activeRules[ruleIndex - settings.dialectRules.size()]];
+                    curRule =
+                        settings
+                            .rules[settings.activeRules
+                                       [ruleIndex -
+                                        settings.dialectRules
+                                            .size()]];
                 }
 
-                if (!itIsInRange(From, it, curRule.inputPattern.size()))
+                if (!itIsInRange(From, it,
+                                 curRule.inputPattern.size()))
                 {
                     continue;
                 }
@@ -271,19 +336,23 @@ void doRules(std::list<Token> &From, AcornSettings &settings)
                 {
                     doRuleAcorn(From, it, curRule, settings);
                 }
-                else if (settings.engines.count(curRule.engineName) == 0)
+                else if (settings.engines.count(
+                             curRule.engineName) == 0)
                 {
-                    throw rule_error("Unknown rule engine '" + curRule.engineName + "'");
+                    throw rule_error("Unknown rule engine '" +
+                                     curRule.engineName + "'");
                 }
                 else
                 {
-                    settings.engines[curRule.engineName](From, it, curRule, settings);
+                    settings.engines[curRule.engineName](
+                        From, it, curRule, settings);
                 }
             }
         }
     }
 
-    if (settings.doRuleLogFile && settings.ruleLogFile.is_open())
+    if (settings.doRuleLogFile &&
+        settings.ruleLogFile.is_open())
     {
         settings.ruleLogFile.close();
     }
@@ -291,7 +360,8 @@ void doRules(std::list<Token> &From, AcornSettings &settings)
     return;
 }
 
-void loadDialectFile(const std::string &File, AcornSettings &settings)
+void loadDialectFile(const std::string &File,
+                     AcornSettings &settings)
 {
     if (settings.dialectLock)
     {
@@ -310,7 +380,8 @@ void loadDialectFile(const std::string &File, AcornSettings &settings)
     std::ifstream inp(File);
     if (!inp.is_open())
     {
-        throw rule_error("Failed to open dialect file '" + File + "'");
+        throw rule_error("Failed to open dialect file '" +
+                         File + "'");
     }
 
     std::string engine = "sapling";
@@ -326,7 +397,8 @@ void loadDialectFile(const std::string &File, AcornSettings &settings)
             continue;
         }
 
-        if (line.size() > 1 && line.front() == '[' && line.back() == ']')
+        if (line.size() > 1 && line.front() == '[' &&
+            line.back() == ']')
         {
             // Engine change flag
 
@@ -334,7 +406,9 @@ void loadDialectFile(const std::string &File, AcornSettings &settings)
 
             if (settings.engines.count(engine) == 0)
             {
-                throw rule_error("Error: Unknown rule engine '" + engine + "'");
+                throw rule_error(
+                    "Error: Unknown rule engine '" + engine +
+                    "'");
             }
 
             continue;
@@ -344,7 +418,8 @@ void loadDialectFile(const std::string &File, AcornSettings &settings)
         std::string cur;
 
         lineStream >> cur;
-        if (cur.size() != 0 && (cur.front() == '"' || cur.front() == '\''))
+        if (cur.size() != 0 &&
+            (cur.front() == '"' || cur.front() == '\''))
         {
             // Remember that all args must be strings, even here
 
@@ -352,14 +427,16 @@ void loadDialectFile(const std::string &File, AcornSettings &settings)
             std::string inputStr, outputStr;
             Rule toAdd;
 
-            name = "dialect_rule_" + std::to_string(settings.dialectRules.size());
+            name = "dialect_rule_" +
+                   std::to_string(settings.dialectRules.size());
 
             // Insert into dialectRules list
             settings.dialectRules.push_back(name);
 
             // Get input pattern
             inputStr = cur;
-            while (!inputStr.empty() && (inputStr.back() != inputStr.front()))
+            while (!inputStr.empty() &&
+                   (inputStr.back() != inputStr.front()))
             {
                 lineStream >> cur;
                 inputStr += " " + cur;
@@ -368,16 +445,19 @@ void loadDialectFile(const std::string &File, AcornSettings &settings)
 
             // Get output pattern
             lineStream >> outputStr;
-            while (!outputStr.empty() && (outputStr.back() != outputStr.front()))
+            while (!outputStr.empty() &&
+                   (outputStr.back() != outputStr.front()))
             {
                 lineStream >> cur;
                 outputStr += " " + cur;
             }
-            outputStr = outputStr.substr(1, outputStr.size() - 2);
+            outputStr =
+                outputStr.substr(1, outputStr.size() - 2);
 
             // Lex patterns
             Lexer dfa_lexer;
-            rm_assert(inputStr != "", "Input rule must be non-empty.");
+            rm_assert(inputStr != "",
+                      "Input rule must be non-empty.");
 
             auto lexed = dfa_lexer.lex_list(inputStr);
             toAdd.inputPattern = {lexed.begin(), lexed.end()};
@@ -386,7 +466,8 @@ void loadDialectFile(const std::string &File, AcornSettings &settings)
             {
                 lexed = dfa_lexer.lex_list(outputStr);
 
-                toAdd.outputPattern = {lexed.begin(), lexed.end()};
+                toAdd.outputPattern = {lexed.begin(),
+                                       lexed.end()};
             }
 
             // Fetch engine based on current
@@ -417,7 +498,9 @@ void loadDialectFile(const std::string &File, AcornSettings &settings)
         }
         else
         {
-            throw rule_error(File + ":" + std::to_string(lineNum) + " Invalid line '" + line + "'");
+            throw rule_error(File + ":" +
+                             std::to_string(lineNum) +
+                             " Invalid line '" + line + "'");
         }
     }
 
@@ -426,7 +509,9 @@ void loadDialectFile(const std::string &File, AcornSettings &settings)
     return;
 }
 
-void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &curRule, AcornSettings &settings)
+void doRuleAcorn(std::list<Token> &Text,
+                 std::list<Token>::iterator &i, Rule &curRule,
+                 AcornSettings &settings)
 {
     auto posInText = i;
     std::list<std::string> memory;
@@ -434,7 +519,9 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
     bool isMatch = true;
 
     int k = 0;
-    for (k = 0; posInText != Text.end() && k < curRule.inputPattern.size(); k++)
+    for (k = 0; posInText != Text.end() &&
+                k < curRule.inputPattern.size();
+         k++)
     {
         std::string curPatternToken = curRule.inputPattern[k];
 
@@ -456,8 +543,12 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
         // Globs; Un-stored multi-symbol matches
         else if (curPatternToken == "$*")
         {
-            rm_assert(k + 1 < curRule.inputPattern.size(), "Glob card '$*' must not be end of rule.");
-            rm_assert(curRule.inputPattern[k + 1][0] != '$', "Glob card '$*' must be followed by literal.");
+            rm_assert(
+                k + 1 < curRule.inputPattern.size(),
+                "Glob card '$*' must not be end of rule.");
+            rm_assert(
+                curRule.inputPattern[k + 1][0] != '$',
+                "Glob card '$*' must be followed by literal.");
 
             std::string nextSymb = curRule.inputPattern[k + 1];
 
@@ -477,8 +568,12 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
         }
         else if (curPatternToken == "$+")
         {
-            rm_assert(k + 1 < curRule.inputPattern.size(), "Glob card '$+' must not be end of rule.");
-            rm_assert(curRule.inputPattern[k + 1][0] != '$', "Glob card '$+' must be followed by literal.");
+            rm_assert(
+                k + 1 < curRule.inputPattern.size(),
+                "Glob card '$+' must not be end of rule.");
+            rm_assert(
+                curRule.inputPattern[k + 1][0] != '$',
+                "Glob card '$+' must be followed by literal.");
             std::string nextSymb = curRule.inputPattern[k + 1];
 
             if (*posInText == nextSymb)
@@ -509,11 +604,14 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
         }
 
         // Pipe memory onto end of variable
-        else if (curPatternToken.size() >= 3 && curPatternToken.substr(0, 2) == "$>")
+        else if (curPatternToken.size() >= 3 &&
+                 curPatternToken.substr(0, 2) == "$>")
         {
-            std::string name = "$" + curPatternToken.substr(2, 1);
+            std::string name =
+                "$" + curPatternToken.substr(2, 1);
 
-            for (auto it = memory.cbegin(); it != memory.cend(); it++)
+            for (auto it = memory.cbegin(); it != memory.cend();
+                 it++)
             {
                 ruleVars[name].push_back(*it);
             }
@@ -522,7 +620,8 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
         }
 
         // Go back to previous match item unless literal
-        else if (curPatternToken.size() > 2 && curPatternToken.substr(0, 2) == "$-")
+        else if (curPatternToken.size() > 2 &&
+                 curPatternToken.substr(0, 2) == "$-")
         {
             if (*posInText == curPatternToken.substr(2))
             {
@@ -532,10 +631,12 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
 
         // Negative lookbehind
         // Not prefaced by some literal
-        else if (curPatternToken.size() > 4 && curPatternToken.substr(0, 4) == "$/<$")
+        else if (curPatternToken.size() > 4 &&
+                 curPatternToken.substr(0, 4) == "$/<$")
         {
             // PosInFrom does not advance upon success
-            if (itCmp(Text, posInText, -1, curPatternToken.substr(4)))
+            if (itCmp(Text, posInText, -1,
+                      curPatternToken.substr(4)))
             {
                 isMatch = false;
                 break;
@@ -546,10 +647,12 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
 
         // Negative lookahead
         // Not followed by some literal
-        else if (curPatternToken.size() > 4 && curPatternToken.substr(0, 4) == "$/>$")
+        else if (curPatternToken.size() > 4 &&
+                 curPatternToken.substr(0, 4) == "$/>$")
         {
             // PosInFrom does not advance upon success
-            if (itCmp(Text, posInText, 1, curPatternToken.substr(4)))
+            if (itCmp(Text, posInText, 1,
+                      curPatternToken.substr(4)))
             {
                 isMatch = false;
                 break;
@@ -560,7 +663,8 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
 
         // Suite
         // $[$suite$of$cards$]
-        else if (curPatternToken.size() > 3 && curPatternToken.substr(0, 3) == "$[$")
+        else if (curPatternToken.size() > 3 &&
+                 curPatternToken.substr(0, 3) == "$[$")
         {
             // Matches any of the items within
 
@@ -574,7 +678,8 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
                 do
                 {
                     end++;
-                } while (end < curPatternToken.size() && curPatternToken[end] != '$');
+                } while (end < curPatternToken.size() &&
+                         curPatternToken[end] != '$');
 
                 if (end >= curPatternToken.size())
                 {
@@ -584,7 +689,8 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
 
                 // Do actual compare here
                 // If matches, isMatch. Otherwise, keep going.
-                if (curPatternToken.substr(start, end - start) == posInText->text)
+                if (curPatternToken.substr(
+                        start, end - start) == posInText->text)
                 {
                     posInText++;
                     break;
@@ -598,7 +704,8 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
 
         // Negated suite
         // $/[$negated$suite$of$cards$]
-        else if (curPatternToken.size() > 4 && curPatternToken.substr(0, 4) == "$/[$")
+        else if (curPatternToken.size() > 4 &&
+                 curPatternToken.substr(0, 4) == "$/[$")
         {
             // Matches anything but the items within
 
@@ -612,7 +719,8 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
                 do
                 {
                     end++;
-                } while (end < curPatternToken.size() && curPatternToken[end] != '$');
+                } while (end < curPatternToken.size() &&
+                         curPatternToken[end] != '$');
 
                 if (end >= curPatternToken.size())
                 {
@@ -621,8 +729,10 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
                 }
 
                 // Do actual compare here
-                // If matches, is not match. Otherwise, keep going.
-                if (curPatternToken.substr(start, end - start) == posInText->text)
+                // If matches, is not match. Otherwise, keep
+                // going.
+                if (curPatternToken.substr(
+                        start, end - start) == posInText->text)
                 {
                     isMatch = false;
                     break;
@@ -637,9 +747,11 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
         // Glob suit
         // $*[$suit$of$cards$]
         else if (curPatternToken.size() > 4 &&
-                 (curPatternToken.substr(0, 4) == "$*[$" || curPatternToken.substr(0, 4) == "$+[$"))
+                 (curPatternToken.substr(0, 4) == "$*[$" ||
+                  curPatternToken.substr(0, 4) == "$+[$"))
         {
-            // Matches any of the items within any number of times
+            // Matches any of the items within any number of
+            // times
 
             std::set<std::string> items;
             int start, end;
@@ -651,14 +763,16 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
                 do
                 {
                     end++;
-                } while (end < curPatternToken.size() && curPatternToken[end] != '$');
+                } while (end < curPatternToken.size() &&
+                         curPatternToken[end] != '$');
 
                 if (end >= curPatternToken.size())
                 {
                     break;
                 }
 
-                items.insert(curPatternToken.substr(start, end - start));
+                items.insert(
+                    curPatternToken.substr(start, end - start));
 
                 end++;
             }
@@ -687,9 +801,11 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
         // Negated glob suit
         // $*/[$negated$suit$of$cards$]
         else if (curPatternToken.size() > 5 &&
-                 (curPatternToken.substr(0, 5) == "$*/[$" || curPatternToken.substr(0, 5) == "$+/[$"))
+                 (curPatternToken.substr(0, 5) == "$*/[$" ||
+                  curPatternToken.substr(0, 5) == "$+/[$"))
         {
-            // Matches anything but the items within any number of times
+            // Matches anything but the items within any number
+            // of times
 
             std::set<std::string> items;
             int start, end;
@@ -702,14 +818,16 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
                 do
                 {
                     end++;
-                } while (end < curPatternToken.size() && curPatternToken[end] != '$');
+                } while (end < curPatternToken.size() &&
+                         curPatternToken[end] != '$');
 
                 if (end >= curPatternToken.size())
                 {
                     break;
                 }
 
-                items.insert(curPatternToken.substr(start, end - start));
+                items.insert(
+                    curPatternToken.substr(start, end - start));
 
                 end++;
             }
@@ -737,22 +855,28 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
 
         // $<$open$close$>
         // Pair matching
-        else if (curPatternToken.size() > 7 && curPatternToken.substr(0, 3) == "$<$")
+        else if (curPatternToken.size() > 7 &&
+                 curPatternToken.substr(0, 3) == "$<$")
         {
             int endOfOpener = 3;
-            while (endOfOpener < curPatternToken.size() && curPatternToken[endOfOpener] != '$')
+            while (endOfOpener < curPatternToken.size() &&
+                   curPatternToken[endOfOpener] != '$')
             {
                 endOfOpener++;
             }
 
             int endOfCloser = endOfOpener + 1;
-            while (endOfCloser < curPatternToken.size() && curPatternToken[endOfCloser] != '$')
+            while (endOfCloser < curPatternToken.size() &&
+                   curPatternToken[endOfCloser] != '$')
             {
                 endOfCloser++;
             }
 
-            std::string opener = curPatternToken.substr(3, endOfOpener - 3),
-                        closer = curPatternToken.substr(endOfOpener + 1, endOfCloser - endOfOpener - 1);
+            std::string opener = curPatternToken.substr(
+                            3, endOfOpener - 3),
+                        closer = curPatternToken.substr(
+                            endOfOpener + 1,
+                            endOfCloser - endOfOpener - 1);
             long long count = 0;
 
             auto beginningPosition = posInText;
@@ -780,7 +904,8 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
                 posInText++;
             } while (posInText != Text.end() && count != 0);
 
-            if (!isMatch || posInText == beginningPosition || posInText == std::next(beginningPosition))
+            if (!isMatch || posInText == beginningPosition ||
+                posInText == std::next(beginningPosition))
             {
                 isMatch = false;
                 posInText = beginningPosition;
@@ -794,7 +919,8 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
         // Variable; Stored match
         else if (curPatternToken[0] == '$')
         {
-            throw rule_error("Invalid $apling input card '" + curPatternToken + "'.");
+            throw rule_error("Invalid $apling input card '" +
+                             curPatternToken + "'.");
         }
 
         // Literal; Must match verbatim
@@ -814,7 +940,8 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
         }
     }
 
-    if (posInText == Text.end() && k < curRule.inputPattern.size())
+    if (posInText == Text.end() &&
+        k < curRule.inputPattern.size())
     {
         isMatch = false;
     }
@@ -830,7 +957,8 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
         Token templ = *i;
         templ.text = "NULL";
 
-        for (int sIndex = 0; sIndex < curRule.outputPattern.size(); sIndex++)
+        for (int sIndex = 0;
+             sIndex < curRule.outputPattern.size(); sIndex++)
         {
             std::string s = curRule.outputPattern[sIndex];
 
@@ -838,27 +966,37 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
             {
                 if (ruleVars.count(s) != 0)
                 {
-                    newContents.insert(newContents.end(), ruleVars[s].begin(), ruleVars[s].end());
+                    newContents.insert(newContents.end(),
+                                       ruleVars[s].begin(),
+                                       ruleVars[s].end());
                 }
                 else if (s == "$<")
                 {
                     // Merge operator
-                    rm_assert(!newContents.empty(), "Cannot use merge card '$<' on empty output.");
-                    rm_assert(sIndex + 1 < curRule.outputPattern.size(), "Merge card '$<' must not be end of rule.");
+                    rm_assert(!newContents.empty(),
+                              "Cannot use merge card '$<' on "
+                              "empty output.");
+                    rm_assert(sIndex + 1 <
+                                  curRule.outputPattern.size(),
+                              "Merge card '$<' must not be end "
+                              "of rule.");
 
-                    std::string toInsert = curRule.outputPattern[sIndex + 1];
+                    std::string toInsert =
+                        curRule.outputPattern[sIndex + 1];
 
                     if (ruleVars.count(toInsert) != 0)
                     {
                         std::string varName = toInsert;
                         toInsert = "";
-                        for (const auto &str : ruleVars[varName])
+                        for (const auto &str :
+                             ruleVars[varName])
                         {
                             toInsert.append(str);
                         }
                     }
 
-                    if (sIndex + 1 < curRule.outputPattern.size())
+                    if (sIndex + 1 <
+                        curRule.outputPattern.size())
                     {
                         sIndex++;
                     }
@@ -876,21 +1014,25 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
         // Log if needed
         if (settings.doRuleLogFile)
         {
-            settings.ruleLogFile << "Sapling rule w/ Input pattern\t";
+            settings.ruleLogFile
+                << "Sapling rule w/ Input pattern\t";
 
             for (const auto &what : curRule.inputPattern)
             {
-                settings.ruleLogFile << "'" << what.text << "' ";
+                settings.ruleLogFile << "'" << what.text
+                                     << "' ";
             }
 
             settings.ruleLogFile << "\nOutput pattern\t";
 
             for (const auto &what : curRule.outputPattern)
             {
-                settings.ruleLogFile << "'" << what.text << "' ";
+                settings.ruleLogFile << "'" << what.text
+                                     << "' ";
             }
 
-            settings.ruleLogFile << "\nAbout line " << i->line << "\nMatch '";
+            settings.ruleLogFile << "\nAbout line " << i->line
+                                 << "\nMatch '";
         }
 
         // Erase old contents
@@ -905,7 +1047,8 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
         }
 
         // Correct lines and files
-        for (auto it = newContents.begin(); it != newContents.end(); it++)
+        for (auto it = newContents.begin();
+             it != newContents.end(); it++)
         {
             it->file = templ.file;
             it->line = templ.line;
@@ -924,14 +1067,17 @@ void doRuleAcorn(std::list<Token> &Text, std::list<Token>::iterator &i, Rule &cu
         }
 
         // Insert new contents
-        i = Text.insert(i, newContents.begin(), newContents.end());
+        i = Text.insert(i, newContents.begin(),
+                        newContents.end());
     }
 
     ruleVars.clear();
 }
 
 void addEngine(const std::string &name,
-               void (*hook)(std::list<Token> &, std::list<Token>::iterator &, Rule &, AcornSettings &),
+               void (*hook)(std::list<Token> &,
+                            std::list<Token>::iterator &,
+                            Rule &, AcornSettings &),
                AcornSettings &settings)
 {
     settings.engines[name] = hook;

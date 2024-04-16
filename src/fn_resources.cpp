@@ -21,8 +21,9 @@ GPLv3 held by author
 // Runs in O(offset), unfortunately, so only use for small
 // offsets. If it is too close to the beginning or end of
 // `inside`, will return false,
-bool itCmp(const std::list<Token> &inside, const std::list<Token>::iterator &it, const int &offset,
-           const Token &compareTo) noexcept
+bool itCmp(const std::list<Token> &inside,
+           const std::list<Token>::iterator &it,
+           const int &offset, const Token &compareTo) noexcept
 {
     auto temp = it;
 
@@ -54,13 +55,17 @@ bool itCmp(const std::list<Token> &inside, const std::list<Token>::iterator &it,
     return *temp == compareTo;
 }
 
-bool itCmp(const std::list<Token> &inside, const std::list<Token>::iterator &it, const int &offset,
+bool itCmp(const std::list<Token> &inside,
+           const std::list<Token>::iterator &it,
+           const int &offset,
            const std::string &compareTo) noexcept
 {
     return itCmp(inside, it, offset, Token(compareTo));
 }
 
-bool itCmp(const std::list<Token> &inside, const std::list<Token>::const_iterator &it, const int &offset,
+bool itCmp(const std::list<Token> &inside,
+           const std::list<Token>::const_iterator &it,
+           const int &offset,
            const std::string &compareTo) noexcept
 {
     auto temp = it;
@@ -94,9 +99,16 @@ bool itCmp(const std::list<Token> &inside, const std::list<Token>::const_iterato
 }
 
 // Returns true if the given iterator is in range.
-bool itIsInRange(const std::list<Token> &inside, const std::list<Token>::iterator &it, const int &offset) noexcept
+bool itIsInRange(const std::list<Token> &inside,
+                 const std::list<Token>::iterator &it,
+                 const int &offset) noexcept
 {
     auto temp = it;
+
+    if (temp == inside.end())
+    {
+        return false;
+    }
 
     if (offset > 0)
     {
@@ -128,7 +140,9 @@ bool itIsInRange(const std::list<Token> &inside, const std::list<Token>::iterato
 
 // Returns the token at the given offset, or a null token if
 // it is out of range.
-Token itGet(const std::list<Token> &inside, const std::list<Token>::iterator &it, const int &offset) noexcept
+Token itGet(const std::list<Token> &inside,
+            const std::list<Token>::iterator &it,
+            const int &offset) noexcept
 {
     auto temp = it;
 
@@ -169,7 +183,8 @@ std::string execute(const std::string &command)
     FILE *pipe = popen(command.c_str(), "r");
     if (pipe == NULL)
     {
-        throw sequencing_error("Failed to run command '" + command + "'");
+        throw sequencing_error("Failed to run command '" +
+                               command + "'");
     }
 
     // For as long as there is data to read, read it.
@@ -186,7 +201,9 @@ std::string execute(const std::string &command)
     catch (...)
     {
         pclose(pipe);
-        throw sequencing_error("Command '" + command + "' failed during output reading.");
+        throw sequencing_error(
+            "Command '" + command +
+            "' failed during output reading.");
     }
 
     // Close the pipe and get return value
@@ -195,14 +212,17 @@ std::string execute(const std::string &command)
     // If return value is not 0, throw error
     if (return_value != 0)
     {
-        throw sequencing_error("Command '" + command + "' failed with exit code " + std::to_string(return_value) + ".");
+        throw sequencing_error(
+            "Command '" + command + "' failed with exit code " +
+            std::to_string(return_value) + ".");
     }
 
     // Otherwise, return retrieved output
     return output;
 }
 
-void generate(const std::list<std::string> &Files, const std::string &Output)
+void generate(const std::list<std::string> &Files,
+              const std::string &Output)
 {
     if (Files.size() == 0)
     {
@@ -214,7 +234,8 @@ void generate(const std::list<std::string> &Files, const std::string &Output)
     std::ofstream out(Output);
     if (!out.is_open())
     {
-        throw std::runtime_error("Failed to open file '" + Output + "'");
+        throw std::runtime_error("Failed to open file '" +
+                                 Output + "'");
     }
 
     // File header
@@ -233,7 +254,8 @@ void generate(const std::list<std::string> &Files, const std::string &Output)
     for (auto fileName : Files)
     {
         // Insert header
-        out << H_LINE << '\n' << FILE_START << fileName << "\n\n";
+        out << H_LINE << '\n'
+            << FILE_START << fileName << "\n\n";
 
         std::map<std::string, std::string> data;
         std::vector<std::string> lines;
@@ -243,7 +265,8 @@ void generate(const std::list<std::string> &Files, const std::string &Output)
         std::ifstream file(fileName);
         if (!file.is_open())
         {
-            throw std::runtime_error("Failed to open file '" + fileName + "'");
+            throw std::runtime_error("Failed to open file '" +
+                                     fileName + "'");
         }
 
         while (getline(file, line))
@@ -257,15 +280,18 @@ void generate(const std::list<std::string> &Files, const std::string &Output)
         std::string mostRecentComment = "";
         for (int i = 0; i < lines.size(); i++)
         {
-            if (lines[i].size() >= 2 && lines[i].substr(0, 2) == "//")
+            if (lines[i].size() >= 2 &&
+                lines[i].substr(0, 2) == "//")
             {
                 // Single line comment
                 mostRecentComment += lines[i].substr(3) + "\n";
             }
-            else if (lines[i].size() >= 2 && lines[i].substr(0, 2) == "/*")
+            else if (lines[i].size() >= 2 &&
+                     lines[i].substr(0, 2) == "/*")
             {
                 // Multi-line comment
-                while (lines[i].size() < 2 || lines[i].substr(0, 2) != "*/")
+                while (lines[i].size() < 2 ||
+                       lines[i].substr(0, 2) != "*/")
                 {
                     mostRecentComment += lines[i] + "\n";
                     i++;
@@ -335,10 +361,15 @@ void generate(const std::list<std::string> &Files, const std::string &Output)
     }
 
     auto end = std::chrono::high_resolution_clock::now();
-    unsigned long long elapsedNS = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+    unsigned long long elapsedNS =
+        std::chrono::duration_cast<std::chrono::nanoseconds>(
+            end - start)
+            .count();
 
     out << H_LINE << "\n\n"
-        << "Generation took " << elapsedNS << " ns, about " << ((double)elapsedNS / Files.size()) << " ns / file.\n";
+        << "Generation took " << elapsedNS << " ns, about "
+        << ((double)elapsedNS / Files.size())
+        << " ns / file.\n";
 
     out.close();
 
@@ -346,19 +377,24 @@ void generate(const std::list<std::string> &Files, const std::string &Output)
 }
 
 // Returns true if and only if the given macro already exists.
-bool hasMacro(const std::string &name, AcornSettings &settings) noexcept
+bool hasMacro(const std::string &name,
+              AcornSettings &settings) noexcept
 {
     return settings.macros.count(name) != 0;
 }
 
-// Adds the given macro definition into the internal macro lookup table.
-void addMacro(const std::string &name, const std::string &contents, AcornSettings &settings)
+// Adds the given macro definition into the internal macro
+// lookup table.
+void addMacro(const std::string &name,
+              const std::string &contents,
+              AcornSettings &settings)
 {
     settings.macros[name] = contents;
     settings.macroSourceFiles[name] = settings.curFile;
 }
 
-long long getFileLastModification(const std::string &filepath, AcornSettings &settings)
+long long getFileLastModification(const std::string &filepath,
+                                  AcornSettings &settings)
 {
     if (settings.ageCache.count(filepath) != 0)
     {
@@ -369,7 +405,9 @@ long long getFileLastModification(const std::string &filepath, AcornSettings &se
 
     if (fs::exists(filepath))
     {
-        out = fs::last_write_time(filepath).time_since_epoch().count();
+        out = fs::last_write_time(filepath)
+                  .time_since_epoch()
+                  .count();
     }
 
     if (settings.ageCache.size() > 200)
@@ -381,11 +419,14 @@ long long getFileLastModification(const std::string &filepath, AcornSettings &se
     return out;
 }
 
-// Returns true if the source file is newer than the destination one
-// OR if either file is nonexistant
-bool isSourceNewer(const std::string &source, const std::string &dest, AcornSettings &settings)
+// Returns true if the source file is newer than the destination
+// one OR if either file is nonexistant
+bool isSourceNewer(const std::string &source,
+                   const std::string &dest,
+                   AcornSettings &settings)
 {
-    long long sourceAge = getFileLastModification(source, settings);
+    long long sourceAge =
+        getFileLastModification(source, settings);
     long long destAge = getFileLastModification(dest, settings);
 
     if (sourceAge == -1 || destAge == -1)
@@ -396,15 +437,21 @@ bool isSourceNewer(const std::string &source, const std::string &dest, AcornSett
     return (sourceAge > destAge);
 }
 
-void compileMacro(const std::string &Name, AcornSettings &settings)
+void compileMacro(const std::string &Name,
+                  AcornSettings &settings)
 {
     if (settings.macros.count(Name) == 0)
     {
-        throw std::runtime_error("Cannot compile macro `" + Name + "`; No source code present");
+        throw std::runtime_error("Cannot compile macro `" +
+                                 Name +
+                                 "`; No source code present");
     }
     else if (Name.back() != '!')
     {
-        throw std::runtime_error("'" + Name + "' is an illegal macro name; This is an error of the compiler");
+        throw std::runtime_error(
+            "'" + Name +
+            "' is an illegal macro name; This is an error of "
+            "the compiler");
     }
     else if (settings.compiled.count(Name) != 0)
     {
@@ -412,14 +459,16 @@ void compileMacro(const std::string &Name, AcornSettings &settings)
         return;
     }
 
-    std::string rootName = purifyStr(Name.substr(0, Name.size() - 1));
+    std::string rootName =
+        purifyStr(Name.substr(0, Name.size() - 1));
 
     // Write file to be compiled
     std::string srcPath = COMPILED_PATH + rootName + ".oak";
     std::string binPath = COMPILED_PATH + rootName + ".out";
 
     // Check ages, makefile-style
-    if (!isSourceNewer(settings.macroSourceFiles[Name], binPath, settings))
+    if (!isSourceNewer(settings.macroSourceFiles[Name], binPath,
+                       settings))
     {
         return;
     }
@@ -429,7 +478,8 @@ void compileMacro(const std::string &Name, AcornSettings &settings)
     std::ofstream macroFile(srcPath);
     if (!macroFile.is_open())
     {
-        throw std::runtime_error("Could not open file `" + srcPath + "`");
+        throw std::runtime_error("Could not open file `" +
+                                 srcPath + "`");
     }
 
     macroFile << settings.macros[Name] << '\n';
@@ -437,18 +487,23 @@ void compileMacro(const std::string &Name, AcornSettings &settings)
     macroFile.close();
 
     // Call compiler
-    std::string command =
-        COMPILER_COMMAND + (settings.debug ? std::string(" -d") : std::string("")) + " -Mo " + binPath + " " + srcPath;
+    std::string command = COMPILER_COMMAND +
+                          (settings.debug ? std::string(" -d")
+                                          : std::string("")) +
+                          " -Mo " + binPath + " " + srcPath;
 
     if (settings.debug)
     {
-        std::cout << "Compiling via command '" << command << "'\n";
+        std::cout << "Compiling via command '" << command
+                  << "'\n";
 
-        std::cout << tags::yellow_bold << "\n-----------------------------\n"
-                  << "Entering sub-file '" << srcPath << "'\n"
-                  << "-----------------------------\n"
-                  << "\\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/\n\n"
-                  << tags::reset << std::flush;
+        std::cout
+            << tags::yellow_bold
+            << "\n-----------------------------\n"
+            << "Entering sub-file '" << srcPath << "'\n"
+            << "-----------------------------\n"
+            << "\\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/\n\n"
+            << tags::reset << std::flush;
     }
 
     try
@@ -464,19 +519,23 @@ void compileMacro(const std::string &Name, AcornSettings &settings)
     {
         if (settings.debug)
         {
-            std::cout << tags::yellow_bold << "\n/\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\\n"
-                      << "-----------------------------\n"
-                      << "Exiting sub-file '" << srcPath << "'\n"
-                      << "-----------------------------\n\n"
-                      << tags::reset << std::flush;
+            std::cout
+                << tags::yellow_bold
+                << "\n/\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\\n"
+                << "-----------------------------\n"
+                << "Exiting sub-file '" << srcPath << "'\n"
+                << "-----------------------------\n\n"
+                << tags::reset << std::flush;
         }
 
-        throw std::runtime_error(std::string("Macro failure: ") + e.what());
+        throw std::runtime_error(
+            std::string("Macro failure: ") + e.what());
     }
 
     if (settings.debug)
     {
-        std::cout << tags::yellow_bold << "/\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\\n"
+        std::cout << tags::yellow_bold
+                  << "/\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\ /\\\n"
                   << "-----------------------------\n"
                   << "Exiting sub-file '" << srcPath << "'\n"
                   << "-----------------------------\n\n"
@@ -488,16 +547,21 @@ void compileMacro(const std::string &Name, AcornSettings &settings)
     return;
 }
 
-std::string callMacro(const std::string &Name, const std::list<std::string> &Args, AcornSettings &settings)
+std::string callMacro(const std::string &Name,
+                      const std::list<std::string> &Args,
+                      AcornSettings &settings)
 {
     if (settings.compiled.count(Name) == 0)
     {
         compileMacro(Name, settings);
     }
 
-    std::string outputName = COMPILED_PATH + std::string("__oak_macro_out") + ".txt";
+    std::string outputName =
+        COMPILED_PATH + std::string("__oak_macro_out") + ".txt";
 
-    std::string command = COMPILED_PATH + purifyStr(Name.substr(0, Name.size() - 1)) + ".out ";
+    std::string command =
+        COMPILED_PATH +
+        purifyStr(Name.substr(0, Name.size() - 1)) + ".out ";
 
     // args here
     for (std::string s : Args)
@@ -544,13 +608,16 @@ std::string callMacro(const std::string &Name, const std::list<std::string> &Arg
 
     if (settings.debug)
     {
-        std::cout << "Macro returned\n```\n" << out << "\n```\n";
+        std::cout << "Macro returned\n```\n"
+                  << out << "\n```\n";
     }
 
     return out;
 }
 
-std::string mangleStruct(const std::string &name, const std::list<std::list<std::string>> &generics)
+std::string mangleStruct(
+    const std::string &name,
+    const std::list<std::list<std::string>> &generics)
 {
     if (generics.size() == 0)
     {
@@ -571,7 +638,9 @@ std::string mangleStruct(const std::string &name, const std::list<std::list<std:
             std::string s = mangle(raw);
             outputParts.push_back(s);
 
-            if (i + 1 < generics.size() && s != "PTR" && s != "GEN" && s != "ENDGEN" && s != "JOIN" && s != "")
+            if (i + 1 < generics.size() && s != "PTR" &&
+                s != "GEN" && s != "ENDGEN" && s != "JOIN" &&
+                s != "")
             {
                 outputParts.push_back("JOIN");
             }
@@ -584,7 +653,8 @@ std::string mangleStruct(const std::string &name, const std::list<std::list<std:
 
     std::string out;
     int i = 0;
-    for (auto it = outputParts.begin(); it != outputParts.end(); it++)
+    for (auto it = outputParts.begin(); it != outputParts.end();
+         it++)
     {
         out += *it;
 
@@ -599,7 +669,9 @@ std::string mangleStruct(const std::string &name, const std::list<std::list<std:
     return out;
 }
 
-std::string mangleEnum(const std::string &name, const std::list<std::list<std::string>> &generics)
+std::string mangleEnum(
+    const std::string &name,
+    const std::list<std::list<std::string>> &generics)
 {
     return mangleStruct(name, generics);
 }
@@ -640,7 +712,8 @@ std::string mangleType(const Type &type)
 
     std::string out;
     int i = 0;
-    for (auto it = outputParts.begin(); it != outputParts.end(); it++)
+    for (auto it = outputParts.begin(); it != outputParts.end();
+         it++)
     {
         out += *it;
 
@@ -661,7 +734,8 @@ std::string mangleSymb(const std::string &name, Type &type)
     return mangleSymb(name, typeStr);
 }
 
-std::string mangleSymb(const std::string &name, const std::string &typeStr)
+std::string mangleSymb(const std::string &name,
+                       const std::string &typeStr)
 {
     if (typeStr == "")
     {
@@ -732,7 +806,8 @@ std::string mangle(const std::list<std::string> &what)
 
     std::string out;
     int i = 0;
-    for (auto it = outputParts.begin(); it != outputParts.end(); it++)
+    for (auto it = outputParts.begin(); it != outputParts.end();
+         it++)
     {
         out += *it;
 
@@ -747,9 +822,12 @@ std::string mangle(const std::list<std::string> &what)
     return out;
 }
 
-ASTNode getAllocSequence(Type &type, const std::string &name, AcornSettings &settings, const std::string &num)
+ASTNode getAllocSequence(Type &type, const std::string &name,
+                         AcornSettings &settings,
+                         const std::string &num)
 {
-    // Assumes that name is a pointer to type which already exists in scope
+    // Assumes that name is a pointer to type which already
+    // exists in scope
     //
 
     ASTNode out;
@@ -757,21 +835,25 @@ ASTNode getAllocSequence(Type &type, const std::string &name, AcornSettings &set
     out.type = nullType;
 
     // name = (type *)malloc(len * sizeof(type));
-    out.items.push_back(ASTNode{nullType, std::list<ASTNode>(), atom,
-                                name + " = (" + toStrC(&type, settings) + " *)malloc(sizeof(" +
-                                    toStrC(&type, settings) + ") * " + num + ")"});
+    out.items.push_back(ASTNode{
+        nullType, std::list<ASTNode>(), atom,
+        name + " = (" + toStrC(&type, settings) +
+            " *)malloc(sizeof(" + toStrC(&type, settings) +
+            ") * " + num + ")"});
 
     return out;
 }
 
-ASTNode getFreeSequence(const std::string &name, AcornSettings &settings)
+ASTNode getFreeSequence(const std::string &name,
+                        AcornSettings &settings)
 {
     ASTNode out;
     out.info = code_line;
     out.type = nullType;
     out.items.clear();
 
-    out.items.push_back(ASTNode{nullType, std::list<ASTNode>(), atom, "free(" + name + ")"});
+    out.items.push_back(ASTNode{nullType, std::list<ASTNode>(),
+                                atom, "free(" + name + ")"});
 
     return out;
 }
@@ -829,7 +911,8 @@ std::string humanReadable(const unsigned long long int &Size)
     else
     {
         // in eb
-        return std::to_string(Size / 1'000'000'000'000'000.0) + "E";
+        return std::to_string(Size / 1'000'000'000'000'000.0) +
+               "E";
     }
 }
 
@@ -839,7 +922,9 @@ in the original table. However, skips all functions.
 If not contradicted by the above rules, bases off of
 the current table (not backup).
 */
-std::list<std::pair<std::string, std::string>> restoreSymbolTable(MultiSymbolTable &backup, MultiSymbolTable &realTable)
+std::list<std::pair<std::string, std::string>>
+restoreSymbolTable(MultiSymbolTable &backup,
+                   MultiSymbolTable &realTable)
 {
     std::list<std::pair<std::string, std::string>> out;
 
@@ -879,23 +964,39 @@ std::list<std::pair<std::string, std::string>> restoreSymbolTable(MultiSymbolTab
                     newTable[p.first].push_back(s);
                 }
 
-                // Otherwise, do not add (do destructor literal check)
+                // Otherwise, do not add (do destructor literal
+                // check)
                 else
                 {
                     // Variable falling out of scope
                     // Do not call Del if is atomic literal
                     if (!(s.type[0].info == atomic &&
-                          (s.type[0].name == "u8" || s.type[0].name == "i8" || s.type[0].name == "u16" ||
-                           s.type[0].name == "i16" || s.type[0].name == "u32" || s.type[0].name == "i32" ||
-                           s.type[0].name == "u64" || s.type[0].name == "i64" || s.type[0].name == "u128" ||
-                           s.type[0].name == "i128" || s.type[0].name == "f32" || s.type[0].name == "f64" ||
-                           s.type[0].name == "f128" || s.type[0].name == "bool" || s.type[0].name == "str")) &&
-                        s.type[0].info != function && s.type[0].info != pointer && s.type[0].info != arr &&
+                          (s.type[0].name == "u8" ||
+                           s.type[0].name == "i8" ||
+                           s.type[0].name == "u16" ||
+                           s.type[0].name == "i16" ||
+                           s.type[0].name == "u32" ||
+                           s.type[0].name == "i32" ||
+                           s.type[0].name == "u64" ||
+                           s.type[0].name == "i64" ||
+                           s.type[0].name == "u128" ||
+                           s.type[0].name == "i128" ||
+                           s.type[0].name == "f32" ||
+                           s.type[0].name == "f64" ||
+                           s.type[0].name == "f128" ||
+                           s.type[0].name == "bool" ||
+                           s.type[0].name == "str")) &&
+                        s.type[0].info != function &&
+                        s.type[0].info != pointer &&
+                        s.type[0].info != arr &&
                         s.type[0].info != sarr && p.first != "")
                     {
                         // Del_FN_PTR_typename_MAPS_void
-                        out.push_back(
-                            std::make_pair(p.first, "Del_FN_PTR_" + s.type[0].name + "_MAPS_void(&" + p.first + ");"));
+                        out.push_back(std::make_pair(
+                            p.first, "Del_FN_PTR_" +
+                                         s.type[0].name +
+                                         "_MAPS_void(&" +
+                                         p.first + ");"));
                     }
                 }
             }

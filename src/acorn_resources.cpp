@@ -14,7 +14,8 @@ GPLv3 held by author
 // Prints the cumulative disk usage of Oak (in human-readable)
 void getDiskUsage()
 {
-    const std::list<std::string> filesToCheck = {"/usr/bin/acorn", "/usr/include/oak"};
+    const std::list<std::string> filesToCheck = {
+        "/usr/bin/acorn", "/usr/include/oak"};
     unsigned long long int totalKB = 0;
 
     for (std::string s : filesToCheck)
@@ -22,7 +23,8 @@ void getDiskUsage()
         unsigned long long int currentSize = getSize(s);
         totalKB += currentSize;
 
-        std::cout << s << ": " << humanReadable(currentSize) << '\n';
+        std::cout << s << ": " << humanReadable(currentSize)
+                  << '\n';
     }
 
     std::cout << "\nTotal: " << humanReadable(totalKB) << '\n';
@@ -43,7 +45,8 @@ void doFile(const std::string &From, AcornSettings &settings)
 
     int curPhase = 0;
 
-    std::chrono::high_resolution_clock::time_point fileStartTimePoint;
+    std::chrono::high_resolution_clock::time_point
+        fileStartTimePoint;
     std::chrono::high_resolution_clock::time_point start, end;
 
     // Clear active rules
@@ -59,9 +62,12 @@ void doFile(const std::string &From, AcornSettings &settings)
 
     try
     {
-        if (From.size() < 4 || From.substr(From.size() - 4) != ".oak")
+        if (From.size() < 4 ||
+            From.substr(From.size() - 4) != ".oak")
         {
-            std::cout << tags::yellow_bold << "Warning: File '" << From << "' is not a .oak file.\n" << tags::reset;
+            std::cout << tags::yellow_bold << "Warning: File '"
+                      << From << "' is not a .oak file.\n"
+                      << tags::reset;
         }
 
         std::string realName = From;
@@ -75,9 +81,12 @@ void doFile(const std::string &From, AcornSettings &settings)
         {
             if (('A' <= c && c <= 'Z') || c == ' ')
             {
-                std::cout << tags::yellow_bold << "Warning: File '" << From << "' has illegal name.\n"
-                          << "Oak files use underscore formatting (ie /path/to/file_to_use.oak).\n"
-                          << tags::reset;
+                std::cout
+                    << tags::yellow_bold << "Warning: File '"
+                    << From << "' has illegal name.\n"
+                    << "Oak files use underscore formatting "
+                       "(ie /path/to/file_to_use.oak).\n"
+                    << tags::reset;
                 break;
             }
         }
@@ -86,7 +95,9 @@ void doFile(const std::string &From, AcornSettings &settings)
         {
             if (settings.debug)
             {
-                std::cout << settings.debugTreePrefix << "Skipping repeated file '" << From << "'\n";
+                std::cout << settings.debugTreePrefix
+                          << "Skipping repeated file '" << From
+                          << "'\n";
             }
             settings.curFile = oldFile;
             settings.curLine = oldLineNum;
@@ -97,7 +108,8 @@ void doFile(const std::string &From, AcornSettings &settings)
 
         if (settings.debug)
         {
-            std::cout << settings.debugTreePrefix << "Loading file '" << From << "'\n";
+            std::cout << settings.debugTreePrefix
+                      << "Loading file '" << From << "'\n";
             settings.debugTreePrefix.append("|");
         }
 
@@ -107,7 +119,8 @@ void doFile(const std::string &From, AcornSettings &settings)
         {
             settings.curFile = oldFile;
             settings.curLine = oldLineNum;
-            throw std::runtime_error("Could not open source file '" + From + "'");
+            throw std::runtime_error(
+                "Could not open source file '" + From + "'");
         }
 
         long long size = file.tellg();
@@ -134,11 +147,13 @@ void doFile(const std::string &From, AcornSettings &settings)
 
         if (settings.debug)
         {
-            std::cout << settings.debugTreePrefix << "Syntax check\n";
+            std::cout << settings.debugTreePrefix
+                      << "Syntax check\n";
             start = std::chrono::high_resolution_clock::now();
         }
 
-        if (!(settings.ignoreSyntaxErrors || settings.isMacroCall))
+        if (!(settings.ignoreSyntaxErrors ||
+              settings.isMacroCall))
         {
             ensureSyntax(text, true, settings.curFile);
         }
@@ -147,7 +162,10 @@ void doFile(const std::string &From, AcornSettings &settings)
         {
             end = std::chrono::high_resolution_clock::now();
             // Log at 0
-            settings.phaseTimes[curPhase] += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+            settings.phaseTimes[curPhase] +=
+                std::chrono::duration_cast<
+                    std::chrono::nanoseconds>(end - start)
+                    .count();
             curPhase++;
         }
 
@@ -166,7 +184,10 @@ void doFile(const std::string &From, AcornSettings &settings)
         {
             end = std::chrono::high_resolution_clock::now();
             // Log at 1
-            settings.phaseTimes[curPhase] += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+            settings.phaseTimes[curPhase] +=
+                std::chrono::duration_cast<
+                    std::chrono::nanoseconds>(end - start)
+                    .count();
             curPhase++;
         }
 
@@ -174,7 +195,8 @@ void doFile(const std::string &From, AcornSettings &settings)
         // This erases them from lexed
         if (settings.debug)
         {
-            std::cout << settings.debugTreePrefix << "Macro definitions\n";
+            std::cout << settings.debugTreePrefix
+                      << "Macro definitions\n";
             start = std::chrono::high_resolution_clock::now();
         }
 
@@ -185,7 +207,8 @@ void doFile(const std::string &From, AcornSettings &settings)
         {
             Token curTok = *it;
 
-            if (curTok.back() == '!' && curTok != "!" && itCmp(lexed, it, -1, "let"))
+            if (curTok.back() == '!' && curTok != "!" &&
+                itCmp(lexed, it, -1, "let"))
             {
                 if (!itCmp(lexed, it, 1, "="))
                 {
@@ -195,13 +218,19 @@ void doFile(const std::string &From, AcornSettings &settings)
                     name = curTok;
 
                     // Safety checks
-                    if (settings.preprocDefines.count(name) != 0)
+                    if (settings.preprocDefines.count(name) !=
+                        0)
                     {
-                        throw sequencing_error("Macro  '" + name + "' cannot overwrite definition of same name.");
+                        throw sequencing_error(
+                            "Macro  '" + name +
+                            "' cannot overwrite definition of "
+                            "same name.");
                     }
                     else if (hasMacro(name, settings))
                     {
-                        throw sequencing_error("Macro '" + name + "' cannot be overridden.");
+                        throw sequencing_error(
+                            "Macro '" + name +
+                            "' cannot be overridden.");
                     }
 
                     contents = "let main";
@@ -210,7 +239,8 @@ void doFile(const std::string &From, AcornSettings &settings)
                     it = lexed.erase(it); // Let
                     it = lexed.erase(it); // Name
 
-                    while (it != lexed.end() && *it != "{" && *it != ";")
+                    while (it != lexed.end() && *it != "{" &&
+                           *it != ";")
                     {
                         contents += " " + it->text;
                         it = lexed.erase(it);
@@ -245,7 +275,8 @@ void doFile(const std::string &From, AcornSettings &settings)
                     }
 
                     // macros[name] = contents;
-                    // macroSourceFiles[name] = settings.curFile;
+                    // macroSourceFiles[name] =
+                    // settings.curFile;
                     addMacro(name, contents, settings);
                 }
             }
@@ -254,14 +285,18 @@ void doFile(const std::string &From, AcornSettings &settings)
         if (settings.debug)
         {
             end = std::chrono::high_resolution_clock::now();
-            settings.phaseTimes[curPhase] += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+            settings.phaseTimes[curPhase] +=
+                std::chrono::duration_cast<
+                    std::chrono::nanoseconds>(end - start)
+                    .count();
             curPhase++;
         }
 
         // Preprocessor definition finding
         for (auto it = ++lexed.begin(); ++it != lexed.end();)
         {
-            if (it->back() == '!' && *it != "!" && itCmp(lexed, it, -1, "let"))
+            if (it->back() == '!' && *it != "!" &&
+                itCmp(lexed, it, -1, "let"))
             {
                 if (itCmp(lexed, it, 1, "="))
                 {
@@ -270,12 +305,18 @@ void doFile(const std::string &From, AcornSettings &settings)
                     // Safety checks
                     if (settings.preprocDefines.count(*it) != 0)
                     {
-                        throw sequencing_error("Preprocessor definition '" + it->text + "' cannot be overridden.");
+                        throw sequencing_error(
+                            "Preprocessor definition '" +
+                            it->text +
+                            "' cannot be overridden.");
                     }
                     else if (hasMacro(*it, settings))
                     {
-                        throw sequencing_error("Preprocessor definition '" + it->text +
-                                               "' cannot overwrite macro of same name.");
+                        throw sequencing_error(
+                            "Preprocessor definition '" +
+                            it->text +
+                            "' cannot overwrite macro of same "
+                            "name.");
                     }
 
                     std::string name = *it;
@@ -301,10 +342,12 @@ void doFile(const std::string &From, AcornSettings &settings)
                 }
                 else if (!itCmp(lexed, it, 1, "("))
                 {
-                    throw sequencing_error("Error: `let " + it->text +
-                                           "` must be followed by `=` (preprocessor definition) or "
-                                           "`(` (macro definition). Instead, `" +
-                                           (++it)->text + "`.");
+                    throw sequencing_error(
+                        "Error: `let " + it->text +
+                        "` must be followed by `=` "
+                        "(preprocessor definition) or "
+                        "`(` (macro definition). Instead, `" +
+                        (++it)->text + "`.");
                 }
             }
         }
@@ -318,32 +361,44 @@ void doFile(const std::string &From, AcornSettings &settings)
             if (settings.debug)
             {
                 curPhase = compilerMacroPos;
-                std::cout << settings.debugTreePrefix << "Compiler macro\n";
-                start = std::chrono::high_resolution_clock::now();
+                std::cout << settings.debugTreePrefix
+                          << "Compiler macro\n";
+                start =
+                    std::chrono::high_resolution_clock::now();
             }
 
-            for (auto it = lexed.begin(); it != lexed.end(); it++)
+            for (auto it = lexed.begin(); it != lexed.end();
+                 it++)
             {
-                if (*it != "!" && it->back() == '!' && itCmp(lexed, it, 1, "("))
+                if (*it != "!" && it->back() == '!' &&
+                    itCmp(lexed, it, 1, "("))
                 {
                     // File handling / translation unit macros
                     if (*it == "include!")
                     {
                         if (settings.debug)
                         {
-                            std::cout << settings.debugTreePrefix << "`include!`\n";
+                            std::cout
+                                << settings.debugTreePrefix
+                                << "`include!`\n";
                         }
 
-                        std::list<std::string> args = getMacroArgs(lexed, it);
+                        std::list<std::string> args =
+                            getMacroArgs(lexed, it);
 
                         // Clean arguments
-                        for (auto it = args.begin(); it != args.end(); it++)
+                        for (auto it = args.begin();
+                             it != args.end(); it++)
                         {
-                            while (!it->empty() && (it->front() == '"' || it->front() == '\''))
+                            while (!it->empty() &&
+                                   (it->front() == '"' ||
+                                    it->front() == '\''))
                             {
                                 it->erase(0, 1);
                             }
-                            while (!it->empty() && (it->back() == '"' || it->back() == '\''))
+                            while (!it->empty() &&
+                                   (it->back() == '"' ||
+                                    it->back() == '\''))
                             {
                                 it->pop_back();
                             }
@@ -351,18 +406,30 @@ void doFile(const std::string &From, AcornSettings &settings)
 
                         for (std::string a : args)
                         {
-                            auto base = settings.curFile.parent_path();
+                            auto base =
+                                settings.curFile.parent_path();
 
                             // If local, do that
                             if (fs::exists(base / a))
                             {
-                                if (fs::exists(OAK_DIR_PATH + a) &&
-                                    settings.visitedFiles.count(OAK_DIR_PATH + a) == 0 &&
-                                    settings.visitedFiles.count(a) == 0)
+                                if (fs::exists(OAK_DIR_PATH +
+                                               a) &&
+                                    settings.visitedFiles.count(
+                                        OAK_DIR_PATH + a) ==
+                                        0 &&
+                                    settings.visitedFiles.count(
+                                        a) == 0)
                                 {
-                                    std::cout << tags::yellow_bold << "Warning: Including '" << base / a
-                                              << "' over package file '" << OAK_DIR_PATH << a << "'.\n"
-                                              << tags::reset;
+                                    std::cout
+                                        << tags::yellow_bold
+                                        << "Warning: Including "
+                                           "'"
+                                        << base / a
+                                        << "' over package "
+                                           "file '"
+                                        << OAK_DIR_PATH << a
+                                        << "'.\n"
+                                        << tags::reset;
                                 }
 
                                 doFile(base / a, settings);
@@ -371,7 +438,8 @@ void doFile(const std::string &From, AcornSettings &settings)
                             // Else, look in OAK_DIR_PATH
                             else
                             {
-                                doFile(OAK_DIR_PATH + a, settings);
+                                doFile(OAK_DIR_PATH + a,
+                                       settings);
                             }
                         }
 
@@ -381,31 +449,48 @@ void doFile(const std::string &From, AcornSettings &settings)
                     {
                         if (settings.debug)
                         {
-                            std::cout << settings.debugTreePrefix << "`tag!`\n";
+                            std::cout
+                                << settings.debugTreePrefix
+                                << "`tag!`\n";
                         }
 
-                        std::list<std::string> args = getMacroArgs(lexed, it);
+                        std::list<std::string> args =
+                            getMacroArgs(lexed, it);
 
                         if (args.size() == 1)
                         {
-                            std::string name = cleanMacroArgument(args.front());
+                            std::string name =
+                                cleanMacroArgument(
+                                    args.front());
 
-                            if (settings.file_tags[settings.curFile].count(name) == 0)
+                            if (settings
+                                    .file_tags[settings.curFile]
+                                    .count(name) == 0)
                             {
-                                settings.file_tags[settings.curFile][name] = "";
+                                settings
+                                    .file_tags[settings.curFile]
+                                              [name] = "";
                             }
                         }
                         else if (args.size() == 2)
                         {
-                            std::string name = cleanMacroArgument(args.front());
+                            std::string name =
+                                cleanMacroArgument(
+                                    args.front());
                             args.pop_front();
 
-                            settings.file_tags[settings.curFile][name] = cleanMacroArgument(args.front());
+                            settings.file_tags[settings.curFile]
+                                              [name] =
+                                cleanMacroArgument(
+                                    args.front());
                         }
                         else
                         {
-                            throw sequencing_error("Compiler macro `tag!` must take one or two arguments:"
-                                                   "The tag, and optionally a value.");
+                            throw sequencing_error(
+                                "Compiler macro `tag!` must "
+                                "take one or two arguments:"
+                                "The tag, and optionally a "
+                                "value.");
                         }
 
                         it--;
@@ -414,13 +499,17 @@ void doFile(const std::string &From, AcornSettings &settings)
                     {
                         if (settings.debug)
                         {
-                            std::cout << settings.debugTreePrefix << "`link!`\n";
+                            std::cout
+                                << settings.debugTreePrefix
+                                << "`link!`\n";
                         }
 
-                        std::list<std::string> args = getMacroArgs(lexed, it);
+                        std::list<std::string> args =
+                            getMacroArgs(lexed, it);
 
                         // Clean arguments
-                        for (auto it = args.begin(); it != args.end(); it++)
+                        for (auto it = args.begin();
+                             it != args.end(); it++)
                         {
                             *it = cleanMacroArgument(*it);
                         }
@@ -429,23 +518,34 @@ void doFile(const std::string &From, AcornSettings &settings)
                         {
                             if (settings.debug)
                             {
-                                std::cout << settings.debugTreePrefix << "Inserting object " << a << '\n';
+                                std::cout
+                                    << settings.debugTreePrefix
+                                    << "Inserting object " << a
+                                    << '\n';
                             }
 
                             if (fs::exists(a) || a[0] == '-')
                             {
-                                if (fs::exists(OAK_DIR_PATH + a))
+                                if (fs::exists(OAK_DIR_PATH +
+                                               a))
                                 {
-                                    std::cout << tags::yellow_bold << "Warning: Including local file '" << a
-                                              << "' over package file of same name.\n"
-                                              << tags::reset;
+                                    std::cout
+                                        << tags::yellow_bold
+                                        << "Warning: Including "
+                                           "local file '"
+                                        << a
+                                        << "' over package "
+                                           "file of same "
+                                           "name.\n"
+                                        << tags::reset;
                                 }
 
                                 settings.objects.insert(a);
                             }
                             else
                             {
-                                settings.objects.insert(OAK_DIR_PATH + a);
+                                settings.objects.insert(
+                                    OAK_DIR_PATH + a);
                             }
                         }
                         it--;
@@ -454,19 +554,27 @@ void doFile(const std::string &From, AcornSettings &settings)
                     {
                         if (settings.debug)
                         {
-                            std::cout << settings.debugTreePrefix << "`flag!`\n";
+                            std::cout
+                                << settings.debugTreePrefix
+                                << "`flag!`\n";
                         }
 
-                        std::list<std::string> args = getMacroArgs(lexed, it);
+                        std::list<std::string> args =
+                            getMacroArgs(lexed, it);
 
                         // Clean arguments
-                        for (auto it = args.begin(); it != args.end(); it++)
+                        for (auto it = args.begin();
+                             it != args.end(); it++)
                         {
-                            while (!it->empty() && (it->front() == '"' || it->front() == '\''))
+                            while (!it->empty() &&
+                                   (it->front() == '"' ||
+                                    it->front() == '\''))
                             {
                                 it->erase(0, 1);
                             }
-                            while (!it->empty() && (it->back() == '"' || it->back() == '\''))
+                            while (!it->empty() &&
+                                   (it->back() == '"' ||
+                                    it->back() == '\''))
                             {
                                 it->pop_back();
                             }
@@ -476,7 +584,10 @@ void doFile(const std::string &From, AcornSettings &settings)
                         {
                             if (settings.debug)
                             {
-                                std::cout << settings.debugTreePrefix << "Appending flag " << a << '\n';
+                                std::cout
+                                    << settings.debugTreePrefix
+                                    << "Appending flag " << a
+                                    << '\n';
                             }
 
                             settings.cflags.insert(a);
@@ -487,60 +598,82 @@ void doFile(const std::string &From, AcornSettings &settings)
                     {
                         if (settings.debug)
                         {
-                            std::cout << settings.debugTreePrefix << "`package!`\n";
+                            std::cout
+                                << settings.debugTreePrefix
+                                << "`package!`\n";
                         }
 
-                        std::list<std::string> args = getMacroArgs(lexed, it);
+                        std::list<std::string> args =
+                            getMacroArgs(lexed, it);
                         std::list<std::string> files;
 
                         // Clean arguments
-                        for (auto it = args.begin(); it != args.end(); it++)
+                        for (auto it = args.begin();
+                             it != args.end(); it++)
                         {
-                            while (!it->empty() && (it->front() == '"' || it->front() == '\''))
+                            while (!it->empty() &&
+                                   (it->front() == '"' ||
+                                    it->front() == '\''))
                             {
                                 it->erase(0, 1);
                             }
-                            while (!it->empty() && (it->back() == '"' || it->back() == '\''))
+                            while (!it->empty() &&
+                                   (it->back() == '"' ||
+                                    it->back() == '\''))
                             {
                                 it->pop_back();
                             }
                         }
 
                         // Backup dialect rules; These do NOT
-                        std::vector<std::string> backupDialectRules = settings.dialectRules;
+                        std::vector<std::string>
+                            backupDialectRules =
+                                settings.dialectRules;
                         settings.dialectRules.clear();
 
                         for (std::string a : args)
                         {
-                            files = getPackageFiles(a, settings);
+                            files =
+                                getPackageFiles(a, settings);
 
                             for (std::string f : files)
                             {
                                 if (settings.debug)
                                 {
-                                    std::cout << settings.debugTreePrefix << "Loading package file '" << f << "'...\n";
+                                    std::cout
+                                        << settings
+                                               .debugTreePrefix
+                                        << "Loading package "
+                                           "file '"
+                                        << f << "'...\n";
                                 }
 
                                 // Backup dialect rules
-                                std::vector<std::string> backupDialectRules = settings.dialectRules;
+                                std::vector<std::string>
+                                    backupDialectRules =
+                                        settings.dialectRules;
                                 settings.dialectRules.clear();
 
                                 doFile(f, settings);
 
-                                settings.dialectRules = backupDialectRules;
+                                settings.dialectRules =
+                                    backupDialectRules;
                             }
                         }
                         it--;
 
-                        settings.dialectRules = backupDialectRules;
+                        settings.dialectRules =
+                            backupDialectRules;
                     }
                     else
                     {
                         // Non-compiler macro definition
                         // Nested stuff may be allowed within
-                        if (it != lexed.begin() && itCmp(lexed, it, -1, "let"))
+                        if (it != lexed.begin() &&
+                            itCmp(lexed, it, -1, "let"))
                         {
-                            while (it != lexed.end() && *it != "{" && *it != ";")
+                            while (it != lexed.end() &&
+                                   *it != "{" && *it != ";")
                             {
                                 it++;
                             }
@@ -575,21 +708,31 @@ void doFile(const std::string &From, AcornSettings &settings)
 
             if (settings.debug)
             {
-                fileStartTimePoint = std::chrono::high_resolution_clock::now();
+                fileStartTimePoint =
+                    std::chrono::high_resolution_clock::now();
 
                 end = std::chrono::high_resolution_clock::now();
                 settings.phaseTimes[curPhase] +=
-                    std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-                std::cout << settings.debugTreePrefix << "Compiler macro finished in "
-                          << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns\n";
+                    std::chrono::duration_cast<
+                        std::chrono::nanoseconds>(end - start)
+                        .count();
+                std::cout << settings.debugTreePrefix
+                          << "Compiler macro finished in "
+                          << std::chrono::duration_cast<
+                                 std::chrono::nanoseconds>(
+                                 end - start)
+                                 .count()
+                          << " ns\n";
                 curPhase = compilerMacroPos + 1;
             }
 
             // E: Rules
             if (settings.debug)
             {
-                std::cout << settings.debugTreePrefix << "Rules\n";
-                start = std::chrono::high_resolution_clock::now();
+                std::cout << settings.debugTreePrefix
+                          << "Rules\n";
+                start =
+                    std::chrono::high_resolution_clock::now();
             }
 
             doRules(lexed, settings);
@@ -598,7 +741,9 @@ void doFile(const std::string &From, AcornSettings &settings)
             {
                 end = std::chrono::high_resolution_clock::now();
                 settings.phaseTimes[curPhase] +=
-                    std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+                    std::chrono::duration_cast<
+                        std::chrono::nanoseconds>(end - start)
+                        .count();
             }
 
             // Update compilerMacrosLeft
@@ -617,19 +762,27 @@ void doFile(const std::string &From, AcornSettings &settings)
         // G: Scan for macro calls and handle them
         if (settings.debug)
         {
-            std::cout << settings.debugTreePrefix << "Macro calls\n";
+            std::cout << settings.debugTreePrefix
+                      << "Macro calls\n";
             start = std::chrono::high_resolution_clock::now();
         }
 
         for (auto it = lexed.begin(); it != lexed.end(); it++)
         {
             // We can assume that no macro definitions remain
-            if (*it != "!" && it->back() == '!' && itCmp(lexed, it, 1, "("))
+            if (*it != "!" && it->back() == '!' &&
+                itCmp(lexed, it, 1, "("))
             {
-                const static std::set<std::string> specialCases = {
-                    "alloc!", "free!",   "free_arr!", "erase!",    "c_print!",  "c_panic!",
-                    "c_sys!", "c_warn!", "new_rule!", "use_rule!", "rem_rule!", "bundle_rule!",
-                    "type!",  "size!",   "raw_c!",    "ptrcpy!",   "ptrarr!"};
+                const static std::set<std::string>
+                    specialCases = {"alloc!",    "free!",
+                                    "free_arr!", "erase!",
+                                    "c_print!",  "c_panic!",
+                                    "c_sys!",    "c_warn!",
+                                    "new_rule!", "use_rule!",
+                                    "rem_rule!", "bundle_rule!",
+                                    "type!",     "size!",
+                                    "raw_c!",    "ptrcpy!",
+                                    "ptrarr!"};
 
                 if (specialCases.count(*it) != 0)
                 {
@@ -639,35 +792,52 @@ void doFile(const std::string &From, AcornSettings &settings)
                 std::string name = *it;
 
                 // Erases all trace of the call in the process
-                std::list<std::string> args = getMacroArgs(lexed, it);
+                std::list<std::string> args =
+                    getMacroArgs(lexed, it);
 
-                std::string output = callMacro(name, args, settings);
-                std::list<Token> lexedOutput = dfa_lexer.lex_list(output, name);
+                std::string output =
+                    callMacro(name, args, settings);
+                std::list<Token> lexedOutput =
+                    dfa_lexer.lex_list(output, name);
 
-                // Reset preproc defs, as they tend to break w/ macros
-                settings.preprocDefines["prev_file!"] = (oldFile == "" ? "\"NULL\"" : ("\"" + oldFile.string() + "\""));
-                settings.preprocDefines["file!"] = '"' + From + '"';
+                // Reset preproc defs, as they tend to break w/
+                // macros
+                settings.preprocDefines["prev_file!"] =
+                    (oldFile == ""
+                         ? "\"NULL\""
+                         : ("\"" + oldFile.string() + "\""));
+                settings.preprocDefines["file!"] =
+                    '"' + From + '"';
 
                 // Insert the new code
-                it = lexed.insert(it, lexedOutput.begin(), lexedOutput.end());
+                it = lexed.insert(it, lexedOutput.begin(),
+                                  lexedOutput.end());
 
-                // Since we do not change i, this new code will be scanned next.
+                // Since we do not change i, this new code will
+                // be scanned next.
             }
         }
 
         if (settings.debug)
         {
             end = std::chrono::high_resolution_clock::now();
-            settings.phaseTimes[curPhase] += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+            settings.phaseTimes[curPhase] +=
+                std::chrono::duration_cast<
+                    std::chrono::nanoseconds>(end - start)
+                    .count();
             curPhase++;
         }
 
         // H: Preproc definition insertion
 
-        settings.preprocDefines["prev_file!"] = (oldFile == "" ? "\"NULL\"" : ("\"" + oldFile.string() + "\""));
+        settings.preprocDefines["prev_file!"] =
+            (oldFile == "" ? "\"NULL\""
+                           : ("\"" + oldFile.string() + "\""));
         settings.preprocDefines["file!"] = '"' + From + '"';
-        settings.preprocDefines["comp_time!"] = std::to_string(time(NULL));
-        settings.preprocDefines["oak_version!"] = "\"" + std::string(VERSION) + "\"";
+        settings.preprocDefines["comp_time!"] =
+            std::to_string(time(NULL));
+        settings.preprocDefines["oak_version!"] =
+            "\"" + std::string(VERSION) + "\"";
 
         // OS definition
         if (settings.preprocDefines.count("sys!") == 0)
@@ -685,35 +855,44 @@ void doFile(const std::string &From, AcornSettings &settings)
 
         if (settings.debug)
         {
-            std::cout << settings.debugTreePrefix << "Preproc definitions\n";
+            std::cout << settings.debugTreePrefix
+                      << "Preproc definitions\n";
             start = std::chrono::high_resolution_clock::now();
         }
 
         for (auto it = lexed.begin(); it != lexed.end(); it++)
         {
-            settings.preprocDefines["line!"] = std::to_string(it->line);
+            settings.preprocDefines["line!"] =
+                std::to_string(it->line);
             if (settings.preprocDefines.count(*it) != 0)
             {
-                std::list<Token> lexedDef = dfa_lexer.lex_list(settings.preprocDefines[*it]);
+                std::list<Token> lexedDef = dfa_lexer.lex_list(
+                    settings.preprocDefines[*it]);
                 it = lexed.erase(it);
 
-                it = lexed.insert(it, lexedDef.begin(), lexedDef.end());
+                it = lexed.insert(it, lexedDef.begin(),
+                                  lexedDef.end());
 
                 it--;
             }
-            else if (it->size() > 1 && it->back() == '!' && !itCmp(lexed, it, 1, "("))
+            else if (it->size() > 1 && it->back() == '!' &&
+                     !itCmp(lexed, it, 1, "("))
             {
-                throw sequencing_error("Unknown preprocessor definition '" + it->text + "'");
+                throw sequencing_error(
+                    "Unknown preprocessor definition '" +
+                    it->text + "'");
             }
         }
 
         // Clean out any C keywords
         for (auto it = lexed.begin(); it != lexed.end(); it++)
         {
-            if (C_KEYWORDS.count(*it) != 0 && OAK_KEYWORDS.count(*it) == 0)
+            if (C_KEYWORDS.count(*it) != 0 &&
+                OAK_KEYWORDS.count(*it) == 0)
             {
-                // Is a c keyword but not an oak keyword: replace it.
-                // The `__KWA` suffix stands for `key word avoidance`.
+                // Is a c keyword but not an oak keyword:
+                // replace it. The `__KWA` suffix stands for
+                // `key word avoidance`.
                 it->text += "__KWA";
             }
         }
@@ -721,14 +900,19 @@ void doFile(const std::string &From, AcornSettings &settings)
         if (settings.debug)
         {
             end = std::chrono::high_resolution_clock::now();
-            settings.phaseTimes[curPhase] += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+            settings.phaseTimes[curPhase] +=
+                std::chrono::duration_cast<
+                    std::chrono::nanoseconds>(end - start)
+                    .count();
             curPhase++;
         }
 
-        // I: Operator substitution (within parenthesis and between commas)
+        // I: Operator substitution (within parenthesis and
+        // between commas)
         if (settings.debug)
         {
-            std::cout << settings.debugTreePrefix << "Operator substitution\n";
+            std::cout << settings.debugTreePrefix
+                      << "Operator substitution\n";
             start = std::chrono::high_resolution_clock::now();
         }
 
@@ -737,14 +921,18 @@ void doFile(const std::string &From, AcornSettings &settings)
         if (settings.debug)
         {
             end = std::chrono::high_resolution_clock::now();
-            settings.phaseTimes[curPhase] += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+            settings.phaseTimes[curPhase] +=
+                std::chrono::duration_cast<
+                    std::chrono::nanoseconds>(end - start)
+                    .count();
             curPhase++;
         }
 
         // J: Sequencing
         if (settings.debug)
         {
-            std::cout << settings.debugTreePrefix << "Sequencing (AST & translation)\n";
+            std::cout << settings.debugTreePrefix
+                      << "Sequencing (AST & translation)\n";
             start = std::chrono::high_resolution_clock::now();
         }
 
@@ -753,13 +941,17 @@ void doFile(const std::string &From, AcornSettings &settings)
         if (settings.debug)
         {
             end = std::chrono::high_resolution_clock::now();
-            settings.phaseTimes[curPhase] += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+            settings.phaseTimes[curPhase] +=
+                std::chrono::duration_cast<
+                    std::chrono::nanoseconds>(end - start)
+                    .count();
             curPhase++;
         }
 
         if (fileSeq.type != nullType)
         {
-            std::cout << tags::yellow_bold << "Warning: File '" << From << "' has hanging type '"
+            std::cout << tags::yellow_bold << "Warning: File '"
+                      << From << "' has hanging type '"
                       << toStr(&fileSeq.type) << "'\n"
                       << tags::reset;
         }
@@ -770,149 +962,194 @@ void doFile(const std::string &From, AcornSettings &settings)
 
             if (settings.debug)
             {
-                std::cout << settings.debugTreePrefix << "Saving dump file '" << name << "'\n";
+                std::cout << settings.debugTreePrefix
+                          << "Saving dump file '" << name
+                          << "'\n";
             }
 
-            dump(lexed, name, From, settings.curLine, fileSeq, lexedCopy, "alwaysDump is true (not an error).",
+            dump(lexed, name, From, settings.curLine, fileSeq,
+                 lexedCopy,
+                 "alwaysDump is true (not an error).",
                  settings);
         }
 
         if (settings.debug)
         {
-            auto now = std::chrono::high_resolution_clock::now();
+            auto now =
+                std::chrono::high_resolution_clock::now();
             settings.visitedFiles[From] +=
-                std::chrono::duration_cast<std::chrono::nanoseconds>(now - fileStartTimePoint).count();
+                std::chrono::duration_cast<
+                    std::chrono::nanoseconds>(
+                    now - fileStartTimePoint)
+                    .count();
 
             settings.debugTreePrefix.pop_back();
-            std::cout << settings.debugTreePrefix << "Finished file '" << From << "'\n";
+            std::cout << settings.debugTreePrefix
+                      << "Finished file '" << From << "'\n";
         }
     }
     catch (rule_error &e)
     {
         if (settings.curFile == settings.entryPoint)
         {
-            std::cout << tags::red_bold << "Caught rule error:\n" << e.what() << "\n" << tags::reset;
+            std::cout << tags::red_bold
+                      << "Caught rule error:\n"
+                      << e.what() << "\n"
+                      << tags::reset;
         }
 
         std::string name = purifyStr(From) + ".oak.log";
-        dump(lexed, name, From, settings.curLine, ASTNode(), lexedCopy, e.what(), settings);
+        dump(lexed, name, From, settings.curLine, ASTNode(),
+             lexedCopy, e.what(), settings);
 
         if (settings.debug)
         {
             std::cout << "Dump saved in " << name << "\n";
         }
 
-        throw std::runtime_error("Failure in file '" + From + "':\n" + e.what());
+        throw std::runtime_error("Failure in file '" + From +
+                                 "':\n" + e.what());
     }
     catch (sequencing_error &e)
     {
         if (settings.curFile == settings.entryPoint)
         {
-            std::cout << tags::red_bold << "Caught sequencing error:\n" << e.what() << "\n" << tags::reset;
+            std::cout << tags::red_bold
+                      << "Caught sequencing error:\n"
+                      << e.what() << "\n"
+                      << tags::reset;
         }
 
         std::string name = purifyStr(From) + ".oak.log";
-        dump(lexed, name, From, settings.curLine, ASTNode(), lexedCopy, e.what(), settings);
+        dump(lexed, name, From, settings.curLine, ASTNode(),
+             lexedCopy, e.what(), settings);
 
         if (settings.debug)
         {
             std::cout << "Dump saved in " << name << "\n";
         }
 
-        throw std::runtime_error("Failure in file '" + From + "':\n" + e.what());
+        throw std::runtime_error("Failure in file '" + From +
+                                 "':\n" + e.what());
     }
     catch (parse_error &e)
     {
         if (settings.curFile == settings.entryPoint)
         {
-            std::cout << tags::red_bold << "Caught parse error:\n" << e.what() << "\n" << tags::reset;
+            std::cout << tags::red_bold
+                      << "Caught parse error:\n"
+                      << e.what() << "\n"
+                      << tags::reset;
         }
 
         std::string name = purifyStr(From) + ".oak.log";
-        dump(lexed, name, From, settings.curLine, ASTNode(), lexedCopy, e.what(), settings);
+        dump(lexed, name, From, settings.curLine, ASTNode(),
+             lexedCopy, e.what(), settings);
 
         if (settings.debug)
         {
             std::cout << "Dump saved in " << name << "\n";
         }
 
-        throw std::runtime_error("Failure in file '" + From + "':\n" + e.what());
+        throw std::runtime_error("Failure in file '" + From +
+                                 "':\n" + e.what());
     }
     catch (package_error &e)
     {
         if (settings.curFile == settings.entryPoint)
         {
-            std::cout << tags::red_bold << "Caught package error:\n" << e.what() << "\n" << tags::reset;
+            std::cout << tags::red_bold
+                      << "Caught package error:\n"
+                      << e.what() << "\n"
+                      << tags::reset;
         }
 
         std::string name = purifyStr(From) + ".oak.log";
-        dump(lexed, name, From, settings.curLine, ASTNode(), lexedCopy, e.what(), settings);
+        dump(lexed, name, From, settings.curLine, ASTNode(),
+             lexedCopy, e.what(), settings);
 
         if (settings.debug)
         {
             std::cout << "Dump saved in " << name << "\n";
         }
 
-        throw std::runtime_error("Failure in file '" + From + "':\n" + e.what());
+        throw std::runtime_error("Failure in file '" + From +
+                                 "':\n" + e.what());
     }
     catch (generic_error &e)
     {
         if (settings.curFile == settings.entryPoint)
         {
-            std::cout << tags::red_bold << "Caught generic error:\n" << e.what() << "\n" << tags::reset;
+            std::cout << tags::red_bold
+                      << "Caught generic error:\n"
+                      << e.what() << "\n"
+                      << tags::reset;
         }
 
         std::string name = purifyStr(From) + ".oak.log";
-        dump(lexed, name, From, settings.curLine, ASTNode(), lexedCopy, e.what(), settings);
+        dump(lexed, name, From, settings.curLine, ASTNode(),
+             lexedCopy, e.what(), settings);
 
         if (settings.debug)
         {
             std::cout << "Dump saved in " << name << "\n";
         }
 
-        throw std::runtime_error("Failure in file '" + From + "':\n" + e.what());
+        throw std::runtime_error("Failure in file '" + From +
+                                 "':\n" + e.what());
     }
     catch (std::runtime_error &e)
     {
         if (settings.curFile == settings.entryPoint)
         {
-            std::cout << tags::red_bold << "Caught runtime error:\n" << e.what() << "\n" << tags::reset;
+            std::cout << tags::red_bold
+                      << "Caught runtime error:\n"
+                      << e.what() << "\n"
+                      << tags::reset;
         }
 
         std::string name = purifyStr(From) + ".oak.log";
-        dump(lexed, name, From, settings.curLine, ASTNode(), lexedCopy, e.what(), settings);
+        dump(lexed, name, From, settings.curLine, ASTNode(),
+             lexedCopy, e.what(), settings);
 
         if (settings.debug)
         {
             std::cout << "Dump saved in " << name << "\n";
         }
 
-        throw std::runtime_error("Failure in file '" + From + "':\n" + e.what());
+        throw std::runtime_error("Failure in file '" + From +
+                                 "':\n" + e.what());
     }
     catch (std::exception &e)
     {
         if (settings.curFile == settings.entryPoint)
         {
-            std::cout << tags::red_bold << "Caught exception:\n" << e.what() << "\n" << tags::reset;
+            std::cout << tags::red_bold << "Caught exception:\n"
+                      << e.what() << "\n"
+                      << tags::reset;
         }
 
         std::string name = purifyStr(From) + ".oak.log";
-        dump(lexed, name, From, settings.curLine, ASTNode(), lexedCopy, e.what(), settings);
+        dump(lexed, name, From, settings.curLine, ASTNode(),
+             lexedCopy, e.what(), settings);
 
         if (settings.debug)
         {
             std::cout << "Dump saved in " << name << "\n";
         }
 
-        throw std::runtime_error("Failure in file '" + From + "':\n" + e.what());
+        throw std::runtime_error("Failure in file '" + From +
+                                 "':\n" + e.what());
     }
     catch (...)
     {
         std::string name = purifyStr(From) + ".oak.log";
-        dump(lexed, name, From, settings.curLine, ASTNode(), lexedCopy, "Unknown failure.", settings);
+        dump(lexed, name, From, settings.curLine, ASTNode(),
+             lexedCopy, "Unknown failure.", settings);
         std::cout << "Dump saved in " << name << "\n";
 
-        throw std::runtime_error("Unknown failure in file '" + From + "'");
+        throw std::runtime_error("Unknown failure in file '" +
+                                 From + "'");
     }
 
     settings.curLine = oldLineNum;
@@ -936,7 +1173,9 @@ void makePackage(const std::string &RawName)
     std::ofstream info(name + "/oak_package_info.txt");
     if (!info.is_open())
     {
-        throw package_error("Could not open oak_package_info.txt in newly created package folder.");
+        throw package_error(
+            "Could not open oak_package_info.txt in newly "
+            "created package folder.");
     }
 
     auto now = time(NULL);
@@ -962,14 +1201,17 @@ void makePackage(const std::string &RawName)
     std::ofstream include(name + "/" + name + ".oak");
     if (!include.is_open())
     {
-        throw package_error("Could not open main include file in newly created package folder.");
+        throw package_error("Could not open main include file "
+                            "in newly created package folder.");
     }
     include.close();
 
     return;
 }
 
-void printSyntaxError(const std::string &what, const std::vector<char> &curLineVec, const int &curLine,
+void printSyntaxError(const std::string &what,
+                      const std::vector<char> &curLineVec,
+                      const int &curLine,
                       const std::string &curFile)
 {
     std::cout << tags::yellow_bold << '\n' << "In line '";
@@ -982,14 +1224,17 @@ void printSyntaxError(const std::string &what, const std::vector<char> &curLineV
     std::cout << "'\n" << tags::reset;
 
     std::cout << '\n'
-              << tags::red_bold << "Syntax error at " << curFile << ':' << curLine << '\n'
+              << tags::red_bold << "Syntax error at " << curFile
+              << ':' << curLine << '\n'
               << what << '\n'
-              << "(Use -x to make syntax errors nonfatal)" << tags::reset << "\n\n";
+              << "(Use -x to make syntax errors nonfatal)"
+              << tags::reset << "\n\n";
 
     return;
 }
 
-void ensureSyntax(const std::string &text, const bool &fatal, const std::string &curFile)
+void ensureSyntax(const std::string &text, const bool &fatal,
+                  const std::string &curFile)
 {
     std::vector<char> curLineVec;
     curLineVec.reserve(96);
@@ -1017,28 +1262,39 @@ void ensureSyntax(const std::string &text, const bool &fatal, const std::string 
 
                 if (i > 0 && text[i - 1] == ' ')
                 {
-                    printSyntaxError("Trailing whitespace is not allowed", curLineVec, curLine, curFile);
+                    printSyntaxError(
+                        "Trailing whitespace is not allowed",
+                        curLineVec, curLine, curFile);
                     errorCount++;
                 }
             }
 
             // Single-line comment
-            if (curLineVec.size() > 2 && curLineVec[0] == '/' && curLineVec[1] == '/')
+            if (curLineVec.size() > 2 && curLineVec[0] == '/' &&
+                curLineVec[1] == '/')
             {
-                if (curLineVec[2] != ' ' && curLineVec[2] != '/')
+                if (curLineVec[2] != ' ' &&
+                    curLineVec[2] != '/')
                 {
-                    printSyntaxError("Comments must begin with either '// ' or '///'", curLineVec, curLine, curFile);
+                    printSyntaxError("Comments must begin with "
+                                     "either '// ' or '///'",
+                                     curLineVec, curLine,
+                                     curFile);
                     errorCount++;
                 }
                 commentLines++;
             }
 
             // Multi-line comment opening
-            else if (curLineVec.size() > 1 && curLineVec[0] == '/' && curLineVec[1] == '*')
+            else if (curLineVec.size() > 1 &&
+                     curLineVec[0] == '/' &&
+                     curLineVec[1] == '*')
             {
                 if (curLineVec.size() > 2)
                 {
-                    printSyntaxError("Symbol '/*' must occupy its own line", curLineVec, curLine, curFile);
+                    printSyntaxError(
+                        "Symbol '/*' must occupy its own line",
+                        curLineVec, curLine, curFile);
                     errorCount++;
                 }
 
@@ -1047,11 +1303,15 @@ void ensureSyntax(const std::string &text, const bool &fatal, const std::string 
             }
 
             // Multi-line comment closing
-            else if (curLineVec.size() > 1 && curLineVec[0] == '*' && curLineVec[1] == '/')
+            else if (curLineVec.size() > 1 &&
+                     curLineVec[0] == '*' &&
+                     curLineVec[1] == '/')
             {
                 if (curLineVec.size() > 2)
                 {
-                    printSyntaxError("Symbol '*/' must occupy its own line", curLineVec, curLine, curFile);
+                    printSyntaxError(
+                        "Symbol '*/' must occupy its own line",
+                        curLineVec, curLine, curFile);
                     errorCount++;
                 }
 
@@ -1062,7 +1322,8 @@ void ensureSyntax(const std::string &text, const bool &fatal, const std::string 
             // Non-comment code line
             else if (commentDepth == 0)
             {
-                // Iterate over line here more more detailed checks
+                // Iterate over line here more more detailed
+                // checks
                 stringMarker = ' ';
                 for (int j = 0; j < curLineVec.size(); j++)
                 {
@@ -1091,8 +1352,11 @@ void ensureSyntax(const std::string &text, const bool &fatal, const std::string 
                         }
                         else if (globalStringChoice == '\'')
                         {
-                            printSyntaxError("Precedent has been set for single-quotes, but double-quotes were used.",
-                                             curLineVec, curLine, curFile);
+                            printSyntaxError(
+                                "Precedent has been set for "
+                                "single-quotes, but "
+                                "double-quotes were used.",
+                                curLineVec, curLine, curFile);
                             errorCount++;
                         }
                     }
@@ -1111,10 +1375,14 @@ void ensureSyntax(const std::string &text, const bool &fatal, const std::string 
                         {
                             globalStringChoice = '\'';
                         }
-                        else if (globalStringChoice == '"' && stringMarker == ' ')
+                        else if (globalStringChoice == '"' &&
+                                 stringMarker == ' ')
                         {
-                            printSyntaxError("Precedent has been set for double-quotes, but single-quotes were used.",
-                                             curLineVec, curLine, curFile);
+                            printSyntaxError(
+                                "Precedent has been set for "
+                                "double-quotes, but "
+                                "single-quotes were used.",
+                                curLineVec, curLine, curFile);
                             errorCount++;
                         }
                     }
@@ -1131,7 +1399,11 @@ void ensureSyntax(const std::string &text, const bool &fatal, const std::string 
 
                             if (bracketDepth < 0)
                             {
-                                printSyntaxError("Unmatched close curly bracket", curLineVec, curLine, curFile);
+                                printSyntaxError(
+                                    "Unmatched close curly "
+                                    "bracket",
+                                    curLineVec, curLine,
+                                    curFile);
                                 errorCount++;
                             }
                         }
@@ -1145,21 +1417,30 @@ void ensureSyntax(const std::string &text, const bool &fatal, const std::string 
 
                             if (parenthesisDepth < 0)
                             {
-                                printSyntaxError("Unmatched end parenthesis", curLineVec, curLine, curFile);
+                                printSyntaxError(
+                                    "Unmatched end parenthesis",
+                                    curLineVec, curLine,
+                                    curFile);
                                 errorCount++;
                             }
                         }
                         else if (c == '\t')
                         {
-                            printSyntaxError("Tab characters (\\t) are not allowed; Use spaces instead", curLineVec,
-                                             curLine, curFile);
+                            printSyntaxError(
+                                "Tab characters (\\t) are not "
+                                "allowed; Use spaces instead",
+                                curLineVec, curLine, curFile);
                             errorCount++;
                         }
 
-                        else if (c == '.' && j > 0 && curLineVec[j - 1] == ')')
+                        else if (c == '.' && j > 0 &&
+                                 curLineVec[j - 1] == ')')
                         {
-                            printSyntaxError("Illegal inline access to return value. Use a temporary variable instead.",
-                                             curLineVec, curLine, curFile);
+                            printSyntaxError(
+                                "Illegal inline access to "
+                                "return value. Use a temporary "
+                                "variable instead.",
+                                curLineVec, curLine, curFile);
                             errorCount++;
                         }
                     }
@@ -1168,9 +1449,12 @@ void ensureSyntax(const std::string &text, const bool &fatal, const std::string 
                         // Inside a string literal
                         if (c == '\n')
                         {
-                            printSyntaxError("String literal may not cross multiple lines. Use two successive string "
-                                             "literals instead.",
-                                             curLineVec, curLine, curFile);
+                            printSyntaxError(
+                                "String literal may not cross "
+                                "multiple lines. Use two "
+                                "successive string "
+                                "literals instead.",
+                                curLineVec, curLine, curFile);
                             errorCount++;
                         }
                     }
@@ -1178,7 +1462,9 @@ void ensureSyntax(const std::string &text, const bool &fatal, const std::string 
 
                 if (stringMarker != ' ')
                 {
-                    printSyntaxError("Unclosed string", curLineVec, curLine, curFile);
+                    printSyntaxError("Unclosed string",
+                                     curLineVec, curLine,
+                                     curFile);
                     errorCount++;
                 }
             }
@@ -1194,7 +1480,8 @@ void ensureSyntax(const std::string &text, const bool &fatal, const std::string 
         else
         {
             // Append to curLineVec
-            if (!(curLineVec.empty() && (text[i] == ' ' || text[i] == '\t')))
+            if (!(curLineVec.empty() &&
+                  (text[i] == ' ' || text[i] == '\t')))
             {
                 curLineVec.push_back(text[i]);
             }
@@ -1202,15 +1489,19 @@ void ensureSyntax(const std::string &text, const bool &fatal, const std::string 
             // Max suggested line width
             if (curLineVec.size() == 65)
             {
-                std::cout << tags::yellow_bold << "Warning: Lines should not exceed 64 characters. (" << curFile << ":"
-                          << curLine << ")\n"
+                std::cout << tags::yellow_bold
+                          << "Warning: Lines should not exceed "
+                             "64 characters. ("
+                          << curFile << ":" << curLine << ")\n"
                           << tags::reset;
             }
 
             // Max allowed line width
             if (curLineVec.size() == 97)
             {
-                printSyntaxError("Lines must not exceed 96 characters", curLineVec, curLine, curFile);
+                printSyntaxError(
+                    "Lines must not exceed 96 characters",
+                    curLineVec, curLine, curFile);
                 errorCount++;
             }
         }
@@ -1218,39 +1509,49 @@ void ensureSyntax(const std::string &text, const bool &fatal, const std::string 
 
     if (text.size() == 0 || text.back() != '\n')
     {
-        printSyntaxError("File must end with newline", curLineVec, curLine, curFile);
+        printSyntaxError("File must end with newline",
+                         curLineVec, curLine, curFile);
         errorCount++;
     }
 
     if (bracketDepth > 0)
     {
-        printSyntaxError("Unmatched open curly bracket", curLineVec, curLine, curFile);
+        printSyntaxError("Unmatched open curly bracket",
+                         curLineVec, curLine, curFile);
         errorCount++;
     }
 
     if (parenthesisDepth > 0)
     {
-        printSyntaxError("Unmatched open parenthesis", curLineVec, curLine, curFile);
+        printSyntaxError("Unmatched open parenthesis",
+                         curLineVec, curLine, curFile);
         errorCount++;
     }
 
     if (commentLines == 0)
     {
-        printSyntaxError("No comments present in source code", curLineVec, curLine, curFile);
+        printSyntaxError("No comments present in source code",
+                         curLineVec, curLine, curFile);
         errorCount++;
     }
 
-    if ((curLine - emptyLines) > 0 && (double)commentLines / (double)(curLine - emptyLines) < 0.15)
+    if ((curLine - emptyLines) > 0 &&
+        (double)commentLines / (double)(curLine - emptyLines) <
+            0.15)
     {
-        double percentage = 100.0 * (double)commentLines / (double)(curLine - emptyLines);
-        std::cout << tags::yellow_bold << "Warning: Less than 15% of source file " << curFile << " (" << percentage
+        double percentage = 100.0 * (double)commentLines /
+                            (double)(curLine - emptyLines);
+        std::cout << tags::yellow_bold
+                  << "Warning: Less than 15% of source file "
+                  << curFile << " (" << percentage
                   << "%) is commenting.\n"
                   << tags::reset;
     }
 
     if (fatal && errorCount > 0)
     {
-        throw std::runtime_error(std::to_string(errorCount) + " syntax errors.");
+        throw std::runtime_error(std::to_string(errorCount) +
+                                 " syntax errors.");
     }
 
     return;

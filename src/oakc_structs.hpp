@@ -37,14 +37,19 @@ jdehmel@outlook.com
 #include "lexer.hpp"
 
 // If the given item is false, throw a parse_error.
-#define parse_assert(b)                                                                                                \
-    ((bool)(b)) ? true : throw parse_error(__FILE__ ":" + std::to_string(__LINE__) + " Failed assertion '" #b "'\n")
+#define parse_assert(b)                                        \
+    ((bool)(b))                                                \
+        ? true                                                 \
+        : throw parse_error(__FILE__ ":" +                     \
+                            std::to_string(__LINE__) +         \
+                            " Failed assertion '" #b "'\n")
 
 // An error which may arise during the processing of rules.
 class rule_error : public std::runtime_error
 {
   public:
-    rule_error(const std::string &What) : std::runtime_error(What)
+    rule_error(const std::string &What)
+        : std::runtime_error(What)
     {
     }
 };
@@ -63,7 +68,8 @@ class generic_error : public std::runtime_error
 class package_error : public std::runtime_error
 {
   public:
-    package_error(const std::string &what) : std::runtime_error(what)
+    package_error(const std::string &what)
+        : std::runtime_error(what)
     {
     }
 };
@@ -72,7 +78,8 @@ class package_error : public std::runtime_error
 class sequencing_error : public std::runtime_error
 {
   public:
-    sequencing_error(const std::string &What) : runtime_error(What)
+    sequencing_error(const std::string &What)
+        : runtime_error(What)
     {
     }
 };
@@ -81,7 +88,8 @@ class sequencing_error : public std::runtime_error
 class parse_error : public std::runtime_error
 {
   public:
-    parse_error(const std::string &what) : std::runtime_error(what)
+    parse_error(const std::string &what)
+        : std::runtime_error(what)
     {
     }
 };
@@ -109,16 +117,19 @@ struct GenericInfo
 // Holds information about an installed package.
 struct PackageInfo
 {
-    std::string name;      // Package name
-    std::string version;   // Package version
-    std::string license;   // Package license
-    std::string date;      // Date the current version was released
-    std::string author;    // The author(s) of the package
-    std::string email;     // The email(s) of the author(s)
-    std::string source;    // URL package was downloaded from
-    std::string path;      // Path from URL to get to the install point
+    std::string name;    // Package name
+    std::string version; // Package version
+    std::string license; // Package license
+    std::string date;   // Date the current version was released
+    std::string author; // The author(s) of the package
+    std::string email;  // The email(s) of the author(s)
+    std::string source; // URL package was downloaded from
+    std::string
+        path; // Path from URL to get to the install point
     std::string about;     // Package description
-    std::string toInclude; // File within /usr/include/oak/$(PACKAGE_NAME) to include;
+    std::string toInclude; // File within
+                           // /usr/include/oak/$(PACKAGE_NAME)
+                           // to include;
     std::string sysDeps;   // System dependencies
     std::string oakDeps;   // Oak dependencies
 };
@@ -167,8 +178,10 @@ class Type
     Type(const Type &what, const int &startingAt);
     Type();
 
-    void prepend(const TypeInfo &info, const std::string &name = "");
-    void append(const TypeInfo &info, const std::string &name = "");
+    void prepend(const TypeInfo &info,
+                 const std::string &name = "");
+    void append(const TypeInfo &info,
+                const std::string &name = "");
     void append(const Type &other);
 
     void pop_front();
@@ -232,7 +245,8 @@ struct MultiTableSymbol
 };
 
 // Alias for the symbol table.
-typedef std::map<std::string, std::list<MultiTableSymbol>> MultiSymbolTable;
+typedef std::map<std::string, std::list<MultiTableSymbol>>
+    MultiSymbolTable;
 
 // The null type, used for comparisons.
 const static Type nullType = {atomic, "NULL"};

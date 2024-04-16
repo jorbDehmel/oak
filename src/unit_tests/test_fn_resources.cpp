@@ -13,10 +13,13 @@ jdehmel@outlook.com
 // Test cases
 
 /*
-void generate(const std::list<std::string> &Files, const std::string &Output)
-ASTNode getAllocSequence(Type &type, const std::string &name, AcornSettings &settings, const std::string &num)
-ASTNode getFreeSequence(const std::string &name, AcornSettings &settings)
-std::list<std::pair<std::string, std::string>> restoreSymbolTable(MultiSymbolTable &backup, MultiSymbolTable &realTable)
+void generate(const std::list<std::string> &Files, const
+std::string &Output) ASTNode getAllocSequence(Type &type, const
+std::string &name, AcornSettings &settings, const std::string
+&num) ASTNode getFreeSequence(const std::string &name,
+AcornSettings &settings) std::list<std::pair<std::string,
+std::string>> restoreSymbolTable(MultiSymbolTable &backup,
+MultiSymbolTable &realTable)
 */
 void testMisc()
 {
@@ -36,14 +39,19 @@ void testMisc()
 }
 
 /*
-bool itCmp(const std::list<Token> &inside, const std::list<Token>::iterator &it, const int &offset,
-           const Token &compareTo) noexcept
-bool itIsInRange(const std::list<Token> &inside, const std::list<Token>::iterator &it, const int &offset) noexcept
-Token itGet(const std::list<Token> &inside, const std::list<Token>::iterator &it, const int &offset) noexcept
+bool itCmp(const std::list<Token> &inside, const
+std::list<Token>::iterator &it, const int &offset, const Token
+&compareTo) noexcept bool itIsInRange(const std::list<Token>
+&inside, const std::list<Token>::iterator &it, const int
+&offset) noexcept Token itGet(const std::list<Token> &inside,
+const std::list<Token>::iterator &it, const int &offset)
+noexcept
 */
 void testIteratorOperations()
 {
-    std::list<Token> l = {Token("foo"), Token("bar"), Token("foobar"), Token("fizz"), Token("buzz")};
+    std::list<Token> l = {Token("foo"), Token("bar"),
+                          Token("foobar"), Token("fizz"),
+                          Token("buzz")};
 
     fakeAssert(itCmp(l, l.begin(), 2, "foobar"));
     fakeAssert(itGet(l, l.begin(), 2) == "foobar");
@@ -57,19 +65,24 @@ void testIteratorOperations()
 // std::string execute(const std::string &command)
 void testExecute()
 {
-    fakeAssert(execute("echo \'Hello, world!\'") == "Hello, world!\n");
+    fakeAssert(execute("echo \'Hello, world!\'") ==
+               "Hello, world!\n");
 }
 
 /*
-std::string callMacro(const std::string &Name, const std::list<std::string> &Args, AcornSettings &settings)
-bool hasMacro(const std::string &name, AcornSettings &settings) noexcept
-void compileMacro(const std::string &Name, AcornSettings &settings)
-void addMacro(const std::string &name, const std::string &contents, AcornSettings &settings)
+std::string callMacro(const std::string &Name, const
+std::list<std::string> &Args, AcornSettings &settings) bool
+hasMacro(const std::string &name, AcornSettings &settings)
+noexcept void compileMacro(const std::string &Name,
+AcornSettings &settings) void addMacro(const std::string &name,
+const std::string &contents, AcornSettings &settings)
 */
 void testMacros()
 {
     AcornSettings s;
-    std::string contents = "let main(c: i32, v: []str) -> i32 { include!(\"std/io.oak\"); print(ptrarr!(v, 1)); }";
+    std::string contents =
+        "let main(c: i32, v: []str) -> i32 { "
+        "include!(\"std/io.oak\"); print(ptrarr!(v, 1)); }";
 
     fakeAssert(!hasMacro("foo!", s));
 
@@ -84,22 +97,25 @@ void testMacros()
 }
 
 /*
-std::string mangleStruct(const std::string &name, const std::list<std::list<std::string>> &generics)
-std::string mangleEnum(const std::string &name, const std::list<std::list<std::string>> &generics)
-std::string mangleType(const Type &type)
-std::string mangleSymb(const std::string &name, Type &type)
-std::string mangleSymb(const std::string &name, const std::string &typeStr)
-std::string mangle(const std::list<std::string> &what)
+std::string mangleStruct(const std::string &name, const
+std::list<std::list<std::string>> &generics) std::string
+mangleEnum(const std::string &name, const
+std::list<std::list<std::string>> &generics) std::string
+mangleType(const Type &type) std::string mangleSymb(const
+std::string &name, Type &type) std::string mangleSymb(const
+std::string &name, const std::string &typeStr) std::string
+mangle(const std::list<std::string> &what)
 */
 void testMangler()
 {
 }
 
 /*
-long long getFileLastModification(const std::string &filepath, AcornSettings &settings)
-unsigned long long int getSize(const std::string &FilePath)
-std::string humanReadable(const unsigned long long int &Size)
-bool isSourceNewer(const std::string &source, const std::string &dest, AcornSettings &settings)
+long long getFileLastModification(const std::string &filepath,
+AcornSettings &settings) unsigned long long int getSize(const
+std::string &FilePath) std::string humanReadable(const unsigned
+long long int &Size) bool isSourceNewer(const std::string
+&source, const std::string &dest, AcornSettings &settings)
 */
 void testSystem()
 {

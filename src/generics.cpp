@@ -11,18 +11,26 @@ Jordan Dehmel, 2023
 #include "tags.hpp"
 #include <unistd.h>
 
-// Returns true if template substitution would make the two typeVecs the same
-bool checkTypeVec(const std::list<std::string> &candidateTypeVec, const std::list<std::string> &genericTypeVec,
-                  const std::list<std::string> &genericNames, const std::list<std::list<std::string>> &substitutions)
+// Returns true if template substitution would make the two
+// typeVecs the same
+bool checkTypeVec(
+    const std::list<std::string> &candidateTypeVec,
+    const std::list<std::string> &genericTypeVec,
+    const std::list<std::string> &genericNames,
+    const std::list<std::list<std::string>> &substitutions)
 {
     if (genericNames.size() != substitutions.size())
     {
         return false;
     }
 
-    if (candidateTypeVec.size() == 1 && (candidateTypeVec.front() == "struct" || candidateTypeVec.front() == "enum"))
+    if (candidateTypeVec.size() == 1 &&
+        (candidateTypeVec.front() == "struct" ||
+         candidateTypeVec.front() == "enum"))
     {
-        if (genericTypeVec.size() == 1 && (genericTypeVec.front() == "struct" || genericTypeVec.front() == "enum"))
+        if (genericTypeVec.size() == 1 &&
+            (genericTypeVec.front() == "struct" ||
+             genericTypeVec.front() == "enum"))
         {
             return true;
         }
@@ -38,7 +46,8 @@ bool checkTypeVec(const std::list<std::string> &candidateTypeVec, const std::lis
     auto nameIter = genericNames.begin();
     auto subIter = substitutions.begin();
 
-    while (nameIter != genericNames.end() && subIter != substitutions.end())
+    while (nameIter != genericNames.end() &&
+           subIter != substitutions.end())
     {
         subMap[*nameIter] = std::list<std::string>(*subIter);
 
@@ -95,9 +104,11 @@ bool checkTypeVec(const std::list<std::string> &candidateTypeVec, const std::lis
                 candIter++;
             }
 
-            std::list<std::string> remaining = {j, subMap[symb].end()};
+            std::list<std::string> remaining = {
+                j, subMap[symb].end()};
 
-            if (j != subMap[symb].end() && mangle(remaining) != *candIter)
+            if (j != subMap[symb].end() &&
+                mangle(remaining) != *candIter)
             {
                 for (auto newSymb : remaining)
                 {
@@ -128,7 +139,9 @@ bool checkTypeVec(const std::list<std::string> &candidateTypeVec, const std::lis
 Takes a type and a list of candidates. Returns true if the
 type is a prefix of any of the candidates.
 */
-bool typeIsPrefixOfAny(const Type &t, const std::list<MultiTableSymbol> &candidates)
+bool typeIsPrefixOfAny(
+    const Type &t,
+    const std::list<MultiTableSymbol> &candidates)
 {
     std::list<bool> isViable;
     for (int i = 0; i < candidates.size(); i++)
@@ -144,7 +157,9 @@ bool typeIsPrefixOfAny(const Type &t, const std::list<MultiTableSymbol> &candida
         auto candIter = candidates.begin();
         auto viableIter = isViable.begin();
 
-        for (; candIter != candidates.end() && viableIter != isViable.end(); candIter++, viableIter++)
+        for (; candIter != candidates.end() &&
+               viableIter != isViable.end();
+             candIter++, viableIter++)
         {
             if (!*viableIter)
             {
@@ -152,8 +167,10 @@ bool typeIsPrefixOfAny(const Type &t, const std::list<MultiTableSymbol> &candida
             }
 
             // Do checking here
-            if (candIter->type[i].info != var_name && t[i].info != var_name &&
-                !(candIter->type[i].info == t[i].info && candIter->type[i].name == t[i].name))
+            if (candIter->type[i].info != var_name &&
+                t[i].info != var_name &&
+                !(candIter->type[i].info == t[i].info &&
+                  candIter->type[i].name == t[i].name))
             {
                 *viableIter = false;
             }
@@ -172,7 +189,8 @@ bool typeIsPrefixOfAny(const Type &t, const std::list<MultiTableSymbol> &candida
 }
 
 // Returns true if two instances are the same
-bool checkInstances(const std::list<std::list<std::string>> &a, const std::list<std::list<std::string>> &b)
+bool checkInstances(const std::list<std::list<std::string>> &a,
+                    const std::list<std::list<std::string>> &b)
 {
     if (a.size() != b.size())
     {
@@ -208,10 +226,12 @@ bool checkInstances(const std::list<std::list<std::string>> &a, const std::list<
     return true;
 }
 
-// Skips all error checking; DO NOT FEED THIS THINGS THAT MAY ALREADY HAVE INSTANCES
-// Returns true if it was successful
-std::string __instantiateGeneric(const std::string &what, GenericInfo &info,
-                                 const std::list<std::list<std::string>> &genericSubs, AcornSettings &settings)
+// Skips all error checking; DO NOT FEED THIS THINGS THAT MAY
+// ALREADY HAVE INSTANCES Returns true if it was successful
+std::string __instantiateGeneric(
+    const std::string &what, GenericInfo &info,
+    const std::list<std::list<std::string>> &genericSubs,
+    AcornSettings &settings)
 {
     // Build substitution table
     std::map<std::string, std::list<std::string>> substitutions;
@@ -219,7 +239,8 @@ std::string __instantiateGeneric(const std::string &what, GenericInfo &info,
     auto l = info.genericNames.begin();
     auto r = genericSubs.begin();
 
-    while (l != info.genericNames.end() && r != genericSubs.end())
+    while (l != info.genericNames.end() &&
+           r != genericSubs.end())
     {
         substitutions[*l] = *r;
 
@@ -306,17 +327,24 @@ std::string __instantiateGeneric(const std::string &what, GenericInfo &info,
         }
         catch (std::exception &e)
         {
-            throw generic_error("Post-block failed to instantiate given prerequisites: " + std::string(e.what()));
+            throw generic_error(
+                "Post-block failed to instantiate given "
+                "prerequisites: " +
+                std::string(e.what()));
         }
     }
 
     return "";
 }
 
-std::string instantiateGeneric(const std::string &what, const std::list<std::list<std::string>> &genericSubs,
-                               const std::list<std::string> &typeVec, AcornSettings &settings)
+std::string instantiateGeneric(
+    const std::string &what,
+    const std::list<std::list<std::string>> &genericSubs,
+    const std::list<std::string> &typeVec,
+    AcornSettings &settings)
 {
-    // Get mangled version (only meaningful for struct instantiations)
+    // Get mangled version (only meaningful for struct
+    // instantiations)
     std::string oldCurFile = settings.curFile;
     int oldCurLine = settings.curLine;
 
@@ -337,7 +365,9 @@ std::string instantiateGeneric(const std::string &what, const std::list<std::lis
 
     // Existing function check (ignores New and Del because they
     // are usually autogen)
-    else if (what != "New" && what != "Del" && typeIsPrefixOfAny(toType(typeVec, settings), settings.table[what]))
+    else if (what != "New" && what != "Del" &&
+             typeIsPrefixOfAny(toType(typeVec, settings),
+                               settings.table[what]))
     {
         didInstantiate = true;
     }
@@ -347,7 +377,10 @@ std::string instantiateGeneric(const std::string &what, const std::list<std::lis
         // Ensure it exists
         if (settings.generics.count(what) == 0)
         {
-            std::cout << tags::red_bold << "During attempt to instantiate template '" << what << "' w/ generics:\n";
+            std::cout
+                << tags::red_bold
+                << "During attempt to instantiate template '"
+                << what << "' w/ generics:\n";
 
             for (auto s : genericSubs)
             {
@@ -360,14 +393,19 @@ std::string instantiateGeneric(const std::string &what, const std::list<std::lis
             }
             std::cout << tags::reset << '\n';
 
-            throw generic_error("Error: No template exists with which to instantiate template '" + what + "'.");
+            throw generic_error(
+                "Error: No template exists with which to "
+                "instantiate template '" +
+                what + "'.");
         }
 
         for (auto &candidate : settings.generics[what])
         {
             settings.curFile = candidate.originFile;
 
-            if (checkTypeVec(typeVec, candidate.typeVec, candidate.genericNames, genericSubs))
+            if (checkTypeVec(typeVec, candidate.typeVec,
+                             candidate.genericNames,
+                             genericSubs))
             {
                 bool hasInstance = false;
 
@@ -384,7 +422,8 @@ std::string instantiateGeneric(const std::string &what, const std::list<std::lis
                 if (!hasInstance)
                 {
                     candidate.instances.push_back(genericSubs);
-                    std::string result = __instantiateGeneric(what, candidate, genericSubs, settings);
+                    std::string result = __instantiateGeneric(
+                        what, candidate, genericSubs, settings);
                     errors.push_back(result);
 
                     if (result == "")
@@ -395,11 +434,15 @@ std::string instantiateGeneric(const std::string &what, const std::list<std::lis
                     }
                     else
                     {
-                        errors.back().append(" (" + settings.curFile.string() + ":" + std::to_string(settings.curLine) +
-                                             ")");
+                        errors.back().append(
+                            " (" + settings.curFile.string() +
+                            ":" +
+                            std::to_string(settings.curLine) +
+                            ")");
                     }
 
-                    // Else, failed with this template. Not an overall failure.
+                    // Else, failed with this template. Not an
+                    // overall failure.
                 }
                 else
                 {
@@ -409,8 +452,10 @@ std::string instantiateGeneric(const std::string &what, const std::list<std::lis
             }
             else
             {
-                errors.push_back("Did not match generic substitution. (" + settings.curFile.string() + ":" +
-                                 std::to_string(settings.curLine) + ")");
+                errors.push_back(
+                    "Did not match generic substitution. (" +
+                    settings.curFile.string() + ":" +
+                    std::to_string(settings.curLine) + ")");
             }
         }
     }
@@ -420,8 +465,10 @@ std::string instantiateGeneric(const std::string &what, const std::list<std::lis
 
     if (!didInstantiate)
     {
-        std::cout << "No valid instantiation candidate could be found. Candidates:\n"
-                  << tags::yellow_bold << "Desired:\n  " << what << " w/ type ";
+        std::cout << "No valid instantiation candidate could "
+                     "be found. Candidates:\n"
+                  << tags::yellow_bold << "Desired:\n  " << what
+                  << " w/ type ";
 
         for (auto item : typeVec)
         {
@@ -446,28 +493,38 @@ std::string instantiateGeneric(const std::string &what, const std::list<std::lis
         auto it = errors.begin();
         for (auto item : settings.generics[what])
         {
-            std::cout << tags::yellow_bold << "  " << what << " w/ type ";
+            std::cout << tags::yellow_bold << "  " << what
+                      << " w/ type ";
             for (auto b : item.typeVec)
             {
                 std::cout << b << ' ';
             }
-            std::cout << tags::reset << ": " << (it != errors.end() ? *it : "Unknown error") << '\n';
+            std::cout << tags::reset << ": "
+                      << (it != errors.end() ? *it
+                                             : "Unknown error")
+                      << '\n';
 
             it++;
         }
 
         std::cout << '\n' << tags::reset;
 
-        throw generic_error("Error: Candidates exist for template '" + what + "', but none are viable.");
+        throw generic_error(
+            "Error: Candidates exist for template '" + what +
+            "', but none are viable.");
     }
 
     // Return mangled version
     return mangleStr;
 }
 
-void addGeneric(const std::list<Token> &what, const std::string &name, const std::list<std::string> &genericsList,
-                const std::list<std::string> &typeVec, const std::list<Token> &preBlock,
-                const std::list<Token> &postBlock, AcornSettings &settings)
+void addGeneric(const std::list<Token> &what,
+                const std::string &name,
+                const std::list<std::string> &genericsList,
+                const std::list<std::string> &typeVec,
+                const std::list<Token> &preBlock,
+                const std::list<Token> &postBlock,
+                AcornSettings &settings)
 {
     GenericInfo toAdd;
     toAdd.originFile = settings.curFile;
@@ -487,11 +544,13 @@ void addGeneric(const std::list<Token> &what, const std::string &name, const std
     toAdd.postBlock.assign(postBlock.begin(), postBlock.end());
     toAdd.typeVec.assign(typeVec.begin(), typeVec.end());
 
-    // ENSURE IT DOESN'T ALREADY EXIST HERE; If it does, return w/o error
+    // ENSURE IT DOESN'T ALREADY EXIST HERE; If it does, return
+    // w/o error
     bool doesExist = false;
     for (auto candidate : settings.generics[name])
     {
-        if (candidate.genericNames.size() == genericsList.size())
+        if (candidate.genericNames.size() ==
+            genericsList.size())
         {
             bool matchesCandidate = true;
 
@@ -524,7 +583,9 @@ void addGeneric(const std::list<Token> &what, const std::string &name, const std
     }
     else
     {
-        std::cout << tags::yellow_bold << "Warning: Not re-adding existing template " << name << " w/ type `";
+        std::cout << tags::yellow_bold
+                  << "Warning: Not re-adding existing template "
+                  << name << " w/ type `";
         for (const auto &item : typeVec)
         {
             std::cout << item << ' ';
@@ -535,7 +596,8 @@ void addGeneric(const std::list<Token> &what, const std::string &name, const std
     return;
 }
 
-void printGenericDumpInfo(std::ostream &file, AcornSettings &settings)
+void printGenericDumpInfo(std::ostream &file,
+                          AcornSettings &settings)
 {
     int i = 0;
     for (auto p : settings.generics)

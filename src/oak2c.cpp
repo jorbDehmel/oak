@@ -10,15 +10,20 @@ CLI tool for translating Oak to mangled C.
 
 void printHelp()
 {
-    std::cout << "oak2c: Converts Oak function signatures to C ones.\n"
-              << "This is used for designing Oak/C interfacial files.\n\n"
-              << "Usage:\n"
-              << "oak2c --help\n"
-              << "oak2c \"oak_fn_sig_here\"\n\n"
-              << "Example:\n"
-              << "Input:  oak2c \"let some_fn(what: structure) -> u128\"\n"
-              << "Output: u128 some_fn_FN_structure_MAPS_u128(struct structure what)\n\n"
-              << "Jordan Dehmel, 2024. jdehmel@outlook.com\n";
+    std::cout
+        << "oak2c: Converts Oak function signatures to C "
+           "ones.\n"
+        << "This is used for designing Oak/C interfacial "
+           "files.\n\n"
+        << "Usage:\n"
+        << "oak2c --help\n"
+        << "oak2c \"oak_fn_sig_here\"\n\n"
+        << "Example:\n"
+        << "Input:  oak2c \"let some_fn(what: structure) -> "
+           "u128\"\n"
+        << "Output: u128 some_fn_FN_structure_MAPS_u128(struct "
+           "structure what)\n\n"
+        << "Jordan Dehmel, 2024. jdehmel@outlook.com\n";
 }
 
 int main(int argc, char *argv[])
@@ -48,15 +53,19 @@ int main(int argc, char *argv[])
             auto lexed = lexer.lex_list(argv[i]);
             if (lexed.front() != "let")
             {
-                std::cout << "Error: Must provide a valid Oak function signature (beginning w/ 'let').\n";
+                std::cout << "Error: Must provide a valid Oak "
+                             "function signature (beginning w/ "
+                             "'let').\n";
                 return 3;
             }
 
-            // Ensure that all structs referenced are seen as valid
+            // Ensure that all structs referenced are seen as
+            // valid
             for (auto item : lexed)
             {
                 settings.structData[item] = StructLookupData();
-                settings.structData[item].members["__DUMMY"] = nullType;
+                settings.structData[item].members["__DUMMY"] =
+                    nullType;
             }
 
             // Fetch the name of the fn
@@ -71,7 +80,8 @@ int main(int argc, char *argv[])
         }
         catch (std::runtime_error &e)
         {
-            std::cout << "c::panic!(\"oak2c: Runtime error '" << e.what() << "'\")";
+            std::cout << "c::panic!(\"oak2c: Runtime error '"
+                      << e.what() << "'\")";
         }
         catch (...)
         {

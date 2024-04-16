@@ -23,7 +23,7 @@ has many fewer guidelines. These are outlined below.
 - As few `#include`s as possible
 - Try to keep a linear `#include` flow- Not a tangled web
 - Descriptive, itemized commenting
-- Keep a 64-char width in all documentation and commenting.
+- Keep a 64-char width
 - If this guide does not specify something, stick to the
   precedent set by the existing codebase.
 

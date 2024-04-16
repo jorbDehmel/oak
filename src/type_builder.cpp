@@ -79,12 +79,15 @@ Type::Type(const Type &What, const int &startingAt)
 Type::Type()
 {
     internal.clear();
-    internal.push_back(TypeNode{nullType.internal.front().info, nullType.internal.front().name});
+    internal.push_back(
+        TypeNode{nullType.internal.front().info,
+                 nullType.internal.front().name});
     ID = currentID++;
     return;
 }
 
-void Type::prepend(const TypeInfo &Info, const std::string &Name)
+void Type::prepend(const TypeInfo &Info,
+                   const std::string &Name)
 {
     internal.insert(internal.begin(), {Info, Name});
     ID = currentID++;
@@ -93,7 +96,9 @@ void Type::prepend(const TypeInfo &Info, const std::string &Name)
 
 void Type::append(const TypeInfo &Info, const std::string &Name)
 {
-    if (internal.size() == 1 && internal.front().info == atomic && internal.front().name == "NULL")
+    if (internal.size() == 1 &&
+        internal.front().info == atomic &&
+        internal.front().name == "NULL")
     {
         internal.front().info = Info;
         internal.front().name = Name;
@@ -109,7 +114,9 @@ void Type::append(const TypeInfo &Info, const std::string &Name)
 
 void Type::append(const Type &Other)
 {
-    if (internal.size() == 1 && internal.front().info == atomic && internal.front().name == "NULL")
+    if (internal.size() == 1 &&
+        internal.front().info == atomic &&
+        internal.front().name == "NULL")
     {
         internal.front() = Other.internal.front();
     }
@@ -154,7 +161,9 @@ Type &Type::operator=(const TypeNode &Other)
     return *this;
 }
 
-void toStr(const Type *const What, const std::list<TypeNode>::const_iterator &pos, std::list<std::string> &builder)
+void toStr(const Type *const What,
+           const std::list<TypeNode>::const_iterator &pos,
+           std::list<std::string> &builder)
 {
     if (What == nullptr || pos == What->internal.end())
     {
@@ -194,8 +203,11 @@ void toStr(const Type *const What, const std::list<TypeNode>::const_iterator &po
 
     if (std::next(pos) != What->internal.end())
     {
-        if (std::next(pos)->info != function && std::next(pos)->info != pointer && std::next(pos)->info != join &&
-            std::next(pos)->info != maps && pos->info != pointer && pos->info != function)
+        if (std::next(pos)->info != function &&
+            std::next(pos)->info != pointer &&
+            std::next(pos)->info != join &&
+            std::next(pos)->info != maps &&
+            pos->info != pointer && pos->info != function)
         {
             builder.push_back(" ");
         }
@@ -251,14 +263,18 @@ void Type::pop_back()
 // Ignores all var_names
 // As of 0.0.21, can also do automatic referencing
 // of arguments
-bool typesAreSame(const Type *const A, const Type *const B, int &changes)
+bool typesAreSame(const Type *const A, const Type *const B,
+                  int &changes)
 {
     auto left = A->internal.begin();
     auto right = B->internal.begin();
 
-    while (left != A->internal.end() && right != B->internal.end())
+    while (left != A->internal.end() &&
+           right != B->internal.end())
     {
-        while (left != A->internal.end() && (left->info == var_name || left->info == pointer))
+        while (
+            left != A->internal.end() &&
+            (left->info == var_name || left->info == pointer))
         {
             if (left->info == pointer)
             {
@@ -268,7 +284,9 @@ bool typesAreSame(const Type *const A, const Type *const B, int &changes)
             left++;
         }
 
-        while (right != B->internal.end() && (right->info == var_name || right->info == pointer))
+        while (
+            right != B->internal.end() &&
+            (right->info == var_name || right->info == pointer))
         {
             if (right->info == pointer)
             {
@@ -278,12 +296,14 @@ bool typesAreSame(const Type *const A, const Type *const B, int &changes)
             right++;
         }
 
-        if (left == A->internal.end() || right == B->internal.end())
+        if (left == A->internal.end() ||
+            right == B->internal.end())
         {
             break;
         }
 
-        if (left->info != right->info && !(left->info == sarr && right->info == arr) &&
+        if (left->info != right->info &&
+            !(left->info == sarr && right->info == arr) &&
             !(left->info == arr && right->info == sarr))
         {
             // Failure
@@ -291,7 +311,8 @@ bool typesAreSame(const Type *const A, const Type *const B, int &changes)
         }
         else
         {
-            if (left->info == atomic && left->name != right->name)
+            if (left->info == atomic &&
+                left->name != right->name)
             {
                 // Failure
                 return false;
@@ -305,7 +326,8 @@ bool typesAreSame(const Type *const A, const Type *const B, int &changes)
 
     if (left == A->internal.end() || right == B->internal.end())
     {
-        if (!(left == A->internal.end() && right == B->internal.end()))
+        if (!(left == A->internal.end() &&
+              right == B->internal.end()))
         {
             return false;
         }
@@ -314,30 +336,36 @@ bool typesAreSame(const Type *const A, const Type *const B, int &changes)
     return true;
 }
 
-// Like the above, but does not do auto-referencing or dereferencing
+// Like the above, but does not do auto-referencing or
+// dereferencing
 bool typesAreSameExact(const Type *const A, const Type *const B)
 {
     auto left = A->internal.begin();
     auto right = B->internal.begin();
 
-    while (left != A->internal.end() && right != B->internal.end())
+    while (left != A->internal.end() &&
+           right != B->internal.end())
     {
-        while (left != A->internal.end() && left->info == var_name)
+        while (left != A->internal.end() &&
+               left->info == var_name)
         {
             left++;
         }
 
-        while (right != B->internal.end() && right->info == var_name)
+        while (right != B->internal.end() &&
+               right->info == var_name)
         {
             right++;
         }
 
-        if (left == A->internal.end() || right == B->internal.end())
+        if (left == A->internal.end() ||
+            right == B->internal.end())
         {
             return false;
         }
 
-        if (left->info != right->info && !(left->info == sarr && right->info == arr) &&
+        if (left->info != right->info &&
+            !(left->info == sarr && right->info == arr) &&
             !(left->info == arr && right->info == sarr))
         {
             // Failure
@@ -345,7 +373,8 @@ bool typesAreSameExact(const Type *const A, const Type *const B)
         }
         else
         {
-            if (left->info == atomic && left->name != right->name)
+            if (left->info == atomic &&
+                left->name != right->name)
             {
                 // Failure
                 return false;
@@ -359,7 +388,8 @@ bool typesAreSameExact(const Type *const A, const Type *const B)
 
     if (left == A->internal.end() || right == B->internal.end())
     {
-        if (!(left == A->internal.end() && right == B->internal.end()))
+        if (!(left == A->internal.end() &&
+              right == B->internal.end()))
         {
             return false;
         }
@@ -375,16 +405,20 @@ casting. The number of changes is recorded in `changes`.
 
 A is passed, B is candidate
 */
-bool typesAreSameCast(const Type *const passed, const Type *const candidate, int &changes)
+bool typesAreSameCast(const Type *const passed,
+                      const Type *const candidate, int &changes)
 {
     bool castIsLegal = true;
 
     auto left = passed->internal.begin();
     auto right = candidate->internal.begin();
 
-    while (left != passed->internal.end() && right != candidate->internal.end())
+    while (left != passed->internal.end() &&
+           right != candidate->internal.end())
     {
-        while (left != passed->internal.end() && (left->info == var_name || left->info == pointer))
+        while (
+            left != passed->internal.end() &&
+            (left->info == var_name || left->info == pointer))
         {
             if (left->info == pointer)
             {
@@ -399,7 +433,9 @@ bool typesAreSameCast(const Type *const passed, const Type *const candidate, int
             left++;
         }
 
-        while (right != candidate->internal.end() && (right->info == var_name || right->info == pointer))
+        while (
+            right != candidate->internal.end() &&
+            (right->info == var_name || right->info == pointer))
         {
             if (right->info == pointer)
             {
@@ -414,12 +450,14 @@ bool typesAreSameCast(const Type *const passed, const Type *const candidate, int
             right++;
         }
 
-        if (left == passed->internal.end() || right == candidate->internal.end())
+        if (left == passed->internal.end() ||
+            right == candidate->internal.end())
         {
             break;
         }
 
-        if (left->info != right->info && !(left->info == sarr && right->info == arr) &&
+        if (left->info != right->info &&
+            !(left->info == sarr && right->info == arr) &&
             !(left->info == arr && right->info == sarr))
         {
             // Failure
@@ -434,8 +472,10 @@ bool typesAreSameCast(const Type *const passed, const Type *const candidate, int
                     castIsLegal = false;
 
                     // Case 1: Int cast
-                    if (INT_LITERALS.count(left->name) != 0 && INT_LITERALS.count(right->name) != 0 &&
-                        INT_LITERALS.at(left->name) <= INT_LITERALS.at(right->name))
+                    if (INT_LITERALS.count(left->name) != 0 &&
+                        INT_LITERALS.count(right->name) != 0 &&
+                        INT_LITERALS.at(left->name) <=
+                            INT_LITERALS.at(right->name))
                     {
                         changes++;
                         castIsLegal = true;
@@ -443,8 +483,12 @@ bool typesAreSameCast(const Type *const passed, const Type *const candidate, int
 
                     // Case 2: Float cast
                     if (!castIsLegal &&
-                        (FLOAT_LITERALS.count(left->name) != 0 && FLOAT_LITERALS.count(right->name) != 0) &&
-                        FLOAT_LITERALS.at(left->name) <= FLOAT_LITERALS.at(right->name))
+                        (FLOAT_LITERALS.count(left->name) !=
+                             0 &&
+                         FLOAT_LITERALS.count(right->name) !=
+                             0) &&
+                        FLOAT_LITERALS.at(left->name) <=
+                            FLOAT_LITERALS.at(right->name))
                     {
                         changes++;
                         castIsLegal = true;
@@ -464,9 +508,11 @@ bool typesAreSameCast(const Type *const passed, const Type *const candidate, int
         right++;
     }
 
-    if (left == passed->internal.end() || right == candidate->internal.end())
+    if (left == passed->internal.end() ||
+        right == candidate->internal.end())
     {
-        if (!(left == passed->internal.end() && right == candidate->internal.end()))
+        if (!(left == passed->internal.end() &&
+              right == candidate->internal.end()))
         {
             return false;
         }
@@ -484,7 +530,8 @@ Type checkLiteral(const std::string &From)
     }
 
     // Check as std::string
-    else if ((From.front() == '"' && From.back() == '"') || (From.front() == '\'' && From.back() == '\''))
+    else if ((From.front() == '"' && From.back() == '"') ||
+             (From.front() == '\'' && From.back() == '\''))
     {
         // Char (do not use)
         // if (From.size() == 3)
@@ -504,7 +551,8 @@ Type checkLiteral(const std::string &From)
         {
             if (From[i] != '0' && From[i] != '1')
             {
-                throw sequencing_error("Invalid binary literal '" + From + "'");
+                throw sequencing_error(
+                    "Invalid binary literal '" + From + "'");
             }
         }
 
@@ -541,7 +589,9 @@ Type checkLiteral(const std::string &From)
         // Too many bytes
         else
         {
-            throw sequencing_error("Binary '" + From + "' cannot fit in integer literal.");
+            throw sequencing_error(
+                "Binary '" + From +
+                "' cannot fit in integer literal.");
         }
     }
     else if (From.size() >= 2 && From.substr(0, 2) == "0x")
@@ -549,11 +599,13 @@ Type checkLiteral(const std::string &From)
         // Ensure validity
         for (int i = 2; i < From.size(); i++)
         {
-            if (!(('0' <= From[i] && From[i] <= '9') || ('a' <= From[i] && From[i] <= 'f') ||
+            if (!(('0' <= From[i] && From[i] <= '9') ||
+                  ('a' <= From[i] && From[i] <= 'f') ||
                   ('A' <= From[i] && From[i] <= 'F')))
             {
                 std::cout << "Due to char " << From[i] << '\n';
-                throw sequencing_error("Invalid hex literal '" + From + "'");
+                throw sequencing_error("Invalid hex literal '" +
+                                       From + "'");
             }
         }
 
@@ -590,12 +642,15 @@ Type checkLiteral(const std::string &From)
         // Too many bytes
         else
         {
-            throw sequencing_error("Hex '" + From + "' cannot fit in integer literal.");
+            throw sequencing_error(
+                "Hex '" + From +
+                "' cannot fit in integer literal.");
         }
     }
 
     // Check as numbers w/o prefixes
-    bool canBeNumber = (('0' <= From[0] && From[0] <= '9') || From[0] == '-');
+    bool canBeNumber =
+        (('0' <= From[0] && From[0] <= '9') || From[0] == '-');
 
     if (canBeNumber)
     {
@@ -627,7 +682,9 @@ Type checkLiteral(const std::string &From)
                     return Type(atomic, suffix);
                 }
 
-                throw sequencing_error("Invalid type-specifying suffix '" + std::string(suffix) + "'");
+                throw sequencing_error(
+                    "Invalid type-specifying suffix '" +
+                    std::string(suffix) + "'");
             }
             else if (c == 'i')
             {
@@ -654,7 +711,9 @@ Type checkLiteral(const std::string &From)
                     return Type(atomic, suffix);
                 }
 
-                throw sequencing_error("Invalid type-specifying suffix '" + std::string(suffix) + "'");
+                throw sequencing_error(
+                    "Invalid type-specifying suffix '" +
+                    std::string(suffix) + "'");
             }
             else if (c == 'f')
             {
@@ -670,7 +729,9 @@ Type checkLiteral(const std::string &From)
                     return Type(atomic, suffix);
                 }
 
-                throw sequencing_error("Invalid type-specifying suffix '" + std::string(suffix) + "'");
+                throw sequencing_error(
+                    "Invalid type-specifying suffix '" +
+                    std::string(suffix) + "'");
             }
 
             // Must be floating point to use '.'
@@ -711,7 +772,8 @@ Type checkLiteral(const std::string &From)
             {
                 return Type(atomic, "i64");
             }
-            else if (LONG_LONG_MIN <= val && val <= LONG_LONG_MAX)
+            else if (LONG_LONG_MIN <= val &&
+                     val <= LONG_LONG_MAX)
             {
                 return Type(atomic, "i128");
             }
@@ -743,7 +805,9 @@ Type checkLiteral(const std::string &From)
             }
         }
 
-        throw sequencing_error("Invalid numerical literal '" + From + "'- Out of range of i128 and u128.");
+        throw sequencing_error(
+            "Invalid numerical literal '" + From +
+            "'- Out of range of i128 and u128.");
     }
 
     // Default: Not a literal

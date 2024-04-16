@@ -10,7 +10,8 @@ jdehmel@outlook.com
 ////////////////////////////////////////////////////////////////
 // Utility functions
 
-static void assertEqual(const std::list<Token> &obs, const std::list<Token> &exp)
+static void assertEqual(const std::list<Token> &obs,
+                        const std::list<Token> &exp)
 {
     bool isEqual = true;
 
@@ -50,13 +51,17 @@ static void assertEqual(const std::list<Token> &obs, const std::list<Token> &exp
         }
         std::cerr << '\n';
 
-        throw std::runtime_error(__FUNCTION__ + std::string(":") + std::to_string(__LINE__));
+        throw std::runtime_error(__FUNCTION__ +
+                                 std::string(":") +
+                                 std::to_string(__LINE__));
     }
 }
 
 // Assert that the given Sapling rule creates the given output
 // when presented with the given input.
-void ensureRule(const std::string &text, const std::string &expected, const std::string &inputPattern,
+void ensureRule(const std::string &text,
+                const std::string &expected,
+                const std::string &inputPattern,
                 const std::string &outputPattern)
 {
     Lexer l;
@@ -69,8 +74,10 @@ void ensureRule(const std::string &text, const std::string &expected, const std:
 
     Rule r;
     r.engineName = "sapling";
-    r.inputPattern.assign(lexedInputPattern.begin(), lexedInputPattern.end());
-    r.outputPattern.assign(lexedOutputPattern.begin(), lexedOutputPattern.end());
+    r.inputPattern.assign(lexedInputPattern.begin(),
+                          lexedInputPattern.end());
+    r.outputPattern.assign(lexedOutputPattern.begin(),
+                           lexedOutputPattern.end());
 
     auto it = lexedText.begin();
 
@@ -114,13 +121,20 @@ void testLookarounds()
 
 void testPairMatching()
 {
-    ensureRule("foo {} bar", "foo hi bar", "$~ $<${$}$> $>v", "hi");
-    ensureRule("foo {{}} bar", "foo hi bar", "$~ $<${$}$> $>v", "hi");
-    ensureRule("foo {{{}{}}{}} bar", "foo hi bar", "$~ $<${$}$> $>v", "hi");
-    ensureRule("foo {<>} bar", "foo hi bar", "$~ $<${$}$> $>v", "hi");
-    ensureRule("foo {()} bar", "foo hi bar", "$~ $<${$}$> $>v", "hi");
-    ensureRule("foo {[]} bar", "foo hi bar", "$~ $<${$}$> $>v", "hi");
-    ensureRule("foo { a<foo>; } bar", "foo hi bar", "$~ $<${$}$> $>v", "hi");
+    ensureRule("foo {} bar", "foo hi bar", "$~ $<${$}$> $>v",
+               "hi");
+    ensureRule("foo {{}} bar", "foo hi bar", "$~ $<${$}$> $>v",
+               "hi");
+    ensureRule("foo {{{}{}}{}} bar", "foo hi bar",
+               "$~ $<${$}$> $>v", "hi");
+    ensureRule("foo {<>} bar", "foo hi bar", "$~ $<${$}$> $>v",
+               "hi");
+    ensureRule("foo {()} bar", "foo hi bar", "$~ $<${$}$> $>v",
+               "hi");
+    ensureRule("foo {[]} bar", "foo hi bar", "$~ $<${$}$> $>v",
+               "hi");
+    ensureRule("foo { a<foo>; } bar", "foo hi bar",
+               "$~ $<${$}$> $>v", "hi");
 }
 
 ////////////////////////////////////////////////////////////////

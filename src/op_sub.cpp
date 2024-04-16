@@ -16,7 +16,9 @@ and the ternary must be added via rules, if at all.
 // Moves pre and post to include the operands to a binary
 // operator
 // Assumes that pre = i - 1, post = i + 1, i = index of bin op
-void getOperands(std::list<Token> &from, std::list<Token>::iterator &pre, std::list<Token>::iterator &post,
+void getOperands(std::list<Token> &from,
+                 std::list<Token>::iterator &pre,
+                 std::list<Token>::iterator &post,
                  const bool &useLine = false)
 {
     int count = 0;
@@ -29,7 +31,8 @@ void getOperands(std::list<Token> &from, std::list<Token>::iterator &pre, std::l
         {
             count++;
 
-            if (count == 0 && OPERATORS.count(itGet(from, pre, -1)) == 0)
+            if (count == 0 &&
+                OPERATORS.count(itGet(from, pre, -1)) == 0)
             {
                 if (OPERATORS.count(itGet(from, pre, -1)) == 0)
                 {
@@ -40,8 +43,9 @@ void getOperands(std::list<Token> &from, std::list<Token>::iterator &pre, std::l
                 {
                     // Possible templated function call
 
-                    // Scan backwards: If "<" occurs before ";", ")", then templating.
-                    // Else, not templating.
+                    // Scan backwards: If "<" occurs before ";",
+                    // ")", then templating. Else, not
+                    // templating.
 
                     bool isTemplating = false;
                     auto i = pre;
@@ -90,7 +94,8 @@ void getOperands(std::list<Token> &from, std::list<Token>::iterator &pre, std::l
         pre--;
         pre--;
     }
-    while (itCmp(from, pre, -1, "^") || itCmp(from, pre, -1, "@"))
+    while (itCmp(from, pre, -1, "^") ||
+           itCmp(from, pre, -1, "@"))
     {
         pre--;
     }
@@ -118,7 +123,8 @@ void getOperands(std::list<Token> &from, std::list<Token>::iterator &pre, std::l
                 count--;
             }
 
-            while (post != from.end() && (*post == "^" || *post == "@"))
+            while (post != from.end() &&
+                   (*post == "^" || *post == "@"))
             {
                 post++;
             }
@@ -126,7 +132,8 @@ void getOperands(std::list<Token> &from, std::list<Token>::iterator &pre, std::l
             if (count == 0)
             {
                 // Function call
-                if (OPERATORS.count(*post) == 0 && itCmp(from, post, 1, "("))
+                if (OPERATORS.count(*post) == 0 &&
+                    itCmp(from, post, 1, "("))
                 {
                     post++;
                     count = 1;
@@ -150,7 +157,9 @@ void getOperands(std::list<Token> &from, std::list<Token>::iterator &pre, std::l
 // Moves post to include the operand to a binary
 // operator. Oak only has prefix unaries.
 // Assumes that pre = i - 1, post = i + 1, i = index of bin op
-void getOperandUnary(std::list<Token> &from, const std::list<Token>::iterator &pre, std::list<Token>::iterator &post)
+void getOperandUnary(std::list<Token> &from,
+                     const std::list<Token>::iterator &pre,
+                     std::list<Token>::iterator &post)
 {
     int count = 0;
 
@@ -168,7 +177,8 @@ void getOperandUnary(std::list<Token> &from, const std::list<Token>::iterator &p
             count--;
         }
 
-        while (post != from.end() && (*post == "^" || *post == "@"))
+        while (post != from.end() &&
+               (*post == "^" || *post == "@"))
         {
             post++;
         }
@@ -176,7 +186,8 @@ void getOperandUnary(std::list<Token> &from, const std::list<Token>::iterator &p
         if (count == 0)
         {
             // Function call
-            if (OPERATORS.count(*post) == 0 && itCmp(from, post, 1, "("))
+            if (OPERATORS.count(*post) == 0 &&
+                itCmp(from, post, 1, "("))
             {
                 post++;
                 count = 1;
@@ -197,7 +208,9 @@ void getOperandUnary(std::list<Token> &from, const std::list<Token>::iterator &p
 }
 
 // Substitute a single binary operation as identified
-void doSub(std::list<Token> &from, std::list<Token>::iterator &pos, const std::string &name)
+void doSub(std::list<Token> &from,
+           std::list<Token>::iterator &pos,
+           const std::string &name)
 {
     auto pre = pos, post = pos;
     pre--;
@@ -206,7 +219,8 @@ void doSub(std::list<Token> &from, std::list<Token>::iterator &pos, const std::s
     bool fullLine = false;
     std::list<std::string> toAdd;
 
-    if (name == "Copy" || (name != "Eq" && name.find("Eq") != std::string::npos))
+    if (name == "Copy" ||
+        (name != "Eq" && name.find("Eq") != std::string::npos))
     {
         fullLine = true;
     }
@@ -217,7 +231,8 @@ void doSub(std::list<Token> &from, std::list<Token>::iterator &pos, const std::s
     // Reconstruct into valid output
     auto start = pre, end = pos;
 
-    while (itCmp(from, start, 0, "(") && itCmp(from, end, -1, ")"))
+    while (itCmp(from, start, 0, "(") &&
+           itCmp(from, end, -1, ")"))
     {
         start++;
         end--;
@@ -235,7 +250,8 @@ void doSub(std::list<Token> &from, std::list<Token>::iterator &pos, const std::s
     start++;
 
     end = post;
-    while (itCmp(from, start, 0, "(") && itCmp(from, end, -1, ")"))
+    while (itCmp(from, start, 0, "(") &&
+           itCmp(from, end, -1, ")"))
     {
         start++;
         end--;
@@ -248,7 +264,8 @@ void doSub(std::list<Token> &from, std::list<Token>::iterator &pos, const std::s
     toAdd.push_back(")");
 
     // Erase old (all items pre <= i < post)
-    Token templ = *pre; // Ensures line, file info are copied over
+    Token templ =
+        *pre; // Ensures line, file info are copied over
     while (pre != post)
     {
         pre = from.erase(pre);
@@ -267,7 +284,9 @@ void doSub(std::list<Token> &from, std::list<Token>::iterator &pos, const std::s
 }
 
 // Substitute a single unary operation as identified
-void doSubUnary(std::list<Token> &from, std::list<Token>::iterator &pos, const std::string &name)
+void doSubUnary(std::list<Token> &from,
+                std::list<Token>::iterator &pos,
+                const std::string &name)
 {
     auto pre = pos, post = pos;
     pre--;
@@ -282,7 +301,8 @@ void doSubUnary(std::list<Token> &from, std::list<Token>::iterator &pos, const s
     // Reconstruct into valid output
     auto start = pre, end = pos;
 
-    while (itCmp(from, start, 0, "(") && itCmp(from, end, -1, ")"))
+    while (itCmp(from, start, 0, "(") &&
+           itCmp(from, end, -1, ")"))
     {
         start++;
         end--;
@@ -294,7 +314,8 @@ void doSubUnary(std::list<Token> &from, std::list<Token>::iterator &pos, const s
     start++;
 
     end = post;
-    while (itCmp(from, start, 0, "(") && itCmp(from, end, -1, ")"))
+    while (itCmp(from, start, 0, "(") &&
+           itCmp(from, end, -1, ")"))
     {
         start++;
         end--;
@@ -307,7 +328,8 @@ void doSubUnary(std::list<Token> &from, std::list<Token>::iterator &pos, const s
     toAdd.push_back(")");
 
     // Erase old (all items pre <= i < post)
-    Token templ = *pre; // Ensures line, file info are copied over
+    Token templ =
+        *pre; // Ensures line, file info are copied over
 
     while (pre != post)
     {
@@ -328,7 +350,9 @@ void doSubUnary(std::list<Token> &from, std::list<Token>::iterator &pos, const s
 
 // Fixes method call notation.
 // All iterators within the given range will be invalidated.
-void fixMethod(std::list<Token> &from, std::list<Token>::iterator &beginObj, std::list<Token>::iterator &beginCall,
+void fixMethod(std::list<Token> &from,
+               std::list<Token>::iterator &beginObj,
+               std::list<Token>::iterator &beginCall,
                Token &fnName)
 {
     // beginCall points to "("
@@ -531,7 +555,8 @@ void operatorSub(std::list<Token> &From)
         {
             /*
             If a ) or ; occurs before the next >, do sub.
-            Otherwise, is templating; Advance i past all of this.
+            Otherwise, is templating; Advance i past all of
+            this.
             */
 
             bool isTemplating = false;

@@ -54,6 +54,16 @@ uninstall:
 reinstall:
 	$(MAKE) -C . uninstall clean install
 
+.PHONY:	fix-format
+fix-style:
+	clang-format -i *.cpp *.hpp unit_tests/*.cpp \
+		unit_tests/*.hpp
+
+.PHONY:	ensure-format
+ensure-format:
+	clang-format --Werror --dry-run *.cpp *.hpp \
+		unit_tests/*.cpp unit_tests/*.hpp
+
 ################################################################
 
 .PHONY:	dirs

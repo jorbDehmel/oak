@@ -64,51 +64,54 @@ const static std::string LINKER = "clang++";
 
 // A command-line `C` formatting tool which will make the
 // target `C` prettier when required.
-const static std::string PRETTIFIER = "clang-format --style=Microsoft -i ";
+const static std::string PRETTIFIER =
+    "clang-format --style=Microsoft -i ";
 
 // Max allowable size of .acorn_build in kilobytes
 const static unsigned long long MAX_CACHE_KB = 2000;
 
 // The text to be shown upon `-h` or `--help`
-const static std::string HELP_TEXT = "Acorn - Oak Standard Translator\n"
-                                     "For the Oak programming language\n"
-                                     "Translates and compiles .oak files\n\n"
-                                     "Option | Verbose     | Purpose\n"
-                                     "-------|-------------|-------------------------------\n"
-                                     " -a    |             | Update acorn\n"
-                                     " -A    |             | Uninstall acorn\n"
-                                     " -c    | --compile   | Produce object files\n"
-                                     " -d    | --debug     | Toggle debug mode\n"
-                                     " -D    | --dialect   | Uses a dialect file\n"
-                                     " -e    | --clean     | Toggle erasure (default off)\n"
-                                     " -E    | --execute   | Run executable when done\n"
-                                     " -g    | --exe_debug | Use LLVM debug flag\n"
-                                     " -h    | --help      | Show this\n"
-                                     " -i    | --install   | Install a package\n"
-                                     " -l    | --link      | Produce executables\n"
-                                     " -m    | --manual    | Produce a .md doc\n"
-                                     " -M    |             | Used for macros\n"
-                                     " -n    | --no_save   | Produce nothing\n"
-                                     " -o    | --output    | Set the output file\n"
-                                     " -O    | --optimize  | Use LLVM optimization O3\n"
-                                     " -p    | --prettify  | Use clang-format on output C\n"
-                                     " -q    | --quit      | Quit immediately\n"
-                                     " -Q    | --query     | Query an installed package\n"
-                                     " -r    | --reinstall | Reinstall a package\n"
-                                     " -R    | --remove    | Uninstalls a package\n"
-                                     " -s    | --size      | Show Oak disk usage\n"
-                                     " -S    | --install   | Install a package\n"
-                                     " -t    | --translate | Produce C++ files\n"
-                                     " -T    | --test      | Compile and run tests/*.oak\n"
-                                     " -u    | --dump      | Save dump files\n"
-                                     " -U    |             | Save rule log files\n"
-                                     " -v    | --version   | Show version\n"
-                                     " -w    | --new       | Create a new package\n"
-                                     " -x    | --syntax    | Ignore syntax errors\n";
+const static std::string HELP_TEXT =
+    "Acorn - Oak Standard Translator\n"
+    "For the Oak programming language\n"
+    "Translates and compiles .oak files\n\n"
+    "Option | Verbose     | Purpose\n"
+    "-------|-------------|-------------------------------\n"
+    " -a    |             | Update acorn\n"
+    " -A    |             | Uninstall acorn\n"
+    " -c    | --compile   | Produce object files\n"
+    " -d    | --debug     | Toggle debug mode\n"
+    " -D    | --dialect   | Uses a dialect file\n"
+    " -e    | --clean     | Toggle erasure (default off)\n"
+    " -E    | --execute   | Run executable when done\n"
+    " -g    | --exe_debug | Use LLVM debug flag\n"
+    " -h    | --help      | Show this\n"
+    " -i    | --install   | Install a package\n"
+    " -l    | --link      | Produce executables\n"
+    " -m    | --manual    | Produce a .md doc\n"
+    " -M    |             | Used for macros\n"
+    " -n    | --no_save   | Produce nothing\n"
+    " -o    | --output    | Set the output file\n"
+    " -O    | --optimize  | Use LLVM optimization O3\n"
+    " -p    | --prettify  | Use clang-format on output C\n"
+    " -q    | --quit      | Quit immediately\n"
+    " -Q    | --query     | Query an installed package\n"
+    " -r    | --reinstall | Reinstall a package\n"
+    " -R    | --remove    | Uninstalls a package\n"
+    " -s    | --size      | Show Oak disk usage\n"
+    " -S    | --install   | Install a package\n"
+    " -t    | --translate | Produce C++ files\n"
+    " -T    | --test      | Compile and run tests/*.oak\n"
+    " -u    | --dump      | Save dump files\n"
+    " -U    |             | Save rule log files\n"
+    " -v    | --version   | Show version\n"
+    " -w    | --new       | Create a new package\n"
+    " -x    | --syntax    | Ignore syntax errors\n";
 
 // A temporary place to store packages during installation.
 // These will be deleted after install.
-const static std::string PACKAGE_TEMP_LOCATION = "/tmp/oak_packages/";
+const static std::string PACKAGE_TEMP_LOCATION =
+    "/tmp/oak_packages/";
 
 // Where to look for packages.
 const static std::string PACKAGE_INCLUDE_PATH = OAK_DIR_PATH;
@@ -117,82 +120,89 @@ const static std::string PACKAGE_INCLUDE_PATH = OAK_DIR_PATH;
 const static std::string INFO_FILE = "oak_package_info.txt";
 
 // A locally stored list of all official packages.
-const static std::string PACKAGES_LIST_PATH = "/usr/include/oak/packages_list.txt";
+const static std::string PACKAGES_LIST_PATH =
+    "/usr/include/oak/packages_list.txt";
 
 // A command to clone a `git` repository locally.
 const static std::string CLONE_COMMAND = "git clone ";
 
 // Contains all the atomic types (ints, floats, bools, etc)
-const static std::set<std::string> ATOMICS = {"u8",   "i8",  "u16", "i16",  "u32",  "i32", "u64",  "i64",    "u128",
-                                              "i128", "f32", "f64", "f128", "bool", "str", "void", "struct", "enum"};
+const static std::set<std::string> ATOMICS = {
+    "u8",   "i8",   "u16",  "i16",  "u32",    "i32",
+    "u64",  "i64",  "u128", "i128", "f32",    "f64",
+    "f128", "bool", "str",  "void", "struct", "enum"};
 
 // Where to look for the standard `oak` header file. This is
 // included at the top of all target `C` files.
-const static std::string OAK_HEADER_PATH = "/usr/include/oak/std_oak_header.h";
+const static std::string OAK_HEADER_PATH =
+    "/usr/include/oak/std_oak_header.h";
 
 // Used for keyword collision avoidance. All `Oak` keywords.
-const static std::set<std::string> OAK_KEYWORDS = {"if",    "else",  "let",    "case", "default",
-                                                   "match", "while", "return", "pre",  "post"};
+const static std::set<std::string> OAK_KEYWORDS = {
+    "if",    "else",  "let",    "case", "default",
+    "match", "while", "return", "pre",  "post"};
 
 // Used for keyword collision avoidance. "All" `C` keywords.
-const static std::set<std::string> C_KEYWORDS = {"alignas",
-                                                 "alignof",
-                                                 "auto",
-                                                 "break",
-                                                 "case",
-                                                 "const",
-                                                 "constexpr",
-                                                 "continue",
-                                                 "default",
-                                                 "do",
-                                                 "else",
-                                                 "extern",
-                                                 "for",
-                                                 "goto",
-                                                 "if",
-                                                 "inline",
-                                                 "nullptr",
-                                                 "register",
-                                                 "restrict",
-                                                 "return",
-                                                 "signed",
-                                                 "sizeof",
-                                                 "static",
-                                                 "static_assert",
-                                                 "switch",
-                                                 "thread_local",
-                                                 "typedef",
-                                                 "typeof",
-                                                 "typeof_unqual",
-                                                 "union",
-                                                 "unsigned",
-                                                 "volatile",
-                                                 "while",
-                                                 "_Alignas",
-                                                 "_Alignof",
-                                                 "_Atomic",
-                                                 "_BitInt",
-                                                 "_Bool",
-                                                 "_Complex",
-                                                 "_Decimal128",
-                                                 "_Decimal32",
-                                                 "_Decimal64",
-                                                 "_Generic",
-                                                 "_Imaginary",
-                                                 "_Noreturn",
-                                                 "_Static_assert",
-                                                 "_Thread_local",
-                                                 "_Pragma",
-                                                 "asm",
-                                                 "fortran",
-                                                 "int",
-                                                 "char",
-                                                 "float",
-                                                 "double",
-                                                 "long"};
+const static std::set<std::string> C_KEYWORDS = {
+    "alignas",
+    "alignof",
+    "auto",
+    "break",
+    "case",
+    "const",
+    "constexpr",
+    "continue",
+    "default",
+    "do",
+    "else",
+    "extern",
+    "for",
+    "goto",
+    "if",
+    "inline",
+    "nullptr",
+    "register",
+    "restrict",
+    "return",
+    "signed",
+    "sizeof",
+    "static",
+    "static_assert",
+    "switch",
+    "thread_local",
+    "typedef",
+    "typeof",
+    "typeof_unqual",
+    "union",
+    "unsigned",
+    "volatile",
+    "while",
+    "_Alignas",
+    "_Alignof",
+    "_Atomic",
+    "_BitInt",
+    "_Bool",
+    "_Complex",
+    "_Decimal128",
+    "_Decimal32",
+    "_Decimal64",
+    "_Generic",
+    "_Imaginary",
+    "_Noreturn",
+    "_Static_assert",
+    "_Thread_local",
+    "_Pragma",
+    "asm",
+    "fortran",
+    "int",
+    "char",
+    "float",
+    "double",
+    "long"};
 
 // The set of all default compiler macros.
-const static std::set<std::string> COMPILER_MACROS = {"include!", "package!", "link!", "flag!"};
+const static std::set<std::string> COMPILER_MACROS = {
+    "include!", "package!", "link!", "flag!"};
 
 // Constants used for markdown conversion.
 const std::string H_LINE = "---";
@@ -202,14 +212,18 @@ const std::string FN_START = "### ";
 
 // Operations set for operator substitution.
 const static std::set<std::string> OPERATORS = {
-    "+",  "-",  "/",  "*", "%", "=", "-=", "+=", "/=", "*=", "%=", "&=", "|=", "<<", ">>", "&&", "||", "<", ">", "==",
-    "!=", "<=", ">=", "&", "|", ",", "(",  ")",  ";",  "++", "--", "!",  "{",  "}",  "[",  "]",  "[]", "^", "@"};
+    "+",  "-",  "/",  "*",  "%",  "=",  "-=", "+=", "/=", "*=",
+    "%=", "&=", "|=", "<<", ">>", "&&", "||", "<",  ">",  "==",
+    "!=", "<=", ">=", "&",  "|",  ",",  "(",  ")",  ";",  "++",
+    "--", "!",  "{",  "}",  "[",  "]",  "[]", "^",  "@"};
 
 // Used for implicit casting.
-const std::map<std::string, unsigned char> INT_LITERALS = {{"u8", 0},   {"i8", 0},  {"u16", 1}, {"i16", 1},
-                                                           {"u32", 2},  {"i32", 2}, {"u64", 3}, {"i64", 3},
-                                                           {"u128", 4}, {"i128", 4}};
-const std::map<std::string, unsigned char> FLOAT_LITERALS = {{"f32", 0}, {"f64", 1}, {"f128", 2}};
+const std::map<std::string, unsigned char> INT_LITERALS = {
+    {"u8", 0},   {"i8", 0},  {"u16", 1}, {"i16", 1},
+    {"u32", 2},  {"i32", 2}, {"u64", 3}, {"i64", 3},
+    {"u128", 4}, {"i128", 4}};
+const std::map<std::string, unsigned char> FLOAT_LITERALS = {
+    {"f32", 0}, {"f64", 1}, {"f128", 2}};
 
 // Settings structure. Holds all information which used to be
 // non-const globals.
@@ -217,7 +231,8 @@ struct AcornSettings
 {
     // Holds information about the file where useful. Reset each
     // file transition.
-    std::map<std::string, std::map<std::string, std::string>> file_tags;
+    std::map<std::string, std::map<std::string, std::string>>
+        file_tags;
 
     // The current depth of createSequence
     unsigned long long int depth = 0;
@@ -317,16 +332,21 @@ struct AcornSettings
     std::ofstream ruleLogFile;
 
     std::map<std::string, Rule> rules;
-    std::map<std::string, void (*)(std::list<Token> &, std::list<Token>::iterator &, Rule &, AcornSettings &)> engines;
+    std::map<std::string, void (*)(std::list<Token> &,
+                                   std::list<Token>::iterator &,
+                                   Rule &, AcornSettings &)>
+        engines;
 
     // The set of all macros for which an executable version
     // already exists. If a macro is not present here, it will
     // need to be compiled before it is used.
     // The pre-inserted macros are compiler macros.
-    std::set<std::string> compiled = {"include!",  "link!",     "package!",  "alloc!",    "free!",
-                                      "free_arr!", "new_rule!", "use_rule!", "rem_rule!", "bundle_rule!",
-                                      "erase!",    "c_print!",  "c_warn!",   "c_panic!",  "type!",
-                                      "size!",     "ptrcpy!",   "ptrarr!",   "raw_c!"};
+    std::set<std::string> compiled = {
+        "include!",  "link!",        "package!",  "alloc!",
+        "free!",     "free_arr!",    "new_rule!", "use_rule!",
+        "rem_rule!", "bundle_rule!", "erase!",    "c_print!",
+        "c_warn!",   "c_panic!",     "type!",     "size!",
+        "ptrcpy!",   "ptrarr!",      "raw_c!"};
 
     // The set of all macros. Maps name to source code.
     std::map<std::string, std::string> macros;
@@ -349,10 +369,14 @@ struct AcornSettings
 
     // Caches.
     std::map<std::string, long long> ageCache;
-    std::map<std::pair<unsigned long long, std::string>, std::string> toStrCTypeCache;
+    std::map<std::pair<unsigned long long, std::string>,
+             std::string>
+        toStrCTypeCache;
     std::map<std::string, std::string> toStrCEnumCache;
     std::map<unsigned long long, Type> getReturnTypeCache;
-    std::map<unsigned long long, std::list<std::pair<std::string, Type>>> cache;
+    std::map<unsigned long long,
+             std::list<std::pair<std::string, Type>>>
+        cache;
 
     // The local command to install a system package.
     std::string installCommand = "";

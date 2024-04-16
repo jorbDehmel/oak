@@ -6,6 +6,7 @@ use_rule!("std");
 include!("std/string.oak");
 include!("std/interface.oak");
 
+link!("-lboost_regex");
 link!("extra/regex_inter.o");
 
 let extra::regex: struct

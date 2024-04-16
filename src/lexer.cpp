@@ -33,7 +33,8 @@ std::string to_string(Token &what)
 
 Lexer::Lexer()
 {
-    const char *alpha = "abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ`";
+    const char *alpha = "abcdefghijklmnopqrstuvwxyz_"
+                        "ABCDEFGHIJKLMNOPQRSTUVWXYZ`";
     const char *numer = "0123456789";
     const char *oper = "!%&*=+|/~[]";
     const char *singletons = "^@#(){};,?";
@@ -74,10 +75,13 @@ Lexer::Lexer()
     for (const char *i = &alpha[0]; *i != '\0'; i++)
     {
         dfa[delim_state][(unsigned int)*i] = alpha_state;
-        dfa[numerical_state][(unsigned int)*i] = numerical_state;
+        dfa[numerical_state][(unsigned int)*i] =
+            numerical_state;
         dfa[alpha_state][(unsigned int)*i] = alpha_state;
-        dfa[string_literal_state_single][(unsigned int)*i] = string_literal_state_single;
-        dfa[string_literal_state_double][(unsigned int)*i] = string_literal_state_double;
+        dfa[string_literal_state_single][(unsigned int)*i] =
+            string_literal_state_single;
+        dfa[string_literal_state_double][(unsigned int)*i] =
+            string_literal_state_double;
         dfa[whitespace_state][(unsigned int)*i] = delim_state;
     }
 
@@ -96,8 +100,10 @@ Lexer::Lexer()
         dfa[delim_state][i] = alpha_state;
         dfa[numerical_state][i] = numerical_state;
         dfa[alpha_state][i] = alpha_state;
-        dfa[string_literal_state_single][i] = string_literal_state_single;
-        dfa[string_literal_state_double][i] = string_literal_state_double;
+        dfa[string_literal_state_single][i] =
+            string_literal_state_single;
+        dfa[string_literal_state_double][i] =
+            string_literal_state_double;
         dfa[whitespace_state][i] = delim_state;
     }
 
@@ -105,19 +111,24 @@ Lexer::Lexer()
     for (const char *i = &numer[0]; *i != '\0'; i++)
     {
         dfa[delim_state][(unsigned int)*i] = numerical_state;
-        dfa[numerical_state][(unsigned int)*i] = numerical_state;
+        dfa[numerical_state][(unsigned int)*i] =
+            numerical_state;
         dfa[alpha_state][(unsigned int)*i] = alpha_state;
         dfa[dot_state][(unsigned int)*i] = numerical_state;
-        dfa[string_literal_state_single][(unsigned int)*i] = string_literal_state_single;
-        dfa[string_literal_state_double][(unsigned int)*i] = string_literal_state_double;
+        dfa[string_literal_state_single][(unsigned int)*i] =
+            string_literal_state_single;
+        dfa[string_literal_state_double][(unsigned int)*i] =
+            string_literal_state_double;
         dfa[dash_state][(unsigned int)*i] = numerical_state;
     }
 
     // Dot stuff
     dfa[delim_state][(unsigned int)'.'] = dot_state;
     dfa[numerical_state][(unsigned int)'.'] = numerical_state;
-    dfa[string_literal_state_single][(unsigned int)'.'] = string_literal_state_single;
-    dfa[string_literal_state_double][(unsigned int)'.'] = string_literal_state_double;
+    dfa[string_literal_state_single][(unsigned int)'.'] =
+        string_literal_state_single;
+    dfa[string_literal_state_double][(unsigned int)'.'] =
+        string_literal_state_double;
 
     // Singleton stuff
     for (const char *i = &singletons[0]; *i != '\0'; i++)
@@ -126,10 +137,14 @@ Lexer::Lexer()
     }
 
     // Square bracket stuff
-    dfa[delim_state][(unsigned int)'<'] = open_square_bracket_state;
-    dfa[delim_state][(unsigned int)'>'] = close_square_bracket_state;
-    dfa[open_square_bracket_state][(unsigned int)'='] = operator_state;
-    dfa[close_square_bracket_state][(unsigned int)'='] = operator_state;
+    dfa[delim_state][(unsigned int)'<'] =
+        open_square_bracket_state;
+    dfa[delim_state][(unsigned int)'>'] =
+        close_square_bracket_state;
+    dfa[open_square_bracket_state][(unsigned int)'='] =
+        operator_state;
+    dfa[close_square_bracket_state][(unsigned int)'='] =
+        operator_state;
 
     // Dash stuff
     dfa[delim_state][(unsigned int)'-'] = dash_state;
@@ -141,8 +156,10 @@ Lexer::Lexer()
     {
         dfa[delim_state][(unsigned int)*i] = operator_state;
         dfa[operator_state][(unsigned int)*i] = operator_state;
-        dfa[string_literal_state_single][(unsigned int)*i] = string_literal_state_single;
-        dfa[string_literal_state_double][(unsigned int)*i] = string_literal_state_double;
+        dfa[string_literal_state_single][(unsigned int)*i] =
+            string_literal_state_single;
+        dfa[string_literal_state_double][(unsigned int)*i] =
+            string_literal_state_double;
         dfa[dash_state][(unsigned int)*i] = operator_state;
     }
     dfa[operator_state][(unsigned int)'['] = delim_state;
@@ -150,21 +167,28 @@ Lexer::Lexer()
     // String literal stuff
     for (int i = 0; i < number_chars; i++)
     {
-        dfa[string_literal_state_single][i] = string_literal_state_single;
-        dfa[string_literal_state_double][i] = string_literal_state_double;
+        dfa[string_literal_state_single][i] =
+            string_literal_state_single;
+        dfa[string_literal_state_double][i] =
+            string_literal_state_double;
     }
 
-    dfa[delim_state][(unsigned int)'\''] = string_literal_state_single;
-    dfa[delim_state][(unsigned int)'"'] = string_literal_state_double;
+    dfa[delim_state][(unsigned int)'\''] =
+        string_literal_state_single;
+    dfa[delim_state][(unsigned int)'"'] =
+        string_literal_state_double;
     dfa[delim_state][(unsigned int)':'] = colon_state;
-    dfa[string_literal_state_single][(unsigned int)'\''] = delim_state;
-    dfa[string_literal_state_double][(unsigned int)'"'] = delim_state;
+    dfa[string_literal_state_single][(unsigned int)'\''] =
+        delim_state;
+    dfa[string_literal_state_double][(unsigned int)'"'] =
+        delim_state;
 
     for (int i = 1; i < number_states; i++)
     {
         if (i != string_literal_state_double)
         {
-            dfa[(LexerState)i][(unsigned int)'\''] = delim_state;
+            dfa[(LexerState)i][(unsigned int)'\''] =
+                delim_state;
         }
         if (i != string_literal_state_single)
         {
@@ -176,19 +200,25 @@ Lexer::Lexer()
     for (const char *i = &whitespace[0]; *i != '\0'; i++)
     {
         dfa[delim_state][(unsigned int)*i] = whitespace_state;
-        dfa[string_literal_state_single][(unsigned int)*i] = string_literal_state_single;
-        dfa[string_literal_state_double][(unsigned int)*i] = string_literal_state_double;
+        dfa[string_literal_state_single][(unsigned int)*i] =
+            string_literal_state_single;
+        dfa[string_literal_state_double][(unsigned int)*i] =
+            string_literal_state_double;
     }
 
-    dfa[string_literal_state_single][(unsigned int)'\n'] = delim_state;
-    dfa[string_literal_state_double][(unsigned int)'\n'] = delim_state;
+    dfa[string_literal_state_single][(unsigned int)'\n'] =
+        delim_state;
+    dfa[string_literal_state_double][(unsigned int)'\n'] =
+        delim_state;
 
     // Misc
     dfa[alpha_state][(unsigned int)'!'] = alpha_state;
 
     for (int i = 0; i < number_states; i++)
     {
-        if (i == string_literal_state_single || i == string_literal_state_double || i == whitespace_state)
+        if (i == string_literal_state_single ||
+            i == string_literal_state_double ||
+            i == whitespace_state)
         {
             continue;
         }
@@ -242,7 +272,8 @@ void Lexer::file(const std::string &filepath)
 
     if (!f.is_open())
     {
-        throw std::runtime_error("Failed to open file '" + filepath + "'");
+        throw std::runtime_error("Failed to open file '" +
+                                 filepath + "'");
     }
 
     text.clear();
@@ -275,9 +306,11 @@ Token Lexer::single()
     bool skip = false;
     do
     {
-        if (pos < text.size() && text[pos] == '\n' && pos != out.pos)
+        if (pos < text.size() && text[pos] == '\n' &&
+            pos != out.pos)
         {
-            if (state == string_literal_state_single || state == string_literal_state_double)
+            if (state == string_literal_state_single ||
+                state == string_literal_state_double)
             {
                 state = delim_state;
                 break;
@@ -312,7 +345,8 @@ Token Lexer::single()
         pos++;
     } while (state != delim_state);
 
-    if (prev_state != string_literal_state_single && prev_state != string_literal_state_double)
+    if (prev_state != string_literal_state_single &&
+        prev_state != string_literal_state_double)
     {
         pos--;
     }
@@ -321,7 +355,8 @@ Token Lexer::single()
     {
         int start, end;
         start = std::max(0ll, (long long)(pos - 20));
-        end = std::min((long long)text.size(), (long long)(pos + 20));
+        end = std::min((long long)text.size(),
+                       (long long)(pos + 20));
 
         std::string sub = text.substr(start, end - start);
         for (int i = 0; i < sub.size(); i++)
@@ -332,14 +367,16 @@ Token Lexer::single()
             }
         }
 
-        std::cout << tags::violet_bold << "In region:\n" << sub << "\n";
+        std::cout << tags::violet_bold << "In region:\n"
+                  << sub << "\n";
         for (int i = start; i < pos; i++)
         {
             std::cout << ' ';
         }
         std::cout << "^\n\n" << tags::reset;
 
-        throw std::runtime_error("Invalid lex: Token cannot be of size zero!");
+        throw std::runtime_error(
+            "Invalid lex: Token cannot be of size zero!");
     }
 
     // Record the falling state and text
@@ -375,7 +412,8 @@ void erase_comments(std::list<Token> &what)
         }
         else
         {
-            if (it->substr(0, 2) == "//" || it->substr(0, 1) == "#")
+            if (it->substr(0, 2) == "//" ||
+                it->substr(0, 1) == "#")
             {
                 while (it->text != "\n")
                 {
@@ -407,7 +445,8 @@ void join_numbers(std::list<Token> &what)
         {
             it++;
 
-            while (it != what.end() && it->state == numerical_state)
+            while (it != what.end() &&
+                   it->state == numerical_state)
             {
                 std::string temp = it->text;
                 it--;
@@ -423,8 +462,10 @@ void join_numbers(std::list<Token> &what)
             }
 
             // Join numerical type-suffixes
-            if (*it == "u8" || *it == "u16" || *it == "u32" || *it == "u64" || *it == "u128" || *it == "i8" ||
-                *it == "i16" || *it == "i32" || *it == "i64" || *it == "i128" || *it == "f32" || *it == "f64")
+            if (*it == "u8" || *it == "u16" || *it == "u32" ||
+                *it == "u64" || *it == "u128" || *it == "i8" ||
+                *it == "i16" || *it == "i32" || *it == "i64" ||
+                *it == "i128" || *it == "f32" || *it == "f64")
             {
                 std::string temp = it->text;
                 it--;
@@ -529,7 +570,8 @@ void join_bitshifts(std::list<Token> &what)
         {
             /*
             If a ) or ; occurs before the next >, do sub.
-            Otherwise, is templating; Advance i past all of this.
+            Otherwise, is templating; Advance i past all of
+            this.
             */
 
             bool isTemplating = false;
@@ -587,7 +629,8 @@ void join_bitshifts(std::list<Token> &what)
     }
 }
 
-void Lexer::str(const std::string &from, const std::string &filepath) noexcept
+void Lexer::str(const std::string &from,
+                const std::string &filepath) noexcept
 {
     pos = 0;
     line = 1;
@@ -595,7 +638,8 @@ void Lexer::str(const std::string &from, const std::string &filepath) noexcept
     cur_file = filepath;
 }
 
-std::list<Token> Lexer::str_all(const std::string &from) noexcept
+std::list<Token> Lexer::str_all(
+    const std::string &from) noexcept
 {
     pos = 0;
     line = 1;
@@ -611,7 +655,9 @@ std::list<Token> Lexer::str_all(const std::string &from) noexcept
     return out;
 }
 
-std::list<Token> Lexer::str_all(const std::string &from, const std::string &filepath) noexcept
+std::list<Token> Lexer::str_all(
+    const std::string &from,
+    const std::string &filepath) noexcept
 {
     pos = 0;
     line = 1;
@@ -629,7 +675,8 @@ std::list<Token> Lexer::str_all(const std::string &from, const std::string &file
 }
 
 // Antiquated version:
-// std::vector<Token> Lexer::lex(const std::string &What, const std::string &filepath)
+// std::vector<Token> Lexer::lex(const std::string &What, const
+// std::string &filepath)
 // {
 //     auto lexed = lex_list(What, filepath);
 //     std::vector<Token> out_vec;
@@ -637,7 +684,8 @@ std::list<Token> Lexer::str_all(const std::string &from, const std::string &file
 //     return out_vec;
 // }
 
-std::list<Token> Lexer::lex_list(const std::string &What, const std::string &filepath)
+std::list<Token> Lexer::lex_list(const std::string &What,
+                                 const std::string &filepath)
 {
     if (filepath != "")
     {

@@ -12,7 +12,8 @@ GPLv3 held by author
 // Removes illegal characters
 std::string purifyStr(const std::string &What)
 {
-    const std::string illegalChars = "<>(){}[]\\'\"`~!@#$%^&*-=+|?.,;:/";
+    const std::string illegalChars =
+        "<>(){}[]\\'\"`~!@#$%^&*-=+|?.,;:/";
     std::string out = What;
 
     // Replace illegal characters
@@ -26,8 +27,9 @@ std::string purifyStr(const std::string &What)
 
     if (out == "")
     {
-        std::cout << tags::yellow_bold << "Warning: The trimming of file name '" << What
-                  << "' resulted in a null string.\n"
+        std::cout << tags::yellow_bold
+                  << "Warning: The trimming of file name '"
+                  << What << "' resulted in a null string.\n"
                   << tags::reset;
         out = "NULL_STR";
     }
@@ -35,14 +37,18 @@ std::string purifyStr(const std::string &What)
     return out;
 }
 
-std::pair<std::string, std::string> reconstructAndSave(const std::string &Name, AcornSettings &settings)
+std::pair<std::string, std::string> reconstructAndSave(
+    const std::string &Name, AcornSettings &settings)
 {
     std::stringstream header, body;
     reconstruct(Name, settings, header, body);
     return save(header, body, Name);
 }
 
-void reconstruct(const std::string &Name, AcornSettings &settings, std::stringstream &header, std::stringstream &body)
+void reconstruct(const std::string &Name,
+                 AcornSettings &settings,
+                 std::stringstream &header,
+                 std::stringstream &body)
 {
     // Purify name
     std::string rootName;
@@ -87,7 +93,10 @@ void reconstruct(const std::string &Name, AcornSettings &settings, std::stringst
 
         for (auto m : settings.structData[name].order)
         {
-            header << toStrC(&settings.structData[name].members[m], settings, m) << ";\n";
+            header << toStrC(
+                          &settings.structData[name].members[m],
+                          settings, m)
+                   << ";\n";
         }
 
         header << "};\n";
@@ -104,21 +113,27 @@ void reconstruct(const std::string &Name, AcornSettings &settings, std::stringst
         {
             try
             {
-                std::string toAdd = toStrCFunction(&s.type, settings, name);
+                std::string toAdd =
+                    toStrCFunction(&s.type, settings, name);
 
                 header << toAdd << ";\n";
 
                 if (s.seq.items.size() != 0)
                 {
-                    std::string definition = toC(s.seq, settings);
+                    std::string definition =
+                        toC(s.seq, settings);
 
-                    body << toAdd << "\n" << (definition == "" ? ";" : definition);
+                    body << toAdd << "\n"
+                         << (definition == "" ? ";"
+                                              : definition);
                 }
             }
             catch (std::runtime_error &e)
             {
-                std::cout << "Failure in symbol " << name << " w/ type " << toStr(&s.type) << " from "
-                          << s.sourceFilePath << '\n';
+                std::cout << "Failure in symbol " << name
+                          << " w/ type " << toStr(&s.type)
+                          << " from " << s.sourceFilePath
+                          << '\n';
 
                 throw sequencing_error(e.what());
             }
@@ -132,8 +147,9 @@ void reconstruct(const std::string &Name, AcornSettings &settings, std::stringst
 }
 
 // Save reconstructed files and return compilation command
-std::pair<std::string, std::string> save(const std::stringstream &header, const std::stringstream &body,
-                                         const std::string &Name)
+std::pair<std::string, std::string> save(
+    const std::stringstream &header,
+    const std::stringstream &body, const std::string &Name)
 {
     std::string rootName, headerName, bodyName;
 
@@ -148,7 +164,8 @@ std::pair<std::string, std::string> save(const std::stringstream &header, const 
     std::ofstream headerFile(headerName);
     if (!headerFile.is_open())
     {
-        throw std::runtime_error("Failed to open file `" + headerName + "`");
+        throw std::runtime_error("Failed to open file `" +
+                                 headerName + "`");
     }
 
     headerFile << header.str();
@@ -159,7 +176,8 @@ std::pair<std::string, std::string> save(const std::stringstream &header, const 
     std::ofstream bodyFile(bodyName);
     if (!bodyFile.is_open())
     {
-        throw std::runtime_error("Failed to open file `" + bodyName + "`");
+        throw std::runtime_error("Failed to open file `" +
+                                 bodyName + "`");
     }
 
     bodyFile << body.str();
@@ -170,7 +188,10 @@ std::pair<std::string, std::string> save(const std::stringstream &header, const 
 }
 
 // This is separate due to complexity
-std::string toStrCFunction(const Type *What, AcornSettings &settings, const std::string &Name, const unsigned int &pos)
+std::string toStrCFunction(const Type *What,
+                           AcornSettings &settings,
+                           const std::string &Name,
+                           const unsigned int &pos)
 {
     parse_assert(What != nullptr);
     parse_assert(What->size() > 0);
@@ -181,7 +202,8 @@ std::string toStrCFunction(const Type *What, AcornSettings &settings, const std:
         return "";
     }
 
-    // Second section, between function and maps, will be arguments.
+    // Second section, between function and maps, will be
+    // arguments.
     std::string arguments = "";
     int i = pos + 1;
     for (; i < What->size(); i++)
@@ -202,9 +224,12 @@ std::string toStrCFunction(const Type *What, AcornSettings &settings, const std:
             }
 
             Type temp;
-            while (i < What->size() && !(What->operator[](i).info == join || What->operator[](i).info == maps))
+            while (i < What->size() &&
+                   !(What->operator[](i).info == join ||
+                     What->operator[](i).info == maps))
             {
-                temp.append(What->operator[](i).info, What->operator[](i).name);
+                temp.append(What->operator[](i).info,
+                            What->operator[](i).name);
                 i++;
             }
             i--;
@@ -225,7 +250,8 @@ std::string toStrCFunction(const Type *What, AcornSettings &settings, const std:
 
     if (i >= What->size() || What->operator[](i).info != maps)
     {
-        std::cout << "Function '" << toStr(What) << "' has no return type.\n";
+        std::cout << "Function '" << toStr(What)
+                  << "' has no return type.\n";
         parse_assert(i < What->size());
     }
 
@@ -260,7 +286,9 @@ std::string toStrCFunction(const Type *What, AcornSettings &settings, const std:
     if (Name != "main")
     {
         // Mangle to disambiguate identical functions
-        out = returnType + " " + mangleSymb(Name, mangleType(*What)) + "(" + arguments + ")";
+        out = returnType + " " +
+              mangleSymb(Name, mangleType(*What)) + "(" +
+              arguments + ")";
     }
     else
     {
@@ -270,7 +298,9 @@ std::string toStrCFunction(const Type *What, AcornSettings &settings, const std:
     return out;
 }
 
-std::string toStrCFunctionRef(const Type *What, AcornSettings &settings, const std::string &Name,
+std::string toStrCFunctionRef(const Type *What,
+                              AcornSettings &settings,
+                              const std::string &Name,
                               const unsigned int &pos)
 {
     // pointer -> function -> ARGS -> maps -> RETURN_TYPE
@@ -364,16 +394,21 @@ std::string toStrCFunctionRef(const Type *What, AcornSettings &settings, const s
     }
 
     // Reconstruct out of partial strings
-    std::string out = returnType + " (*" + Name + ")(" + arguments + ")";
+    std::string out =
+        returnType + " (*" + Name + ")(" + arguments + ")";
 
     return out;
 }
 
-std::string toStrC(const Type *What, AcornSettings &settings, const std::string &Name, const unsigned int &pos)
+std::string toStrC(const Type *What, AcornSettings &settings,
+                   const std::string &Name,
+                   const unsigned int &pos)
 {
-    if (settings.toStrCTypeCache.count(make_pair(What->ID, Name)) != 0)
+    if (settings.toStrCTypeCache.count(
+            make_pair(What->ID, Name)) != 0)
     {
-        return settings.toStrCTypeCache[make_pair(What->ID, Name)];
+        return settings
+            .toStrCTypeCache[make_pair(What->ID, Name)];
     }
     if (settings.toStrCTypeCache.size() > 1000)
     {
@@ -384,16 +419,20 @@ std::string toStrC(const Type *What, AcornSettings &settings, const std::string 
     std::string suffix = "";
 
     // Safety check
-    if (What == nullptr || What->size() == 0 || pos >= What->size())
+    if (What == nullptr || What->size() == 0 ||
+        pos >= What->size())
     {
-        settings.toStrCTypeCache[make_pair(What->ID, Name)] = "";
+        settings.toStrCTypeCache[make_pair(What->ID, Name)] =
+            "";
         return "";
     }
 
-    if ((*What)[pos].info == pointer && What->size() > 1 && (*What)[pos + 1].info == function)
+    if ((*What)[pos].info == pointer && What->size() > 1 &&
+        (*What)[pos + 1].info == function)
     {
         out = toStrCFunctionRef(What, settings, Name);
-        settings.toStrCTypeCache[make_pair(What->ID, Name)] = out;
+        settings.toStrCTypeCache[make_pair(What->ID, Name)] =
+            out;
         return out;
     }
 
@@ -414,8 +453,10 @@ std::string toStrC(const Type *What, AcornSettings &settings, const std::string 
         break;
     case arr:
     case pointer:
-        sm_assert(pos + 1 >= What->size() || (*What)[pos + 1].info != sarr,
-                  "Cannot point to a sized array [n]. Use a regular array [] instead.");
+        sm_assert(pos + 1 >= What->size() ||
+                      (*What)[pos + 1].info != sarr,
+                  "Cannot point to a sized array [n]. Use a "
+                  "regular array [] instead.");
         out += toStrC(What, settings, "", pos + 1);
         out += "*";
         break;
@@ -435,7 +476,8 @@ std::string toStrC(const Type *What, AcornSettings &settings, const std::string 
         break;
 
     default:
-        throw parse_error("Unforeseen info enum option for Type object.");
+        throw parse_error(
+            "Unforeseen info enum option for Type object.");
     }
 
     if (Name != "")
@@ -453,7 +495,8 @@ std::string toStrC(const Type *What, AcornSettings &settings, const std::string 
     return out;
 }
 
-std::string enumToC(const std::string &name, AcornSettings &settings)
+std::string enumToC(const std::string &name,
+                    AcornSettings &settings)
 {
     if (settings.toStrCEnumCache.count(name) != 0)
     {
@@ -465,7 +508,9 @@ std::string enumToC(const std::string &name, AcornSettings &settings)
     // errors.
     if (name == "" || settings.enumData.count(name) == 0)
     {
-        throw std::runtime_error(std::string(__FILE__) + ":" + std::to_string(__LINE__) + " Error in enumeration toC.");
+        throw std::runtime_error(std::string(__FILE__) + ":" +
+                                 std::to_string(__LINE__) +
+                                 " Error in enumeration toC.");
     }
 
     EnumLookupData &cur = settings.enumData[name];
@@ -483,7 +528,8 @@ std::string enumToC(const std::string &name, AcornSettings &settings)
     // types
     for (auto name : cur.order)
     {
-        out += toStrC(&cur.options[name], settings) + " " + name + "_data" + ";\n";
+        out += toStrC(&cur.options[name], settings) + " " +
+               name + "_data" + ";\n";
     }
 
     out += "\n} __data;\n};\n";
@@ -494,28 +540,37 @@ std::string enumToC(const std::string &name, AcornSettings &settings)
     std::string enumTypeStr = name;
     for (auto optionName : cur.order)
     {
-        std::string optionTypeStr = toStrC(&cur.options[optionName], settings);
+        std::string optionTypeStr =
+            toStrC(&cur.options[optionName], settings);
 
-        if (cur.options[optionName][0].info == atomic && cur.options[optionName][0].name == "unit")
+        if (cur.options[optionName][0].info == atomic &&
+            cur.options[optionName][0].name == "unit")
         {
             // Unit struct; Single argument constructor
 
             // Generate C version
-            out += "void wrap_" + optionName + "_FN_PTR_" + enumTypeStr + "_MAPS_void(struct " + enumTypeStr +
-                   " *self)\n{\n";
-            out += "self->__info = " + enumTypeStr + "_OPT_" + optionName + ";\n}\n";
+            out += "void wrap_" + optionName + "_FN_PTR_" +
+                   enumTypeStr + "_MAPS_void(struct " +
+                   enumTypeStr + " *self)\n{\n";
+            out += "self->__info = " + enumTypeStr + "_OPT_" +
+                   optionName + ";\n}\n";
         }
         else
         {
             // Double argument constructor
 
             // Generate C version
-            out += "void wrap_" + optionName + "_FN_PTR_" + enumTypeStr + "_JOIN_" +
-                   mangleType(cur.options[optionName]) + "_MAPS_void(struct " + enumTypeStr + " *self, ";
+            out += "void wrap_" + optionName + "_FN_PTR_" +
+                   enumTypeStr + "_JOIN_" +
+                   mangleType(cur.options[optionName]) +
+                   "_MAPS_void(struct " + enumTypeStr +
+                   " *self, ";
             out += optionTypeStr + " data)\n";
             out += "{\n";
-            out += "self->__info = " + enumTypeStr + "_OPT_" + optionName + ";\n";
-            out += "self->__data." + optionName + "_data = data;\n";
+            out += "self->__info = " + enumTypeStr + "_OPT_" +
+                   optionName + ";\n";
+            out += "self->__data." + optionName +
+                   "_data = data;\n";
             out += "}\n";
         }
     }
