@@ -6,7 +6,7 @@ all:
 		time.o panic.o sock.o cstr.o string.o
 
 %.o:	%.c
-	clang -std=c17 $(FLAGS) -c -o $@ $<
+	clang -std=gnu11 $(FLAGS) -c -o $@ $<
 
 %.o:	%.cpp
 	clang++ -std=c++17 $(FLAGS) -c -o $@ $<

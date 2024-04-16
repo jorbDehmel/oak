@@ -4,7 +4,7 @@ all:
 	$(MAKE) -j 4 regex_inter.o bit_print.o math.o
 
 %.o:	%.c
-	clang -std=c17 $(FLAGS) -c -o $@ $<
+	clang -std=gnu11 $(FLAGS) -c -o $@ $<
 
 %.o:	%.cpp
 	clang++ -std=c++17 $(FLAGS) -c -o $@ $<

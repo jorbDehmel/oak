@@ -5,7 +5,7 @@ all:
 	clang++ -std=c++17 -I/usr/include/SDL2 -D_REENTRANT -c -o $@ $<
 
 %.o:	%.c
-	clang -std=c17 -I/usr/include/SDL2 -D_REENTRANT -c -o $@ $<
+	clang -std=gnu11 -I/usr/include/SDL2 -D_REENTRANT -c -o $@ $<
 
 clean:
 	rm *.o
