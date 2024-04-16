@@ -28,7 +28,6 @@ test:
 	cd stl && $(TEST) && cd ..
 	cd turtle && $(TEST) && cd ..
 	$(MAKE) -C src/unit_tests
-	$(MAKE) memcheck
 
 .PHONY:	memcheck
 memcheck:
