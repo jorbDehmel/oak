@@ -23,22 +23,25 @@ GPLv3 held by author
 
 #include "oakc_fns.hpp"
 #include "options.hpp"
+#include "tags.hpp"
 #include <filesystem>
 
 // Dummy wrapper function for updating
 void update()
 {
     fs::copy_file("/usr/include/oak/update.sh",
-                  "/tmp/update.sh");
-    system("sudo bash /tmp/update.sh &");
+                  "/tmp/update.sh",
+                  fs::copy_options::update_existing);
+    system("bash /tmp/update.sh");
 }
 
 // Dummy wrapper function for uninstalling
 void uninstall()
 {
     fs::copy_file("/usr/include/oak/uninstall.sh",
-                  "/tmp/uninstall.sh");
-    system("sudo bash /tmp/uninstall.sh &");
+                  "/tmp/uninstall.sh",
+                  fs::copy_options::update_existing);
+    system("bash /tmp/uninstall.sh");
 }
 
 void queryPackage(const std::string &name,
@@ -349,7 +352,12 @@ int main(const int argc, const char *argv[])
                         case 'A':
                             std::cout
                                 << tags::red_bold
-                                << "Are you sure you want to "
+                                << "WARNING: This action will "
+                                << "remove the Acorn executable"
+                                << " and all Oak libraries. "
+                                << "This action cannot be "
+                                << "undone!\n"
+                                << "Are you SURE you want to "
                                    "uninstall Acorn [y/N]? "
                                 << tags::reset << std::flush;
 
@@ -646,7 +654,7 @@ int main(const int argc, const char *argv[])
             }
         }
 
-        if (!files.empty())
+        if (!files.empty() && !settings.test)
         {
             // Actual calls
             if (settings.debug)
@@ -695,9 +703,7 @@ int main(const int argc, const char *argv[])
             auto reconstructionStart =
                 std::chrono::high_resolution_clock::now();
 
-            std::pair<std::string, std::string> names =
-                reconstructAndSave(out, settings);
-            std::string toCompileFrom = names.second;
+            std::string toCompileFrom = reconstructAndSave(out, settings);
 
             end = std::chrono::high_resolution_clock::now();
             oakElapsed =
@@ -712,16 +718,13 @@ int main(const int argc, const char *argv[])
 
             if (settings.debug)
             {
-                std::cout << "Output header: '" << names.first
-                          << "'\n"
-                          << "Output body:   '" << names.second
+                std::cout << "Output body:   '" << toCompileFrom
                           << "'\n";
             }
 
             if (settings.noSave)
             {
-                fs::remove_all(names.first);
-                fs::remove_all(names.second);
+                fs::remove_all(toCompileFrom);
 
                 if (settings.debug)
                 {
@@ -1141,211 +1144,227 @@ int main(const int argc, const char *argv[])
     // Run test suite ./tests/*
     if (settings.test)
     {
-        if (!fs::exists("tests") || !fs::is_directory("tests"))
+        if (files.empty())
         {
-            std::cout << tags::red_bold
-                      << "Cannot run test suite when './tests' "
-                         "does not exist or exists and is not "
-                         "a directory.\n"
-                      << tags::reset;
-            return 15;
+            files = {"."};
         }
 
-        int good = 0, bad = 0, result;
-        unsigned long long ms, totalMs = 0;
-        std::chrono::_V2::high_resolution_clock::time_point
-            start,
-            end;
-        std::ifstream file;
-        std::string line;
-        std::set<std::string> files;
-        std::list<std::string> failed;
-
-        // Get all files to run
-        fs::create_directory(".oak_build");
-        fs::remove_all("test_suite.tlog");
-
-        // Build file vector
-        for (auto test_iter : fs::directory_iterator("./tests"))
+        std::cout << tags::green_bold
+                  << "Executing " << files.size()
+                  << " test suites...\n\n" << tags::reset;
+        for (const std::string &test_folder : files)
         {
-            if (fs::is_directory(test_iter))
-            {
-                continue;
-            }
-            if (test_iter.path().extension() != ".oak")
-            {
-                continue;
-            }
+            std::string original_dir = fs::current_path();
+            chdir(test_folder.c_str());
 
-            files.insert(test_iter.path().string());
-        }
-
-        if (files.size() == 0)
-        {
-            std::cout
-                << tags::red_bold
-                << "Error: `./tests` exists but is empty.\n"
-                << tags::reset;
-            return 16;
-        }
-
-        std::cout << tags::violet_bold << "Running "
-                  << files.size() << " tests...\n"
-                  << tags::reset << "[compiling, "
-                  << (settings.execute ? "" : "NOT ")
-                  << "executing,"
-                  << (settings.testFail ? "" : " NOT")
-                  << " halting on failure]\n";
-
-        // Iterate through files
-        int i = 1;
-        unsigned long long min = -1ull, max = 0ull;
-        std::string nameOfMin, nameOfMax;
-        for (auto test : files)
-        {
-            // Echo the current filename onto the test suite log
-            system(("echo " + test + " >> test_suite.tlog")
-                       .c_str());
-
-            // Execute the command to test this file, either in
-            // compile or compile+execute mode.
-            start = std::chrono::high_resolution_clock::now();
-            if (settings.execute)
+            if (!fs::exists("tests") || !fs::is_directory("tests"))
             {
-                result =
-                    system(("acorn -o a.out --execute " + test +
-                            " >> test_suite.tlog 2>&1")
-                               .c_str());
-            }
-            else
-            {
-                result = system(("acorn -o /dev/null " + test +
-                                 " >> test_suite.tlog 2>&1")
-                                    .c_str());
-            }
-            end = std::chrono::high_resolution_clock::now();
-            ms = std::chrono::duration_cast<
-                     std::chrono::milliseconds>(end - start)
-                     .count();
-
-            // Update statistics
-            totalMs += ms;
-            if (ms < min)
-            {
-                nameOfMin = test;
-                min = ms;
-            }
-            if (ms > max)
-            {
-                nameOfMax = test;
-                max = ms;
+                std::cout << tags::red_bold
+                        << "Cannot run test suite when './tests' "
+                            "does not exist or exists and is not "
+                            "a directory.\n"
+                        << tags::reset;
+                return 15;
             }
 
-            // Update user on results of this test
-            std::cout << "[" << i << "/" << files.size()
-                      << "]\t["
-                      << (result == 0 ? tags::green : tags::red)
-                      << std::left << std::setw(4) << result
-                      << tags::reset << "]" << std::right
-                      << std::setw(8) << ms << " ms\t"
-                      << std::left << test << "\n";
+            int good = 0, bad = 0, result;
+            unsigned long long ms, totalMs = 0;
+            std::chrono::_V2::high_resolution_clock::time_point
+                start,
+                end;
+            std::ifstream file;
+            std::string line;
+            std::set<std::string> test_files;
+            std::list<std::string> failed;
 
-            // Update other statistics
-            if (result == 0)
-            {
-                good++;
-            }
-            else
-            {
-                failed.push_back(test);
-                bad++;
+            // Get all files to run
+            fs::create_directory(".oak_build");
+            fs::remove_all("test_suite.tlog");
 
-                // If using the `-TT` flag, cease testing here.
-                if (settings.testFail)
+            // Build file vector
+            for (auto test_iter : fs::directory_iterator("./tests"))
+            {
+                if (fs::is_directory(test_iter))
                 {
-                    break;
+                    continue;
+                }
+                if (test_iter.path().extension() != ".oak")
+                {
+                    continue;
+                }
+
+                test_files.insert(test_iter.path().string());
+            }
+
+            if (test_files.size() == 0)
+            {
+                std::cout
+                    << tags::red_bold
+                    << "Error: `./tests` exists but is empty.\n"
+                    << tags::reset;
+                return 16;
+            }
+
+            std::cout << tags::violet_bold << "Running "
+                    << test_files.size() << " tests...\n"
+                    << tags::reset << "[compiling, "
+                    << (settings.execute ? "" : "NOT ")
+                    << "executing,"
+                    << (settings.testFail ? "" : " NOT")
+                    << " halting on failure]\n";
+
+            // Iterate through files
+            int i = 1;
+            unsigned long long min = -1ull, max = 0ull;
+            std::string nameOfMin, nameOfMax;
+            for (auto test : test_files)
+            {
+                // Echo the current filename onto the test suite log
+                system(("echo " + test + " >> test_suite.tlog")
+                        .c_str());
+
+                // Execute the command to test this file, either in
+                // compile or compile+execute mode.
+                start = std::chrono::high_resolution_clock::now();
+                if (settings.execute)
+                {
+                    result =
+                        system(("acorn -o a.out --execute " + test +
+                                " >> test_suite.tlog 2>&1")
+                                .c_str());
+                }
+                else
+                {
+                    result = system(("acorn -o /dev/null " + test +
+                                    " >> test_suite.tlog 2>&1")
+                                        .c_str());
+                }
+                end = std::chrono::high_resolution_clock::now();
+                ms = std::chrono::duration_cast<
+                        std::chrono::milliseconds>(end - start)
+                        .count();
+
+                // Update statistics
+                totalMs += ms;
+                if (ms < min)
+                {
+                    nameOfMin = test;
+                    min = ms;
+                }
+                if (ms > max)
+                {
+                    nameOfMax = test;
+                    max = ms;
+                }
+
+                // Update user on results of this test
+                std::cout << "[" << i << "/" << test_files.size()
+                        << "]\t["
+                        << (result == 0 ? tags::green : tags::red)
+                        << std::left << std::setw(4) << result
+                        << tags::reset << "]" << std::right
+                        << std::setw(8) << ms << " ms\t"
+                        << std::left << test << "\n";
+
+                // Update other statistics
+                if (result == 0)
+                {
+                    good++;
+                }
+                else
+                {
+                    failed.push_back(test);
+                    bad++;
+
+                    // If using the `-TT` flag, cease testing here.
+                    if (settings.testFail)
+                    {
+                        break;
+                    }
+                }
+
+                i++;
+            }
+
+            // Print number of passed tests
+            if (good != 0)
+            {
+                std::cout << tags::green_bold << "Passed:\t\t"
+                        << good << "\t("
+                        << 100 * (double)good / (good + bad)
+                        << "%)" << '\n';
+            }
+
+            // Print number of failed tests
+            if (bad != 0)
+            {
+                std::cout << tags::red_bold << "Failed:\t\t" << bad
+                        << "\t("
+                        << 100 * (double)bad / (good + bad)
+                        << "%)" << '\n';
+            }
+
+            // Print final summary statistics
+            std::cout << tags::reset << "Total:\t\t" << good + bad
+                    << '\n'
+                    << "ms:\t\t" << totalMs << '\n'
+                    << "min:\t\t" << min << "\t" << nameOfMin
+                    << " ms\n"
+                    << "max:\t\t" << max << " \t" << nameOfMax
+                    << " ms\n"
+                    << "mean test ms:\t"
+                    << (totalMs) / (double)(good + bad) << '\n';
+
+            if (bad != 0)
+            {
+                std::cout << tags::red_bold << "\nFailed files:\n";
+                for (auto item : failed)
+                {
+                    std::cout << " - " << item << '\n';
+                }
+                std::cout << tags::reset;
+            }
+
+            std::cout << "\nAny output is in ./test_suite.tlog.\n";
+
+            // Check for ansi2txt
+            if (system("ansi2txt < /dev/null") == 0)
+            {
+                // Clean log file
+                int result =
+                    system("ansi2txt < test_suite.tlog > tmp.tlog "
+                        "&& mv tmp.tlog test_suite.tlog");
+
+                if (result != 0)
+                {
+                    std::cout << tags::yellow
+                            << "Warning: Failed to clean logs. "
+                                "They may be corrupted!\n"
+                            << tags::reset;
                 }
             }
-
-            i++;
-        }
-
-        // Print number of passed tests
-        if (good != 0)
-        {
-            std::cout << tags::green_bold << "Passed:\t\t"
-                      << good << "\t("
-                      << 100 * (double)good / (good + bad)
-                      << "%)" << '\n';
-        }
-
-        // Print number of failed tests
-        if (bad != 0)
-        {
-            std::cout << tags::red_bold << "Failed:\t\t" << bad
-                      << "\t("
-                      << 100 * (double)bad / (good + bad)
-                      << "%)" << '\n';
-        }
-
-        // Print final summary statistics
-        std::cout << tags::reset << "Total:\t\t" << good + bad
-                  << '\n'
-                  << "ms:\t\t" << totalMs << '\n'
-                  << "min:\t\t" << min << "\t" << nameOfMin
-                  << " ms\n"
-                  << "max:\t\t" << max << " \t" << nameOfMax
-                  << " ms\n"
-                  << "mean test ms:\t"
-                  << (totalMs) / (double)(good + bad) << '\n';
-
-        if (bad != 0)
-        {
-            std::cout << tags::red_bold << "\nFailed files:\n";
-            for (auto item : failed)
-            {
-                std::cout << " - " << item << '\n';
-            }
-            std::cout << tags::reset;
-        }
-
-        std::cout << "\nAny output is in ./test_suite.tlog.\n";
-
-        // Check for ansi2txt
-        if (system("ansi2txt < /dev/null") == 0)
-        {
-            // Clean log file
-            int result =
-                system("ansi2txt < test_suite.tlog > tmp.tlog "
-                       "&& mv tmp.tlog test_suite.tlog");
-
-            if (result != 0)
+            else
             {
                 std::cout << tags::yellow
-                          << "Warning: Failed to clean logs. "
-                             "They may be corrupted!\n"
-                          << tags::reset;
+                        << "Warning: `ansi2txt` is not "
+                            "installed, so output logs will look "
+                            "bad. Install `colorized-logs` "
+                            "to silence this warning.\n"
+                        << tags::reset;
             }
-        }
-        else
-        {
-            std::cout << tags::yellow
-                      << "Warning: `ansi2txt` is not "
-                         "installed, so output logs will look "
-                         "bad. Install `colorized-logs` "
-                         "to silence this warning.\n"
-                      << tags::reset;
-        }
 
-        // Exit w/ error if needed
-        if (bad != 0)
-        {
-            if (settings.eraseTemp)
+            // Exit w/ error if needed
+            if (bad != 0)
             {
-                fs::remove_all(".oak_build");
-                fs::remove_all("*.log");
+                if (settings.eraseTemp)
+                {
+                    fs::remove_all(".oak_build");
+                    fs::remove_all("*.log");
+                }
+                return 19;
             }
-            return 19;
+
+            chdir(original_dir.c_str());
         }
     }
 

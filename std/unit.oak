@@ -6,7 +6,4 @@ tag!("no_dialect");
 
 // The minimal struct size is 1 byte, and C
 // produces a warning for actual empty structs.
-let unit: struct
-{
-    __dummy: u8,
-}
+let unit: struct { __dummy: u8, }

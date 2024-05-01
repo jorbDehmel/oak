@@ -229,18 +229,16 @@ std::string purifyStr(const std::string &what);
 // Reconstruct the existing symbol table into C.
 void reconstruct(const std::string &Name,
                  AcornSettings &settings,
-                 std::stringstream &header,
                  std::stringstream &body);
 
 // Save reconstructed files and return compilation command
 // Return pair<sstream, sstream>{header, body};
-std::pair<std::string, std::string> save(
-    const std::stringstream &header,
-    const std::stringstream &body, const std::string &name);
+std::string save(const std::stringstream &body,
+    const std::string &name);
 
 // Call reconstruct and save, without fiddling with
 // stringstreams. Returns headerName, bodyName.
-std::pair<std::string, std::string> reconstructAndSave(
+std::string reconstructAndSave(
     const std::string &Name, AcornSettings &settings);
 
 // Return the C format-version of a type, to be followed by

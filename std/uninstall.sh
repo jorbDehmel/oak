@@ -1,16 +1,12 @@
 echo "Uninstalling Oak..."
 
-echo -n "Remove packages as well [y/N]? "
-read response
+echo "Removing packages..."
+sudo rm -rf /usr/include/oak
 
-if [ "$response" == y ] ; then
-    echo "Uninstalling packages..."
-    sudo rm -rf /usr/include/oak
-else
-    echo "NOT uninstalling packages."
-    sudo rm -rf /usr/include/oak/std /usr/include/oak/packages_list.txt /usr/include/oak/std_oak_header.h
-fi
+echo "Removing executables..."
+sudo rm -rf /usr/bin/acorn /usr/bin/oak2c \
+    /usr/bin/acorn-db /usr/bin/oak2c-db
 
-sudo rm -rf /usr/bin/acorn
-
-echo "Done uninstalling Oak."
+echo "Done uninstalling Oak. To re-install Oak, run:"
+echo "\`git clone https://github.com/jorbDehmel/oak && \\"
+echo "  make -C oak install packages ; rm -rf oak\`"

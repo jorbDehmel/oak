@@ -36,7 +36,7 @@ jdehmel@outlook.com
 namespace fs = std::filesystem;
 
 // The current version of Oak.
-const static std::string VERSION = "0.6.0";
+const static std::string VERSION = "0.6.2";
 
 // The license that this version of Oak uses.
 const static std::string LICENSE = "GPLv3";
@@ -89,7 +89,7 @@ const static std::string HELP_TEXT =
     " -i    | --install   | Install a package\n"
     " -l    | --link      | Produce executables\n"
     " -m    | --manual    | Produce a .md doc\n"
-    " -M    |             | Used for macros\n"
+    " -M    |             | Used for macro compilation\n"
     " -n    | --no_save   | Produce nothing\n"
     " -o    | --output    | Set the output file\n"
     " -O    | --optimize  | Use LLVM optimization O3\n"

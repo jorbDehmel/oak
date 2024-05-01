@@ -1,35 +1,88 @@
-// Tests the turtle package by moving the turtle according to
-// some basic brownian motion.
+/*
+Tests the turtle package by moving the turtle according to
+some basic brownian motion.
+Also keeps track of and prints the MSD (mean-squared
+displacement) of the turtle every few time steps.
+Jordan Dehmel, 2023 - present
+jdehmel@outlook.com
+github.com/jorbDehmel/oak
+*/
 
-package!("std", "turtle");
+// Grab std and turtle packages
+package!(
+    "std",
+    "turtle"
+);
+
+// Grab other needed resources
 include!("std/printf.oak");
 include!("std/rand.oak");
+include!("std/math.oak");
+
+// STD Oak over canonical
 use_rule!("std");
 
 let main() -> i32
 {
+    // Seed rng from rand.oak
     seed_rand();
 
+    // The turtle to draw with
     let t: turtle::turtle;
+
+    // Change in distance (r for some reason) and change in
+    // orientation (t for some reason).
     let dr: i128;
     let dt: f64;
 
+    // Starting position; This is used for calculating MSD.
+    let origin_x = 256;
+    let origin_y = 256;
+
+    // Other variables which are needed for MSD.
+    let displacement_squared_sum = 0u128;
+    let time_steps = 0u128;
+
+    // Set the dimensions of the window to 1024^2.
     t.resize(1024, 1024);
+
+    // Set turtle visualization parameters.
     t.radius = 10.0;
     t.speed = 4.0;
 
-    t.x = 256;
-    t.y = 256;
+    // Initialize turtle
+    t.x = origin_x;
+    t.y = origin_y;
     t.down();
 
+    // Main loop
     while t.is_running
     {
+        // Random numbers
         dr = rand(0, 10);
         dt = to_f64(rand(-90, 90));
 
+        // Move stochastically
         t.orientation += dt;
         t.forward(dr);
+
+        // Update MSD stuff
+        displacement_squared_sum += pow(t.x - origin_x, 2)
+            + pow(t.y - origin_y, 2);
+        ++time_steps;
+
+        // Update if timestep is correct.
+        if time_steps % 50u128 == 0u128
+        {
+            printf!(
+                "t:   %\n"
+                "MSD: %\n",
+                time_steps,
+                to_f64(displacement_squared_sum) / to_f64(time_steps)
+            );
+        }
     }
 
+    // Exit w/o error
     0
 }

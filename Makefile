@@ -7,7 +7,7 @@
 ################################################################
 
 MAKE_SRC := $(MAKE) -C src
-TEST := acorn -eTT && acorn -e
+TEST := acorn -eTT
 MEMCHECK := valgrind --track-origins=yes --error-exitcode=1 \
 	-s --
 
@@ -22,11 +22,8 @@ install:
 
 .PHONY: test
 test:
-	cd std && $(TEST) && cd ..
-	cd sdl && $(TEST) && cd ..
-	cd extra && $(TEST) && cd ..
-	cd stl && $(TEST) && cd ..
-	cd turtle && $(TEST) && cd ..
+	$(TEST) std sdl extra stl turtle
+	acorn -e
 	$(MAKE) -C src/unit_tests
 
 .PHONY:	memcheck

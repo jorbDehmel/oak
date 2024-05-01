@@ -37,74 +37,45 @@ std::string purifyStr(const std::string &What)
     return out;
 }
 
-std::pair<std::string, std::string> reconstructAndSave(
+std::string reconstructAndSave(
     const std::string &Name, AcornSettings &settings)
 {
-    std::stringstream header, body;
-    reconstruct(Name, settings, header, body);
-    return save(header, body, Name);
+    std::stringstream body;
+    reconstruct(Name, settings, body);
+    return save(body, Name);
 }
 
 void reconstruct(const std::string &Name,
                  AcornSettings &settings,
-                 std::stringstream &header,
                  std::stringstream &body)
 {
-    // Purify name
-    std::string rootName;
-    if (Name.substr(Name.size() - 4) == ".oak")
-    {
-        rootName = Name.substr(0, Name.size() - 4);
-    }
-    else
-    {
-        rootName = Name;
-    }
-
-    std::string name = purifyStr(rootName) + "_H";
-
-    for (int i = 0; i < name.size(); i++)
-    {
-        name[i] = toupper(name[i]);
-    }
-
-    // Begin body
-    std::string cleanedName = purifyStr(rootName);
-    body << "#include \"" << cleanedName << ".h\"\n";
-
-    // Begin include guard
-    header << "#ifndef " << name << "\n"
-           << "#define " << name << "\n\n";
-
     // Step A1: Load Oak standard translational header
-    header << "#include \"" << OAK_HEADER_PATH << "\"\n";
+    body << "#include \"" << OAK_HEADER_PATH << "\"\n";
 
     // Step A2: Struct definitions
-    header << "// Struct and Enum definitions\n";
     for (auto name : settings.structOrder)
     {
         if (settings.enumData.count(name) != 0)
         {
-            header << enumToC(name, settings) << '\n';
+            body << enumToC(name, settings) << '\n';
             continue;
         }
 
-        header << "struct " << name << "\n{\n";
+        body << "struct " << name << "\n{\n";
 
         for (auto m : settings.structData[name].order)
         {
-            header << toStrC(
+            body << toStrC(
                           &settings.structData[name].members[m],
                           settings, m)
                    << ";\n";
         }
 
-        header << "};\n";
+        body << "};\n";
     }
 
     // Step A4: Insert global definitions into header
     // (Translate Oak syntax into C syntax)
-    header << "// Global functions\n";
     for (auto entry : settings.table)
     {
         std::string name = entry.first;
@@ -116,16 +87,40 @@ void reconstruct(const std::string &Name,
                 std::string toAdd =
                     toStrCFunction(&s.type, settings, name);
 
-                header << toAdd << ";\n";
+                body << toAdd << ";\n";
+            }
+            catch (std::runtime_error &e)
+            {
+                std::cout << "Failure in symbol " << name
+                          << " w/ type " << toStr(&s.type)
+                          << " from " << s.sourceFilePath
+                          << '\n';
+
+                throw sequencing_error(e.what());
+            }
+        }
+    }
+
+    for (auto entry : settings.table)
+    {
+        std::string name = entry.first;
+
+        for (MultiTableSymbol s : entry.second)
+        {
+            try
+            {
+                std::string toAdd =
+                    toStrCFunction(&s.type, settings, name);
 
                 if (s.seq.items.size() != 0)
                 {
                     std::string definition =
                         toC(s.seq, settings);
 
-                    body << toAdd << "\n"
-                         << (definition == "" ? ";"
-                                              : definition);
+                    if (definition != "")
+                    {
+                        body << toAdd << " " << definition;
+                    }
                 }
             }
             catch (std::runtime_error &e)
@@ -140,37 +135,20 @@ void reconstruct(const std::string &Name,
         }
     }
 
-    // End header enclosure
-    header << "\n#endif\n";
-
     return;
 }
 
-// Save reconstructed files and return compilation command
-std::pair<std::string, std::string> save(
-    const std::stringstream &header,
-    const std::stringstream &body, const std::string &Name)
+// Save reconstructed files and return name
+std::string save(const std::stringstream &body,
+                 const std::string &Name)
 {
-    std::string rootName, headerName, bodyName;
+    std::string rootName, bodyName;
 
     rootName = purifyStr(Name);
 
     fs::create_directory(".oak_build");
 
-    headerName = ".oak_build/" + rootName + ".h";
     bodyName = ".oak_build/" + rootName + ".c";
-
-    // Save header
-    std::ofstream headerFile(headerName);
-    if (!headerFile.is_open())
-    {
-        throw std::runtime_error("Failed to open file `" +
-                                 headerName + "`");
-    }
-
-    headerFile << header.str();
-
-    headerFile.close();
 
     // Save body
     std::ofstream bodyFile(bodyName);
@@ -181,10 +159,9 @@ std::pair<std::string, std::string> save(
     }
 
     bodyFile << body.str();
-
     bodyFile.close();
 
-    return make_pair(headerName, bodyName);
+    return bodyName;
 }
 
 // This is separate due to complexity

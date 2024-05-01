@@ -125,12 +125,12 @@ pre
 }
 
 // Return a to the power of b for integers.
-let pow(a: i32, b: i32) -> i128
+let pow(a: i128, b: i128) -> i128
 {
-    let out: i32;
+    let out: i128;
     out = 1;
 
-    let counter: i32;
+    let counter: i128;
     counter = b;
 
     while (counter > 0)
@@ -145,12 +145,12 @@ let pow(a: i32, b: i32) -> i128
 
 // Returns some floating-point number to the power of some
 // integer.
-let pow(a: f64, b: i32) -> f64
+let pow(a: f64, b: i128) -> f64
 {
     let out: f64;
     out = 1.0;
 
-    let counter: i32;
+    let counter: i128;
     counter = b;
 
     while (counter > 0)

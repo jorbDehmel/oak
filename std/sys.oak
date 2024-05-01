@@ -8,7 +8,11 @@ jdehmel@outlook.com
 // Ensure that this will work with other dialects
 tag!("no_dialect");
 
+include!("std/string.oak");
 link!("std/sys.o");
 
-// Run a system command
+// Run a system command and return the exit code.
 let sys(command: str) -> i32;
+
+// Run the given command and return the cout output.
+let s_sys(command: str) -> string;
