@@ -37,8 +37,8 @@ std::string purifyStr(const std::string &What)
     return out;
 }
 
-std::string reconstructAndSave(
-    const std::string &Name, AcornSettings &settings)
+std::string reconstructAndSave(const std::string &Name,
+                               AcornSettings &settings)
 {
     std::stringstream body;
     reconstruct(Name, settings, body);
@@ -66,9 +66,9 @@ void reconstruct(const std::string &Name,
         for (auto m : settings.structData[name].order)
         {
             body << toStrC(
-                          &settings.structData[name].members[m],
-                          settings, m)
-                   << ";\n";
+                        &settings.structData[name].members[m],
+                        settings, m)
+                 << ";\n";
         }
 
         body << "};\n";

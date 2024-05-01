@@ -234,12 +234,12 @@ void reconstruct(const std::string &Name,
 // Save reconstructed files and return compilation command
 // Return pair<sstream, sstream>{header, body};
 std::string save(const std::stringstream &body,
-    const std::string &name);
+                 const std::string &name);
 
 // Call reconstruct and save, without fiddling with
 // stringstreams. Returns headerName, bodyName.
-std::string reconstructAndSave(
-    const std::string &Name, AcornSettings &settings);
+std::string reconstructAndSave(const std::string &Name,
+                               AcornSettings &settings);
 
 // Return the C format-version of a type, to be followed by
 // symbol name.

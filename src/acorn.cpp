@@ -703,7 +703,8 @@ int main(const int argc, const char *argv[])
             auto reconstructionStart =
                 std::chrono::high_resolution_clock::now();
 
-            std::string toCompileFrom = reconstructAndSave(out, settings);
+            std::string toCompileFrom =
+                reconstructAndSave(out, settings);
 
             end = std::chrono::high_resolution_clock::now();
             oakElapsed =
@@ -1149,21 +1150,23 @@ int main(const int argc, const char *argv[])
             files = {"."};
         }
 
-        std::cout << tags::green_bold
-                  << "Executing " << files.size()
-                  << " test suites...\n\n" << tags::reset;
+        std::cout << tags::green_bold << "Executing "
+                  << files.size() << " test suites...\n\n"
+                  << tags::reset;
         for (const std::string &test_folder : files)
         {
             std::string original_dir = fs::current_path();
             chdir(test_folder.c_str());
 
-            if (!fs::exists("tests") || !fs::is_directory("tests"))
+            if (!fs::exists("tests") ||
+                !fs::is_directory("tests"))
             {
-                std::cout << tags::red_bold
-                        << "Cannot run test suite when './tests' "
-                            "does not exist or exists and is not "
-                            "a directory.\n"
-                        << tags::reset;
+                std::cout
+                    << tags::red_bold
+                    << "Cannot run test suite when './tests' "
+                       "does not exist or exists and is not "
+                       "a directory.\n"
+                    << tags::reset;
                 return 15;
             }
 
@@ -1182,7 +1185,8 @@ int main(const int argc, const char *argv[])
             fs::remove_all("test_suite.tlog");
 
             // Build file vector
-            for (auto test_iter : fs::directory_iterator("./tests"))
+            for (auto test_iter :
+                 fs::directory_iterator("./tests"))
             {
                 if (fs::is_directory(test_iter))
                 {
@@ -1206,12 +1210,12 @@ int main(const int argc, const char *argv[])
             }
 
             std::cout << tags::violet_bold << "Running "
-                    << test_files.size() << " tests...\n"
-                    << tags::reset << "[compiling, "
-                    << (settings.execute ? "" : "NOT ")
-                    << "executing,"
-                    << (settings.testFail ? "" : " NOT")
-                    << " halting on failure]\n";
+                      << test_files.size() << " tests...\n"
+                      << tags::reset << "[compiling, "
+                      << (settings.execute ? "" : "NOT ")
+                      << "executing,"
+                      << (settings.testFail ? "" : " NOT")
+                      << " halting on failure]\n";
 
             // Iterate through files
             int i = 1;
@@ -1219,30 +1223,33 @@ int main(const int argc, const char *argv[])
             std::string nameOfMin, nameOfMax;
             for (auto test : test_files)
             {
-                // Echo the current filename onto the test suite log
+                // Echo the current filename onto the test suite
+                // log
                 system(("echo " + test + " >> test_suite.tlog")
-                        .c_str());
+                           .c_str());
 
-                // Execute the command to test this file, either in
-                // compile or compile+execute mode.
-                start = std::chrono::high_resolution_clock::now();
+                // Execute the command to test this file, either
+                // in compile or compile+execute mode.
+                start =
+                    std::chrono::high_resolution_clock::now();
                 if (settings.execute)
                 {
-                    result =
-                        system(("acorn -o a.out --execute " + test +
-                                " >> test_suite.tlog 2>&1")
-                                .c_str());
+                    result = system(
+                        ("acorn -o a.out --execute " + test +
+                         " >> test_suite.tlog 2>&1")
+                            .c_str());
                 }
                 else
                 {
-                    result = system(("acorn -o /dev/null " + test +
-                                    " >> test_suite.tlog 2>&1")
-                                        .c_str());
+                    result =
+                        system(("acorn -o /dev/null " + test +
+                                " >> test_suite.tlog 2>&1")
+                                   .c_str());
                 }
                 end = std::chrono::high_resolution_clock::now();
                 ms = std::chrono::duration_cast<
-                        std::chrono::milliseconds>(end - start)
-                        .count();
+                         std::chrono::milliseconds>(end - start)
+                         .count();
 
                 // Update statistics
                 totalMs += ms;
@@ -1258,13 +1265,14 @@ int main(const int argc, const char *argv[])
                 }
 
                 // Update user on results of this test
-                std::cout << "[" << i << "/" << test_files.size()
-                        << "]\t["
-                        << (result == 0 ? tags::green : tags::red)
-                        << std::left << std::setw(4) << result
-                        << tags::reset << "]" << std::right
-                        << std::setw(8) << ms << " ms\t"
-                        << std::left << test << "\n";
+                std::cout
+                    << "[" << i << "/" << test_files.size()
+                    << "]\t["
+                    << (result == 0 ? tags::green : tags::red)
+                    << std::left << std::setw(4) << result
+                    << tags::reset << "]" << std::right
+                    << std::setw(8) << ms << " ms\t"
+                    << std::left << test << "\n";
 
                 // Update other statistics
                 if (result == 0)
@@ -1276,7 +1284,8 @@ int main(const int argc, const char *argv[])
                     failed.push_back(test);
                     bad++;
 
-                    // If using the `-TT` flag, cease testing here.
+                    // If using the `-TT` flag, cease testing
+                    // here.
                     if (settings.testFail)
                     {
                         break;
@@ -1290,34 +1299,36 @@ int main(const int argc, const char *argv[])
             if (good != 0)
             {
                 std::cout << tags::green_bold << "Passed:\t\t"
-                        << good << "\t("
-                        << 100 * (double)good / (good + bad)
-                        << "%)" << '\n';
+                          << good << "\t("
+                          << 100 * (double)good / (good + bad)
+                          << "%)" << '\n';
             }
 
             // Print number of failed tests
             if (bad != 0)
             {
-                std::cout << tags::red_bold << "Failed:\t\t" << bad
-                        << "\t("
-                        << 100 * (double)bad / (good + bad)
-                        << "%)" << '\n';
+                std::cout << tags::red_bold << "Failed:\t\t"
+                          << bad << "\t("
+                          << 100 * (double)bad / (good + bad)
+                          << "%)" << '\n';
             }
 
             // Print final summary statistics
-            std::cout << tags::reset << "Total:\t\t" << good + bad
-                    << '\n'
-                    << "ms:\t\t" << totalMs << '\n'
-                    << "min:\t\t" << min << "\t" << nameOfMin
-                    << " ms\n"
-                    << "max:\t\t" << max << " \t" << nameOfMax
-                    << " ms\n"
-                    << "mean test ms:\t"
-                    << (totalMs) / (double)(good + bad) << '\n';
+            std::cout << tags::reset << "Total:\t\t"
+                      << good + bad << '\n'
+                      << "ms:\t\t" << totalMs << '\n'
+                      << "min:\t\t" << min << "\t" << nameOfMin
+                      << " ms\n"
+                      << "max:\t\t" << max << " \t" << nameOfMax
+                      << " ms\n"
+                      << "mean test ms:\t"
+                      << (totalMs) / (double)(good + bad)
+                      << '\n';
 
             if (bad != 0)
             {
-                std::cout << tags::red_bold << "\nFailed files:\n";
+                std::cout << tags::red_bold
+                          << "\nFailed files:\n";
                 for (auto item : failed)
                 {
                     std::cout << " - " << item << '\n';
@@ -1325,32 +1336,35 @@ int main(const int argc, const char *argv[])
                 std::cout << tags::reset;
             }
 
-            std::cout << "\nAny output is in ./test_suite.tlog.\n";
+            std::cout
+                << "\nAny output is in ./test_suite.tlog.\n";
 
             // Check for ansi2txt
             if (system("ansi2txt < /dev/null") == 0)
             {
                 // Clean log file
-                int result =
-                    system("ansi2txt < test_suite.tlog > tmp.tlog "
-                        "&& mv tmp.tlog test_suite.tlog");
+                int result = system(
+                    "ansi2txt < test_suite.tlog > tmp.tlog "
+                    "&& mv tmp.tlog test_suite.tlog");
 
                 if (result != 0)
                 {
-                    std::cout << tags::yellow
-                            << "Warning: Failed to clean logs. "
-                                "They may be corrupted!\n"
-                            << tags::reset;
+                    std::cout
+                        << tags::yellow
+                        << "Warning: Failed to clean logs. "
+                           "They may be corrupted!\n"
+                        << tags::reset;
                 }
             }
             else
             {
-                std::cout << tags::yellow
-                        << "Warning: `ansi2txt` is not "
-                            "installed, so output logs will look "
-                            "bad. Install `colorized-logs` "
-                            "to silence this warning.\n"
-                        << tags::reset;
+                std::cout
+                    << tags::yellow
+                    << "Warning: `ansi2txt` is not "
+                       "installed, so output logs will look "
+                       "bad. Install `colorized-logs` "
+                       "to silence this warning.\n"
+                    << tags::reset;
             }
 
             // Exit w/ error if needed
