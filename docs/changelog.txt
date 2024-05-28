@@ -4,6 +4,9 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.6.3           | 5/28/24  | Added serialization package
+                |          | `cereal`.
+                |          |
 0.6.2           | 5/1/24   | Bug fixes w/ update and uninstall,
                 |          | minor additions to `std` and test
                 |          | suites.

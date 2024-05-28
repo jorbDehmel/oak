@@ -1,6 +1,6 @@
 
 # The Oak Programming Language
-## Version 0.6.2
+## Version 0.6.3
 
 ![](https://github.com/jorbDehmel/oak/actions/workflows/ci-test.yml/badge.svg)
 
