@@ -1,0 +1,7 @@
+*.cereal
+*.o
+*.out
+*.log
+*.tlog
+.oak_build/
+.vscode/

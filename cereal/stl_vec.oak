@@ -1,0 +1,49 @@
+////////////////////////////////////////////////////////////////
+
+/*
+Resources for serializing a stl::vec structure.
+
+Jordan Dehmel, 2024
+jdehmel@outlook.com
+*/
+
+////////////////////////////////////////////////////////////////
+
+package!("std", "stl", "cereal");
+include!("stl/vec.oak");
+include!("cereal/blocks.oak");
+use_rule!("std");
+
+////////////////////////////////////////////////////////////////
+// Internal functions
+
+// Serialize onto the end of the given string_builder.
+let serialize<t>(
+    self: ^stl::vec<t>,
+    into: ^extra::string_builder
+    ) -> void
+{
+    serialize(self.capacity, into);
+    serialize(self.data, self.size, into);
+}
+pre
+{
+    cereal::dyn_serializable<t>;
+}
+
+// Deserialize from the given position, updating it after use.
+let deserialize<t>(
+    self: ^stl::vec<t>,
+    from: []i8,
+    pos: ^u128
+    ) -> void
+{
+    deserialize(self.capacity, from, pos);
+    deserialize(self.data, self.size, from, pos);
+}
+pre
+{
+    cereal::dyn_serializable<t>;
+}
+
+////////////////////////////////////////////////////////////////

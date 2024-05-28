@@ -22,7 +22,7 @@ install:
 
 .PHONY: test
 test:
-	$(TEST) std sdl extra stl turtle
+	$(TEST) std sdl extra stl turtle cereal
 	acorn -e
 	$(MAKE) -C src/unit_tests
 

@@ -1,0 +1,33 @@
+/*
+Tests file serialization in Oak via the cereal library.
+Jordan Dehmel, 2024
+jdehmel@outlook.com
+*/
+
+package!("std", "cereal");
+include!("std/printf.oak");
+use_rule!("std");
+
+let main() -> i32
+{
+    let data: u128 = 1234;
+    let serialized: string = data.serialize();
+    let filename: string = "data.cereal\0";
+
+    cereal::save(serialized, filename);
+    printf!("Saved '%' to %\n", serialized, filename);
+
+    let loaded: string = cereal::load(filename);
+    printf!("Loaded '%' from %\n", loaded, filename);
+
+    let retrieved_data: u128;
+    retrieved_data.deserialize(loaded);
+
+    printf!(
+        "Before serialization: %\nAfter serialization: %\n",
+        data,
+        retrieved_data
+    );
+
+    0
+}

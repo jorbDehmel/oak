@@ -1,0 +1,28 @@
+// Tests basic operations of the cereal package.
+
+package!("std", "cereal", "extra");
+include!("std/panic.oak");
+include!("std/printf.oak");
+use_rule!("std");
+
+let main() -> i32
+{
+    let collapsed: string;
+
+    {
+        let to_pickle: i32 = 123;
+        collapsed = to_pickle.serialize();
+        printf!("Original:\t%\n", to_pickle);
+    }
+
+    let from_pickle: i32;
+    from_pickle.deserialize(collapsed);
+
+    printf!(
+        "Pickled:\t%\nUnpickled:\t%\n",
+        collapsed,
+        from_pickle
+    );
+
+    0
+}

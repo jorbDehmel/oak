@@ -1,8 +1,6 @@
 /*
 Implementation for the generics.hpp file of Oak
-Oak ~0.0.12
-
-Jordan Dehmel, 2023
+Jordan Dehmel, 2023 - present
 */
 
 #include "oakc_fns.hpp"

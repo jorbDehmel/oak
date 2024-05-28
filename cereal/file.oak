@@ -1,0 +1,55 @@
+////////////////////////////////////////////////////////////////
+
+/*
+Resources for saving and loading serialized data to and from
+files.
+
+Jordan Dehmel
+*/
+
+////////////////////////////////////////////////////////////////
+
+package!("std");
+include!(
+    "std/string.oak",
+    "std/file.oak",
+    "std/printf.oak");
+use_rule!("std");
+
+////////////////////////////////////////////////////////////////
+
+// Save some serialized data directly to file. The resulting
+// file can be read by cereal::load.
+let cereal::save(
+    serialized_data: ^string,
+    filepath: ^string
+    ) -> void
+{
+    let file: o_file;
+
+    file.open(filepath.data);
+    file.write(serialized_data);
+    file.close();
+}
+
+// Load some serialized data directly to file. The results can
+// be deserialized.
+let cereal::load(
+    filepath: ^string
+    ) -> string
+{
+    let file: i_file;
+    let size: u128 = 0;
+    let out: string;
+
+    file.open(filepath.data);
+    size = file.size();
+
+    out = file.read(size);
+
+    file.close();
+
+    out
+}
+
+////////////////////////////////////////////////////////////////

@@ -1,0 +1,56 @@
+/*
+Tests serialization of dynamic blocks.
+*/
+
+package!("std", "cereal");
+include!("cereal/blocks.oak");
+include!("std/printf.oak");
+use_rule!("std");
+
+let main() -> i32
+{
+    cereal::dyn_serializable<i32>;
+    let dyn_thing: []i32;
+    alloc!(dyn_thing, to_u128(32));
+
+    for (let i: i32 = 0; i < 32; i += 1)
+    {
+        Get(dyn_thing, i) = i;
+    }
+
+    let b: extra::string_builder;
+    let pickled: string;
+    serialize(dyn_thing, 32, b);
+    pickled = b.collapse();
+
+    print(pickled);
+    endl();
+
+    let after_pickle: []i32;
+    let size: u128;
+    let pos: u128 = 0;
+
+    deserialize(after_pickle, size, pickled.data, pos);
+
+    let i: u128 = 0;
+    while i < size
+    {
+        printf!("% ", Get(dyn_thing, i));
+        i += 1;
+    }
+    endl();
+
+    free!(dyn_thing);
+
+    i = 0;
+    while i < size
+    {
+        printf!("% ", Get(after_pickle, i));
+        i += 1;
+    }
+    endl();
+
+    free!(after_pickle);
+
+    0
+}

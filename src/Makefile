@@ -48,9 +48,9 @@ so:	bin/oakc.so
 packages:
 	sudo rm -rf /usr/include/oak/sdl /usr/include/oak/extra \
 		/usr/include/oak/stl /usr/include/oak/turtle \
-		/usr/include/oak/std
+		/usr/include/oak/std /usr/include/oak/cereal
 	sudo acorn -S ../std -S ../sdl -S ../extra -S ../stl -S \
-		../turtle -e
+		../turtle -S ../cereal -e
 
 .PHONY:	uninstall
 uninstall:

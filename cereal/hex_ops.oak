@@ -1,0 +1,26 @@
+////////////////////////////////////////////////////////////////
+
+/*
+Hex operations for use in the cereal library. Interfaces w/ C.
+*/
+
+////////////////////////////////////////////////////////////////
+
+link!("cereal/hex_ops.o");
+
+////////////////////////////////////////////////////////////////
+
+// Writes (2n) bytes into `into` representing n bytes of `from`.
+// Does NOT add null termination!
+let cereal_hex_write(
+    into: ^void,
+    from: ^void,
+    n: u128) -> void;
+
+// Reads (2n) bytes from `from` into n bytes of `into`.
+let cereal_hex_read(
+    from: ^void,
+    into: ^void,
+    n: u128) -> void;
+
+////////////////////////////////////////////////////////////////

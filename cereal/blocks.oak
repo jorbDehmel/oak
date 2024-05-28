@@ -1,0 +1,75 @@
+////////////////////////////////////////////////////////////////
+
+/*
+Allows the serialization of heap chunks. Technically, this can
+be done without this file, but this adds some more useful
+resources. These are not useful for singular pointers, which 
+should be dealt with via dereference only.
+*/
+
+////////////////////////////////////////////////////////////////
+
+package!("std", "extra", "cereal");
+include!("extra/string_builder.oak", "std/panic.oak");
+include!("cereal/hex_ops.oak", "std/string.oak");
+use_rule!("std");
+
+////////////////////////////////////////////////////////////////
+
+let cereal::dyn_serializable<t>: trait
+{
+    serialize<t>(_: []t, _: u128, _: ^extra::string_builder);
+    deserialize<t>( _: ^[]t, _: ^u128, _: []i8, _: ^u128);
+}
+
+// cereals an alloc!-ed block.
+let serialize<t>(
+    self: []t,
+    size: u128,
+    into: ^extra::string_builder
+    ) -> void
+{
+    // Save size
+    serialize(size, into);
+
+    // Sequentially save contents of array
+    let i: u128 = 0;
+    while i < size
+    {
+        serialize(Get(self, i), into);
+        i += 1;
+    }
+}
+pre
+{
+    cereal::serializable<t>;
+}
+
+let deserialize<t>(
+    self: ^[]t,
+    size: ^u128,
+    from: []i8,
+    pos: ^u128
+    ) -> void
+{
+    // Load size
+    deserialize(size, from, pos);
+    assert!(size != 0);
+
+    // Allocate arr
+    alloc!(^self, ^size);
+
+    // Sequentially load contents of array
+    let i: u128 = 0;
+    while i < size
+    {
+        deserialize(Get(^self, i), from, pos);
+        i += 1;
+    }
+}
+pre
+{
+    cereal::serializable<t>;
+}
+
+////////////////////////////////////////////////////////////////

@@ -7,7 +7,33 @@ jdehmel@outlook.com
 
 #include "../oakc_fns.hpp"
 
+void testGetDiskUsage()
+{
+}
+
+void testDoFile()
+{
+}
+
+void testMakePackage()
+{
+}
+
+void testPrintSyntaxError()
+{
+}
+
+void testEnsureSyntax()
+{
+}
+
 int main()
 {
+    testGetDiskUsage();
+    testDoFile();
+    testMakePackage();
+    testPrintSyntaxError();
+    testEnsureSyntax();
+
     return 0;
 }

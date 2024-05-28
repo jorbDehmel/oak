@@ -2,7 +2,7 @@
 # The Oak Programming Language
 ## Version 0.6.2
 
-![Test Badge](https://github.com/jorbDehmel/oak/actions/workflows/ci-test.yml/badge.svg)
+![](https://github.com/jorbDehmel/oak/actions/workflows/ci-test.yml/badge.svg)
 
 ![](./logo_trimmed.png)
 
@@ -125,7 +125,7 @@ we will mostly focus on differences from these languages.
 
 ### Reference and Dereference Operators
 
-In `C`, `C++` and `Rust`, the reference operator is `&` and the 
+In `C`, `C++` and `Rust`, the reference operator is `&` and the
 dereference operator is `*`. In `Oak`, the reference operator is
 `@` and the dereference operator is `^`.
 
@@ -134,7 +134,51 @@ dereference operator is `*`. In `Oak`, the reference operator is
  Reference     | `&` | `@`
  Dereference   | `*` | `^`
 
+These are rarely used on their own, and the `@` operator is
+rarely used at all. You will most frequently see `^` in the
+context of types, where it denotes a pointer to whatever it
+precedes. Objects are automatically referenced and dereferenced
+when passed as arguments.
+
 **Note:** There is no built-in `xor` operator in `Oak`.
+
+### Functional Programming
+
+All function arguments are exactly one layer of `const` in
+`Oak`. This means that the actual thing passed as an argument
+cannot be modified, whether this is a pointer or literal.
+However, if a pointer is passed, **the thing referenced by it**
+is modifiable.
+
+```rust
+let foo(a: int, b: ^int, c: ^^int) -> void
+{
+    // Would NOT work
+    a = 5;
+    ptrcpy!(b, 0); // Copy 0 (nullptr) into b
+
+    // WOULD work
+    b = 5;
+    c = 5;
+    ptrcpy!(c, 0); // Copy 0 (nullptr) into c
+}
+```
+
+This function's signature translates to the following in `C`
+(ignoring mangling).
+
+```c
+void foo(const int a, int *const b, int **const c);
+```
+
+This means that the `^` symbol can denote either a literal
+pointer or simply mutability. This is similar to how `C` uses
+the `*` symbol.
+
+Since there are no global variables in `Oak`, functions defined
+in it are always functions of **only** the parameters passed.
+However, since pointers exist, they are not necessarily
+deterministic functions thereof.
 
 ### Keywords For Variable/Function/Class/Enum Creation
 
@@ -208,7 +252,7 @@ simply `<t>` (generic names must be lowercase).
 ```rust
 let foobar<t>(what: t) -> void
 {
-    // ... 
+    // ...
 }
 ```
 
@@ -499,7 +543,7 @@ non-abstract instance).
 Pointers are variables which hold a memory address. This address
 could refer to a single object in memory, or the start of a
 contiguous block of like-typed objects. To get the address of a
-variable in `Oak`, use the `@` symbol. To get the value that a 
+variable in `Oak`, use the `@` symbol. To get the value that a
 pointer references, use the `^` symbol. Pointer types are the
 `^` symbol, followed by the type they point to. You can have
 pointers to pointers.
@@ -878,7 +922,7 @@ space), and multi-line comments should start with `/*`
 // single-line comments should NEVER start with a lower-case
 
 // Except in this case; When
-// it is a continuation of 
+// it is a continuation of
 // a previous line for
 // formatting reasons, a
 // lowercase start is fine.
@@ -1013,7 +1057,7 @@ as a bug.
 especially translatable to other natural languages due to the
 preprocessor rule system. It is trivial to implement a dialect
 file which replaces all `Oak` keywords with any spoken
-language's equivalent versions, and still fairly easy to 
+language's equivalent versions, and still fairly easy to
 translate the `std` package. For example, an `Oak` program
 written in Hindi would experience a translation process as
 follows:
@@ -1068,7 +1112,7 @@ let fn_which_returns_void()
 }
 ```
 
-### Automatic parentheses for `if`, `while`, and `match` statements
+### Automatic parentheses for `if`, `while`, and `match`
 
 Without `std`:
 ```rust
@@ -1152,7 +1196,7 @@ let main() -> i32
 {
     let a: i32;
     a = fn();
-    
+
     // Or
     let a: type!(fn());
     a = fn();
@@ -1353,13 +1397,13 @@ mangled `C` function signature. Since the mangler's nuances are
 best displayed by example, several are listed below.
 
 ```bash
-a@b:~$ oak2c "let function(arg1: some_struct, arg2: i32) -> void"
+$ oak2c "let function(arg1: some_struct, arg2: i32) -> void"
 void function_FN_some_struct_JOIN_i32_MAPS_void(struct some_struct arg1, i32 arg2)
-a@b:~$ oak2c "let a_thing(_: i32) -> u128"
+$ oak2c "let a_thing(_: i32) -> u128"
 u128 a_thing_FN_i32_MAPS_u128(i32 _)
-a@b:~$ oak2c "let thing() -> i32"
+$ oak2c "let thing() -> i32"
 i32 thing_FN_MAPS_i32(void)
-a@b:~$ oak2c "let main() -> i32" # Special case!
+$ oak2c "let main() -> i32" # Special case!
 i32 main(void)
 ```
 
@@ -1379,9 +1423,9 @@ let fn_ptr_thing(fn: ^() -> void) -> void;
 Will, upon translation to `C`, become
 
 ```c
-// Note how the new "mangled" function name contains the entire type
-// Argument types are separated by JOIN, and the argument section ends
-// with MAPS, followed by the return type.
+// Note how the mangled function name contains the entire type
+// Argument types are separated by JOIN, and the argument
+// section ends with MAPS, followed by the return type.
 struct data foo_bar_FN_PTR_data_JOIN_data_JOIN_PTR_PTR_data_MAPS_data(
     struct data *self, struct data what, struct data **hello);
 
@@ -1571,9 +1615,9 @@ let main() -> i32
     j = 123 456;
 
     j = 0b 0000 1111 0101 1010 0000 1111 0000 1111;
-    
+
     j = 0b11111111111111111111111111111111;
-    
+
     j = 0x 01 23 45 67;
 
     printf!("j: %\n\n", j);
@@ -2014,7 +2058,8 @@ per rule. Whatever single symbol is matched into a variable will
 be accessible in the output pattern.
 
 The final type of symbol in a rule is a wildcard, represented by
-two dollar signs. A wildcard matches anything, but is not stored.
+two dollar signs. A wildcard matches anything, but is not
+stored.
 
 The dollar sign was chosen over the traditional "glob" `*`
 operator because it is not used within usual `Oak` code. The
@@ -2050,41 +2095,41 @@ declared `new_rule!("foo_to_bar", "foo", "bar");`. Note that all
 arguments to rule macros **must** be strings. This is advisable
 (but not strictly required) of all macros.
 
-Once a rule is defined, it will be inactive. To make a rule 
-active, you must call the `use_rule!` macro. This takes one or 
-more rule names, and activates those rules from that point on. 
-Note that these rules are only active *after* this macro is 
+Once a rule is defined, it will be inactive. To make a rule
+active, you must call the `use_rule!` macro. This takes one or
+more rule names, and activates those rules from that point on.
+Note that these rules are only active *after* this macro is
 called.
 
-The set of active rules does not roll over when a new file is 
-called, but the set of all rules does. This means that a 
-included file will have access to its "parent" files' rules, 
-but they will always be off by default. The `use_rule!` macro 
-will need to be called within every file which wants to use a 
+The set of active rules does not roll over when a new file is
+called, but the set of all rules does. This means that a
+included file will have access to its "parent" files' rules,
+but they will always be off by default. The `use_rule!` macro
+will need to be called within every file which wants to use a
 rule.
 
 ### Removing Rules
 
-A rule can be deactivated (but never deleted) using the 
-`rem_rule!` macro. This takes zero or more arguments. If zero 
-arguments are given, it disables all rules. If one or more, it 
+A rule can be deactivated (but never deleted) using the
+`rem_rule!` macro. This takes zero or more arguments. If zero
+arguments are given, it disables all rules. If one or more, it
 disables the rules with the given names.
 
 ### Rule Bundles
 
-Multiple rules can be bundled together under one name by using 
+Multiple rules can be bundled together under one name by using
 the `bundle_rule!` macro. This takes two or more arguments, with
- the first argument being the name of the bundle. The remaining 
- arguments are the names of the rules which fall within this 
- bundle. This allows you to use a single `use_rule!` call to 
+ the first argument being the name of the bundle. The remaining
+ arguments are the names of the rules which fall within this
+ bundle. This allows you to use a single `use_rule!` call to
  activate a hole suite of rules.
 
-Bundles cannot be disabled all at once; You will need to call 
-`rem_rule!` for each of their component rules. A bundle with a 
-given name will always overwrite a rule with the same name, 
-except in a `bundle_rule!` call. A rule can never overwrite a 
-macro call, but can overwrite anything else. Rules cannot find 
-special / comment symbols (like the secret `//__LINE__=` 
+Bundles cannot be disabled all at once; You will need to call
+`rem_rule!` for each of their component rules. A bundle with a
+given name will always overwrite a rule with the same name,
+except in a `bundle_rule!` call. A rule can never overwrite a
+macro call, but can overwrite anything else. Rules cannot find
+special / comment symbols (like the secret `//__LINE__=`
 symbol).
 
 ### Example
@@ -2110,28 +2155,29 @@ these symbols will be destroyed by the meow menace
 ```
 
 Any file which calls `include!("source.oak");` would have access
-to the `remove_everything` rule, but it would always be off by 
+to the `remove_everything` rule, but it would always be off by
 default.
 
 ### Stored Globs
 
-As of version `0.0.2`, `Sapling` also has several more features. 
-On such feature is `$+`, which is a wildcard that matches any 
-one or more symbols. It may not be the first or last symbol in a 
-`Sapling` sequence, as it is terminated only by the first 
-instance of the following symbol (if it were the first item, it 
-would be highly inefficient). Another such, with the same rules, 
-is `$*`. This symbol matches any zero or more symbols that are 
-not the following symbol. With these two symbols, no occurrence 
-of the following symbol may match anywhere within. Additionally, 
-a variable may not occur directly after either.
+As of version `0.0.2`, `Sapling` also has several more
+features.  On such feature is `$+`, which is a wildcard that
+matches any one or more symbols. It may not be the first or last
+symbol in a  `Sapling` sequence, as it is terminated only by the
+first instance of the following symbol (if it were the first
+item, it would be highly inefficient). Another such, with the
+same rules, is `$*`. This symbol matches any zero or more
+symbols that are not the following symbol. With these two
+symbols, no occurrence of the following symbol may match
+anywhere within. Additionally, a variable may not occur directly
+after either.
 
-`hi $* ( )` would match `hi hello hello hello hello ( )`, but 
+`hi $* ( )` would match `hi hello hello hello hello ( )`, but
 not `hi hello hello ( hello ) ( )`.
 
-This update also introduces a stored glob operator `$*X` with 
-`X` being another single-character variable name. For instance, 
-`if $*a {` -> `if ( $a ) {` would auto-parenthesize `if` 
+This update also introduces a stored glob operator `$*X` with
+`X` being another single-character variable name. For instance,
+`if $*a {` -> `if ( $a ) {` would auto-parenthesize `if`
 statements.
 
 ```rust
@@ -2144,22 +2190,22 @@ clear
 // NOT final; We want to use STD_OD as a jumping-off point
 ```
 
-It also introduces the merge operator `$<` for output patterns. 
-This fuses the preceding and proceeding symbols, without any 
-separation. For instance, `( $t )( $*f )` -> `to $< $t ( $f )` 
+It also introduces the merge operator `$<` for output patterns.
+This fuses the preceding and proceeding symbols, without any
+separation. For instance, `( $t )( $*f )` -> `to $< $t ( $f )`
 would convert standard cast notation into the `Oak` equivalent.
 
 ### Rule Memory
 
-During the matching of a rule via `Sapling`, the engine will 
-keep track of the history of the attempt thus far. This history 
-is called the rule **memory**. You can reset the memory with the 
-`$~` card, or pipe the entire contents into a variable with the 
+During the matching of a rule via `Sapling`, the engine will
+keep track of the history of the attempt thus far. This history
+is called the rule **memory**. You can reset the memory with the
+`$~` card, or pipe the entire contents into a variable with the
 `$>X` card (where `X` is the variable).
 
 ### Pair Matching
 
-Consider the following rule, taken from an old version of the 
+Consider the following rule, taken from an old version of the
 `std` `Oak` package.
 
 ```rust
@@ -2488,11 +2534,11 @@ let main() -> i32
     let to_write: string;
 
     out.open("hi.txt");
-    
+
     New(@to_write, "abcdefghijklmnopqrstuvwxyz\n");
-    
+
     out.write(to_write);
-    
+
     out.close();
     to_write.Del();
     out.Del();
@@ -2516,7 +2562,7 @@ let main() -> i32
     inp.Del();
     str_a.Del();
     str_b.Del();
-    
+
     0
 }
 
@@ -2639,7 +2685,7 @@ for each option `OPTION_NAME` in an enum `ENUM_NAME`. This wraps
 the data variable into the enum. This all happens via a compiler
 `C` interface.
 
-Note that, if the type of an enum option is the unit struct, the 
+Note that, if the type of an enum option is the unit struct, the
 compiler will instead generate a single-argument "wrap" method,
 taking only the self.
 
@@ -2670,7 +2716,8 @@ let main() -> i32
 {
     printf!("The number five: % \nThe number six: % \n", 5, 6);
     printf!(
-        "The following should be a literal percentage sign: \\%\n"
+        "The following should be a literal percentage sign:"
+            "\\%\n"
     );
 
     printf!("This test the failure system of printf % \n");
@@ -2894,7 +2941,7 @@ let main() -> i32
     // This is ILLEGAL! Traits may not be instantiated!
     // They are to be used only for requirements.
     let some_instance: some_thing<i32>;
-    
+
     0
 }
 
@@ -3071,8 +3118,8 @@ detection, and is ignored for all real compilation purposes.
 
 File names, especially in libraries, and **especially** in the
 `Oak` `std` library, should be clear and concise. Names should
-be singular, even if the file describes a class or data 
-structure (IE `std/strings.oak` should become `std/string.oak`). 
+be singular, even if the file describes a class or data
+structure (IE `std/strings.oak` should become `std/string.oak`).
 Files linking `Oak` to another language should be as physically
 close  as possible to their partner file as possible. These
 interfacial partner files should be named as close to the `Oak`
@@ -3087,17 +3134,17 @@ If there is an addendum required to the name, it should go after
 the main name (for instance, the `std` file
 `std/conv_extra.oak`).
 
-Files should provide nothing more than they have to. If you have 
-the option to split something (especially interfaces) off into 
-its own file, **you generally should do so.** For example, 
-`std/unit.oak` is one line of code long (`let unit: struct;`) 
-because it does not **need** to have anything more. `Oak` code 
+Files should provide nothing more than they have to. If you have
+the option to split something (especially interfaces) off into
+its own file, **you generally should do so.** For example,
+`std/unit.oak` is one line of code long (`let unit: struct;`)
+because it does not **need** to have anything more. `Oak` code
 and, by extension, `.oak` files should be minimalist.
 
 ## `c::print!`, `c::sys!`, `c::warn!` and `c::panic!`
 
-`c::print!` prints a message at compile time, concatenating the 
-passed strings. `c::panic!` does the same thing, but throws the 
+`c::print!` prints a message at compile time, concatenating the
+passed strings. `c::panic!` does the same thing, but throws the
 result as a compile error. `c::sys!` runs a command at compile
 time. `c::warn!` will immediately raise a warning. In any of
 these cases, the message will be prefaced by its originating
@@ -3134,12 +3181,12 @@ the pointer to the null pointer.
 
 ## The Erase Macro
 
-`Oak` does not have private members, but sometimes it is still 
-useful to disallow the use of a type after its declaration. In 
-this case, you can use the `erase!` macro. This takes the name 
-of a struct, and disallows it from being used again. For 
-instance, the `std/interface.oak` file provides erased structs 
-of various sizes for use in struct interfaces. These items can 
+`Oak` does not have private members, but sometimes it is still
+useful to disallow the use of a type after its declaration. In
+this case, you can use the `erase!` macro. This takes the name
+of a struct, and disallows it from being used again. For
+instance, the `std/interface.oak` file provides erased structs
+of various sizes for use in struct interfaces. These items can
 never be accessed, but still take up space within a struct.
 
 ## Multiple Main Functions
@@ -3275,7 +3322,7 @@ The following are atomic (built-in, indivisible) types.
 - bool
 - void
 
-The `unit` (memberless 1 byte) struct is provided by 
+The `unit` (memberless 1 byte) struct is provided by
 `std/unit.oak`.
 
 ## List of Keyword-Like Macros
@@ -3305,7 +3352,7 @@ constantly being added.
 
 ## Misc. Notes
 
-Some miscellaneous notes which are not long enough to warrant 
+Some miscellaneous notes which are not long enough to warrant
 their own section in this document:
 
 - `Oak` does **not** have default argument values.
@@ -3345,6 +3392,14 @@ This packages is based on the `Python` `turtle` package. It
 provides a `turtle::turtle` object, which is a turtle with a pen
 on a canvas. This turtle can rotate and move, lift or set down a
 pen, and thus draw pictures.
+
+## `cereal`
+
+This package provides serialization resources for `Oak` objects.
+It compiles arbitrary objects to hexadecimal, which is then
+transmittable. It **cannot** compile executable code, and the
+serialization format must be known at compile time, so it is
+runtime safe (like `json`, unlike `pickle`).
 
 ## `stl`
 
@@ -3482,14 +3537,18 @@ let AndEq(self: ^u8, other: u8) -> u8;
 let OrEq(self: ^u8, other: u8) -> u8;
 ```
 
-Using function plural instantiation, this can be changed to the following (much shorter) code.
+Using function plural instantiation, this can be changed to the
+following (much shorter) code.
 
 ```rust
-let Add, Sub, Mult, Div, Mod, And, Or, Lbs, Rbs(self: u8, other: u8) -> u8;
-let Eq, Neq, Less, Great, Leq, Greq(self: u8, other: u8) -> bool;
+let Add, Sub, Mult, Div, Mod, And, Or, Lbs,
+    Rbs(self: u8, other: u8) -> u8;
+let Eq, Neq, Less, Great, Leq, Greq(self: u8, other: u8
+    ) -> bool;
 let New(self: ^u8) -> void;
 let Del(self: ^u8) -> void {}
-let Copy, AddEq, SubEq, MultEq, DivEq, ModEq, AndEq, OrEq(self: ^u8, other: u8) -> u8;
+let Copy, AddEq, SubEq, MultEq, DivEq, ModEq, AndEq,
+    OrEq(self: ^u8, other: u8) -> u8;
 ```
 
 In addition to taking up less space and being more maintainable,
@@ -4010,7 +4069,8 @@ struct foo
 {
 };
 
-bool a_FN_i32_JOIN_PTR_PTR_bool_MAPS_bool(i32 arg, bool **arg_b);
+bool a_FN_i32_JOIN_PTR_PTR_bool_MAPS_bool(i32 arg,
+    bool **arg_b);
 void *b_FN_foo_MAPS_PTR_void(struct foo arg);
 void c_FN_PTR_FN_bool_MAPS_void_MAPS_void(void (*arg)(bool));
 ```
@@ -4065,7 +4125,8 @@ let New<i32>(self: ^node<i32>) -> void
 will mangle to the `C`
 
 ```c
-void New_FN_PTR_node_GEN_i32_ENDGEN_MAPS_void(struct node_GEN_i32_ENDGEN *self);
+void New_FN_PTR_node_GEN_i32_ENDGEN_MAPS_void(
+    struct node_GEN_i32_ENDGEN *self);
 ```
 
 This means it is possible for the compiler (and technically the
@@ -4188,7 +4249,7 @@ let main() -> i32
 ```
 
 First, we will need to generate a random number. We will do this
-via the `seed_rand()` and `rand(low, high)` functions, both 
+via the `seed_rand()` and `rand(low, high)` functions, both
 available via the "std/rand_inter.oak" file. This file
 interfaces with the operating system's random number generator.
 
@@ -4537,7 +4598,7 @@ let main(argc: i32, argv: []str) -> i32
     // Get the command line arguments
     let filepath: string = argv.Get(1);
     let pattern: string = argv.Get(2);
-    
+
     printf!(
         "Got filepath '%' and pattern '%'\n",
         filepath,
@@ -4577,7 +4638,7 @@ let main(argc: i32, argv: []str) -> i32
     // Get the command line arguments
     let filepath: string = argv.Get(1);
     let pattern: string = argv.Get(2);
-    
+
     // Open filepath
     let file: i_file;
     file.open(filepath.c_str());
@@ -4611,7 +4672,7 @@ include!("std/panic_inter.oak", "std/file_inter.oak",
     "std/string.oak");
 
 include!("std/bool.oak");
-use_rule!("bool"); // STD Oak dialect notation for use_rule!("bool")
+use_rule!("bool");
 
 let main(argc: i32, argv: []str) -> i32
 {
@@ -4624,7 +4685,7 @@ let main(argc: i32, argv: []str) -> i32
     // Get the command line arguments
     let filepath: string = argv.Get(1);
     let pattern: string = argv.Get(2);
-    
+
     // Open filepath
     let file: i_file;
     let line: string;
@@ -4645,7 +4706,7 @@ let main(argc: i32, argv: []str) -> i32
 Now we can iterate over the line! However, we still need to do
 the actual RegEx searching. For this, let's include the
 `extra/regex_inter.oak` file, and use the `regex` struct and
-`regex_search` function. 
+`regex_search` function.
 
 ```rust
 package!("std");
@@ -4666,7 +4727,7 @@ let main(argc: i32, argv: []str) -> i32
     // Get the command line arguments
     let filepath: string = argv.Get(1);
     let pattern: string = argv.Get(2);
-    
+
     let pattern_reg: regex = pattern;
 
     // Open filepath
@@ -4718,7 +4779,7 @@ let main(argc: i32, argv: []str) -> i32
     // Get the command line arguments
     let filepath: string = argv.Get(1);
     let pattern: string = argv.Get(2);
-    
+
     let pattern_reg: regex = pattern;
 
     let num_matches = 0;
@@ -4744,7 +4805,7 @@ let main(argc: i32, argv: []str) -> i32
     print("\n");
 
     if num_matches == 0
-    {   
+    {
         print("No matches!\n".red());
     }
     else
@@ -4965,15 +5026,15 @@ let main() -> i32
 The following is the output from this program.
 
 ```
-1 
-2 1 
-3 10 5 16 8 4 2 1 
-4 2 1 
-5 16 8 4 2 1 
-6 3 10 5 16 8 4 2 1 
-7 22 11 34 17 52 26 13 40 20 10 5 16 8 4 2 1 
-8 4 2 1 
-9 28 14 7 22 11 34 17 52 26 13 40 20 10 5 16 8 4 2 1 
+1
+2 1
+3 10 5 16 8 4 2 1
+4 2 1
+5 16 8 4 2 1
+6 3 10 5 16 8 4 2 1
+7 22 11 34 17 52 26 13 40 20 10 5 16 8 4 2 1
+8 4 2 1
+9 28 14 7 22 11 34 17 52 26 13 40 20 10 5 16 8 4 2 1
 ```
 
 This is correct.
@@ -5133,7 +5194,8 @@ extern "C"
     // Interfaces with the two-argument boost::regex_match
     bool regex_match(string *text, regex *pattern)
     {
-        return boost::regex_match(std::string(text->data), pattern->re);
+        return boost::regex_match(std::string(text->data),
+                                  pattern->re);
     }
 
     // Interfaces with the three-argument boost::regex_match
@@ -5208,7 +5270,8 @@ extern "C"
     bool regex_match_FN_PTR_string_JOIN_PTR_regex_MAPS_bool(
         string *text, regex *pattern)
     {
-        return boost::regex_match(std::string(text->data), pattern->re);
+        return boost::regex_match(std::string(text->data),
+                                  pattern->re);
     }
 
     // Interfaces with the three-argument boost::regex_match
@@ -5396,26 +5459,30 @@ struct regex
 {
     boost::regex *re;
 
-    char padding[32 - sizeof(boost::regex *)]; // To get to 32 bytes
+    char padding[32 - sizeof(boost::regex *)]; // Makes it 32B
 };
 
 struct regex_smatch
 {
     boost::smatch m;
 
-    char padding[96 - sizeof(boost::smatch)]; // To get to 96 bytes
+    char padding[96 - sizeof(boost::smatch)]; // Makes it 96B
 };
 
 extern "C"
 {
-    bool regex_match_FN_PTR_string_JOIN_PTR_regex_MAPS_bool(string *text, regex *pattern)
+    bool regex_match_FN_PTR_string_JOIN_PTR_regex_MAPS_bool(
+        string *text, regex *pattern)
     {
-        return boost::regex_match(std::string(text->data), *pattern->re);
+        return boost::regex_match(std::string(text->data),
+                                  *pattern->re);
     }
 
-    bool regex_match_FN_PTR_string_JOIN_PTR_regex_JOIN_PTR_regex_smatch_MAPS_bool(string *text, regex *pattern, regex_smatch *into)
+    bool regex_match_FN_PTR_string_JOIN_PTR_regex_JOIN_PTR_regex_smatch_MAPS_bool(
+        string *text, regex *pattern, regex_smatch *into)
     {
-        return boost::regex_match(std::string(text->data), into->m, *pattern->re);
+        return boost::regex_match(std::string(text->data),
+                                  into->m, *pattern->re);
     }
 
     //////////// Methods ////////////
@@ -5434,7 +5501,8 @@ extern "C"
         }
     }
 
-    regex *Copy_FN_PTR_regex_JOIN_PTR_string_MAPS_PTR_regex(regex *self, string *pattern)
+    regex *Copy_FN_PTR_regex_JOIN_PTR_string_MAPS_PTR_regex(
+        regex *self, string *pattern)
     {
         if (self->re != nullptr)
         {
@@ -5446,7 +5514,8 @@ extern "C"
         return self;
     }
 
-    regex *Copy_FN_PTR_regex_JOIN_str_MAPS_PTR_regex(regex *self, str pattern)
+    regex *Copy_FN_PTR_regex_JOIN_str_MAPS_PTR_regex(
+        regex *self, str pattern)
     {
         if (self->re != nullptr)
         {
@@ -5468,7 +5537,8 @@ extern "C"
         return self->m.size();
     }
 
-    string str_FN_PTR_regex_smatch_MAPS_string(regex_smatch *self)
+    string str_FN_PTR_regex_smatch_MAPS_string(
+        regex_smatch *self)
     {
         string out;
         out.size = self->m.str().size();
@@ -5480,7 +5550,8 @@ extern "C"
         return out;
     }
 
-    string Get_FN_PTR_smatch_JOIN_u32_MAPS_string(regex_smatch *self, u32 index)
+    string Get_FN_PTR_smatch_JOIN_u32_MAPS_string(
+        regex_smatch *self, u32 index)
     {
         string out;
         std::string from = self->m[index].str();

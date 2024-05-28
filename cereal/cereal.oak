@@ -1,0 +1,136 @@
+////////////////////////////////////////////////////////////////
+
+/*
+Allows Oak structures to be save to and loaded from files and
+strings. Does NOT allow dynamic typing- If you are trying to
+load a type t, you must KNOW that it is of type t. Otherwise,
+you end up just bit casting. Does not work with pointers, for
+obvious reasons. Thus, for non-trivial data types, custom
+implementations will likely be required.
+
+Generally, for structures which are only stack-based,
+serialization can be implemented by just serializing each member
+sequentially. A serialization on a type w/ size `n` takes
+*at least* `2n` bytes, since they are saved in hexadecimal.
+
+**Note:** Serializing structs is *profoundly* unsafe. The cereal
+package offers no encryption, and any data serialized through it
+can be reconstructed losslessly by anyone with the resulting
+string. The cereal package also offers *no compression*. If this
+is desired, it should be applied to the serialized data by the
+user.
+
+Jordan Dehmel, 2024
+jdehmel@outlook.com
+*/
+
+////////////////////////////////////////////////////////////////
+
+package!("std", "extra");
+include!("extra/string_builder.oak", "std/panic.oak");
+include!("cereal/hex_ops.oak", "std/string.oak");
+include!("cereal/file.oak");
+use_rule!("std");
+
+////////////////////////////////////////////////////////////////
+
+// Trait which means something is serializable.
+let cereal::serializable<t>: trait
+{
+    // Serialize directly into a string.
+    serialize<t>(self: ^t);
+
+    // Deserialize directly from string.
+    deserialize<t>(self: ^t, from: string);
+
+    // Serialize onto the end of the given string_builder.
+    serialize<t>(self: ^t, into: ^extra::string_builder);
+
+    // Deserialize from the given position, updating it after use.
+    deserialize<t>(self: ^t, from: []i8, pos: ^u128);
+}
+
+////////////////////////////////////////////////////////////////
+
+// Generic definition for serialization.
+let serialize<t>(self: ^t, into: ^extra::string_builder) -> void
+{
+    let size: u128 = size!(^self);
+
+    // Construct buffer
+    let buffer: []i8;
+    let buffer_size: u128 = size * 2;
+    alloc!(buffer, buffer_size);
+
+    let dst: ^void;
+    let src: ^void;
+    ptrcpy!(dst, buffer);
+    ptrcpy!(src, self);
+
+    // Serialize into buffer
+    cereal::hex_write(dst, src, size);
+
+    // Add buffer to string builder
+    into.push(buffer);
+
+    // Delete buffer
+    free!(buffer);
+}
+
+// Serialize directly into a string.
+let serialize<t>(self: ^t) -> string
+{
+    let out: string;
+    let temp: extra::string_builder;
+
+    self.serialize(temp);
+    out = temp.collapse();
+
+    out
+}
+pre
+{
+    serialize<t>(_: ^t, _: ^extra::string_builder);
+}
+
+// Generic definition for deserialization.
+let deserialize<t>(self: ^t, from: []i8, pos: ^u128) -> void
+{
+    let dst: ^void;
+    let src: ^void;
+    ptrcpy!(dst, self);
+    ptrcpy!(src, @ptrarr!(from, ^pos));
+
+    cereal::hex_read(src, dst, size!(^self));
+    pos += size!(^self) * 2;
+}
+
+// Deserialize directly from string.
+let deserialize<t>(self: ^t, from: string) -> void
+{
+    let pos: u128 = 0;
+    deserialize(self, from.data, pos);
+}
+pre
+{
+    deserialize<t>(_: ^t, _: []i8, _: ^u128);
+}
+
+////////////////////////////////////////////////////////////////
+
+// Atomic serializations (not `str`)
+cereal::serializable<i8>;
+cereal::serializable<u8>;
+cereal::serializable<i16>;
+cereal::serializable<u16>;
+cereal::serializable<i32>;
+cereal::serializable<u32>;
+cereal::serializable<i64>;
+cereal::serializable<u64>;
+cereal::serializable<i128>;
+cereal::serializable<u128>;
+cereal::serializable<f32>;
+cereal::serializable<f64>;
+cereal::serializable<bool>;
+
+////////////////////////////////////////////////////////////////

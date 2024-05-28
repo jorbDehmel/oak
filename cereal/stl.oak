@@ -1,0 +1,5 @@
+/*
+Linkage file for serializing STL structures.
+*/
+
+include!("cereal/stl_vec.oak");

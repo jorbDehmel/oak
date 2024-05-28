@@ -1,0 +1,51 @@
+/*
+Tests naive serialization on structs. This works for static
+structures, but NOT for dynamic ones.
+*/
+
+package!("std", "cereal");
+include!("std/printf.oak");
+include!("std/cstr.oak");
+use_rule!("std");
+
+let user: struct
+{
+    id: i32,
+    name: [16]i8,
+    message: [16]i8,
+}
+
+let print(what: ^user) -> void
+{
+    printf!(
+        "User % (#%) says %\n",
+        what.name,
+        what.id,
+        what.message
+    );
+}
+
+cereal::serializable<user>;
+
+let main() -> i32
+{
+    let user_1: user;
+
+    user_1.id = 987;
+    strcpy(user_1.name, "Dave");
+    strcpy(user_1.message, "Hi!");
+
+    print(user_1);
+
+    let pickled_user: string = user_1.serialize();
+
+    print(pickled_user);
+    endl();
+
+    let user_2: user;
+    user_2.deserialize(pickled_user);
+
+    print(user_2);
+
+    0
+}
