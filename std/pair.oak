@@ -31,11 +31,11 @@ post
 
 // Copy into a pair from two items.
 let Copy<l, r>(self: ^pair<l, r>, first: l, second: r
-    ) -> ^pair<l, r>
+    ) -> pair<l, r>
 {
     self.first = first;
     self.second = second;
-    self
+    ^self
 }
 
 // Construct a pair from two items.

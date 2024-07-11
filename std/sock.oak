@@ -31,7 +31,7 @@ let client_sock: struct
 let server_sock.New() -> void;
 let server_sock.Del() -> void;
 let server_sock.Copy(addr: str, port: u16, result: ^i32
-    ) -> ^server_sock;
+    ) -> server_sock;
 let server_sock.listen() -> i32;
 let server_sock.recv(size: u128) -> string;
 let server_sock.send(what: string) -> i32;
@@ -43,7 +43,7 @@ let server_sock.close() -> void;
 let client_sock.New() -> void;
 let client_sock.Del() -> void;
 let client_sock.Copy(addr: str, port: u16, result: ^i32
-    ) -> ^client_sock;
+    ) -> client_sock;
 let client_sock.recv(size: u128) -> string;
 let client_sock.send(what: string) -> i32;
 let close(self: ^client_sock) -> void;

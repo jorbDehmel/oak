@@ -58,7 +58,7 @@ extern "C"
         }
     }
 
-    extra_regex *Copy_FN_PTR_extra_regex_JOIN_PTR_string_MAPS_PTR_extra_regex(extra_regex *self, string *pattern)
+    extra_regex Copy_FN_PTR_extra_regex_JOIN_PTR_string_MAPS_extra_regex(extra_regex *self, string *pattern)
     {
         if (self->re != nullptr)
         {
@@ -66,10 +66,10 @@ extern "C"
         }
 
         self->re = new boost::regex(pattern->data);
-        return self;
+        return *self;
     }
 
-    extra_regex *Copy_FN_PTR_extra_regex_JOIN_str_MAPS_PTR_extra_regex(extra_regex *self, str pattern)
+    extra_regex Copy_FN_PTR_extra_regex_JOIN_str_MAPS_extra_regex(extra_regex *self, str pattern)
     {
         if (self->re != nullptr)
         {
@@ -77,7 +77,7 @@ extern "C"
         }
 
         self->re = new boost::regex(pattern);
-        return self;
+        return *self;
     }
 
     void New_FN_PTR_extra_regex_smatch_MAPS_void(extra_regex_smatch *self)
@@ -93,11 +93,12 @@ extern "C"
     string str_FN_PTR_extra_regex_smatch_MAPS_string(extra_regex_smatch *self)
     {
         string out;
-        out.size = self->m.str().size();
+        out.current_length = self->m.str().size();
+        out.capacity = out.current_length + 1;
 
-        out.data = new i8[out.size + 1];
+        out.data = new i8[out.capacity];
         strcpy(out.data, self->m.str().c_str());
-        out.data[out.size] = '\0';
+        out.data[out.current_length] = '\0';
 
         return out;
     }
@@ -107,11 +108,12 @@ extern "C"
         string out;
         std::string from = self->m[index].str();
 
-        out.size = from.size();
+        out.current_length = from.size();
+        out.capacity = out.current_length + 1;
 
-        out.data = new i8[out.size + 1];
+        out.data = new i8[out.capacity];
         strcpy(out.data, from.c_str());
-        out.data[out.size] = '\0';
+        out.data[out.current_length] = '\0';
 
         return out;
     }

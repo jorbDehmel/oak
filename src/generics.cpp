@@ -7,6 +7,7 @@ Jordan Dehmel, 2023 - present
 #include "oakc_structs.hpp"
 #include "options.hpp"
 #include "tags.hpp"
+#include <any>
 #include <unistd.h>
 
 // Returns true if template substitution would make the two
@@ -134,55 +135,104 @@ bool checkTypeVec(
 }
 
 /*
-Takes a type and a list of candidates. Returns true if the
-type is a prefix of any of the candidates.
+Takes a type and a list of candidates. Returns true iff any
+candidate matches when excluding variable name type nodes. It is
+names like this because `t` is only a partial type; It does not
+contain a return value.
 */
-bool typeIsPrefixOfAny(
-    const Type &t,
-    const std::list<MultiTableSymbol> &candidates)
+bool typeIsPrefixOfAny(Type t,
+                       std::list<MultiTableSymbol> &candidates,
+                       AcornSettings &settings)
 {
-    std::list<bool> isViable;
-    for (int i = 0; i < candidates.size(); i++)
+    Type completedT = t;
+    completedT.internal.push_back(TypeNode{maps, ""});
+    completedT.internal.push_back(TypeNode{atomic, "void"});
+
+    auto obsArgs = getArgs(completedT, settings);
+    std::list<Type> obsArgTypes;
+    for (auto &p : obsArgs)
     {
-        isViable.push_back(true);
+        obsArgTypes.push_back(p.second);
     }
 
-    // Iterate over items in passed type
-    for (int i = 0; i < t.size(); i++)
+    for (auto &cand : candidates)
     {
-        // Iterate over candidates
+        auto res = getArgs(cand.type, settings);
 
-        auto candIter = candidates.begin();
-        auto viableIter = isViable.begin();
-
-        for (; candIter != candidates.end() &&
-               viableIter != isViable.end();
-             candIter++, viableIter++)
+        std::list<Type> candArgTypes;
+        for (auto &p : res)
         {
-            if (!*viableIter)
+            candArgTypes.push_back(p.second);
+        }
+
+        if (candArgTypes.size() == obsArgTypes.size())
+        {
+            // Pass 1: Exact arg matches
+            bool did_match = true;
+            for (auto l = obsArgTypes.begin(),
+                      r = candArgTypes.begin();
+                 l != obsArgTypes.end() &&
+                 r != candArgTypes.end();
+                 ++l, ++r)
             {
-                continue;
+                // Address of dereferenced iterators (gross)
+                if (!typesAreSameExact(&(*l), &(*r)))
+                {
+                    did_match = false;
+                    break;
+                }
             }
 
-            // Do checking here
-            if (candIter->type[i].info != var_name &&
-                t[i].info != var_name &&
-                !(candIter->type[i].info == t[i].info &&
-                  candIter->type[i].name == t[i].name))
+            if (did_match)
             {
-                *viableIter = false;
+                return true;
+            }
+
+            // Pass 2: Reference arg matches
+            did_match = true;
+            int garbage = 0;
+            for (auto l = obsArgTypes.begin(),
+                      r = candArgTypes.begin();
+                 l != obsArgTypes.end() &&
+                 r != candArgTypes.end();
+                 ++l, ++r)
+            {
+                // Address of dereferenced iterators (gross)
+                if (!typesAreSame(&(*l), &(*r), garbage))
+                {
+                    did_match = false;
+                    break;
+                }
+            }
+
+            if (did_match)
+            {
+                return true;
+            }
+
+            // Pass 3: Casting arg matches
+            did_match = true;
+            for (auto l = obsArgTypes.begin(),
+                      r = candArgTypes.begin();
+                 l != obsArgTypes.end() &&
+                 r != candArgTypes.end();
+                 ++l, ++r)
+            {
+                // Address of dereferenced iterators (gross)
+                if (!typesAreSameCast(&(*l), &(*r), garbage))
+                {
+                    did_match = false;
+                    break;
+                }
+            }
+
+            if (did_match)
+            {
+                return true;
             }
         }
     }
 
-    // Return result
-    for (const auto candidate : isViable)
-    {
-        if (candidate)
-        {
-            return true;
-        }
-    }
     return false;
 }
 
@@ -365,7 +415,7 @@ std::string instantiateGeneric(
     // are usually autogen)
     else if (what != "New" && what != "Del" &&
              typeIsPrefixOfAny(toType(typeVec, settings),
-                               settings.table[what]))
+                               settings.table[what], settings))
     {
         didInstantiate = true;
     }

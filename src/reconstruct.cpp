@@ -8,6 +8,7 @@ GPLv3 held by author
 
 #include "oakc_fns.hpp"
 #include "options.hpp"
+#include "tags.hpp"
 
 // Removes illegal characters
 std::string purifyStr(const std::string &What)
@@ -119,7 +120,15 @@ void reconstruct(const std::string &Name,
 
                     if (definition != "")
                     {
-                        body << toAdd << " " << definition;
+                        if (s.line != 0)
+                        {
+                            body << "\n#line " << s.line
+                                 << " \"" << s.sourceFilePath
+                                 << "\"\n";
+                        }
+
+                        body << toAdd << " " << definition
+                             << '\n';
                     }
                 }
             }

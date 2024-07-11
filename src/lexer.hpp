@@ -25,14 +25,9 @@ jdehmel@outlook.com
 #ifndef LEXER_HPP
 #define LEXER_HPP
 
-#include "tags.hpp"
-#include <fstream>
-#include <iostream>
 #include <limits.h>
 #include <list>
-#include <stdexcept>
 #include <string>
-#include <vector>
 
 /*
 States for use in the lexer DFA later on.

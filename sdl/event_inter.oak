@@ -61,7 +61,7 @@ let sdl::keycode_to_str(keycode: i128) -> str;
 ////////////////////////////////////////////////////////////////
 // Internal method definitions
 
-let Copy(self: ^sdl::event, other: sdl::event) -> ^sdl::event
+let Copy(self: ^sdl::event, other: sdl::event) -> sdl::event
 {
     match (other)
     {
@@ -106,7 +106,7 @@ let Copy(self: ^sdl::event, other: sdl::event) -> ^sdl::event
         }
     }
 
-    self
+    ^self
 }
 
 ////////////////////////////////////////////////////////////////

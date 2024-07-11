@@ -8,6 +8,7 @@ GPLv3 held by author
 
 #include "oakc_fns.hpp"
 #include "oakc_structs.hpp"
+#include "tags.hpp"
 
 // Internal consumptive version: Erases from std::list, so not
 // safe for frontend
@@ -108,7 +109,7 @@ ASTNode __createSequence(std::list<Token> &From,
         sm_assert(!From.empty(),
                   "'let' must be followed by something.");
 
-        std::list<std::string> names = {From.front()};
+        std::list<Token> names = {From.front()};
 
         sm_assert(!From.empty(),
                   "Cannot pop from front of empty list.");
@@ -452,18 +453,18 @@ ASTNode __createSequence(std::list<Token> &From,
                     sm_assert(OAK_KEYWORDS.count(name) == 0,
                               "Variable name conflicts w/ "
                               "canonical Oak keyword '" +
-                                  name + "'");
+                                  name.text + "'");
                     sm_assert(settings.structData.count(name) ==
                                       0 &&
                                   ATOMICS.count(name) == 0,
                               "Variable name conflicts w/ "
                               "existing struct name '" +
-                                  name + "'");
+                                  name.text + "'");
                     sm_assert(settings.enumData.count(name) ==
                                   0,
                               "Variable name conflicts w/ "
                               "existing enum name '" +
-                                  name + "'");
+                                  name.text + "'");
                     sm_assert(checkLiteral(name) == nullType,
                               "Variable name cannot be a valid "
                               "literal.");
@@ -532,8 +533,8 @@ ASTNode __createSequence(std::list<Token> &From,
 
                         toAppend.raw =
                             "for (i32 _i = 0; _i < sizeof(" +
-                            name + "); _i++) ((u8 *)(&" + name +
-                            "))[_i] = 0;";
+                            name.text + "); _i++) ((u8 *)(&" +
+                            name.text + "))[_i] = 0;";
 
                         out.items.push_back(toAppend);
                     }
@@ -624,7 +625,8 @@ ASTNode __createSequence(std::list<Token> &From,
                             throw std::runtime_error(
                                 "Illegal method definition! "
                                 "Method '" +
-                                name + "' must return void.");
+                                name.text +
+                                "' must return void.");
                         }
 
                         if (!isSingleArg)
@@ -632,7 +634,7 @@ ASTNode __createSequence(std::list<Token> &From,
                             throw std::runtime_error(
                                 "Illegal method definition! "
                                 "Method '" +
-                                name +
+                                name.text +
                                 "' must have exactly one "
                                 "argument. Instead, type '" +
                                 toStr(&type) + "'.");
@@ -643,28 +645,27 @@ ASTNode __createSequence(std::list<Token> &From,
                     else if (name == "Copy")
                     {
                         sm_assert(argsWithType.size() >= 2,
-                                  "Method '" + name +
+                                  "Method '" + name.text +
                                       "' must take at least "
                                       "two arguments.");
 
-                        Type expected(
-                            argsWithType.front().second);
-                        while (expected[0].info == pointer)
-                        {
-                            expected.pop_front();
-                        }
+                        sm_assert(
+                            argsWithType.front().second[0].info
+                            == pointer,
+                            "Method '" + name.text +
+                            "' must take a mutable first "
+                            "argument.");
 
+                        Type expected(
+                            argsWithType.front().second, 1);
                         Type observed(
                             settings.currentReturnType);
-                        while (observed[0].info == pointer)
-                        {
-                            observed.pop_front();
-                        }
 
                         sm_assert(observed == expected,
                                   "Illegal method definition! "
                                   "Method '" +
-                                      name + "' must return " +
+                                      name.text +
+                                      "' must return " +
                                       toStr(&expected) +
                                       ". Instead, " +
                                       toStr(&observed) + ".");
@@ -676,7 +677,7 @@ ASTNode __createSequence(std::list<Token> &From,
                          name == "main"))
                     {
                         throw sequencing_error(
-                            "Name '" + name +
+                            "Name '" + name.text +
                             "' is not allowed in plural "
                             "definitions.");
                     }
@@ -747,9 +748,9 @@ ASTNode __createSequence(std::list<Token> &From,
                                      settings);
 
                         settings.table[name].push_back(
-                            MultiTableSymbol{ASTNode{}, type,
-                                             false,
-                                             settings.curFile});
+                            MultiTableSymbol{
+                                ASTNode{}, type, false,
+                                settings.curFile, name.line});
 
                         if (name == "New")
                         {
@@ -1499,7 +1500,7 @@ ASTNode __createSequence(std::list<Token> &From,
                       "pointer or unsized array.");
             sm_assert(rhsSeq.type[0].info == pointer ||
                           rhsSeq.type[0].info == arr ||
-                          rhsSeq.raw == "0",
+                          rhsSeq.raw[0] == '0',
                       "Second argument of ptrcpy! must be a "
                       "pointer, unsized array, or 0.");
 
@@ -1842,13 +1843,12 @@ ASTNode __createSequence(std::list<Token> &From,
                   "return (void returns are not legal).");
         out.items.push_back(__createSequence(From, settings));
 
-        int garbage = 0;
-        sm_assert(
-            typesAreSameCast(&settings.currentReturnType,
-                             &out.items.back().type, garbage),
-            "Cannot return '" + toStr(&out.items.back().type) +
-                "' from a function w/ return type '" +
-                toStr(&settings.currentReturnType) + "'");
+        sm_assert(typesAreSameExact(&settings.currentReturnType,
+                                    &out.items.back().type),
+                  "Cannot return '" +
+                      toStr(&out.items.back().type) +
+                      "' from a function w/ return type '" +
+                      toStr(&settings.currentReturnType) + "'");
 
         return out;
     }
@@ -1970,11 +1970,9 @@ ASTNode __createSequence(std::list<Token> &From,
 
             if (i->type != nullType)
             {
-                int garbage = 0;
                 sm_assert(
-                    typesAreSameCast(
-                        &i->type, &settings.currentReturnType,
-                        garbage),
+                    typesAreSameExact(
+                        &i->type, &settings.currentReturnType),
                     "Cannot return '" + toStr(&i->type) +
                         "' from a function w/ return type '" +
                         toStr(&settings.currentReturnType) +
@@ -2792,6 +2790,22 @@ Type resolveFunctionInternal(std::list<Token> &What,
             else if (litType == Type(atomic, "u128"))
             {
                 litName += "ULL";
+            }
+            else if (litType == Type(atomic, "str") &&
+                     litName[0] == '\'')
+            {
+                std::string newLitName = "\"";
+                for (int i = 1; i + 1 < litName.size(); ++i)
+                {
+                    if (litName[i] == '"')
+                    {
+                        newLitName += "\\";
+                    }
+                    newLitName += litName[i];
+                }
+                newLitName += '"';
+
+                litName = newLitName;
             }
         }
 

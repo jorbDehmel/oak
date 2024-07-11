@@ -196,9 +196,9 @@ let prepend<t>(self: ^stl::list<t>, what: t) -> void
 let erase<t>(self: ^stl::list<t>, what: ^stl::list_node<t>
     ) -> void
 {
-    Eq<stl::list_node<i32>>(
-        _: ^stl::list_node<i32>,
-        _: ^stl::list_node<i32>);
+    Eq<stl::list_node<t>>(
+        _: ^stl::list_node<t>,
+        _: ^stl::list_node<t>);
 
     if self.head == what
     {

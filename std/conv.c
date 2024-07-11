@@ -357,3 +357,93 @@ bool Eq_FN_i8_JOIN_str_MAPS_bool(i8 what, str against)
 {
     return against[0] == what;
 }
+
+u8 to_u8_FN_u128_MAPS_u8(u128 what)
+{
+    return what;
+}
+
+i8 to_i8_FN_u128_MAPS_i8(u128 what)
+{
+    return what;
+}
+
+u16 to_u16_FN_u128_MAPS_u16(u128 what)
+{
+    return what;
+}
+
+i16 to_i16_FN_u128_MAPS_i16(u128 what)
+{
+    return what;
+}
+
+u32 to_u32_FN_u128_MAPS_u32(u128 what)
+{
+    return what;
+}
+
+u64 to_u64_FN_u128_MAPS_u64(u128 what)
+{
+    return what;
+}
+
+i64 to_i64_FN_u128_MAPS_i64(u128 what)
+{
+    return what;
+}
+
+f32 to_f32_FN_u128_MAPS_f32(u128 what)
+{
+    return what;
+}
+
+f64 to_f64_FN_u128_MAPS_f64(u128 what)
+{
+    return what;
+}
+
+f128 to_f128_FN_u128_MAPS_f128(u128 what)
+{
+    return what;
+}
+
+bool to_bool_FN_u128_MAPS_bool(u128 what)
+{
+    return what;
+}
+
+u8 to_u8_FN_f128_MAPS_u8(f128 what)
+{
+    return what;
+}
+
+i8 to_i8_FN_f128_MAPS_i8(f128 what)
+{
+    return what;
+}
+
+u16 to_u16_FN_f128_MAPS_u16(f128 what)
+{
+    return what;
+}
+
+i16 to_i16_FN_f128_MAPS_i16(f128 what)
+{
+    return what;
+}
+
+u32 to_u32_FN_f128_MAPS_u32(f128 what)
+{
+    return what;
+}
+
+u64 to_u64_FN_f128_MAPS_u64(f128 what)
+{
+    return what;
+}
+
+i64 to_i64_FN_f128_MAPS_i64(f128 what)
+{
+    return what;
+}

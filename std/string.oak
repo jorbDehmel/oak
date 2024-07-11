@@ -41,22 +41,22 @@ let c_str(self: ^string) -> str
 // Create an empty string.
 let New(self: ^string) -> void
 {
-    self.capacity = to_u128(0);
-    self.current_length = to_u128(0);
-    ptrcpy!(self.data, 0);
+    self.capacity = 0u128;
+    self.current_length = 0u128;
+    ptrcpy!(self.data, 0u128);
 }
 
 // Free whatever memory is currently stored.
 let Del(self: ^string) -> void
 {
-    if self.capacity != 0
+    if self.capacity != 0u128
     {
         free!(self.data);
     }
 
-    self.capacity = 0;
-    self.current_length = 0;
-    ptrcpy!(self.data, 0);
+    self.capacity = 0u128;
+    self.current_length = 0u128;
+    ptrcpy!(self.data, 0u128);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -64,9 +64,9 @@ let Del(self: ^string) -> void
 // Doubles the current capacity. If 0, sets to 8.
 let Expand(self: ^string) -> void
 {
-    if self.capacity == to_u128(0)
+    if self.capacity == 0u128
     {
-        self.capacity = 8;
+        self.capacity = 8u128;
         alloc!(self.data, self.capacity);
     }
     else
@@ -76,7 +76,7 @@ let Expand(self: ^string) -> void
         ptrcpy!(old, self.data);
 
         // Allocate new space
-        self.capacity *= 2;
+        self.capacity *= 2u128;
         alloc!(self.data, self.capacity);
 
         // Copy over old data
@@ -90,20 +90,20 @@ let Expand(self: ^string) -> void
 // Halves the current capacity.
 let Shrink(self: ^string) -> void
 {
-    if self.capacity > to_u128(7)
+    if self.capacity > 7u128
     {
         // Get old data
         let old: []i8;
         ptrcpy!(old, self.data);
 
         // Allocate new space
-        self.capacity /= to_u128(2);
+        self.capacity /= 2u128;
         alloc!(self.data, self.capacity);
 
         // Copy over old data
         strncpy(self.data, old, self.capacity);
 
-        ptrarr!(self.data, self.capacity - 1) = 0i8;
+        ptrarr!(self.data, self.capacity - 1u128) = 0i8;
 
         // Free old data
         free!(old);
@@ -117,12 +117,12 @@ let Shrink(self: ^string) -> void
 // already equal to or larger than the given one, does nothing.
 let reserve(self: ^string, size: u128) -> void
 {
-    if self.capacity == 0
+    if self.capacity == 0u128
     {
         alloc!(self.data, size);
         self.capacity = size;
     }
-    else if size != to_u128(0) && self.capacity < size
+    else if size != 0u128 && self.capacity < size
     {
         // Get old data
         let old: []i8;
@@ -143,25 +143,25 @@ let reserve(self: ^string, size: u128) -> void
 // Sets the current capacity to 0. Equivalent to Del(self)
 let clear(self: ^string) -> void
 {
-    if self.capacity != 0
+    if self.capacity != 0u128
     {
         free!(self.data);
     }
 
-    self.capacity = 0;
-    self.current_length = 0;
+    self.capacity = 0u128;
+    self.current_length = 0u128;
     ptrcpy!(self.data, 0);
 }
 
 ////////////////////////////////////////////////////////////////
 
 // Copy from a string literal.
-let Copy(self: ^string, from: str) -> ^string
+let Copy(self: ^string, from: str) -> string
 {
-    self.current_length = strlen(from) + 1;
+    self.current_length = strlen(from) + 1u128;
 
     while self.capacity > to_u128(7)
-        && self.capacity > self.current_length * to_u128(2)
+        && self.capacity > self.current_length * 2u128
     {
         self.Shrink();
     }
@@ -173,11 +173,11 @@ let Copy(self: ^string, from: str) -> ^string
 
     strncpy(self.data, from, self.current_length);
 
-    self
+    ^self
 }
 
 // Copy from another string.
-let Copy(self: ^string, other: string) -> ^string
+let Copy(self: ^string, other: string) -> string
 {
     Del(self);
 
@@ -186,11 +186,11 @@ let Copy(self: ^string, other: string) -> ^string
     Get(self.data, other.current_length) = 0i8;
     self.current_length = strlen(self.data);
 
-    self
+    ^self
 }
 
 // Copy from a char array string.
-let Copy(self: ^string, other: []i8) -> ^string
+let Copy(self: ^string, other: []i8) -> string
 {
     self.current_length = strlen(other) + 1;
 
@@ -206,7 +206,7 @@ let Copy(self: ^string, other: []i8) -> ^string
 
     strncpy(self.data, other, self.current_length);
 
-    self
+    ^self
 }
 
 // Append another string onto this.
@@ -465,7 +465,7 @@ let print(what: string) -> void
 Uses DJB2 by Dan Bernstein
 http://www.cse.yorku.ca/~oz/hash.html
 */
-let hash(self: ^string) -> u128
+let hash(self: string) -> u128
 {
     let out: u128 = 5 381u128;
     let cur: i8 = 0i8;

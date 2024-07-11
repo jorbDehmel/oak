@@ -26,7 +26,7 @@ let New<g, b>(self: ^result<g, b>) -> void
 }
 
 let Copy<g, b>(self: ^result<g, b>, other: result<g, b>
-    ) -> ^result<g, b>
+    ) -> result<g, b>
 {
     match (other)
     {
@@ -46,5 +46,5 @@ let Copy<g, b>(self: ^result<g, b>, other: result<g, b>
         }
     }
 
-    self
+    other
 }

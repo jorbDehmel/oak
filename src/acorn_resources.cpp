@@ -958,7 +958,8 @@ void doFile(const std::string &From, AcornSettings &settings)
 
         if (settings.alwaysDump)
         {
-            std::string name = purifyStr(From) + ".oak.log";
+            std::string name =
+                ".oak_build/" + purifyStr(From) + ".oak.log";
 
             if (settings.debug)
             {
@@ -998,7 +999,8 @@ void doFile(const std::string &From, AcornSettings &settings)
                       << tags::reset;
         }
 
-        std::string name = purifyStr(From) + ".oak.log";
+        std::string name =
+            ".oak_build/" + purifyStr(From) + ".oak.log";
         dump(lexed, name, From, settings.curLine, ASTNode(),
              lexedCopy, e.what(), settings);
 
@@ -1020,7 +1022,8 @@ void doFile(const std::string &From, AcornSettings &settings)
                       << tags::reset;
         }
 
-        std::string name = purifyStr(From) + ".oak.log";
+        std::string name =
+            ".oak_build/" + purifyStr(From) + ".oak.log";
         dump(lexed, name, From, settings.curLine, ASTNode(),
              lexedCopy, e.what(), settings);
 
@@ -1042,7 +1045,8 @@ void doFile(const std::string &From, AcornSettings &settings)
                       << tags::reset;
         }
 
-        std::string name = purifyStr(From) + ".oak.log";
+        std::string name =
+            ".oak_build/" + purifyStr(From) + ".oak.log";
         dump(lexed, name, From, settings.curLine, ASTNode(),
              lexedCopy, e.what(), settings);
 
@@ -1064,7 +1068,8 @@ void doFile(const std::string &From, AcornSettings &settings)
                       << tags::reset;
         }
 
-        std::string name = purifyStr(From) + ".oak.log";
+        std::string name =
+            ".oak_build/" + purifyStr(From) + ".oak.log";
         dump(lexed, name, From, settings.curLine, ASTNode(),
              lexedCopy, e.what(), settings);
 
@@ -1086,7 +1091,8 @@ void doFile(const std::string &From, AcornSettings &settings)
                       << tags::reset;
         }
 
-        std::string name = purifyStr(From) + ".oak.log";
+        std::string name =
+            ".oak_build/" + purifyStr(From) + ".oak.log";
         dump(lexed, name, From, settings.curLine, ASTNode(),
              lexedCopy, e.what(), settings);
 
@@ -1108,7 +1114,8 @@ void doFile(const std::string &From, AcornSettings &settings)
                       << tags::reset;
         }
 
-        std::string name = purifyStr(From) + ".oak.log";
+        std::string name =
+            ".oak_build/" + purifyStr(From) + ".oak.log";
         dump(lexed, name, From, settings.curLine, ASTNode(),
              lexedCopy, e.what(), settings);
 
@@ -1129,7 +1136,8 @@ void doFile(const std::string &From, AcornSettings &settings)
                       << tags::reset;
         }
 
-        std::string name = purifyStr(From) + ".oak.log";
+        std::string name =
+            ".oak_build/" + purifyStr(From) + ".oak.log";
         dump(lexed, name, From, settings.curLine, ASTNode(),
              lexedCopy, e.what(), settings);
 
@@ -1143,7 +1151,8 @@ void doFile(const std::string &From, AcornSettings &settings)
     }
     catch (...)
     {
-        std::string name = purifyStr(From) + ".oak.log";
+        std::string name =
+            ".oak_build/" + purifyStr(From) + ".oak.log";
         dump(lexed, name, From, settings.curLine, ASTNode(),
              lexedCopy, "Unknown failure.", settings);
         std::cout << "Dump saved in " << name << "\n";

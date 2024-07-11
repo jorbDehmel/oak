@@ -11,11 +11,11 @@ include!("stl/set.oak");
 
 let hash(what: i32) -> u128
 {
-    if what == 0
+    if what == 0u128
     {
-        1
+        1u128
     }
-    what
+    to_u128(what)
 }
 
 let main() -> i32

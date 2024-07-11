@@ -13,6 +13,7 @@ GPLv3 held by author
 #include "oakc_fns.hpp"
 #include "oakc_structs.hpp"
 #include "options.hpp"
+#include "tags.hpp"
 #include <stdexcept>
 #include <string>
 #include <unistd.h>

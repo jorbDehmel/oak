@@ -49,7 +49,7 @@ let Del<t>(self: ^opt<t>) -> void
 }
 
 // Copy from one opt to another.
-let Copy<t>(self: ^opt<t>, other: opt<t>) -> ^opt<t>
+let Copy<t>(self: ^opt<t>, other: opt<t>) -> opt<t>
 {
     match (other)
     {
@@ -63,7 +63,7 @@ let Copy<t>(self: ^opt<t>, other: opt<t>) -> ^opt<t>
         }
     }
 
-    self
+    other
 }
 
 // DANGER! Use with caution!

@@ -29,19 +29,28 @@ GPLv3 held by author
 // Dummy wrapper function for updating
 void update()
 {
+#if (defined(LINUX) || defined(__linux__))
     fs::copy_file("/usr/include/oak/update.sh",
                   "/tmp/update.sh",
                   fs::copy_options::update_existing);
     system("bash /tmp/update.sh");
+#else
+    throw std::runtime_error("Update can only be run on Linux");
+#endif
 }
 
 // Dummy wrapper function for uninstalling
 void uninstall()
 {
+#if (defined(LINUX) || defined(__linux__))
     fs::copy_file("/usr/include/oak/uninstall.sh",
                   "/tmp/uninstall.sh",
                   fs::copy_options::update_existing);
     system("bash /tmp/uninstall.sh");
+#else
+    throw std::runtime_error(
+        "Uninstall can only be run on Linux");
+#endif
 }
 
 void queryPackage(const std::string &name,
@@ -734,6 +743,7 @@ int main(const int argc, const char *argv[])
             }
             else
             {
+#if (defined(LINUX) || defined(__linux__))
                 if (settings.prettify)
                 {
                     if (system(
@@ -756,6 +766,7 @@ int main(const int argc, const char *argv[])
                             "files.");
                     }
                 }
+#endif
 
                 compStart =
                     std::chrono::high_resolution_clock::now();
@@ -789,6 +800,11 @@ int main(const int argc, const char *argv[])
                         std::cout << "System call `" << command
                                   << "`\n";
                     }
+
+#if !(defined(LINUX) || defined(__linux__))
+                    std::cout << "WARNING: Compilation may "
+                                 "fail on non-POSIX systems!\n";
+#endif
 
                     if (system(command.c_str()) != 0)
                     {
@@ -829,6 +845,12 @@ int main(const int argc, const char *argv[])
                                       << command << "`\n";
                         }
 
+#if !(defined(LINUX) || defined(__linux__))
+                        std::cout
+                            << "WARNING: Linking may fail on "
+                               "non-POSIX systems!\n";
+#endif
+
                         if (system(command.c_str()) != 0)
                         {
                             throw std::runtime_error(
@@ -862,6 +884,12 @@ int main(const int argc, const char *argv[])
                             std::cout << "System call `"
                                       << command << "`\n";
                         }
+
+#if !(defined(LINUX) || defined(__linux__))
+                        std::cout
+                            << "WARNING: Linkage may fail on "
+                               "non-POSIX systems!\n";
+#endif
 
                         if (system(command.c_str()) != 0)
                         {
@@ -1135,6 +1163,11 @@ int main(const int argc, const char *argv[])
 
         std::cout << tags::reset << std::flush;
 
+#if !(defined(LINUX) || defined(__linux__))
+        std::cout << "WARNING: Execution may fail on non-POSIX "
+                     "systems!\n";
+#endif
+
         int result = system(out.c_str());
         if (result != 0)
         {
@@ -1145,6 +1178,11 @@ int main(const int argc, const char *argv[])
     // Run test suite ./tests/*
     if (settings.test)
     {
+#if !(defined(LINUX) || defined(__linux__))
+        std::cout << "WARNING: Testing may fail on non-POSIX "
+                     "systems!\n";
+#endif
+
         if (files.empty())
         {
             files = {"."};
@@ -1156,7 +1194,7 @@ int main(const int argc, const char *argv[])
         for (const std::string &test_folder : files)
         {
             std::string original_dir = fs::current_path();
-            chdir(test_folder.c_str());
+            fs::current_path(test_folder);
 
             if (!fs::exists("tests") ||
                 !fs::is_directory("tests"))
@@ -1378,7 +1416,7 @@ int main(const int argc, const char *argv[])
                 return 19;
             }
 
-            chdir(original_dir.c_str());
+            fs::current_path(original_dir);
         }
     }
 

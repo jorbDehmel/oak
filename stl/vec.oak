@@ -55,7 +55,7 @@ let New<t>(self: ^stl::vec<t>) -> void
 
 // Deep copy from another vector
 let Copy<t>(self: ^stl::vec<t>, other: stl::vec<t>
-    ) -> ^stl::vec<t>
+    ) -> stl::vec<t>
 {
     self.size = other.size;
 
@@ -78,7 +78,7 @@ let Copy<t>(self: ^stl::vec<t>, other: stl::vec<t>
         i += 1;
     }
 
-    self
+    ^self
 }
 
 // Free the heap memory associated.

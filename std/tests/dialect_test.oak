@@ -1,23 +1,19 @@
-package!("std");
-use_rule!("std");
-
 /*
 A demonstration using the standard Oak dialect
-Passed Oct 13, 23
-Not part of the standard Oak test suite.
 */
 
 package!("std");
+use_rule!("std");
 
 let obj: struct
 {
     a: i32,
 }
 
-let obj.Copy(what: i32) -> ^obj
+let obj.Copy(what: i32) -> obj
 {
     self.a = what;
-    self
+    ^self
 }
 
 let obj.method() -> void

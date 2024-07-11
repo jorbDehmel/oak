@@ -17,11 +17,14 @@ let seed_rand() -> void;
 // Seeds RNG with a given number
 let seed_rand(with: i32) -> void;
 
-// Generates a random number
+// Generates a random number. This is modulo biased, beware!
 let rand(low: i32, high: i32) -> i32;
+
+// Generates a random number
 let rand() -> i32;
 
-// Generate a random floating point number
+// Generate a random floating point number. This is *not*
+// modulo-biased.
 let rand(low: f64, high: f64) -> f64
 {
     let r: i32;

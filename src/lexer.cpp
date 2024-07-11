@@ -6,6 +6,9 @@ jdehmel@outlook.com
 */
 
 #include "lexer.hpp"
+#include "tags.hpp"
+#include <fstream>
+#include <iostream>
 #include <stdexcept>
 
 bool Lexer::is_initialized = false;
@@ -473,6 +476,14 @@ void join_numbers(std::list<Token> &what)
                 it++;
 
                 it = what.erase(it);
+            }
+            else
+            {
+                std::cout << tags::yellow_bold
+                          << "Warning: Untyped number literal "
+                          << "at " << it->file << ":"
+                          << it->line << ".\n"
+                          << tags::reset;
             }
 
             it--;

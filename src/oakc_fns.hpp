@@ -24,17 +24,9 @@ jdehmel@outlook.com
 #ifndef ACORN_FNS
 #define ACORN_FNS
 
-#include <algorithm>
-#include <chrono>
-#include <filesystem>
-#include <fstream>
-#include <iostream>
-#include <map>
-#include <string>
-
-#include <unistd.h>
-
 #include "options.hpp"
+#include <iostream>
+#include <string>
 
 // Returns true if and only if (it + offset) == compareTo.
 // Runs in O(offset), unfortunately, so only use for small

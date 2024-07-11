@@ -26,25 +26,27 @@ let iterable<on, iterator>: trait
     where iterator does get(_: ^iterator);
 }
 
+// WIP
 let iterable<on>: trait
 {
     where on does begin(_: ^on);
 
     let __obj: on;
 
-    where on does end(_: ^on, _: type!(begin(__obj)));
-    where type!(begin(__obj)) does Incr(_: ^type!(begin(__obj)));
+    where type!(begin(__obj)) does
+        Incr(_: ^type!(begin(__obj)));
     where type!(begin(__obj)) does get(_: ^type!(begin(__obj)));
+    where on does end(_: ^on, _: ^type!(begin(__obj)));
 }
 
 let a: struct { data: [10]i32, }
 let a_iterator: struct { on: ^a, pos: u128, }
 
-let Copy(self: ^a_iterator, from: a_iterator) -> ^a_iterator
+let Copy(self: ^a_iterator, from: a_iterator) -> a_iterator
 {
     ptrcpy!(self.on, from.on);
     self.pos = from.pos;
-    self
+    ^self
 }
 
 let begin(self: ^a) -> a_iterator
@@ -79,8 +81,8 @@ use_rule!("foreach");
 let main() -> i32
 {
     let what: a;
-    // iterable<a, a_iterator>;
-    iterable<a>;
+    iterable<a, a_iterator>;
+    // iterable<a>;
     let i: u128 = 0;
 
     for item in what

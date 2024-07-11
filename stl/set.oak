@@ -43,13 +43,13 @@ let New<k>(self: ^stl::set_node<k>) -> void
 }
 
 let Copy<k>(self: ^stl::set_node<k>, key: k
-    ) -> ^stl::set_node<k>
+    ) -> stl::set_node<k>
 {
     self.key = key;
     self.hash = hash(self.key);
     self.state = 1u8;
 
-    self
+    ^self
 }
 
 let erase<k>(self: ^stl::set_node<k>) -> void

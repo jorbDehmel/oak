@@ -37,7 +37,7 @@ let Del<t>(self: ^arr<t>) -> void
     }
 }
 
-let Copy<t>(self: ^arr<t>, size: u128) -> ^arr<t>
+let Copy<t>(self: ^arr<t>, size: u128) -> arr<t>
 {
     if self.size != to_u128(0)
     {
@@ -47,7 +47,7 @@ let Copy<t>(self: ^arr<t>, size: u128) -> ^arr<t>
     self.size = size;
     alloc!(self.data, size);
 
-    self
+    ^self
 }
 
 let Get<t>(self: ^arr<t>, index: u128) -> opt<^t>

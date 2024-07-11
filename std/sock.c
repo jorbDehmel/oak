@@ -49,7 +49,7 @@ void Del_FN_PTR_server_sock_MAPS_void(struct server_sock *self)
 }
 
 // Copies in data, but does NOT begin listening yet
-struct server_sock *Copy_FN_PTR_server_sock_JOIN_str_JOIN_u16_JOIN_PTR_i32_MAPS_PTR_server_sock(
+struct server_sock Copy_FN_PTR_server_sock_JOIN_str_JOIN_u16_JOIN_PTR_i32_MAPS_server_sock(
     struct server_sock *self, str addr, u16 port, i32 *result)
 {
     int yes = 1;
@@ -63,7 +63,7 @@ struct server_sock *Copy_FN_PTR_server_sock_JOIN_str_JOIN_u16_JOIN_PTR_i32_MAPS_
     if (*result != 1)
     {
         puts("inet_pton error");
-        return self;
+        return *self;
     }
 
     self->address.sin_port = htons(port); // converts to needed endianness
@@ -76,7 +76,7 @@ struct server_sock *Copy_FN_PTR_server_sock_JOIN_str_JOIN_u16_JOIN_PTR_i32_MAPS_
     {
         puts("socket error");
         *result = -1;
-        return self;
+        return *self;
     }
 
     // Set socket options
@@ -85,13 +85,13 @@ struct server_sock *Copy_FN_PTR_server_sock_JOIN_str_JOIN_u16_JOIN_PTR_i32_MAPS_
     if (*result)
     {
         puts("setsockopt error");
-        return self;
+        return *self;
     }
 
     // Bind
     *result = bind(self->id, (struct sockaddr *)(&self->address), sizeof(self->address));
 
-    return self;
+    return *self;
 }
 
 i32 listen_FN_PTR_server_sock_MAPS_i32(struct server_sock *self)
@@ -164,7 +164,7 @@ void Del_FN_PTR_client_sock_MAPS_void(struct client_sock *self)
 }
 
 // Copies in data, but does NOT begin listening yet
-struct client_sock *Copy_FN_PTR_client_sock_JOIN_str_JOIN_u16_JOIN_PTR_i32_MAPS_PTR_client_sock(
+struct client_sock Copy_FN_PTR_client_sock_JOIN_str_JOIN_u16_JOIN_PTR_i32_MAPS_client_sock(
     struct client_sock *self, str addr, u16 port, i32 *result)
 {
     int yes = 1;
@@ -178,7 +178,7 @@ struct client_sock *Copy_FN_PTR_client_sock_JOIN_str_JOIN_u16_JOIN_PTR_i32_MAPS_
     if (*result != 1)
     {
         puts("inet_pton error");
-        return self;
+        return *self;
     }
 
     self->address.sin_port = htons(port); // converts to needed endianness
@@ -193,7 +193,7 @@ struct client_sock *Copy_FN_PTR_client_sock_JOIN_str_JOIN_u16_JOIN_PTR_i32_MAPS_
     if (*result)
     {
         puts("setsockopt error");
-        return self;
+        return *self;
     }
 
     // Connect
@@ -204,7 +204,7 @@ struct client_sock *Copy_FN_PTR_client_sock_JOIN_str_JOIN_u16_JOIN_PTR_i32_MAPS_
         puts("connect error");
     }
 
-    return self;
+    return *self;
 }
 
 struct string recv_FN_PTR_client_sock_JOIN_u128_MAPS_string(struct client_sock *self, u128 size)

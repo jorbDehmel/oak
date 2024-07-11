@@ -12,7 +12,7 @@ u128 strlen_FN_str_MAPS_u128(str what)
 
 void strcpy_FN_ARR_i8_JOIN_ARR_i8_MAPS_void(i8 to[], i8 from[])
 {
-    strcpy(to, from);   
+    strcpy(to, from);
 }
 
 void strncpy_FN_ARR_i8_JOIN_ARR_i8_JOIN_u128_MAPS_void(i8 to[], i8 from[], u128 n)
@@ -22,7 +22,7 @@ void strncpy_FN_ARR_i8_JOIN_ARR_i8_JOIN_u128_MAPS_void(i8 to[], i8 from[], u128 
 
 void strcpy_FN_ARR_i8_JOIN_str_MAPS_void(i8 to[], str from)
 {
-    strcpy(to, from);   
+    strcpy(to, from);
 }
 
 void strncpy_FN_ARR_i8_JOIN_str_JOIN_u128_MAPS_void(i8 to[], str from, u128 n)
@@ -69,4 +69,3 @@ i32 strncmp_FN_ARR_i8_JOIN_ARR_i8_JOIN_u128_MAPS_i32(i8 l[], i8 r[], u128 n)
 {
     return strncmp(l, r, n);
 }
-

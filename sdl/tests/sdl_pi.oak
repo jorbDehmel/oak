@@ -1,0 +1,170 @@
+/*
+Monte carlo approximation of pi using rand(), plus
+visualization via sdl2.
+
+Area of a unit circle $= \pi$ (width & height is 2)
+Area of a 2x2 square $= 4$
+A unit circle inside a 2x2 square takes up $\frac{\pi}{4}$ of
+it.
+
+Jordan Dehmel, 2024
+jdehmel@outlook.com
+*/
+
+package!(
+    "std",
+    "sdl"
+);
+use_rule!("std");
+
+include!(
+    "std/rand.oak",
+    "std/printf.oak",
+    "std/math.oak"
+);
+
+// Screen dimensions for SDL
+let sdl_w! = 512;
+let sdl_h! = 512;
+
+// The center, both x and y. This is ALSO the radius, such that
+// the min is always the origin.
+let rand_center! = 2048;
+
+let point: struct
+{
+    x: u128,
+    y: u128,
+}
+
+let Copy(self: ^point, other: point) -> point
+{
+    self.x = other.x;
+    self.y = other.y;
+    ^self
+}
+
+// Generates a random number in a given range. This is
+// technically not guaranteed to converge, although is is
+// asymptotically likely to.
+let gen_rand() -> u128
+{
+    let out: u128 = rand();
+
+    while out >= rand_center! * 2u128
+    {
+        out = rand();
+    }
+
+    out
+}
+
+// Generates a random point within the square.
+let gen_point() -> point
+{
+    let out: point;
+    out.x = gen_rand();
+    out.y = gen_rand();
+    out
+}
+
+// Plots the given random point on screen.
+let plot_point(
+    wind: ^sdl::window,
+    what: point,
+    inside: bool
+    ) -> void
+{
+    let rect: sdl::rect = (
+        to_u64(to_f64(what.x) * 0.125f64),
+        to_u64(to_f64(what.y) * 0.125f64),
+        1u64,
+        1u64);
+
+    let red: sdl::color = (255u8, 0u8, 0u8, 255u8);
+    let white: sdl::color = (255u8, 255u8, 255u8, 255u8);
+
+    if inside
+    {
+        wind.draw_rect(rect, red);
+    }
+    else
+    {
+        wind.draw_rect(rect, white);
+    }
+}
+
+// Returns whether or not the point satisfies the circle
+// equation.
+let is_inside(what: point) -> bool
+{
+    let x: i128 = to_i128(what.x) - rand_center!;
+    let y: i128 = to_i128(what.y) - rand_center!;
+
+    (x * x + y * y < rand_center! * rand_center!)
+}
+
+let main() -> i32
+{
+    let n_inside: u128 = 0;
+    let n_total: u128 = 0;
+    let wind: sdl::window = (sdl_w!, sdl_h!);
+    let flag_var, inside: bool;
+    let event: sdl_event;
+    let p: point;
+    let running: bool = true;
+    let black: sdl::color = (0u8, 0u8, 0u8, 0u8);
+
+    wind.fill(black);
+    seed_rand();
+
+    print("n,pi,\n");
+
+    while running
+    {
+        // Update
+        p = gen_point();
+        inside = is_inside(p);
+        plot_point(wind, p, inside);
+
+        if inside
+        {
+            ++n_inside;
+        }
+        ++n_total;
+
+        printf!(
+            "%,%,\n", n_total,
+            4.0f64 * to_f64(n_inside) / to_f64(n_total)
+        );
+
+        // Present
+        wind.show();
+
+        // Poll events
+        flag_var = true;
+        while flag_var
+        {
+            event.wrap_sdl_none();
+            event = sdl::poll_event();
+
+            match event
+            {
+                case sdl::none()
+                {
+                    flag_var = false;
+                }
+
+                case sdl::key_down_event(data)
+                {
+                    if data.keycode == to_i128(27)
+                    {
+                        running = false;
+                    }
+                }
+            }
+        }
+    }
+
+    0
+}

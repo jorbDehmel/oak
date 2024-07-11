@@ -38,6 +38,7 @@ std::ostream &operator<<(std::ostream &strm,
     return strm;
 }
 
+#if (defined(LINUX) || defined(__linux__))
 void install(const std::string &What, AcornSettings &settings)
 {
     // If no installation command is known, attempt to fetch
@@ -135,6 +136,13 @@ void install(const std::string &What, AcornSettings &settings)
 
     return;
 }
+#else
+void install(const std::string &, AcornSettings &)
+{
+    throw std::runtime_error(
+        "Cannot install packages on non-POSIX system!");
+}
+#endif
 
 // Remove any leading or trailing quotes
 void cleanString(std::string &What)
@@ -315,6 +323,11 @@ void downloadPackage(const std::string &URLArg,
                      const bool &reinstall,
                      const std::string &pathInput)
 {
+#if !(defined(LINUX) || defined(__linux__))
+    std::cout << "WARNING: Downloading packages is likely to "
+                 "fail on non-POSIX systems!\n";
+#endif
+
     std::cout << tags::violet_bold
               << "\nInstalling Oak package '" << URLArg
               << "'\n\n"

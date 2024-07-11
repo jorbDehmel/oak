@@ -25,18 +25,19 @@ jdehmel@outlook.com
 #ifndef OPTIONS_HPP
 #define OPTIONS_HPP
 
+#include "lexer.hpp"
+#include "oakc_structs.hpp"
 #include <filesystem>
+#include <fstream>
 #include <map>
 #include <set>
 #include <string>
-
-#include "lexer.hpp"
-#include "oakc_structs.hpp"
+#include <vector>
 
 namespace fs = std::filesystem;
 
 // The current version of Oak.
-const static std::string VERSION = "0.6.3";
+const static std::string VERSION = "0.7.0";
 
 // The license that this version of Oak uses.
 const static std::string LICENSE = "GPLv3";
@@ -100,7 +101,7 @@ const static std::string HELP_TEXT =
     " -R    | --remove    | Uninstalls a package\n"
     " -s    | --size      | Show Oak disk usage\n"
     " -S    | --install   | Install a package\n"
-    " -t    | --translate | Produce C++ files\n"
+    " -t    | --translate | Produce C files\n"
     " -T    | --test      | Compile and run tests/*.oak\n"
     " -u    | --dump      | Save dump files\n"
     " -U    |             | Save rule log files\n"

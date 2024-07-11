@@ -90,14 +90,14 @@ void ExtInit_FN_PTR_sdl_window_MAPS_void(struct sdl_window *self)
     return;
 }
 
-struct sdl_window *Copy_FN_PTR_sdl_window_JOIN_u64_JOIN_u64_MAPS_PTR_sdl_window(struct sdl_window *self, u64 w, u64 h)
+struct sdl_window Copy_FN_PTR_sdl_window_JOIN_u64_JOIN_u64_MAPS_sdl_window(struct sdl_window *self, u64 w, u64 h)
 {
     self->width = w;
     self->height = h;
 
     SDL_SetWindowSize(self->wind, w, h);
 
-    return self;
+    return *self;
 }
 
 void ExtDel_FN_PTR_sdl_window_MAPS_void(struct sdl_window *window)

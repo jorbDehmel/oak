@@ -67,9 +67,12 @@ reinstall:
 	$(MAKE) -C . uninstall clean install
 
 .PHONY:	fix-format
-fix-style:
+fix-format:
 	clang-format -i *.cpp *.hpp unit_tests/*.cpp \
 		unit_tests/*.hpp
+
+.PHONY:	fix-style
+fix-style:	fix-format
 
 .PHONY:	ensure-format
 ensure-format:

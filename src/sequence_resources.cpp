@@ -7,6 +7,8 @@ jdehmel@outlook.com
 #include "oakc_fns.hpp"
 #include "oakc_structs.hpp"
 #include "options.hpp"
+#include "tags.hpp"
+#include <algorithm>
 
 void sm_assert(const bool &expression,
                const std::string &message)
@@ -1556,7 +1558,6 @@ std::list<int> getReferenceCandidates(
 
         isMatch = true;
 
-        // Iterate over argument types
         // Iterate over argument types
         cur = 0;
 

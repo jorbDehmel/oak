@@ -26,15 +26,13 @@ jdehmel@outlook.com
 #ifndef ACORN_STRUCTS_HPP
 #define ACORN_STRUCTS_HPP
 
+#include "lexer.hpp"
 #include <cstring>
-#include <fstream>
-#include <iostream>
 #include <map>
 #include <set>
-#include <sstream>
+#include <stdexcept>
 #include <string>
-
-#include "lexer.hpp"
+#include <vector>
 
 // If the given item is false, throw a parse_error.
 #define parse_assert(b)                                        \
@@ -240,6 +238,7 @@ struct MultiTableSymbol
 
     bool erased = false;
     std::string sourceFilePath = "";
+    unsigned long long line = 0;
 
     std::set<std::string> tags;
 };

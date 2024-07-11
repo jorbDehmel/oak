@@ -67,7 +67,7 @@ let Del(self: ^sdl::window) -> void
 }
 
 // Initialize a SDL2 window with the given width and height.
-let Copy(self: ^sdl::window, w: u64, h: u64) -> ^sdl::window;
+let Copy(self: ^sdl::window, w: u64, h: u64) -> sdl::window;
 
 // Make a window go full-screen.
 let sdl::enable_window_fullscreen(self: ^sdl::window) -> void;
@@ -90,24 +90,24 @@ let New(self: ^sdl::color) -> void
 
 // Initialize an SDL2 color from a given 4-tuple of values.
 let Copy(self: ^sdl::color, r: u8, g: u8, b: u8, a: u8
-    ) -> ^sdl::color
+    ) -> sdl::color
 {
     self.r = r;
     self.g = g;
     self.b = b;
     self.a = a;
-    self
+    ^self
 }
 
 // Copy one pixel color into another.
 let Copy(self: ^sdl::color, other: sdl::color
-    ) -> ^sdl::color
+    ) -> sdl::color
 {
     self.r = other.r;
     self.g = other.g;
     self.b = other.b;
     self.a = other.a;
-    self
+    ^self
 }
 
 // Determine whether or not two colors are the same.
@@ -147,19 +147,19 @@ let New(self: ^sdl::coord) -> void
 }
 
 // Initialize an SDL2 coordinate from a 2-tuple.
-let Copy(self: ^sdl::coord, x: u64, y: u64) -> ^sdl::coord
+let Copy(self: ^sdl::coord, x: u64, y: u64) -> sdl::coord
 {
     self.x = x;
     self.y = y;
-    self
+    ^self
 }
 
 // Copy one coordinate pair into another.
-let Copy(self: ^sdl::coord, other: sdl::coord) -> ^sdl::coord
+let Copy(self: ^sdl::coord, other: sdl::coord) -> sdl::coord
 {
     self.x = other.x;
     self.y = other.y;
-    self
+    ^self
 }
 
 // Initialize a default SDL2 rectangle to all zeros.
@@ -173,23 +173,23 @@ let New(self: ^sdl::rect) -> void
 
 // Initialize an SDL2 rectangle from a 4-tuple.
 let Copy(self: ^sdl::rect, x: u64, y: u64, w: u64, h: u64
-    ) -> ^sdl::rect
+    ) -> sdl::rect
 {
     self.x = x;
     self.y = y;
     self.w = w;
     self.h = h;
-    self
+    ^self
 }
 
 // Copy one SDL2 rectangle into another
-let Copy(self: ^sdl::rect, other: sdl::rect) -> ^sdl::rect
+let Copy(self: ^sdl::rect, other: sdl::rect) -> sdl::rect
 {
     self.x = other.x;
     self.y = other.y;
     self.w = other.w;
     self.h = other.h;
-    self
+    ^self
 }
 
 // Interfaces w/ the SDL2 trig functions.

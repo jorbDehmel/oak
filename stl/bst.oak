@@ -42,11 +42,11 @@ post
 Sets the key and data of a given node to given values.
 */
 let Copy<k, d>(self: ^stl::bst_node<k, d>, key: k, data: d
-    ) -> ^stl::bst_node<k, d>
+    ) -> stl::bst_node<k, d>
 {
     self.key = key;
     self.data = data;
-    self
+    ^self
 }
 
 /*

@@ -45,13 +45,13 @@ let New<k, d>(self: ^stl::map_node<k, d>) -> void
 }
 
 let Copy<k, d>(self: ^stl::map_node<k, d>, key: k, data: d
-    ) -> ^stl::map_node<k, d>
+    ) -> stl::map_node<k, d>
 {
     self.key = key;
     self.data = data;
     self.hash = hash(self.key);
     self.state = 1u8;
-    self
+    ^self
 }
 
 let erase<k, d>(self: ^stl::map_node<k, d>) -> void

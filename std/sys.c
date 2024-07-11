@@ -17,16 +17,16 @@ struct string s_sys_FN_str_MAPS_string(str command)
 
     // Seek to end and get the size of the file
     fseek(pipe, 0L, SEEK_END);
-    output.size = ftell(pipe);
+    output.capacity = ftell(pipe);
 
     // Allocate enough space to contain the file
-    output.data = alloca(output.size);
+    output.data = alloca(output.capacity);
 
     // Go back to the beginning
     fseek(pipe, 0L, SEEK_SET);
 
     // Load text
-    fgets(output.data, output.size, pipe);
+    fgets(output.data, output.capacity, pipe);
 
     // Close the pipe and get return value
     pclose(pipe);

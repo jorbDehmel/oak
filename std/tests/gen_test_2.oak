@@ -1,9 +1,7 @@
-// A test of the end-goal of Oak generics
-// UNPASSED
-
 package!("std");
 use_rule!("std");
 
+// Simple generic "pair" class
 let pair<l, r>: struct
 {
     first: l,
@@ -23,18 +21,20 @@ let New<l, r>(self: ^pair<l, r>) -> void
     New(@self.second);
 }
 
-let Copy<l, r>(self: ^pair<l, r>, first: l, second: r) -> ^pair<l, r>
+let Copy<l, r>(self: ^pair<l, r>, first: l, second: r
+    ) -> pair<l, r>
 {
     self.first = first;
     self.second = second;
-    self
+    ^self
 }
 
-let Copy<l, r>(self: ^pair<l, r>, other: pair<l, r>) -> ^pair<l, r>
+let Copy<l, r>(self: ^pair<l, r>, other: pair<l, r>
+    ) -> pair<l, r>
 {
     self.first = other.first;
     self.second = other.second;
-    self
+    ^self
 }
 
 let make_pair<l, r>(first: l, second: r) -> pair<l, r>

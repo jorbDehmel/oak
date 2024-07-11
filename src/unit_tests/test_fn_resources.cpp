@@ -8,6 +8,7 @@ jdehmel@outlook.com
 #include "../oakc_fns.hpp"
 #include "test.hpp"
 #include <filesystem>
+#include <unistd.h>
 
 ////////////////////////////////////////////////////////////////
 // Test cases
