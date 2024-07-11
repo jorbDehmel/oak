@@ -650,11 +650,12 @@ ASTNode __createSequence(std::list<Token> &From,
                                       "two arguments.");
 
                         sm_assert(
-                            argsWithType.front().second[0].info
-                            == pointer,
+                            argsWithType.front()
+                                    .second[0]
+                                    .info == pointer,
                             "Method '" + name.text +
-                            "' must take a mutable first "
-                            "argument.");
+                                "' must take a mutable first "
+                                "argument.");
 
                         Type expected(
                             argsWithType.front().second, 1);
