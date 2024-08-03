@@ -237,8 +237,7 @@ void Lex::init_dfa()
     {
         if (i == string_literal_state_single ||
             i == string_literal_state_double ||
-            i == whitespace_state ||
-            i == singleton_state)
+            i == whitespace_state || i == singleton_state)
         {
             continue;
         }
@@ -359,8 +358,8 @@ Token Lexer::single()
 
     do
     {
-        if (Lex::dfa[state]['\n'] != delim_state
-            && text[pos] == '\n')
+        if (Lex::dfa[state]['\n'] != delim_state &&
+            text[pos] == '\n')
         {
             ++line;
             col = 0;
@@ -489,8 +488,8 @@ void erase_whitespace(std::list<Token> &what)
 void join_numbers(std::list<Token> &what)
 {
     const static std::set<std::string> type_suffixes = {
-        "u8", "u16", "u32", "u64", "u128", "i8", "i16", "i32",
-        "i64", "i128", "f32", "f64"};
+        "u8",  "u16", "u32", "u64",  "u128", "i8",
+        "i16", "i32", "i64", "i128", "f32",  "f64"};
 
     for (auto it = what.begin(); it != what.end(); it++)
     {
@@ -542,7 +541,8 @@ void join_numbers(std::list<Token> &what)
                               << "literal '" << it->text
                               << "' at " << it->file << ":"
                               << it->line << "." << it->col
-                              << ".\n" << tags::reset;
+                              << ".\n"
+                              << tags::reset;
                 }
 
                 ++it;

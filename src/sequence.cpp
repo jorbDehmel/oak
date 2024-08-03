@@ -2443,15 +2443,15 @@ Type resolveFunctionInternal(std::list<Token> &What,
         }
 
         // Special case: Array access
-        const static std::set<std::string> arrAccessTypes =
-            {"u8", "i8", "u16", "i16", "u32", "i32", "u64",
-             "i64", "u128", "i128"};
+        const static std::set<std::string> arrAccessTypes = {
+            "u8",  "i8",  "u16", "i16",  "u32",
+            "i32", "u64", "i64", "u128", "i128"};
         if (name == "Get" &&
             (argTypes.front()[0].info == sarr ||
              argTypes.front()[0].info == arr) &&
             argStrs.size() == 2 &&
             (*std::next(argTypes.begin()))[0].info == atomic &&
-             arrAccessTypes.count(
+            arrAccessTypes.count(
                 (*std::next(argTypes.begin()))[0].name) != 0)
         {
             // Return type is the thing the array is of
@@ -2559,9 +2559,7 @@ Type resolveFunctionInternal(std::list<Token> &What,
                 {
                     candidates.push_back(
                         implicitInstantiateGeneric(
-                            name,
-                            argTypes,
-                            settings));
+                            name, argTypes, settings));
                     validCandidates.push_back(
                         candidates.size() - 1);
                 }
@@ -2569,8 +2567,7 @@ Type resolveFunctionInternal(std::list<Token> &What,
                 {
                     std::cout << tags::red_bold
                               << "In generic instantiation: "
-                              << e.what()
-                              << tags::reset;
+                              << e.what() << tags::reset;
 
                     validCandidates.clear();
                 }

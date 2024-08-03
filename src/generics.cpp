@@ -757,13 +757,12 @@ void printGenericDumpInfo(std::ostream &file,
 // easily throw. This must be a precise match; If multiple or
 // zero are found, an error will be thrown.
 MultiTableSymbol implicitInstantiateGeneric(
-    const std::string &name,
-    const std::list<Type> &argTypes,
+    const std::string &name, const std::list<Type> &argTypes,
     AcornSettings &settings)
 {
     auto candidates = settings.generics[name];
-    for (auto it = candidates.begin();
-         it != candidates.end(); ++it)
+    for (auto it = candidates.begin(); it != candidates.end();
+         ++it)
     {
         // Basically do a reverse substitution match
         // This will halt on the first matching candidate
@@ -795,16 +794,15 @@ MultiTableSymbol implicitInstantiateGeneric(
         }
 
         auto candIt = candArgTypes.begin(); // generic
-        auto reqIt = argTypes.begin(); // real
+        auto reqIt = argTypes.begin();      // real
         bool is_viable = true;
 
-        while (is_viable &&
-               candIt != candArgTypes.end() &&
+        while (is_viable && candIt != candArgTypes.end() &&
                reqIt != argTypes.end())
         {
             // Compare these two types
             const auto candArgType = candIt->second; // generic
-            const auto reqArgType = *reqIt; // real
+            const auto reqArgType = *reqIt;          // real
 
             if (candArgType.size() != reqArgType.size())
             {
@@ -813,10 +811,9 @@ MultiTableSymbol implicitInstantiateGeneric(
             }
 
             for (uint64_t i = 0;
-                 i < reqArgType.size() && is_viable;
-                 ++i)
+                 i < reqArgType.size() && is_viable; ++i)
             {
-                const auto reqNode = reqArgType[i]; // real
+                const auto reqNode = reqArgType[i];   // real
                 const auto candNode = candArgType[i]; // generic
 
                 if (reqNode.info != candNode.info)
@@ -827,8 +824,8 @@ MultiTableSymbol implicitInstantiateGeneric(
                 else if (candNode.info == atomic)
                 {
                     // if candNode is a generic
-                    if (generic_to_real.count(candNode.name)
-                        != 0)
+                    if (generic_to_real.count(candNode.name) !=
+                        0)
                     {
                         // If this generic has already been
                         // mapped
@@ -848,7 +845,7 @@ MultiTableSymbol implicitInstantiateGeneric(
                         // future
                         else
                         {
-                            generic_to_real[candNode.name] = 
+                            generic_to_real[candNode.name] =
                                 Type(reqArgType, i);
                         }
                     }

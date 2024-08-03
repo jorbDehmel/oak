@@ -21,8 +21,7 @@ void sm_assert(const bool &expression,
 }
 
 Type toType(const std::list<std::string> &What,
-            AcornSettings &settings,
-            const bool generic)
+            AcornSettings &settings, const bool generic)
 {
     Token templ;
     templ.file = settings.curFile;
@@ -42,8 +41,7 @@ Type toType(const std::list<std::string> &What,
 
 // Converts lexed symbols into a type
 Type toType(const std::list<Token> &WhatIn,
-            AcornSettings &settings,
-            const bool generic)
+            AcornSettings &settings, const bool generic)
 {
     if (WhatIn.size() == 0)
     {
@@ -286,9 +284,11 @@ Type toType(const std::list<Token> &WhatIn,
                                 .members.size() != 0 ||
                         settings.enumData[what.name]
                                 .options.size() != 0,
-                    "Non-atomic struct with zero members may not "
+                    "Non-atomic struct with zero members may "
+                    "not "
                     "be instantiated. You are likely trying to "
-                    "instantiate a unit generic (used for traits), "
+                    "instantiate a unit generic (used for "
+                    "traits), "
                     "which is not valid usage.");
             }
         }

@@ -343,8 +343,8 @@ PackageInfo loadPackageInfo(const std::string &Filepath,
     const std::string prefix = toAdd.name + "_";
     for (const auto &p : pairs)
     {
-        settings.preprocDefines[prefix + p.first + "!"]
-            = "\"" + p.second + "\"";
+        settings.preprocDefines[prefix + p.first + "!"] =
+            "\"" + p.second + "\"";
     }
 
     return toAdd;

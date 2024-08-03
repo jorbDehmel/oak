@@ -99,8 +99,7 @@ std::string instantiateGeneric(
 // easily throw. This must be a precise match; If multiple or
 // zero are found, an error will be thrown.
 MultiTableSymbol implicitInstantiateGeneric(
-    const std::string &name,
-    const std::list<Type> &argTypes,
+    const std::string &name, const std::list<Type> &argTypes,
     AcornSettings &settings);
 
 // Also holds the skeleton of the inst block system, although
