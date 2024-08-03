@@ -53,12 +53,15 @@ let begin(self: ^a) -> a_iterator
 {
     let out: a_iterator;
     ptrcpy!(out.on, self);
-    out.pos = 0;
+    out.pos = 0u128;
 
     out
 }
 
-let end(self: ^a, iter: ^a_iterator) -> bool { iter.pos >= 10 }
+let end(self: ^a, iter: ^a_iterator) -> bool
+{
+    iter.pos >= 10u128
+}
 let Incr(self: ^a_iterator) -> void { ++self.pos; }
 let get(self: ^a_iterator) -> ^i32
 {
@@ -83,7 +86,7 @@ let main() -> i32
     let what: a;
     iterable<a, a_iterator>;
     // iterable<a>;
-    let i: u128 = 0;
+    let i: u128 = 0u128;
 
     for item in what
     {
@@ -91,5 +94,5 @@ let main() -> i32
         ++i;
     }
 
-    0
+    0i32
 }

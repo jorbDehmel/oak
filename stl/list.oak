@@ -39,8 +39,8 @@ post
 // null.
 let New<t>(self: ^stl::list_node<t>) -> void
 {
-    ptrcpy!(self.next, 0);
-    ptrcpy!(self.prev, 0);
+    ptrcpy!(self.next, 0u128);
+    ptrcpy!(self.prev, 0u128);
 }
 
 // Delete the current node. If the next node is not null, then
@@ -99,9 +99,9 @@ let Del<t>(self: ^stl::list<t>) -> void
         Del(self.head);
         free!(self.head);
 
-        ptrcpy!(self.head, 0);
-        ptrcpy!(self.tail, 0);
-        self.size = 0;
+        ptrcpy!(self.head, 0u128);
+        ptrcpy!(self.tail, 0u128);
+        self.size = 0u128;
     }
 }
 
@@ -139,8 +139,8 @@ let pop_front<t>(self: ^stl::list<t>) -> void
     let old: ^stl::list_node<t>;
     ptrcpy!(old, self.head);
     ptrcpy!(self.head, self.head.next);
-    ptrcpy!(self.head.prev, 0);
-    ptrcpy!(old.next, 0);
+    ptrcpy!(self.head.prev, 0u128);
+    ptrcpy!(old.next, 0u128);
 
     Del(old);
 }
@@ -151,14 +151,14 @@ let pop_back<t>(self: ^stl::list<t>) -> void
     let old: ^stl::list_node<t>;
     ptrcpy!(old, self.tail);
     ptrcpy!(self.tail, self.tail.prev);
-    ptrcpy!(self.tail.next, 0);
+    ptrcpy!(self.tail.next, 0u128);
     Del(old);
 }
 
 // Push an item onto the end of the list.
 let append<t>(self: ^stl::list<t>, what: t) -> void
 {
-    if (to_void_ptr(self.head) == 0)
+    if (to_void_ptr(self.head) == 0u128)
     {
         alloc!(self.head);
         ptrcpy!(self.tail, self.head);
@@ -176,7 +176,7 @@ let append<t>(self: ^stl::list<t>, what: t) -> void
 // Push an item onto the front of the list.
 let prepend<t>(self: ^stl::list<t>, what: t) -> void
 {
-    if (to_void_ptr(self.head) == 0)
+    if (to_void_ptr(self.head) == 0u128)
     {
         alloc!(self.head);
         ptrcpy!(self.tail, self.head);
@@ -212,13 +212,13 @@ let erase<t>(self: ^stl::list<t>, what: ^stl::list_node<t>
     {
         ptrcpy!(what.prev.next, what.next);
         ptrcpy!(what.next.prev, what.prev);
-        ptrcpy!(what.next, 0);
-        ptrcpy!(what.prev, 0);
+        ptrcpy!(what.next, 0u128);
+        ptrcpy!(what.prev, 0u128);
 
         Del(what);
         free!(what);
 
-        ptrcpy!(what, 0);
+        ptrcpy!(what, 0u128);
     }
 }
 

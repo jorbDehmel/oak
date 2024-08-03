@@ -8,8 +8,8 @@ use_rule!("cast");
 
 let main() -> i32
 {
-    print((i8)(123));
+    print((i8)(123i32));
     print("\n");
 
-    0
+    0i32
 }

@@ -10,24 +10,24 @@ use_rule!("std");
 
 let main() -> i32
 {
-    for (let i: i32 = 0; i < 10; ++i)
+    for (let i = 0i32; i < 10i32; ++i)
     {
         print(i);
         endl();
     }
 
-    for (let i = 0; i < 10; ++i)
+    for (let i = 0i32; i < 10i32; ++i)
     {
         print(i);
         endl();
     }
 
     let i: i32;
-    for (i = 0i32; i < 10; ++i)
+    for (i = 0i32; i < 10i32; ++i)
     {
         print(i);
         endl();
     }
 
-    0
+    0i32
 }

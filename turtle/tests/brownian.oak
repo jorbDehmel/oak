@@ -36,19 +36,19 @@ let main() -> i32
     let dt: f64;
 
     // Starting position; This is used for calculating MSD.
-    let origin_x = 256;
-    let origin_y = 256;
+    let origin_x = 256u64;
+    let origin_y = 256u64;
 
     // Other variables which are needed for MSD.
-    let displacement_squared_sum = 0u128;
-    let time_steps = 0u128;
+    let displacement_squared_sum = 0i128;
+    let time_steps = 0u64;
 
     // Set the dimensions of the window to 1024^2.
-    t.resize(1024, 1024);
+    t.resize(1024u64, 1024u64);
 
     // Set turtle visualization parameters.
-    t.radius = 10.0;
-    t.speed = 4.0;
+    t.radius = 10.0f64;
+    t.speed = 4.0f64;
 
     // Initialize turtle
     t.x = origin_x;
@@ -59,16 +59,16 @@ let main() -> i32
     while t.is_running
     {
         // Random numbers
-        dr = rand(0, 10);
-        dt = to_f64(rand(-90, 90));
+        dr = rand(0i32, 10i32);
+        dt = to_f64(rand(-90i32, 90i32));
 
         // Move stochastically
         t.orientation += dt;
         t.forward(dr);
 
         // Update MSD stuff
-        displacement_squared_sum += pow(t.x - origin_x, 2)
-            + pow(t.y - origin_y, 2);
+        displacement_squared_sum += pow(t.x - origin_x, 2i32)
+            + pow(t.y - origin_y, 2i32);
         ++time_steps;
 
         // Update if timestep is correct.
@@ -84,5 +84,5 @@ let main() -> i32
     }
 
     // Exit w/o error
-    0
+    0i32
 }

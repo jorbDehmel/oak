@@ -12,7 +12,7 @@ let main() -> i32
     where stl::vec<i32> is cereal::serializable;
     let v: stl::vec<i32>;
 
-    for (let i: i32 = 0; i < 32; i += 1)
+    for (let i = 0i32; i < 32i32; ++i)
     {
         v.push_back(i);
         print(i);
@@ -24,5 +24,5 @@ let main() -> i32
     print(pickled);
     endl();
 
-    0
+    0i32
 }

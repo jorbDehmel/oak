@@ -31,10 +31,10 @@ let print(what: ^cmp) -> void
 let main() -> i32
 {
     let result: cmp;
-    result = compare(0, 1);
+    result = compare(0i32, 1i32);
 
     print(result);
     endl();
 
-    0
+    0i32
 }

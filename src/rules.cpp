@@ -35,7 +35,7 @@ std::list<std::string> getMacroArgs(
     std::string cur = "";
     int count = 1;
 
-    while (!lexed.empty() && *it != ";")
+    while (!lexed.empty() && count != 0)
     {
         if (*it == "(")
         {
@@ -396,9 +396,12 @@ void loadDialectFile(const std::string &File,
         {
             continue;
         }
-
-        if (line.size() > 1 && line.front() == '[' &&
-            line.back() == ']')
+        else if (line.size() > 1 && line.substr(0, 2) == "//")
+        {
+            continue;
+        }
+        else if (line.size() > 1 && line.front() == '[' &&
+                 line.back() == ']')
         {
             // Engine change flag
 

@@ -5,37 +5,21 @@
 // Remove all existing rules
 clear
 
-// Access rules
-"$[$;$^$@$,$[$]$($)${$}$] $*p [ $*a ]"      "; $p . Get ( $a )"
-
-// Namespace rule
-"$a :: $b"                                  "$a $< _ $< $b"
-
-// Void return rule
-"let $a ( $*b ) {"                          "let $a ( $b ) -> void {"
-
-// Auto-parenthesize rules
-"if $*a {"                                  "if ( $a ) {"
-"while $*a {"                               "while ( $a ) {"
-"match $*a {"                               "match ( $a ) {"
-
-// Method rules
-"let $a . $b ( )"                           "let $b ( self : ^ $a )"
-"let $a . $b ("                             "let $b ( self : ^ $a ,"
-"$/<$let $a . $b ( )"                       "$b ( $a )"
-"$/<$let $a . $b ("                         "$b ( $a ,"
-
-// Definition-Instantiation rule
-"let $a : $b = "                            "let $a : $b ; $a = "
-"let $a = $*b ;"                            "let $a : type! ( $b ) ; $a = $b ;"
-
-// For loop rule
-"for ( $*a ; $*b ; $*c ) $~ $<${$}$> $>g"   "$a ; while ( $b ) { $g $c ; }"
-
-// Compiler keyword rules
-"import $*a ;"                              "package! ( $a ) ;"
-"include $*a ;"                             "include! ( $a ) ;"
-"link $*a ;"                                "link! ( $a ) ;"
-"use $*a ;"                                 "use_rule! ( $a ) ;"
+// Rules
+"let $~ $$ $>a ( $~ $*/[$)$] $>b ) {"                                           "let $~ $$ $>a ( $~ $$ $>b ) -> void {"
+"ptr"                                                                           "^ void"
+"if $~ $+/[${$] $>a {"                                                          "if ( $a ) {"
+"while $~ $+/[${$] $>a {"                                                       "while ( $a ) {"
+"match $~ $+/[${$] $>a {"                                                       "match ( $a ) {"
+"let $~ $$ $>a . $~ $$ $>b ("                                                   "let $b ( self : ^ $a ,"
+"$/<$let $~ $$ $>a . Get ("                                                     "Get ( @ $a ,"
+"let $~ $$ $>a : $~ $$ $>b = "                                                  "let $a : $b ; $a = "
+"let $~ $$ $>a = $~ $*/[$;$] $>b ;"                                             "let $a : type! ( $b ) ; $a = $b ;"
+"for ( $~ $+/[$;$] $>a ; $~ $*/[$;$] $>b ; $~ $*/[$)$] $>c ) $~ $<${$}$> $>d"   "{ $a ; while ( $b ) { $d $c ; } }"
+"trait"                                                                         "struct {} pre"
+"where $~ $*/[$is$has$does$;$] $>a does $~ $$ $>b ( $~ $*/[$)$] $>c )"		    "$b < $a > ( $c )"
+"where $~ $*/[$is$has$does$;$] $>a is $~ $$ $>b"                                "$b < $a >"
+"needs"                                                                         "pre"
+"implies"                                                                       "post"
 
 // NOT final, as we want people to build on these

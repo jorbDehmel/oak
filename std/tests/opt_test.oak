@@ -9,7 +9,7 @@ let main() -> i32
 {
     let obj: opt<i32>;
 
-    obj.wrap_some(5);
+    obj.wrap_some(5i32);
 
     print(unwrap(@obj));
     print("\n");
@@ -18,5 +18,5 @@ let main() -> i32
     print(unwrap(@obj));
     print("\n");
 
-    0
+    0i32
 }

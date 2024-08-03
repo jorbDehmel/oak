@@ -1,0 +1,13 @@
+{
+    "NAME": "extra",
+    "DATE": "Thu Nov 16 14:33:22 2023",
+    "VERSION": "0.0.1",
+    "LICENSE": "MIT Commons",
+    "SOURCE": "https://github.com/jorbDehmel/oak",
+    "PATH": "extra",
+    "AUTHOR": "Jordan Dehmel",
+    "EMAIL": "jdehmel@outlook.com",
+    "ABOUT": "Extra files for the Oak programming language",
+    "SYS_DEPS": "boost",
+    "OAK_DEPS": ""
+}

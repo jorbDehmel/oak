@@ -1,0 +1,12 @@
+{
+    "NAME": "cereal",
+    "SOURCE": "https://github.com/jorbDehmel/oak",
+    "PATH": "cereal",
+    "INCLUDE": "cereal.oak",
+    "AUTHOR": "Jordan Dehmel",
+    "DATE": "2024",
+    "EMAIL": "jdehmel@outlook.com",
+    "VERSION": "0.0.1",
+    "ABOUT": "Serialization for Oak structures. Based off the pickle Python package.",
+    "LICENSE": "MIT"
+}

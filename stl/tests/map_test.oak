@@ -17,9 +17,9 @@ let hash(what: i32) -> u128
     return to_u128(what);
 }
 
-let size! = 256;
-let min! = 0;
-let max! = 100;
+let size! = 256u128;
+let min! = 0i32;
+let max! = 100i32;
 
 let main() -> i32
 {
@@ -39,13 +39,13 @@ let main() -> i32
 
         m.set(i, j);
 
-        i += 1;
+        ++i;
     }
 
-    m.erase(50);
+    m.erase(50i32);
 
     print("Printing phase...\n");
-    i = 0;
+    i = 0i32;
     while i < size!
     {
         res = m.get(i);
@@ -63,8 +63,8 @@ let main() -> i32
             }
         }
 
-        i += 1;
+        ++i;
     }
 
-    0
+    0i32
 }

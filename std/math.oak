@@ -10,10 +10,10 @@ package!("std");
 use_rule!("std");
 
 // Pi to 8 decimal places
-let math::pi! = 3.14159265;
+let math::pi! = 3.14159265f64;
 
 // Euler's constant e to 8 decimal places
-let math::e! = 2.71828182;
+let math::e! = 2.71828182f64;
 
 // A complex number. Not widely used.
 let complex: struct
@@ -29,7 +29,7 @@ let even(a: i128) -> bool
 {
     let out: bool;
 
-    if (a % 2i128 == 0i128)
+    if a % 2i128 == 0i128
     {
         out = true;
     }
@@ -48,7 +48,7 @@ let even(a: u128) -> bool
 {
     let out: bool;
 
-    if (a % 2u128 == 0u128)
+    if a % 2u128 == 0u128
     {
         out = true;
     }
@@ -66,9 +66,9 @@ let abs(x: i32) -> i32
     let out: i32;
     out = x;
 
-    if (out < 0)
+    if out < 0i32
     {
-        out *= -1;
+        out *= -1i32;
     }
 
     out
@@ -77,12 +77,11 @@ let abs(x: i32) -> i32
 // Returns the absolute value of x.
 let abs(x: f64) -> f64
 {
-    let out: f64;
-    out = x;
+    let out = x;
 
-    if (f_to_i(out) < 0)
+    if (f_to_i(out) < 0i128)
     {
-        out *= -1.0;
+        out *= -1.0f64;
     }
 
     out
@@ -127,17 +126,15 @@ pre
 // Return a to the power of b for integers.
 let pow(a: i128, b: i128) -> i128
 {
-    let out: i128;
-    out = 1;
+    let out = 1i128;
 
-    let counter: i128;
-    counter = b;
+    let counter = b;
 
-    while (counter > 0)
+    while counter > 0i128
     {
         out *= a;
 
-        counter -= 1;
+        --counter;
     }
 
     out
@@ -145,19 +142,17 @@ let pow(a: i128, b: i128) -> i128
 
 // Returns some floating-point number to the power of some
 // integer.
+// TODO: fast exp
 let pow(a: f64, b: i128) -> f64
 {
-    let out: f64;
-    out = 1.0;
+    let out = 1.0f64;
+    let counter = b;
 
-    let counter: i128;
-    counter = b;
-
-    while (counter > 0)
+    while counter > 0i128
     {
         out *= a;
 
-        counter -= 1;
+        --counter;
     }
 
     out
@@ -166,16 +161,14 @@ let pow(a: f64, b: i128) -> f64
 // Return the factorial of x.
 let fact(x: i32) -> i128
 {
-    let out: i128;
-    out = to_i128(1);
+    let out = 1i128;
 
-    let counter: i32;
-    counter = x;
+    let counter = x;
 
-    while (counter > 0)
+    while counter > 0i32
     {
         out *= to_i128(counter);
-        counter -= 1;
+        --counter;
     }
 
     out
@@ -184,13 +177,13 @@ let fact(x: i32) -> i128
 // Converts some number in radians to degrees.
 let radians_to_degrees(rad: f64) -> f64
 {
-    180.0 * rad / math_pi!
+    180.0f64 * rad / math_pi!
 }
 
 // Converts some number in degrees to radians.
 let degrees_to_radians(deg: f64) -> f64
 {
-    math_pi! * deg / 180.0
+    math_pi! * deg / 180.0f64
 }
 
 /*
@@ -203,34 +196,32 @@ let sin(x: f64) -> f64
 {
     let real_x: f64 = x;
 
-    let pi: f64;
-    pi = math_pi!;
+    let pi = math_pi!;
 
-    if (real_x < 0.0)
+    if (real_x < 0.0f64)
     {
-        while (real_x <= (-1.0 * pi))
+        while (real_x <= (-1.0f64 * pi))
         {
-            real_x += 2.0 * pi;
+            real_x += 2.0f64 * pi;
         }
     }
     else
     {
         while (real_x >= pi)
         {
-            real_x -= 2.0 * pi;
+            real_x -= 2.0f64 * pi;
         }
     }
 
-    let out: f64;
-    out = 0.0;
+    let out = 0.0f64;
 
-    // Not black magic; Just a ninth-order truncated Taylor
+    // Not black magic; Just a ninth-order Taylor
     // polynomial
     out += real_x;
-    out += pow(real_x, 3) * -0.1666666666666;
-    out += pow(real_x, 5) * 0.0083333333333;
-    out += pow(real_x, 7) * -0.0001984126984;
-    out += pow(real_x, 9) * 0.0000027557319;
+    out += pow(real_x, 3i128) * -0.1666666666666f64;
+    out += pow(real_x, 5i128) * 0.0083333333333f64;
+    out += pow(real_x, 7i128) * -0.0001984126984f64;
+    out += pow(real_x, 9i128) * 0.0000027557319f64;
 
     out
 }
@@ -241,7 +232,7 @@ let cos(x: f64) -> f64
     let pi: f64;
     pi = math_pi!;
 
-    sin(x + 0.5 * pi)
+    sin(x + 0.5f64 * pi)
 }
 
 // Uses $tan(x) = \frac{sin(x)}{cos(x)}$
@@ -265,22 +256,21 @@ let floor(x: f64) -> i128
 // Return the smallest integer greater than or equal to x.
 let ceiling(x: f64) -> i128
 {
-    f_to_i(x + 0.9999)
+    f_to_i(x + 0.9999f64)
 }
 
 // Return the closest integer to x.
 let round(x: f64) -> i32
 {
-    let out: f64;
-    out = x;
+    let out = x;
 
-    if (out > 0.0)
+    if out > 0.0f64
     {
-        out += 0.5;
+        out += 0.5f64;
     }
     else
     {
-        out -= 0.5;
+        out -= 0.5f64;
     }
 
     to_i32(floor(out))
@@ -295,34 +285,34 @@ If x is negative, returns -1.0.
 */
 let sqrt(x: f64) -> f64
 {
-    if (x >= 0.0)
+    if x >= 0.0f64
     {
         // Get a decent guess
         let out: f64;
-        out = x / 2.0;
+        out = x / 2.0f64;
 
         // Ensure guess is not one
-        out += 1.0;
+        out += 1.0f64;
 
         let counter: i32;
         let temp: f64;
 
-        counter = 10;
-        while (counter > 0)
+        counter = 10i32;
+        while counter > 0i32
         {
             temp = out;
             temp += x / out;
-            temp /= 2.0;
+            temp /= 2.0f64;
 
             out = temp;
 
-            counter -= 1;
+            --counter;
         }
 
         out
     }
 
-    -1.0
+    -1.0f64
 }
 
 // Return the remainder of a / b.

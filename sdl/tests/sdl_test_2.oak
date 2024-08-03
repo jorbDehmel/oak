@@ -12,21 +12,19 @@ let main() -> i32
 {
     let black: sdl_color;
     let white: sdl_color;
-    white.Copy(to_u8(255), to_u8(255), to_u8(255), to_u8(255));
+    white.Copy(255u8, 255u8, 255u8, 255u8);
 
-    let w: i32 = 512;
-    let h: i32 = 512;
+    let w: u64 = 512u64;
+    let h: u64 = 512u64;
 
     let wind: sdl_window;
-    Copy(@wind, to_u64(w), to_u64(h));
+    wind = (to_u64(w), to_u64(h));
 
     let event: sdl_event;
     let rect: sdl_rect;
-    rect.Copy(to_u64(w / 2), to_u64(h / 2), to_u64(8), to_u64(8));
+    rect = (w / 2u64, h / 2u64, 8u64, 8u64);
 
-    let start: i32;
-    let end: i32;
-    let elapsed: i32;
+    let start, end, elapsed: i32;
     let fps: f64;
 
     let up_is_pressed: bool = false;
@@ -66,7 +64,7 @@ let main() -> i32
                 {
                     let keycode: i128 = data.keycode;
 
-                    if (keycode == to_i128(27))
+                    if (keycode == 27i128)
                     {
                         running = false;
                     }
@@ -110,18 +108,15 @@ let main() -> i32
                     }
                 }
 
-                default
-                {
-                    ;
-                }
+                default {}
             }
         }
 
         if up_is_pressed
         {
-            if rect.y > to_u64(0)
+            if rect.y > 0u64
             {
-                rect.y -= to_u64(1);
+                --rect.y;
             }
         }
 
@@ -129,15 +124,15 @@ let main() -> i32
         {
             if rect.y < to_u64(h)
             {
-                rect.y += to_u64(1);
+                ++rect.y;
             }
         }
 
         if left_is_pressed
         {
-            if rect.x > to_u64(0)
+            if rect.x > 0u64
             {
-                rect.x -= to_u64(1);
+                --rect.x;
             }
         }
 
@@ -145,18 +140,18 @@ let main() -> i32
         {
             if rect.x < to_u64(w)
             {
-                rect.x += to_u64(1);
+                ++rect.x;
             }
         }
 
         end = sdl::get_ticks();
         elapsed = end - start;
 
-        if elapsed < 32
+        if elapsed < 32i32
         {
-            sdl::delay(32 - elapsed);
+            sdl::delay(32i32 - elapsed);
         }
     }
 
-    0
+    0i32
 }

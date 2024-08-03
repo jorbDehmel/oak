@@ -20,5 +20,5 @@ let main() -> i32
     to_write.Del();
     out.Del();
 
-    0
+    0i32
 }

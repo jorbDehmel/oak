@@ -16,7 +16,7 @@ let c::if_file_exists!(c: i32, v: [][]i8) -> i32
         "std/panic.oak"
     );
 
-    assert!(c > 2);
+    assert!(c > 2i32);
 
     let exists: bool;
     exists = false;
@@ -33,10 +33,10 @@ let c::if_file_exists!(c: i32, v: [][]i8) -> i32
         // File exists
         print(ptrarr!(v, 2u32));
     }
-    else if (c == 4)
+    else if (c == 4i32)
     {
         // File does not exist
-        print(ptrarr!(v, 3u32));
+        print(ptrarr!(v, 3i32));
     }
 
     0i32
@@ -46,9 +46,13 @@ let main() -> i32
 {
     c::if_file_exists!(
         "foo.txt",
-        "print('This file exists!\\n');\n",
-        "print('This file does not exist...\\n');\n"
+        {
+            print("This file exists!\\n");
+        },
+        {
+            print("This file does not exist...\\n");
+        }
     );
 
-    0
+    0i32
 }

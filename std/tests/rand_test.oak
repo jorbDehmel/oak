@@ -16,11 +16,11 @@ let main() -> i32
     print(rand());
     endl();
 
-    print(rand(0, 10));
+    print(rand(0i32, 10i32));
     endl();
 
-    print(rand(0.0, 10.0));
+    print(rand(0.0f64, 10.0f64));
     endl();
 
-    0
+    0i32
 }

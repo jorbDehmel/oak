@@ -9,14 +9,10 @@ Passed Oct 18 '23
 package!("std");
 use_rule!("std");
 
-let value! = 0;
+let value! = 0i32;
 
 let main() -> i32
 {
-    println<str>(_: str);
-    println<[]i8>(_: []i8);
-    println<i32>(_: i32);
-
     println(value!);
     println(oak_version!);
     println(comp_time!);
@@ -24,5 +20,5 @@ let main() -> i32
     println(file!);
     println(prev_file!);
 
-    0
+    0i32
 }

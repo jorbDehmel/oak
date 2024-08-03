@@ -51,19 +51,19 @@ let main() -> i32
 {
     let inst: pair<i32, i32>;
 
-    inst = make_pair(123, 456);
+    inst = make_pair(123i32, 456i32);
 
     print(inst.first);
     print("\n");
     print(inst.second);
     print("\n");
 
-    inst = (789, 123);
+    inst = (789i32, 123i32);
 
     print(inst.first);
     print("\n");
     print(inst.second);
     print("\n");
 
-    0
+    0i32
 }

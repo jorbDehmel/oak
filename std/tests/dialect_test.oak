@@ -26,8 +26,8 @@ let main() -> i32
 {
     print("Hello, there!\n");
 
-    let inst: obj = 5;
+    let inst: obj = 5i32;
     inst.method();
 
-    0
+    0i32
 }

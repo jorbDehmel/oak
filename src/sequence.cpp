@@ -75,6 +75,7 @@ ASTNode __createSequence(std::list<Token> &From,
     if (From.front().line != settings.curLine)
     {
         settings.curLine = From.front().line;
+        settings.curCol = From.front().col;
         settings.curLineSymbols.clear();
         if (From.size() != 0)
         {
@@ -1148,7 +1149,8 @@ ASTNode __createSequence(std::list<Token> &From,
         else if (From.front() == "c_print!")
         {
             std::cout << settings.curFile << ":"
-                      << settings.curLine << ":c_print! ";
+                      << settings.curLine << "."
+                      << settings.curCol << ":c_print! ";
 
             int count = 0;
             sm_assert(!From.empty(),
@@ -1189,7 +1191,8 @@ ASTNode __createSequence(std::list<Token> &From,
         {
             std::string message =
                 settings.curFile.string() + ":" +
-                std::to_string(settings.curLine) + ":c_panic! ";
+                std::to_string(settings.curLine) + "." +
+                std::to_string(settings.curCol) + ":c_panic! ";
 
             int count = 0;
             sm_assert(!From.empty(),
@@ -1229,7 +1232,8 @@ ASTNode __createSequence(std::list<Token> &From,
         {
             std::string message =
                 settings.curFile.string() + ":" +
-                std::to_string(settings.curLine) + ":c_warn! ";
+                std::to_string(settings.curLine) + "." +
+                std::to_string(settings.curCol) + ":c_warn! ";
 
             int count = 0;
             sm_assert(!From.empty(),
@@ -1271,8 +1275,8 @@ ASTNode __createSequence(std::list<Token> &From,
         else if (From.front() == "c_sys!")
         {
             std::cout << settings.curFile << ":"
-                      << std::to_string(settings.curLine)
-                      << ":c_sys! ";
+                      << settings.curLine << "."
+                      << settings.curCol << ":c_sys! ";
 
             std::string command;
             int count = 0;
@@ -2439,21 +2443,16 @@ Type resolveFunctionInternal(std::list<Token> &What,
         }
 
         // Special case: Array access
+        const static std::set<std::string> arrAccessTypes =
+            {"u8", "i8", "u16", "i16", "u32", "i32", "u64",
+             "i64", "u128", "i128"};
         if (name == "Get" &&
             (argTypes.front()[0].info == sarr ||
              argTypes.front()[0].info == arr) &&
             argStrs.size() == 2 &&
             (*std::next(argTypes.begin()))[0].info == atomic &&
-            ((*std::next(argTypes.begin()))[0].name == "u8" ||
-             (*std::next(argTypes.begin()))[0].name == "i8" ||
-             (*std::next(argTypes.begin()))[0].name == "u16" ||
-             (*std::next(argTypes.begin()))[0].name == "i16" ||
-             (*std::next(argTypes.begin()))[0].name == "u32" ||
-             (*std::next(argTypes.begin()))[0].name == "i32" ||
-             (*std::next(argTypes.begin()))[0].name == "u64" ||
-             (*std::next(argTypes.begin()))[0].name == "i64" ||
-             (*std::next(argTypes.begin()))[0].name == "u128" ||
-             (*std::next(argTypes.begin()))[0].name == "i128"))
+             arrAccessTypes.count(
+                (*std::next(argTypes.begin()))[0].name) != 0)
         {
             // Return type is the thing the array is of
             type = Type(argTypes.front(), 1);
@@ -2473,14 +2472,9 @@ Type resolveFunctionInternal(std::list<Token> &What,
 
         else
         {
-            // Search for candidates
-            sm_assert(settings.table.count(name) != 0,
-                      "Function call '" + name +
-                          "' has no registered symbols.");
-            sm_assert(settings.table[name].size() != 0,
-                      "Function call '" + name +
-                          "' has no registered symbols.");
+            // This section desperately needs a rewrite
 
+            // Search for candidates
             std::vector<MultiTableSymbol> candidates = {
                 settings.table[name].begin(),
                 settings.table[name].end()};
@@ -2556,8 +2550,34 @@ Type resolveFunctionInternal(std::list<Token> &What,
                 }
             }
 
+            // Last chance: Check for viable generics
+            // Anything herein must match EXACTLY, without cast
+            // or ref/deref
+            if (validCandidates.empty())
+            {
+                try
+                {
+                    candidates.push_back(
+                        implicitInstantiateGeneric(
+                            name,
+                            argTypes,
+                            settings));
+                    validCandidates.push_back(
+                        candidates.size() - 1);
+                }
+                catch (generic_error &e)
+                {
+                    std::cout << tags::red_bold
+                              << "In generic instantiation: "
+                              << e.what()
+                              << tags::reset;
+
+                    validCandidates.clear();
+                }
+            }
+
             // Error checking
-            if (validCandidates.size() == 0)
+            if (validCandidates.empty())
             {
                 // No viable candidates
 

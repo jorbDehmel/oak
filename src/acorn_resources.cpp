@@ -6,6 +6,7 @@ github.com/jorbDehmel
 GPLv3 held by author
 */
 
+#include "lexer.hpp"
 #include "oakc_fns.hpp"
 #include "oakc_structs.hpp"
 #include "tags.hpp"
@@ -52,10 +53,12 @@ void doFile(const std::string &From, AcornSettings &settings)
     // Clear active rules
     settings.activeRules.clear();
 
-    unsigned long long oldLineNum = settings.curLine;
+    auto oldLineNum = settings.curLine;
+    auto oldCol = settings.curCol;
     fs::path oldFile = settings.curFile;
 
     settings.curLine = 1;
+    settings.curCol = 0;
     settings.curFile = fs::canonical(From);
 
     std::list<Token> lexed, lexedCopy;
@@ -101,6 +104,7 @@ void doFile(const std::string &From, AcornSettings &settings)
             }
             settings.curFile = oldFile;
             settings.curLine = oldLineNum;
+            settings.curCol = oldCol;
             return;
         }
 
@@ -119,6 +123,7 @@ void doFile(const std::string &From, AcornSettings &settings)
         {
             settings.curFile = oldFile;
             settings.curLine = oldLineNum;
+            settings.curCol = oldCol;
             throw std::runtime_error(
                 "Could not open source file '" + From + "'");
         }
@@ -269,6 +274,7 @@ void doFile(const std::string &From, AcornSettings &settings)
                         {
                             contents += "\n" + it->text;
                             settings.curLine = it->line;
+                            settings.curCol = it->col;
                         }
 
                         it = lexed.erase(it);
@@ -829,7 +835,6 @@ void doFile(const std::string &From, AcornSettings &settings)
         }
 
         // H: Preproc definition insertion
-
         settings.preprocDefines["prev_file!"] =
             (oldFile == "" ? "\"NULL\""
                            : ("\"" + oldFile.string() + "\""));
@@ -838,6 +843,8 @@ void doFile(const std::string &From, AcornSettings &settings)
             std::to_string(time(NULL));
         settings.preprocDefines["oak_version!"] =
             "\"" + std::string(VERSION) + "\"";
+        settings.preprocDefines["oak_path!"] =
+            "\"" + OAK_DIR_PATH + "\"";
 
         // OS definition
         if (settings.preprocDefines.count("sys!") == 0)
@@ -862,25 +869,48 @@ void doFile(const std::string &From, AcornSettings &settings)
 
         for (auto it = lexed.begin(); it != lexed.end(); it++)
         {
-            settings.preprocDefines["line!"] =
-                std::to_string(it->line);
-            if (settings.preprocDefines.count(*it) != 0)
+            if (it->size() > 1 && it->back() == '!' &&
+                !itCmp(lexed, it, 1, "("))
             {
-                std::list<Token> lexedDef = dfa_lexer.lex_list(
-                    settings.preprocDefines[*it]);
-                it = lexed.erase(it);
+                std::string onFail = "";
+                if (it->text.substr(0, it->text.find('!') +
+                                           1) != it->text)
+                {
+                    onFail =
+                        it->text.substr(it->text.find('!') + 1);
+                    onFail.pop_back();
 
-                it = lexed.insert(it, lexedDef.begin(),
-                                  lexedDef.end());
+                    it->text = it->text.substr(
+                        0, it->text.find('!') + 1);
+                }
 
-                it--;
-            }
-            else if (it->size() > 1 && it->back() == '!' &&
-                     !itCmp(lexed, it, 1, "("))
-            {
-                throw sequencing_error(
-                    "Unknown preprocessor definition '" +
-                    it->text + "'");
+                if (*it == "line!")
+                {
+                    it->text = std::to_string(it->line);
+                }
+                else if (settings.preprocDefines.count(*it) !=
+                         0)
+                {
+                    std::list<Token> lexedDef =
+                        dfa_lexer.lex_list(
+                            settings.preprocDefines[*it]);
+                    it = lexed.erase(it);
+
+                    it = lexed.insert(it, lexedDef.begin(),
+                                      lexedDef.end());
+
+                    it--;
+                }
+                else if (onFail != "")
+                {
+                    it->text = onFail;
+                }
+                else
+                {
+                    throw sequencing_error(
+                        "Unknown preprocessor definition '" +
+                        it->text + "'");
+                }
             }
         }
 
@@ -1162,6 +1192,7 @@ void doFile(const std::string &From, AcornSettings &settings)
     }
 
     settings.curLine = oldLineNum;
+    settings.curCol = oldCol;
     settings.curFile = oldFile;
 
     return;

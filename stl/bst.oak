@@ -60,13 +60,13 @@ let Del<k, d>(self: ^stl::bst_node<k, d>) -> void
     {
         Del(self.left);
         free!(self.left);
-        ptrcpy!(self.left, 0);
+        ptrcpy!(self.left, 0u128);
     }
     if (is_not_null(to_void_ptr(self.right)))
     {
         Del(self.right);
         free!(self.right);
-        ptrcpy!(self.right, 0);
+        ptrcpy!(self.right, 0u128);
     }
 }
 
@@ -109,7 +109,7 @@ let Del<k, d>(self: ^stl::bst<k, d>) -> void
     {
         Del(self.root);
         free!(self.root);
-        ptrcpy!(self.root, 0);
+        ptrcpy!(self.root, 0u128);
     }
 }
 
@@ -234,7 +234,7 @@ let dist<k, d>(self: ^stl::bst<k, d>, key: k) -> i32
 {
     let cur: ^stl::bst_node<k, d>;
     ptrcpy!(cur, self.root);
-    let i: i32 = 0;
+    let i = 0i32;
 
     while (is_not_null(to_void_ptr(cur)))
     {
@@ -251,10 +251,10 @@ let dist<k, d>(self: ^stl::bst<k, d>, key: k) -> i32
             return i;
         }
 
-        i += 1;
+        ++i;
     }
 
-    -1
+    -1i32
 }
 
 ////////////////////////////////////////////////////////////////

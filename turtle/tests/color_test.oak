@@ -6,14 +6,14 @@ use_rule!("std");
 
 let draw_circle(self: ^turtle::turtle, radius: f64) -> void
 {
-    let step: f64 = 2.0 * math_pi! * radius;
-    step /= 360.0;
-    let i: u128 = 0;
-    while i < to_u128(360)
+    let step: f64 = 2.0f64 * math_pi! * radius;
+    step /= 360.0f64;
+    let i = 0u128;
+    while i < 360u128
     {
         self.forward(ceiling(step));
-        self.left(1.0);
-        i += 1;
+        self.left(1.0f64);
+        ++i;
     }
 }
 
@@ -22,15 +22,15 @@ let main() -> i32
     let t: turtle::turtle;
 
     t.up();
-    t.set_position(256, 256);
+    t.set_position(256u64, 256u64);
     t.down();
 
     t.color(255u8, 0u8, 0u8);
-    t.draw_circle(100.0);
+    t.draw_circle(100.0f64);
     t.color(0u8, 255u8, 0u8);
-    t.draw_circle(200.0);
+    t.draw_circle(200.0f64);
     t.color(0u8, 0u8, 255u8);
-    t.draw_circle(300.0);
+    t.draw_circle(300.0f64);
 
-    0
+    0i32
 }

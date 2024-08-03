@@ -9,10 +9,264 @@ jdehmel@outlook.com
 #include "tags.hpp"
 #include <fstream>
 #include <iostream>
+#include <map>
+#include <set>
 #include <stdexcept>
 
-bool Lexer::is_initialized = false;
-LexerState **Lexer::dfa = nullptr;
+/*
+States for use in the lexer DFA later on.
+*/
+enum LexerState
+{
+    delim_state = 0,
+    numerical_state,
+    alpha_state,
+    dot_state,
+    singleton_state,
+    operator_state,
+    string_literal_state_single,
+    string_literal_state_double,
+    dollar_sign_state,
+    colon_state,
+    dash_state,
+    open_square_bracket_state,
+    close_square_bracket_state,
+    passthrough_state,
+    whitespace_state, // Must be last
+};
+
+/*
+Stats about the states above. Also for use with the DFA later.
+*/
+const static int number_states = whitespace_state + 1;
+const static int number_chars = UCHAR_MAX;
+
+// DFA stuff for lexing.
+namespace Lex
+{
+static bool is_initialized = false;
+static LexerState dfa[number_states][number_chars];
+
+// Not all of these will actually be used
+const static std::map<LexerState, std::string> state_to_type = {
+    {numerical_state, "NUMBER"},
+    {alpha_state, "ID"},
+    {dot_state, "DOT"},
+    {singleton_state, "SINGLETON"},
+    {operator_state, "OP"},
+    {string_literal_state_single, "SINGLE_STR"},
+    {string_literal_state_double, "DOUBLE_STR"},
+    {dollar_sign_state, "DOLLAR_SIGN"},
+    {colon_state, "COLON"},
+    {dash_state, "DASH"},
+    {open_square_bracket_state, "OPEN_SQUARE"},
+    {close_square_bracket_state, "CLOSE_SQUARE"},
+    {passthrough_state, "PASSTHROUGH"},
+    {whitespace_state, "WHITESPACE"},
+};
+
+void init_dfa();
+} // namespace Lex
+
+// Initialize DFA
+void Lex::init_dfa()
+{
+    const static char *alpha = "abcdefghijklmnopqrstuvwxyz_"
+                               "ABCDEFGHIJKLMNOPQRSTUVWXYZ`";
+    const static char *numer = "0123456789";
+    const static char *oper = "!%&*=+|/~[]";
+    const static char *singletons = "^@#(){};,?";
+    const static char *whitespace = " \t\n";
+
+    for (int i = 0; i < number_states; ++i)
+    {
+        // Set default to deliminator state
+        for (int j = 0; j < number_chars; j++)
+        {
+            dfa[i][j] = delim_state;
+        }
+    }
+
+    // Alphabetic stuff
+    for (const char *i = &alpha[0]; *i != '\0'; ++i)
+    {
+        dfa[delim_state][(unsigned int)*i] = alpha_state;
+        dfa[numerical_state][(unsigned int)*i] =
+            numerical_state;
+        dfa[alpha_state][(unsigned int)*i] = alpha_state;
+        dfa[string_literal_state_single][(unsigned int)*i] =
+            string_literal_state_single;
+        dfa[string_literal_state_double][(unsigned int)*i] =
+            string_literal_state_double;
+        dfa[whitespace_state][(unsigned int)*i] = delim_state;
+    }
+
+    // Non-ascii alphabetic stuff
+    for (int i = 1; i < number_chars; ++i)
+    {
+        if (i > 31 && i < 128)
+        {
+            continue;
+        }
+        else if (i == '\t' || i == '\n')
+        {
+            continue;
+        }
+
+        dfa[delim_state][i] = alpha_state;
+        dfa[numerical_state][i] = numerical_state;
+        dfa[alpha_state][i] = alpha_state;
+        dfa[string_literal_state_single][i] =
+            string_literal_state_single;
+        dfa[string_literal_state_double][i] =
+            string_literal_state_double;
+        dfa[whitespace_state][i] = delim_state;
+    }
+
+    // Numerical stuff
+    for (const char *i = &numer[0]; *i != '\0'; ++i)
+    {
+        dfa[delim_state][(unsigned int)*i] = numerical_state;
+        dfa[numerical_state][(unsigned int)*i] =
+            numerical_state;
+        dfa[alpha_state][(unsigned int)*i] = alpha_state;
+        dfa[dot_state][(unsigned int)*i] = numerical_state;
+        dfa[string_literal_state_single][(unsigned int)*i] =
+            string_literal_state_single;
+        dfa[string_literal_state_double][(unsigned int)*i] =
+            string_literal_state_double;
+        dfa[dash_state][(unsigned int)*i] = numerical_state;
+    }
+
+    // Dot stuff
+    dfa[delim_state][(unsigned int)'.'] = dot_state;
+    dfa[numerical_state][(unsigned int)'.'] = numerical_state;
+    dfa[string_literal_state_single][(unsigned int)'.'] =
+        string_literal_state_single;
+    dfa[string_literal_state_double][(unsigned int)'.'] =
+        string_literal_state_double;
+
+    // Singleton stuff
+    for (const char *i = &singletons[0]; *i != '\0'; ++i)
+    {
+        dfa[delim_state][(unsigned int)*i] = singleton_state;
+    }
+
+    // Square bracket stuff
+    dfa[delim_state][(unsigned int)'<'] =
+        open_square_bracket_state;
+    dfa[delim_state][(unsigned int)'>'] =
+        close_square_bracket_state;
+    dfa[open_square_bracket_state][(unsigned int)'='] =
+        operator_state;
+    dfa[close_square_bracket_state][(unsigned int)'='] =
+        operator_state;
+
+    // Dash stuff
+    dfa[delim_state][(unsigned int)'-'] = dash_state;
+    dfa[dash_state][(unsigned int)'-'] = dash_state;
+    dfa[dash_state][(unsigned int)'>'] = operator_state;
+
+    // Operator stuff
+    for (const char *i = &oper[0]; *i != '\0'; ++i)
+    {
+        dfa[delim_state][(unsigned int)*i] = operator_state;
+        dfa[operator_state][(unsigned int)*i] = operator_state;
+        dfa[string_literal_state_single][(unsigned int)*i] =
+            string_literal_state_single;
+        dfa[string_literal_state_double][(unsigned int)*i] =
+            string_literal_state_double;
+        dfa[dash_state][(unsigned int)*i] = operator_state;
+    }
+    dfa[operator_state][(unsigned int)'['] = delim_state;
+
+    // String literal stuff
+    for (int i = 0; i < number_chars; ++i)
+    {
+        dfa[string_literal_state_single][i] =
+            string_literal_state_single;
+        dfa[string_literal_state_double][i] =
+            string_literal_state_double;
+    }
+
+    dfa[delim_state][(unsigned int)'\''] =
+        string_literal_state_single;
+    dfa[delim_state][(unsigned int)'"'] =
+        string_literal_state_double;
+
+    dfa[delim_state][(unsigned int)':'] = colon_state;
+
+    for (int i = 1; i < number_states; ++i)
+    {
+        if (i == singleton_state)
+        {
+            continue;
+        }
+
+        if (i != string_literal_state_double)
+        {
+            dfa[(LexerState)i][(unsigned int)'\''] =
+                delim_state;
+        }
+        if (i != string_literal_state_single)
+        {
+            dfa[(LexerState)i][(unsigned int)'"'] = delim_state;
+        }
+    }
+
+    // Whitespace stuff
+    for (const char *i = &whitespace[0]; *i != '\0'; ++i)
+    {
+        dfa[delim_state][(unsigned int)*i] = whitespace_state;
+        dfa[string_literal_state_single][(unsigned int)*i] =
+            string_literal_state_single;
+        dfa[string_literal_state_double][(unsigned int)*i] =
+            string_literal_state_double;
+        dfa[whitespace_state][(unsigned int)*i] = delim_state;
+    }
+
+    dfa[string_literal_state_single][(unsigned int)'\n'] =
+        delim_state;
+    dfa[string_literal_state_double][(unsigned int)'\n'] =
+        delim_state;
+
+    // Misc
+    dfa[alpha_state][(unsigned int)'!'] = alpha_state;
+
+    for (int i = 0; i < number_states; ++i)
+    {
+        if (i == string_literal_state_single ||
+            i == string_literal_state_double ||
+            i == whitespace_state ||
+            i == singleton_state)
+        {
+            continue;
+        }
+
+        dfa[i][(unsigned int)'$'] = dollar_sign_state;
+    }
+    for (int i = 0; i < number_chars; ++i)
+    {
+        dfa[dollar_sign_state][i] = dollar_sign_state;
+        dfa[colon_state][i] = delim_state;
+        dfa[singleton_state][i] = delim_state;
+        dfa[passthrough_state][i] = delim_state;
+    }
+
+    dfa[dollar_sign_state][(unsigned int)' '] = delim_state;
+    dfa[dollar_sign_state][(unsigned int)'\t'] = delim_state;
+    dfa[dollar_sign_state][(unsigned int)'\n'] = delim_state;
+    dfa[colon_state][(unsigned int)':'] = colon_state;
+
+    dfa[string_literal_state_single][(unsigned int)'\''] =
+        passthrough_state;
+    dfa[string_literal_state_double][(unsigned int)'"'] =
+        passthrough_state;
+
+    Lex::is_initialized = true;
+}
+
+////////////////////////////////////////////////////////////////
 
 std::string to_string(Token &what)
 {
@@ -36,237 +290,31 @@ std::string to_string(Token &what)
 
 Lexer::Lexer()
 {
-    const char *alpha = "abcdefghijklmnopqrstuvwxyz_"
-                        "ABCDEFGHIJKLMNOPQRSTUVWXYZ`";
-    const char *numer = "0123456789";
-    const char *oper = "!%&*=+|/~[]";
-    const char *singletons = "^@#(){};,?";
-    const char *whitespace = " \t\n";
-
+    // Initialize variables
     cur_file = "NULL";
-
-    // Localize variables
-    text = "";
-    pos = 0;
+    text = "\n";
+    pos = col = 0;
     line = 1;
-    state = delim_state;
 
-    // Initialize singleton members
-    if (Lexer::is_initialized)
+    // Initialize DFA if need be
+    if (!Lex::is_initialized)
     {
-        is_responsible = false;
+        Lex::init_dfa();
         return;
     }
-
-    is_responsible = true;
-    Lexer::is_initialized = true;
-
-    // Initialize DFA
-    dfa = new LexerState *[number_states];
-    for (int i = 0; i < number_states; i++)
-    {
-        dfa[i] = new LexerState[number_chars];
-
-        // Set default to deliminator state
-        for (int j = 0; j < number_chars; j++)
-        {
-            dfa[i][j] = delim_state;
-        }
-    }
-
-    // Alphabetic stuff
-    for (const char *i = &alpha[0]; *i != '\0'; i++)
-    {
-        dfa[delim_state][(unsigned int)*i] = alpha_state;
-        dfa[numerical_state][(unsigned int)*i] =
-            numerical_state;
-        dfa[alpha_state][(unsigned int)*i] = alpha_state;
-        dfa[string_literal_state_single][(unsigned int)*i] =
-            string_literal_state_single;
-        dfa[string_literal_state_double][(unsigned int)*i] =
-            string_literal_state_double;
-        dfa[whitespace_state][(unsigned int)*i] = delim_state;
-    }
-
-    // Non-ascii alphabetic stuff
-    for (int i = 1; i < number_chars; i++)
-    {
-        if (i > 31 && i < 128)
-        {
-            continue;
-        }
-        else if (i == '\t' || i == '\n')
-        {
-            continue;
-        }
-
-        dfa[delim_state][i] = alpha_state;
-        dfa[numerical_state][i] = numerical_state;
-        dfa[alpha_state][i] = alpha_state;
-        dfa[string_literal_state_single][i] =
-            string_literal_state_single;
-        dfa[string_literal_state_double][i] =
-            string_literal_state_double;
-        dfa[whitespace_state][i] = delim_state;
-    }
-
-    // Numerical stuff
-    for (const char *i = &numer[0]; *i != '\0'; i++)
-    {
-        dfa[delim_state][(unsigned int)*i] = numerical_state;
-        dfa[numerical_state][(unsigned int)*i] =
-            numerical_state;
-        dfa[alpha_state][(unsigned int)*i] = alpha_state;
-        dfa[dot_state][(unsigned int)*i] = numerical_state;
-        dfa[string_literal_state_single][(unsigned int)*i] =
-            string_literal_state_single;
-        dfa[string_literal_state_double][(unsigned int)*i] =
-            string_literal_state_double;
-        dfa[dash_state][(unsigned int)*i] = numerical_state;
-    }
-
-    // Dot stuff
-    dfa[delim_state][(unsigned int)'.'] = dot_state;
-    dfa[numerical_state][(unsigned int)'.'] = numerical_state;
-    dfa[string_literal_state_single][(unsigned int)'.'] =
-        string_literal_state_single;
-    dfa[string_literal_state_double][(unsigned int)'.'] =
-        string_literal_state_double;
-
-    // Singleton stuff
-    for (const char *i = &singletons[0]; *i != '\0'; i++)
-    {
-        dfa[delim_state][(unsigned int)*i] = singleton_state;
-    }
-
-    // Square bracket stuff
-    dfa[delim_state][(unsigned int)'<'] =
-        open_square_bracket_state;
-    dfa[delim_state][(unsigned int)'>'] =
-        close_square_bracket_state;
-    dfa[open_square_bracket_state][(unsigned int)'='] =
-        operator_state;
-    dfa[close_square_bracket_state][(unsigned int)'='] =
-        operator_state;
-
-    // Dash stuff
-    dfa[delim_state][(unsigned int)'-'] = dash_state;
-    dfa[dash_state][(unsigned int)'-'] = dash_state;
-    dfa[dash_state][(unsigned int)'>'] = operator_state;
-
-    // Operator stuff
-    for (const char *i = &oper[0]; *i != '\0'; i++)
-    {
-        dfa[delim_state][(unsigned int)*i] = operator_state;
-        dfa[operator_state][(unsigned int)*i] = operator_state;
-        dfa[string_literal_state_single][(unsigned int)*i] =
-            string_literal_state_single;
-        dfa[string_literal_state_double][(unsigned int)*i] =
-            string_literal_state_double;
-        dfa[dash_state][(unsigned int)*i] = operator_state;
-    }
-    dfa[operator_state][(unsigned int)'['] = delim_state;
-
-    // String literal stuff
-    for (int i = 0; i < number_chars; i++)
-    {
-        dfa[string_literal_state_single][i] =
-            string_literal_state_single;
-        dfa[string_literal_state_double][i] =
-            string_literal_state_double;
-    }
-
-    dfa[delim_state][(unsigned int)'\''] =
-        string_literal_state_single;
-    dfa[delim_state][(unsigned int)'"'] =
-        string_literal_state_double;
-    dfa[delim_state][(unsigned int)':'] = colon_state;
-    dfa[string_literal_state_single][(unsigned int)'\''] =
-        delim_state;
-    dfa[string_literal_state_double][(unsigned int)'"'] =
-        delim_state;
-
-    for (int i = 1; i < number_states; i++)
-    {
-        if (i != string_literal_state_double)
-        {
-            dfa[(LexerState)i][(unsigned int)'\''] =
-                delim_state;
-        }
-        if (i != string_literal_state_single)
-        {
-            dfa[(LexerState)i][(unsigned int)'"'] = delim_state;
-        }
-    }
-
-    // Whitespace stuff
-    for (const char *i = &whitespace[0]; *i != '\0'; i++)
-    {
-        dfa[delim_state][(unsigned int)*i] = whitespace_state;
-        dfa[string_literal_state_single][(unsigned int)*i] =
-            string_literal_state_single;
-        dfa[string_literal_state_double][(unsigned int)*i] =
-            string_literal_state_double;
-    }
-
-    dfa[string_literal_state_single][(unsigned int)'\n'] =
-        delim_state;
-    dfa[string_literal_state_double][(unsigned int)'\n'] =
-        delim_state;
-
-    // Misc
-    dfa[alpha_state][(unsigned int)'!'] = alpha_state;
-
-    for (int i = 0; i < number_states; i++)
-    {
-        if (i == string_literal_state_single ||
-            i == string_literal_state_double ||
-            i == whitespace_state)
-        {
-            continue;
-        }
-
-        dfa[i][(unsigned int)'$'] = dollar_sign_state;
-    }
-    for (int i = 0; i < number_chars; i++)
-    {
-        dfa[dollar_sign_state][i] = dollar_sign_state;
-        dfa[colon_state][i] = delim_state;
-    }
-
-    dfa[dollar_sign_state][(unsigned int)' '] = delim_state;
-    dfa[dollar_sign_state][(unsigned int)'\t'] = delim_state;
-    dfa[dollar_sign_state][(unsigned int)'\n'] = delim_state;
-    dfa[colon_state][(unsigned int)':'] = colon_state;
-}
-
-Lexer::~Lexer()
-{
-    if (!is_responsible)
-    {
-        return;
-    }
-
-    for (int i = 0; i < number_states; i++)
-    {
-        delete[] dfa[i];
-    }
-    delete[] dfa;
-    dfa = 0;
-
-    is_initialized = false;
 }
 
 void Lexer::str(const std::string &from) noexcept
 {
-    pos = 0;
+    pos = col = 0;
     line = 1;
     text = from;
+    text.push_back('\n');
 }
 
 void Lexer::file(const std::string &filepath)
 {
-    pos = 0;
+    pos = col = 0;
     line = 1;
     cur_file = filepath;
 
@@ -298,71 +346,72 @@ Token Lexer::single()
         throw std::runtime_error("Cannot lex finished text.");
     }
 
-    // Assume we are in null_state right now
-    LexerState prev_state = delim_state;
     Token out;
-
-    out.pos = pos;
+    out.text.reserve(16); // This is an arbitrary number
+    out.text.clear();
+    out.col = col;
     out.line = line;
     out.file = cur_file;
 
+    uint64_t starting_pos = pos;
     bool skip = false;
+    LexerState state = delim_state, prev_state = delim_state;
+
     do
     {
-        if (pos < text.size() && text[pos] == '\n' &&
-            pos != out.pos)
+        if (Lex::dfa[state]['\n'] != delim_state
+            && text[pos] == '\n')
         {
-            if (state == string_literal_state_single ||
-                state == string_literal_state_double)
-            {
-                state = delim_state;
-                break;
-            }
-            line++;
+            ++line;
+            col = 0;
         }
+        out.text.push_back(text[pos]);
 
         if (skip)
         {
-            pos++;
             skip = false;
-            continue;
         }
-        else if (pos < text.size() && text[pos] == '\\')
+        else if (text[pos] == '\\')
         {
             skip = true;
-            pos++;
-            continue;
-        }
-
-        prev_state = state;
-
-        if (pos <= text.size())
-        {
-            state = dfa[state][(unsigned char)text[pos]];
         }
         else
         {
-            state = delim_state;
+            if (state != passthrough_state)
+            {
+                prev_state = state;
+            }
+            state = Lex::dfa[state][(unsigned char)text[pos]];
         }
 
-        pos++;
-    } while (state != delim_state);
+        ++col;
+        ++pos;
+    } while (state != delim_state && pos < text.size());
 
-    if (prev_state != string_literal_state_single &&
-        prev_state != string_literal_state_double)
+    // Correct off-by-one error
+    out.text.pop_back();
+    if (pos < text.size())
     {
-        pos--;
+        --pos;
+        --col;
     }
 
-    if (pos <= out.pos)
+    out.type = (Lex::state_to_type.count(prev_state) != 0)
+                   ? Lex::state_to_type.at(prev_state)
+                   : "NULL";
+
+    // Error checking
+    if (pos <= starting_pos)
     {
         int start, end;
-        start = std::max(0ll, (long long)(pos - 20));
+        const auto r = 20;
+
+        start = std::max(0ll, (long long)(col - r));
         end = std::min((long long)text.size(),
-                       (long long)(pos + 20));
+                       (long long)(col + r));
 
         std::string sub = text.substr(start, end - start);
-        for (int i = 0; i < sub.size(); i++)
+        for (int i = 0; i < sub.size(); ++i)
         {
             if (sub[i] == '\n')
             {
@@ -372,19 +421,16 @@ Token Lexer::single()
 
         std::cout << tags::violet_bold << "In region:\n"
                   << sub << "\n";
-        for (int i = start; i < pos; i++)
+        for (int i = start; i < col; ++i)
         {
             std::cout << ' ';
         }
         std::cout << "^\n\n" << tags::reset;
 
         throw std::runtime_error(
-            "Invalid lex: Token cannot be of size zero!");
+            "Invalid lex: Token cannot be of size " +
+            std::to_string(pos - starting_pos));
     }
-
-    // Record the falling state and text
-    out.text = text.substr(out.pos, pos - out.pos);
-    out.state = prev_state;
 
     return out;
 }
@@ -418,7 +464,7 @@ void erase_comments(std::list<Token> &what)
             if (it->substr(0, 2) == "//" ||
                 it->substr(0, 1) == "#")
             {
-                while (it->text != "\n")
+                while (it != what.end() && it->text != "\n")
                 {
                     it = what.erase(it);
                 }
@@ -432,7 +478,7 @@ void erase_whitespace(std::list<Token> &what)
 {
     for (auto it = what.begin(); it != what.end(); it++)
     {
-        if (it->state == whitespace_state)
+        if (it->type == "WHITESPACE")
         {
             it = what.erase(it);
             it--;
@@ -442,51 +488,67 @@ void erase_whitespace(std::list<Token> &what)
 
 void join_numbers(std::list<Token> &what)
 {
+    const static std::set<std::string> type_suffixes = {
+        "u8", "u16", "u32", "u64", "u128", "i8", "i16", "i32",
+        "i64", "i128", "f32", "f64"};
+
     for (auto it = what.begin(); it != what.end(); it++)
     {
-        if (it->state == numerical_state)
+        if (it->type == "NUMBER")
         {
-            it++;
-
-            while (it != what.end() &&
-                   it->state == numerical_state)
+            // Concatenate number literals
+            ++it;
+            while (it != what.end() && it->type == "NUMBER")
             {
                 std::string temp = it->text;
-                it--;
+                --it;
                 it->text += temp;
-                it++;
+                ++it;
 
                 it = what.erase(it);
-            }
-
-            if (it == what.end())
-            {
-                break;
             }
 
             // Join numerical type-suffixes
-            if (*it == "u8" || *it == "u16" || *it == "u32" ||
-                *it == "u64" || *it == "u128" || *it == "i8" ||
-                *it == "i16" || *it == "i32" || *it == "i64" ||
-                *it == "i128" || *it == "f32" || *it == "f64")
+            if (it != what.end() &&
+                type_suffixes.count(it->text) != 0)
             {
                 std::string temp = it->text;
-                it--;
+                --it;
                 it->text += temp;
-                it++;
+                ++it;
 
                 it = what.erase(it);
             }
+
             else
             {
-                std::cout << tags::yellow_bold
-                          << "Warning: Untyped number literal "
-                          << "at " << it->file << ":"
-                          << it->line << ".\n"
-                          << tags::reset;
+                --it;
+                // Check for type suffixes
+
+                bool is_typed = false;
+                for (const char c : it->text)
+                {
+                    if (isalpha(c))
+                    {
+                        is_typed = true;
+                        break;
+                    }
+                }
+
+                if (!is_typed)
+                {
+                    std::cout << tags::yellow_bold
+                              << "Warning: Untyped number "
+                              << "literal '" << it->text
+                              << "' at " << it->file << ":"
+                              << it->line << "." << it->col
+                              << ".\n" << tags::reset;
+                }
+
+                ++it;
             }
 
-            it--;
+            --it;
         }
     }
 }
@@ -522,11 +584,11 @@ void join_strings(std::list<Token> &what)
     // Single quote pass
     for (auto it = what.begin(); it != what.end(); it++)
     {
-        if (it->state == string_literal_state_single)
+        if (it->type == "SINGLE_STR")
         {
             it++;
 
-            while (it->state == string_literal_state_single)
+            while (it->type == "SINGLE_STR")
             {
                 std::string temp = it->text.substr(1);
                 it--;
@@ -544,11 +606,11 @@ void join_strings(std::list<Token> &what)
     // Double quote pass
     for (auto it = what.begin(); it != what.end(); it++)
     {
-        if (it->state == string_literal_state_double)
+        if (it->type == "DOUBLE_STR")
         {
             it++;
 
-            while (it->state == string_literal_state_double)
+            while (it->type == "DOUBLE_STR")
             {
                 std::string temp = it->text.substr(1);
                 it--;
@@ -620,7 +682,7 @@ void join_bitshifts(std::list<Token> &what)
             {
                 // Merge into a left bit shift
                 next->text = "<<";
-                next->state = operator_state;
+                next->type = "OP";
 
                 it = what.erase(it);
             }
@@ -633,7 +695,7 @@ void join_bitshifts(std::list<Token> &what)
         {
             // Merge into a right bit shift
             next->text = ">>";
-            next->state = operator_state;
+            next->type = "OP";
 
             it = what.erase(it);
         }
@@ -643,18 +705,18 @@ void join_bitshifts(std::list<Token> &what)
 void Lexer::str(const std::string &from,
                 const std::string &filepath) noexcept
 {
-    pos = 0;
+    pos = col = 0;
     line = 1;
     text = from;
     cur_file = filepath;
+
+    text.push_back('\n');
 }
 
 std::list<Token> Lexer::str_all(
     const std::string &from) noexcept
 {
-    pos = 0;
-    line = 1;
-    text = from;
+    str(from, cur_file);
 
     std::list<Token> out;
 
@@ -670,10 +732,7 @@ std::list<Token> Lexer::str_all(
     const std::string &from,
     const std::string &filepath) noexcept
 {
-    pos = 0;
-    line = 1;
-    text = from;
-    cur_file = filepath;
+    str(from, filepath);
 
     std::list<Token> out;
 
@@ -684,16 +743,6 @@ std::list<Token> Lexer::str_all(
 
     return out;
 }
-
-// Antiquated version:
-// std::vector<Token> Lexer::lex(const std::string &What, const
-// std::string &filepath)
-// {
-//     auto lexed = lex_list(What, filepath);
-//     std::vector<Token> out_vec;
-//     out_vec.assign(lexed.begin(), lexed.end());
-//     return out_vec;
-// }
 
 std::list<Token> Lexer::lex_list(const std::string &What,
                                  const std::string &filepath)

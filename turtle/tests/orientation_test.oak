@@ -6,20 +6,18 @@ include!("std/cstr.oak");
 
 let main() -> i32
 {
-    println<f64>(_: f64);
-
     let t: turtle::turtle;
 
     t.up();
-    t.set_position(256, 256);
-    t.set_orientation(0.0);
+    t.set_position(256u64, 256u64);
+    t.set_orientation(0.0f64);
     t.down();
 
     while t.is_running
     {
-        t.right(7.0);
-        t.forward(100);
-        t.backward(100);
+        t.right(7.0f64);
+        t.forward(100u64);
+        t.backward(100u64);
     }
 
     let file: [13]i8;
@@ -27,5 +25,5 @@ let main() -> i32
 
     t.save(file);
 
-    0
+    0i32
 }

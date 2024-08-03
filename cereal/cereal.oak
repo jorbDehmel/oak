@@ -59,7 +59,7 @@ let serialize<t>(self: ^t, into: ^extra::string_builder) -> void
 
     // Construct buffer
     let buffer: []i8;
-    let buffer_size: u128 = size * 2;
+    let buffer_size: u128 = size * 2u128;
     alloc!(buffer, buffer_size);
 
     let dst: ^void;
@@ -102,13 +102,13 @@ let deserialize<t>(self: ^t, from: []i8, pos: ^u128) -> void
     ptrcpy!(src, @ptrarr!(from, ^pos));
 
     cereal::hex_read(src, dst, size!(^self));
-    pos += size!(^self) * 2;
+    pos += size!(^self) * 2u128;
 }
 
 // Deserialize directly from string.
 let deserialize<t>(self: ^t, from: string) -> void
 {
-    let pos: u128 = 0;
+    let pos: u128 = 0u128;
     deserialize(self, from.data, pos);
 }
 pre

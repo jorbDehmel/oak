@@ -11,7 +11,7 @@ Passed Oct 21, 23
 package!("std");
 use_rule!("std");
 
-let Fn() -> void
+let fn() -> void
 {
     let a: ^i32;
     let b: ^i32;
@@ -21,10 +21,10 @@ let Fn() -> void
     ptrcpy!(b, a);
 
     // Super unsafe call
-    b = ptrarr!(a, to_u128(2));
+    b = ptrarr!(a, 2u128);
 }
 
 let main() -> i32
 {
-    0
+    0i32
 }

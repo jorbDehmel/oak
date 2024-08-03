@@ -11,7 +11,7 @@ let a_data: struct
 
 let New(self: ^a_data) -> void
 {
-    self.data = to_i128(0);
+    self.data = 0i128;
 }
 
 let test: enum
@@ -30,7 +30,7 @@ let main() -> i32
     let obj: test;
 
     let to_wrap: a_data;
-    to_wrap.data = to_i128(5);
+    to_wrap.data = 5i128;
 
     obj.wrap_a(to_wrap);
 
@@ -53,5 +53,5 @@ let main() -> i32
         }
     }
 
-    0
+    0i32
 }

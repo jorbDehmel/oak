@@ -16,5 +16,5 @@ let main() -> i32
         "multiple successive string literals into one.\n"
     );
 
-    0
+    0i32
 }

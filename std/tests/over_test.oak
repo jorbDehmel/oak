@@ -27,5 +27,5 @@ let hi() -> void
 
 let main() -> i32
 {
-    0
+    0i32
 }

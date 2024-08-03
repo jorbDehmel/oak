@@ -19,5 +19,5 @@ let main() -> i32
     printf!("%\t%\n", i64_min!, i64_max!);
     printf!("%\t%\n", i128_min!, i128_max!);
 
-    0
+    0i32
 }

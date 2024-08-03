@@ -13,7 +13,10 @@ let main() -> i32
 {
     warn("This file is deprecated!\n");
 
-    warnf!("This file is deprecated! Use file % instead.\n", 123);
+    warnf!(
+        "This file is deprecated! Use file % instead.\n",
+        123i32
+    );
 
-    0
+    0i32
 }

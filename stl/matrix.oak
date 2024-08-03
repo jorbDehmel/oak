@@ -51,22 +51,24 @@ post
 
 ////////////////////////////////////////////////////////////////
 
+// Create an empty matrix
 let New<t>(self: ^stl::matrix<t>) -> void
 {
-    self.w = 0;
-    self.h = 0;
+    self.w = 0u128;
+    self.h = 0u128;
     self.responsible = false;
 }
 
+// Delete an existing matrix
 let Del<t>(self: ^stl::matrix<t>) -> void
 {
-    if self.responsible && self.w != 0 && self.h != 0
+    if self.responsible && self.w != 0u128 && self.h != 0u128
     {
-        let i: u128 = 0;
+        let i: u128 = 0u128;
         while i < self.h * self.w
         {
             Del(Get(self.data, i));
-            i += 1;
+            ++i;
         }
 
         free!(self.data);
@@ -74,6 +76,7 @@ let Del<t>(self: ^stl::matrix<t>) -> void
     }
 }
 
+// Allocate a matrix from some dimensions
 let Copy<t>(self: ^stl::matrix<t>, w: u128, h: u128
     ) -> stl::matrix<t>
 {
@@ -85,11 +88,11 @@ let Copy<t>(self: ^stl::matrix<t>, w: u128, h: u128
 
     alloc!(self.data, w * h);
 
-    let i: u128 = 0;
+    let i = 0u128;
     while i < w * h
     {
         New(Get(self.data, i));
-        i += 1;
+        ++i;
     }
 
     self.w = w;
@@ -98,6 +101,7 @@ let Copy<t>(self: ^stl::matrix<t>, w: u128, h: u128
     ^self
 }
 
+// Deep copy iff other is responsible
 let Copy<t>(self: ^stl::matrix<t>, other: stl::matrix<t>
     ) -> stl::matrix<t>
 {
@@ -109,17 +113,17 @@ let Copy<t>(self: ^stl::matrix<t>, other: stl::matrix<t>
 
         self = (other.w, other.h);
 
-        let y: u128 = 0;
+        let y = 0u128;
         while y < self.h
         {
-            let x: u128 = 0;
+            let x = 0u128;
             while x < self.w
             {
                 Get(self.data, (y * self.w) + x)
                     = Get(other.data, (y * self.w) + x);
-                x += 1;
+                ++x;
             }
-            y += 1;
+            ++y;
         }
     }
     else
@@ -134,6 +138,7 @@ let Copy<t>(self: ^stl::matrix<t>, other: stl::matrix<t>
     ^self
 }
 
+// Get an item
 let Get<t>(self: ^stl::matrix<t>, x: u128, y: u128) -> t
 {
     assert!(x < self.w);
@@ -142,6 +147,7 @@ let Get<t>(self: ^stl::matrix<t>, x: u128, y: u128) -> t
     Get(self.data, (self.w * y) + x)
 }
 
+// Get an item
 let get<t>(self: ^stl::matrix<t>, x: u128, y: u128) -> t
 {
     assert!(x < self.w);
@@ -150,6 +156,7 @@ let get<t>(self: ^stl::matrix<t>, x: u128, y: u128) -> t
     Get(self.data, (self.w * y) + x)
 }
 
+// Set an item
 let set<t>(self: ^stl::matrix<t>, x: u128, y: u128, from: t
     ) -> void
 {
@@ -159,6 +166,7 @@ let set<t>(self: ^stl::matrix<t>, x: u128, y: u128, from: t
     Get(self.data, (self.w * y) + x) = from;
 }
 
+// Get a row
 let row<t>(self: ^stl::matrix<t>, r: u128) -> stl::arr<t>
 {
     assert!(r < self.h);

@@ -115,21 +115,25 @@ struct GenericInfo
 // Holds information about an installed package.
 struct PackageInfo
 {
-    std::string name;    // Package name
-    std::string version; // Package version
-    std::string license; // Package license
-    std::string date;   // Date the current version was released
-    std::string author; // The author(s) of the package
-    std::string email;  // The email(s) of the author(s)
-    std::string source; // URL package was downloaded from
-    std::string
-        path; // Path from URL to get to the install point
+    std::string name;      // Package name
+    std::string version;   // Package version
+    std::string license;   // Package license
+    std::string date;      // Date the current version was
+                           // released
+    std::string author;    // The author(s) of the package
+    std::string email;     // The email(s) of the author(s)
+    std::string source;    // URL package was downloaded from
+    std::string path;      // Path from root to get to the install
+                           // point
     std::string about;     // Package description
     std::string toInclude; // File within
                            // /usr/include/oak/$(PACKAGE_NAME)
                            // to include;
     std::string sysDeps;   // System dependencies
     std::string oakDeps;   // Oak dependencies
+    std::string validationScript; // Oak file which will
+                                  // ensure the package is
+                                  // viable
 };
 
 // Enumeration representing the type of a single AST node.

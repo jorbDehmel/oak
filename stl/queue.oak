@@ -36,7 +36,7 @@ post
 let New<t>(self: ^stl::queue_node<t>) -> void
 {
     New(self.data);
-    ptrcpy!(self.next, 0);
+    ptrcpy!(self.next, 0u128);
 }
 
 // If this is not the last node, free all remaining nodes.
@@ -87,14 +87,14 @@ post
 // Collapse a queue.
 let Del<t>(self: ^stl::queue<t>) -> void
 {
-    if (to_void_ptr(self.head) != to_u128(0))
+    if (to_void_ptr(self.head) != 0u128)
     {
         Del(self.head);
         free!(self.head);
 
-        ptrcpy!(self.head, 0);
-        ptrcpy!(self.tail, 0);
-        self.size = 0;
+        ptrcpy!(self.head, 0u128);
+        ptrcpy!(self.tail, 0u128);
+        self.size = 0u128;
     }
 }
 
@@ -104,7 +104,7 @@ let front<t>(self: ^stl::queue<t>) -> opt<t>
     let out: opt<t>;
     out.wrap_none();
 
-    if (to_void_ptr(self.head) != to_u128(0))
+    if (to_void_ptr(self.head) != 0u128)
     {
         out.wrap_some(self.head.data);
     }
@@ -119,7 +119,7 @@ let pop_front<t>(self: ^stl::queue<t>) -> void
     ptrcpy!(old, self.head);
     ptrcpy!(self.head, self.head.next);
 
-    ptrcpy!(old.next, 0);
+    ptrcpy!(old.next, 0u128);
     Del(old);
     free!(old);
 }
@@ -127,7 +127,7 @@ let pop_front<t>(self: ^stl::queue<t>) -> void
 // Add some item to the queue.
 let append<t>(self: ^stl::queue<t>, what: t) -> void
 {
-    if (to_void_ptr(self.head) == 0)
+    if (to_void_ptr(self.head) == 0u128)
     {
         alloc!(self.head);
         ptrcpy!(self.tail, self.head);

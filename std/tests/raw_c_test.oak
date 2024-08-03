@@ -21,13 +21,15 @@ let test_fn(what: i32) -> f64
 let main() -> i32
 {
     let a: i32;
-    a = 5;
+    a = 5i32;
 
     let b: f64;
-    b = 0.0;
+    b = 0.0f64;
 
     b = test_fn(a);
 
     print(b);
     endl();
+
+    0i32
 }

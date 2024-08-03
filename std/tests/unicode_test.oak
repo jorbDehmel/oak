@@ -17,7 +17,7 @@ let main() -> i32
 {
     // Variable names
     let আআআ: i32;
-    আআআ = 123;
+    আআআ = 123i32;
 
     print(আআআ);
     print("\n");
@@ -28,5 +28,5 @@ let main() -> i32
         "(May or may not show, depending on the terminal)\n"
     );
 
-    0
+    0i32
 }

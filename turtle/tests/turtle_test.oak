@@ -7,36 +7,36 @@ use_rule!("std");
 let draw_shape(t: ^turtle::turtle, sides: i32, side_length: i32
     ) -> void
 {
-    let angle: f64 = 360.0 / to_f64(sides);
+    let angle: f64 = 360.0f64 / to_f64(sides);
 
-    let i: i32 = 0;
+    let i = 0i32;
     while i < sides
     {
         t.forward(side_length);
         t.left(angle);
 
-        i += 1;
+        ++i;
     }
 
-    t.set_orientation(0.0);
+    t.set_orientation(0.0f64);
 }
 
 let main() -> i32
 {
     let t: turtle::turtle;
-    let i: i32 = 4;
-    while i < 50 && t.is_running
+    let i = 4i32;
+    while i < 50i32 && t.is_running
     {
         t.clear();
 
-        t.set_position(256, 256);
-        t.draw_shape(i, 50);
+        t.set_position(256u64, 256u64);
+        t.draw_shape(i, 50i32);
 
         t.flood();
-        t.sleep(1.0);
+        t.sleep(1.0f64);
 
-        i += 1;
+        ++i;
     }
 
-    0
+    0i32
 }

@@ -9,6 +9,7 @@ GPLv3 held by author
 #include "oakc_fns.hpp"
 #include "options.hpp"
 #include "tags.hpp"
+#include <cctype>
 #include <filesystem>
 
 #define pm_assert(expression, message)                         \
@@ -168,59 +169,105 @@ PackageInfo loadPackageInfo(const std::string &Filepath,
     std::ifstream inp(Filepath);
     pm_assert(inp.is_open(),
               "Failed to load file '" + Filepath + "'");
-
     PackageInfo toAdd;
 
-    std::string name, content, garbage;
+    if (Filepath.size() < 5 ||
+        Filepath.substr(Filepath.size() - 5) != ".json")
+    {
+        std::cout << tags::yellow_bold << "Warning: Non-JSON "
+                  << "package file is deprecated.\n"
+                  << tags::reset;
+    }
+
+    std::string name, content, delim;
+    std::map<std::string, std::string> pairs;
+
     while (!inp.eof())
     {
+        // Discard comments and syntactic fluff
+        // Also read name
         inp >> name;
         if (inp.eof())
         {
             break;
         }
-
-        // Commenting
-        if (name.size() >= 2 && name.substr(0, 2) == "//")
+        while (
+            !inp.eof() &&
+            ((name.size() > 1 && name.substr(0, 2) == "//") ||
+             name == "{" || name == "}" || name == ","))
         {
-            getline(inp, garbage);
-            continue;
+            if (name.size() > 1 && name.substr(0, 2) == "//")
+            {
+                getline(inp, delim);
+            }
+            inp >> name;
         }
-
-        inp >> garbage;
-        pm_assert(garbage == "=",
-                  "Malformed package info file.");
         if (inp.eof())
         {
             break;
         }
 
-        inp >> content;
-
-        if (content[0] == '"' || content[0] == '\'')
+        // Clean key
+        delim = "";
+        if (name.back() == ':' || name.back() == '=')
         {
-            while (content.back() != content.front())
-            {
-                inp >> garbage;
-                content += " " + garbage;
-
-                if (inp.eof())
-                {
-                    break;
-                }
-            }
-
-            content = content.substr(1, content.size() - 2);
+            delim = name.back();
+            name.pop_back();
         }
-
-        cleanString(content);
-
-        // Adds case resiliency
-        for (int i = 0; i < name.size(); i++)
+        if (name.front() == '"' || name.front() == '\'')
+        {
+            name = name.substr(1, name.size() - 2);
+        }
+        for (int i = 0; i < name.size(); ++i)
         {
             name[i] = toupper(name[i]);
         }
 
+        // Read garbage deliminator (= or :)
+        if (delim == "")
+        {
+            inp >> delim;
+            pm_assert(delim == ":" || delim == "=",
+                      "Invalid package information file "
+                      "deliminator '" +
+                          delim + "' w/ key '" + name + "'.");
+        }
+
+        // Read value
+        char c;
+        do
+        {
+            c = inp.get();
+        } while (c == ' ' || c == '\t' || c == '\n');
+
+        content = c;
+        if (c == '"' || c == '\'')
+        {
+            do
+            {
+                c = inp.get();
+                content.push_back(c);
+
+                if (c == '\\')
+                {
+                    content.push_back(inp.get());
+                }
+            } while (c != content.front());
+
+            content = content.substr(1, content.size() - 2);
+        }
+        else
+        {
+            do
+            {
+                c = inp.get();
+                content.push_back(c);
+            } while (c != '\n' && c != ',');
+            content.pop_back();
+        }
+
+        // Switch by key, insert value
+        pairs[name] = content;
         if (name == "NAME")
         {
             toAdd.name = content;
@@ -265,6 +312,10 @@ PackageInfo loadPackageInfo(const std::string &Filepath,
         {
             toAdd.oakDeps = content;
         }
+        else if (name == "VALIDATION_SCRIPT")
+        {
+            toAdd.validationScript = content;
+        }
         else if (name == "PATH")
         {
             toAdd.path = content;
@@ -277,7 +328,6 @@ PackageInfo loadPackageInfo(const std::string &Filepath,
                       << name << "'.\n";
         }
     }
-
     inp.close();
 
     if (toAdd.name == "")
@@ -288,6 +338,15 @@ PackageInfo loadPackageInfo(const std::string &Filepath,
     }
 
     settings.packages[toAdd.name] = toAdd;
+
+    // Set package information as preproc defines
+    const std::string prefix = toAdd.name + "_";
+    for (const auto &p : pairs)
+    {
+        settings.preprocDefines[prefix + p.first + "!"]
+            = "\"" + p.second + "\"";
+    }
+
     return toAdd;
 }
 
@@ -315,9 +374,6 @@ void savePackageInfo(const PackageInfo &Info,
     return;
 }
 
-/*
-Imagine using a compiled language for scripting; Couldn't be me
-*/
 void downloadPackage(const std::string &URLArg,
                      AcornSettings &settings,
                      const bool &reinstall,
@@ -477,7 +533,9 @@ void downloadPackage(const std::string &URLArg,
         }
 
         while (!fs::exists(tempFolderName + "/" + path + "/" +
-                           INFO_FILE))
+                           INFO_FILE + ".json") &&
+               !fs::exists(tempFolderName + "/" + path + "/" +
+                           INFO_FILE + ".txt"))
         {
             std::cout << tags::yellow_bold
                       << "Failed to locate info file.\n"
@@ -505,9 +563,21 @@ void downloadPackage(const std::string &URLArg,
                                "/makefile");
 
         // Read info file
-        PackageInfo info = loadPackageInfo(
-            tempFolderName + "/" + path + "/" + INFO_FILE,
-            settings);
+        PackageInfo info;
+        if (fs::exists(tempFolderName + "/" + path + "/" +
+                       INFO_FILE + ".json"))
+        {
+            info =
+                loadPackageInfo(tempFolderName + "/" + path +
+                                    "/" + INFO_FILE + ".json",
+                                settings);
+        }
+        else
+        {
+            info = loadPackageInfo(tempFolderName + "/" + path +
+                                       "/" + INFO_FILE + ".txt",
+                                   settings);
+        }
 
         std::cout << tags::green << "Loaded package from "
                   << URL << "\n"
@@ -526,15 +596,26 @@ void downloadPackage(const std::string &URLArg,
         std::string destFolderName =
             PACKAGE_INCLUDE_PATH + info.name;
 
-        // Install system deps
+        // Install system deps (DEPRECATED)
         if (info.sysDeps != "")
         {
+            std::cout << tags::yellow_bold
+                      << "Warning: Using `SYS_DEPS` or "
+                         "`OAK_DEPS` is deprecated; Use "
+                         "`VALIDATION_SCRIPT` instead.\n"
+                      << tags::reset;
             install(info.sysDeps, settings);
         }
 
         // Install Oak deps
         if (info.oakDeps != "")
         {
+            std::cout << tags::yellow_bold
+                      << "Warning: Using `SYS_DEPS` or "
+                         "`OAK_DEPS` is deprecated; Use "
+                         "`VALIDATION_SCRIPT` instead.\n"
+                      << tags::reset;
+
             // Split into packages and install them
             std::string current;
             for (const char &c : info.oakDeps)
@@ -573,6 +654,13 @@ void downloadPackage(const std::string &URLArg,
                     "Make failure; See "
                     "oak_package_makefile.log for details.");
             }
+        }
+
+        // Validate install
+        if (info.validationScript != "")
+        {
+            system(
+                ("acorn -E " + info.validationScript).c_str());
         }
 
         try
@@ -636,9 +724,19 @@ std::list<std::string> getPackageFiles(const std::string &Name,
         if (fs::exists("/usr/include/oak/" + Name))
         {
             // Installed, but not loaded; Load and continue
-            loadPackageInfo("/usr/include/oak/" + Name + "/" +
-                                INFO_FILE,
-                            settings);
+            if (fs::exists("/usr/include/oak/" + Name + "/" +
+                           INFO_FILE + ".json"))
+            {
+                loadPackageInfo("/usr/include/oak/" + Name +
+                                    "/" + INFO_FILE + ".json",
+                                settings);
+            }
+            else
+            {
+                loadPackageInfo("/usr/include/oak/" + Name +
+                                    "/" + INFO_FILE + ".txt",
+                                settings);
+            }
         }
         else
         {

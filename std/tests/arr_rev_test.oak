@@ -51,5 +51,5 @@ let main() -> i32
     // Array of 10 of the above
     let absurd_arr: [10]type!(absurd);
 
-    0
+    0i32
 }

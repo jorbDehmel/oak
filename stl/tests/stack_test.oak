@@ -14,7 +14,7 @@ let main() -> i32
     let q: stl::stack<i32>;
 
     print("Pushing\n");
-    for (let i: i32; i < 10; i += 1)
+    for (let i = 0i32; i < 10i32; ++i)
     {
         print(i);
         endl();
@@ -33,5 +33,5 @@ let main() -> i32
         q.pop();
     }
 
-    0
+    0i32
 }

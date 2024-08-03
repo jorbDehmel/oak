@@ -8,16 +8,15 @@ let main() -> i32
     // Init new vec
     let obj: stl::vec<i32>;
 
-    let i: i32 = 0;
-    while (i < 100)
+    let i = 0i32;
+    while (i < 100i32)
     {
         obj.push_back(i);
-
-        i += 1;
+        ++i;
     }
 
-    i = 0;
-    while (i < 110)
+    i = 0i32;
+    while (i < 110i32)
     {
         let result: opt<^i32>;
         result = obj.Get(to_i128(i));
@@ -36,12 +35,11 @@ let main() -> i32
             case none()
             {
                 print("Error: out of range!\n");
-                ;
             }
         }
 
-        i += 1;
+        ++i;
     }
 
-    0
+    0i32
 }

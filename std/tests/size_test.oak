@@ -36,5 +36,5 @@ let main() -> i32
     print(size!(e));
     print("\n");
 
-    0
+    0i32
 }

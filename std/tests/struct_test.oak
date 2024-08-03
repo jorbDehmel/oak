@@ -15,6 +15,5 @@ let test: struct
 let main() -> i32
 {
     let a: test;
-
-    0
+    0i32
 }

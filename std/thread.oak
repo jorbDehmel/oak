@@ -52,7 +52,7 @@ let get_data<t>(self: ^mutex<t>, into: ^^t) -> bool
 
 let return_data<t>(self: ^mutex<t>, into: ^^t) -> void
 {
-    ptrcpy!(^into, 0);
+    ptrcpy!(^into, 0u128);
     self.in_use = false;
 }
 

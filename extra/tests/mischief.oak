@@ -9,9 +9,7 @@ jdehmel@outlook.com
 
 package!("std");
 use_rule!("std");
-
-include!("std/cstr.oak");
-include!("extra/bit_print.oak");
+include!("std/cstr.oak", "extra/bit_print.oak");
 
 let secret: struct
 {
@@ -21,30 +19,24 @@ let secret: struct
 
 let main() -> i32
 {
-    extra::bit_print<secret>(_: ^secret);
-    extra::hex_print<secret>(_: ^secret);
-    extra::char_print<secret>(_: ^secret);
-    extra::hex_dump<secret>(_: ^secret);
-
     let s: secret;
     strcpy(s.name, "Hi! How are you?");
-    s.id = 0x12
+    s.id = 0x12;
 
     erase!("secret");
 
     // This is now illegal (uncomment it and see):
     // print(s.name);
-    // endl();
 
     // But these aren't!
-    extra::bit_print(s);
+    extra::bit_print(@s);
     endl();
-    extra::hex_print(s);
+    extra::hex_print(@s);
     endl();
 
-    extra::char_print(s);
+    extra::char_print(@s);
     endl();
-    extra::hex_dump(s);
+    extra::hex_dump(@s);
     endl();
 
     /*
@@ -56,5 +48,5 @@ let main() -> i32
     erasure.
     */
 
-    0
+    0i32
 }

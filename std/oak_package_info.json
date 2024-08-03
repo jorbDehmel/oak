@@ -1,0 +1,13 @@
+{
+    "NAME": "std",
+    "VERSION": "<Same as acorn>",
+    "LICENSE": "GPLv3",
+    "DATE": "October 27, 2023",
+    "SOURCE": "github.com/jorbDehmel",
+    "AUTHOR": "Jordan Dehmel",
+    "EMAIL": "jdehmel@outlook.com",
+    "ABOUT": "Oak STD Package",
+    "INCLUDE": "std.oak",
+    "SYS_DEPS": "git clang boost",
+    "PATH": "."
+}

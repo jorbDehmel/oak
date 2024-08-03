@@ -59,8 +59,8 @@ let erase<k>(self: ^stl::set_node<k>) -> void
 
 ////////////////////////////////////////////////////////////////
 
-let stl::set::default_size! = 128;
-let stl::set::max_alpha! = 0.5;
+let stl::set::default_size! = 128u128;
+let stl::set::max_alpha! = 0.5f64;
 
 let stl::set<k>: struct
 {
@@ -92,16 +92,16 @@ post
 let New<k>(self: ^stl::set<k>) -> void
 {
     self.size = stl::set::default_size!;
-    self.alpha = 0.0;
-    self.occupied = 0;
+    self.alpha = 0.0f64;
+    self.occupied = 0u128;
 
     alloc!(self.data, self.size);
 
-    let i: i32 = 0;
+    let i = 0i32;
     while i < self.size
     {
         New(ptrarr!(self.data, i));
-        i += 1;
+        ++i;
     }
 }
 
@@ -131,15 +131,15 @@ let has<k>(self: ^stl::set<k>, key: k) -> bool
         ptrcpy!(cur, @ptrarr!(self.data, i));
 
         // If empty, break
-        if cur.state == 0
+        if cur.state == 0u8
         {
             sentinel = false;
         }
 
         // Skip tombstone nodes
-        else if cur.state == 2
+        else if cur.state == 2u8
         {
-            i += 1;
+            ++i;
             if i > self.size
             {
                 i %= self.size;
@@ -149,7 +149,7 @@ let has<k>(self: ^stl::set<k>, key: k) -> bool
         // Else if found, wrap answer and break
         if cur.key == key
         {
-            if cur.state == 1
+            if cur.state == 1u8
             {
                 return true;
             }
@@ -158,7 +158,7 @@ let has<k>(self: ^stl::set<k>, key: k) -> bool
         // Else, advance
         else
         {
-            i += 1;
+            ++i;
             if i > self.size
             {
                 i %= self.size;
@@ -190,12 +190,12 @@ let insert<k>(self: ^stl::set<k>, key: k) -> void
         ptrcpy!(cur, @ptrarr!(self.data, i));
 
         // If empty, break
-        if cur.state == 0
+        if cur.state == 0u8
         {
             cur = key;
 
             // Update occupancy ratio
-            self.occupied += 1;
+            ++self.occupied;
             self.alpha = to_f64(to_i32(self.occupied));
             self.alpha /= to_f64(to_i32(self.size));
 
@@ -209,9 +209,9 @@ let insert<k>(self: ^stl::set<k>, key: k) -> void
         }
 
         // Skip tombstone nodes
-        else if cur.state == 2
+        else if cur.state == 2u8
         {
-            i += 1;
+            ++i;
             if i > self.size
             {
                 i %= self.size;
@@ -221,7 +221,7 @@ let insert<k>(self: ^stl::set<k>, key: k) -> void
         // Else if found, wrap answer and break
         if cur.key == key
         {
-            if cur.state == 1
+            if cur.state == 1u8
             {
                 sentinel = false;
             }
@@ -230,7 +230,7 @@ let insert<k>(self: ^stl::set<k>, key: k) -> void
         // Else, advance
         else
         {
-            i += 1;
+            ++i;
             if i > self.size
             {
                 i %= self.size;
@@ -260,15 +260,15 @@ let erase<k>(self: stl::set<k>, key: k) -> void
         ptrcpy!(cur, @ptrarr!(self.data, i));
 
         // If empty, break
-        if cur.state == 0
+        if cur.state == 0u8
         {
             sentinel = false;
         }
 
         // Skip tombstone nodes
-        else if cur.state == 2
+        else if cur.state == 2u8
         {
-            i += 1;
+            ++i;
             if i > self.size
             {
                 i %= self.size;
@@ -278,7 +278,7 @@ let erase<k>(self: stl::set<k>, key: k) -> void
         // Else if found, wrap answer and break
         if cur.key == key
         {
-            if cur.state == 1
+            if cur.state == 1u8
             {
                 cur.erase();
                 sentinel = false;
@@ -288,7 +288,7 @@ let erase<k>(self: stl::set<k>, key: k) -> void
         // Else, advance
         else
         {
-            i += 1;
+            ++i;
             if i > self.size
             {
                 i %= self.size;
@@ -312,19 +312,19 @@ let expand<k>(self: ^stl::set<k>) -> void
     old_size = self.size;
     ptrcpy!(old_data, self.data);
 
-    self.size *= 2;
+    self.size *= 2u128;
 
     alloc!(self.data, self.size);
 
-    self.occupied = 0;
-    self.alpha = 0.0;
+    self.occupied = 0u128;
+    self.alpha = 0.0f64;
 
     // Copy from old to new
     while i < old_size
     {
         ptrcpy!(cur, @ptrarr!(old_data, i));
 
-        if (cur.state == 1)
+        if cur.state == 1u8
         {
             // Source code copied from set
             let key = cur.key;
@@ -359,7 +359,7 @@ let expand<k>(self: ^stl::set<k>) -> void
                     cur = key;
 
                     // Update occupancy ratio
-                    self.occupied += 1;
+                    ++self.occupied;
                     self.alpha = to_f64(to_i32(self.occupied));
                     self.alpha /= to_f64(to_i32(self.size));
 
@@ -369,7 +369,7 @@ let expand<k>(self: ^stl::set<k>) -> void
                 // Else, advance
                 else
                 {
-                    cur_key += 1;
+                    ++cur_key;
                     if cur_key >= self.size
                     {
                         cur_key %= self.size;
@@ -378,7 +378,7 @@ let expand<k>(self: ^stl::set<k>) -> void
             }
         }
 
-        i += 1;
+        ++i;
     }
 
     // Delete old

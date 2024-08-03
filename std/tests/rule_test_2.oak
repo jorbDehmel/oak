@@ -16,11 +16,11 @@ let main() -> i32
         print("This should not.\n");
     }
 
-    for (let i: i32 = 0; i < 10; i += 1)
+    for (let i = 0i32; i < 10i32; ++i)
     {
         print(i);
         print("\n");
     }
 
-    0
+    0i32
 }

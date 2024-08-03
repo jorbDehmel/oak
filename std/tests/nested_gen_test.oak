@@ -36,5 +36,5 @@ let main() -> i32
 
     let fourth: node<node<node<node<i32>>>>;
 
-    0
+    0i32
 }

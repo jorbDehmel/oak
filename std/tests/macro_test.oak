@@ -13,12 +13,12 @@ let print_five_times!(argc: i32, argv: []str) -> i32
     print("print(\"among us\\n\");");
     print("print(\"among us\\n\");");
 
-    0
+    0i32
 }
 
 let main() -> i32
 {
     print_five_times!();
 
-    0
+    0i32
 }

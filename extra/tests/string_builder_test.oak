@@ -29,5 +29,5 @@ let main() -> i32
     print(last);
     endl();
 
-    0
+    0i32
 }

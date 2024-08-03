@@ -1,4 +1,4 @@
-// A test of the std/prinf.oak file
+// A test of the std/printf.oak file
 // Legacy passed
 
 package!("std");
@@ -7,15 +7,22 @@ use_rule!("std");
 
 let main() -> i32
 {
-    printf!("The number five: % \nThe number six: % \n", 5, 6);
     printf!(
-        "The following should be a literal percentage sign: \\%\n"
+        "The number five: % \nThe number six: % \n",
+        5i32,
+        6i32
+    );
+
+    printf!(
+        "The following should be a literal "
+        "percentage sign: \\%\n"
     );
 
     printf!("This tests the failure system of printf % \n");
 
-    let i: i32 = 5;
-    let j: f64 = 1.234;
+    let i: i32 = 5i32;
+    let j: f64 = 1.234f64;
+
     printf!(
         "Variable i is %, j is %.\n",
         i,
@@ -28,5 +35,5 @@ let main() -> i32
         i
     );
 
-    0
+    0i32
 }

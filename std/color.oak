@@ -7,19 +7,23 @@ applications available for POSIX systems which can clean ANSI
 escape codes out of files, but the easiest thing to do is just
 to not put them there.
 
+These may or may not work outside of UNIX systems: Beware.
+
 See here for history and more information:
 https://en.wikipedia.org/wiki/ANSI_escape_code
 
-Jordan Dehmel, 2023-
+Jordan Dehmel, 2023-present
 jdehmel@outlook.com
 */
 
 // Ensure that this will work with other dialects
 tag!("no_dialect");
 
+// Grab needed files
 include!("std/io.oak");
 include!("std/string.oak");
 
+// Terminate any existing ansi codes
 let ansi_code_end! = "\033[0;0m";
 
 // Section-based `begin` functions.
@@ -43,7 +47,8 @@ let begin_magenta_bold() -> void { print("\033[1;35m"); }
 let begin_cyan_bold() -> void { print("\033[1;36m"); }
 
 // This is the most important one here: Call this to remove all
-// effects and return to a regular terminal.
+// effects and return to a regular terminal. This just prints
+// the ansi end code listed above.
 let end_effects() -> void { print(ansi_code_end!); }
 
 // Regular colored text w/ reset code after.
@@ -212,7 +217,7 @@ let cyan_bold(on: string) -> string
 
 // Raw string literal versions.
 // These operate on raw string literals for compatability's
-// sake.
+// sake. These are really just wrappers.
 
 let red(on: str) -> string
 {
@@ -255,6 +260,8 @@ let cyan(on: str) -> string
     out = on;
     cyan(out)
 }
+
+// Bold functions for str literals.
 
 let red_bold(on: str) -> string
 {

@@ -1,0 +1,17 @@
+/*
+Tests the new package system, which includes metadata in the
+compile-time environment.
+*/
+
+package!("std");
+include!("std/printf.oak");
+
+let main() -> i32
+{
+    printf!(
+        "Package std is at version %.\n",
+        std::VERSION!
+    );
+
+    0i32
+}

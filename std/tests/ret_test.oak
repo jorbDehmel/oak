@@ -16,12 +16,12 @@ let main() -> i32
 
     if (true)
     {
-        0
+        0i32
     }
     else
     {
-        0
+        0i32
     }
 
-    1
+    1i32
 }

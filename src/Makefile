@@ -4,7 +4,7 @@
 # github.com/jorbDehmel/oak
 ################################################################
 
-CC := clang++ -std=c++17
+CC := clang++ -std=c++17 -g
 
 OBJS := build/acorn_resources.o \
 	build/fn_resources.o build/generics.o build/lexer.o \

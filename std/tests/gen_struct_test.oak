@@ -40,11 +40,11 @@ let main() -> i32
 
     // Create a node
     let head: node<i32>;
-    head.data = 123;
+    head.data = 123i32;
 
     print(head.data);
 
     Del(@head);
 
-    0
+    0i32
 }

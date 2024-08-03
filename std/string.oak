@@ -150,7 +150,7 @@ let clear(self: ^string) -> void
 
     self.capacity = 0u128;
     self.current_length = 0u128;
-    ptrcpy!(self.data, 0);
+    ptrcpy!(self.data, 0u128);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -160,7 +160,7 @@ let Copy(self: ^string, from: str) -> string
 {
     self.current_length = strlen(from) + 1u128;
 
-    while self.capacity > to_u128(7)
+    while self.capacity > 7u128
         && self.capacity > self.current_length * 2u128
     {
         self.Shrink();
@@ -192,10 +192,10 @@ let Copy(self: ^string, other: string) -> string
 // Copy from a char array string.
 let Copy(self: ^string, other: []i8) -> string
 {
-    self.current_length = strlen(other) + 1;
+    self.current_length = strlen(other) + 1u128;
 
-    while self.capacity > to_u128(7)
-        && self.capacity > self.current_length * to_u128(2)
+    while self.capacity > 7u128
+        && self.capacity > self.current_length * 2u128
     {
         self.Shrink();
     }
@@ -219,12 +219,12 @@ let AddEq(self: ^string, other: string) -> void
         self.Expand();
     }
 
-    let i: u128 = 0;
+    let i = 0u128;
     while self.current_length + i < new_size
     {
         ptrarr!(self.data, self.current_length + i)
             = ptrarr!(other.data, i);
-        i += 1;
+        ++i;
     }
 
     self.current_length = new_size;
@@ -240,12 +240,12 @@ let AddEq(self: ^string, other: str) -> void
         self.Expand();
     }
 
-    let i: u128 = 0;
+    let i = 0u128;
     while self.current_length + i < new_size
     {
         ptrarr!(self.data, self.current_length + i)
             = Get(other, i);
-        i += 1;
+        ++i;
     }
 
     self.current_length = new_size;
@@ -261,12 +261,12 @@ let AddEq(self: ^string, other: []i8) -> void
         self.Expand();
     }
 
-    let i: u128 = 0;
+    let i = 0u128;
     while self.current_length + i < new_size
     {
         ptrarr!(self.data, self.current_length + i)
             = ptrarr!(other, i);
-        i += 1;
+        ++i;
     }
 
     self.current_length = new_size;
@@ -275,7 +275,7 @@ let AddEq(self: ^string, other: []i8) -> void
 // Append another string onto this.
 let AddEq(self: ^string, other: i8) -> void
 {
-    let new_size = self.current_length + 1;
+    let new_size = self.current_length + 1u128;
 
     while self.capacity < new_size
     {
@@ -348,37 +348,37 @@ let set(self: ^string, index: u128, to: i8) -> void
 // Uses strcmp to compare two strings.
 let Eq(a: string, b: string) -> bool
 {
-    strcmp(a.data, b.data) == 0
+    strcmp(a.data, b.data) == 0u128
 }
 
 // Uses strcmp to compare two strings.
 let Eq(a: string, b: str) -> bool
 {
-    strcmp(a.data, b) == 0
+    strcmp(a.data, b) == 0u128
 }
 
 // Uses strcmp to compare two strings.
 let Eq(a: string, b: []i8) -> bool
 {
-    strcmp(a.data, b) == 0
+    strcmp(a.data, b) == 0u128
 }
 
 // Uses strcmp to compare two strings.
 let Neq(a: string, b: string) -> bool
 {
-    Not(Eq(a, b))
+    !Eq(a, b)
 }
 
 // Uses strcmp to compare two strings.
 let Neq(a: string, b: str) -> bool
 {
-    Not(Eq(a, b))
+    !Eq(a, b)
 }
 
 // Uses strcmp to compare two strings.
 let Neq(a: string, b: []i8) -> bool
 {
-    Not(Eq(a, b))
+    !Eq(a, b)
 }
 
 // Returns true if and only if two substrings match.
@@ -399,7 +399,7 @@ let is_substring_eq(
 
     let l: []i8;
     ptrcpy!(l, @ptrarr!(self.data, start));
-    return strncmp(l, what, n) == 0;
+    return strncmp(l, what, n) == 0u128;
 }
 
 // Returns true if and only if two substrings match.
@@ -420,7 +420,7 @@ let is_substring_eq(
 
     let l: []i8;
     ptrcpy!(l, @ptrarr!(self.data, start));
-    return strncmp(l, what, n) == 0;
+    return strncmp(l, what, n) == 0u128;
 }
 
 /*
@@ -450,7 +450,7 @@ let is_substring_eq(
     let l, r: []i8;
     ptrcpy!(l, @ptrarr!(self.data,  my_start));
     ptrcpy!(r, @ptrarr!(other.data, other_start));
-    return strncmp(l, r, n) == 0;
+    return strncmp(l, r, n) == 0u128;
 }
 
 ////////////////////////////////////////////////////////////////
@@ -470,15 +470,15 @@ let hash(self: string) -> u128
     let out: u128 = 5 381u128;
     let cur: i8 = 0i8;
 
-    let i: u128 = 0;
+    let i = 0u128;
     while i < self.current_length
     {
         cur = ptrarr!(self.data, i);
 
-        out *= 33;
+        out *= 33u128;
         out += cur;
 
-        i += 1;
+        ++i;
     }
 
     out
@@ -493,7 +493,7 @@ let size(self: ^string) -> u128
 // Returns true if and only if the current length is 0.
 let empty(self: ^string) -> bool
 {
-    self.current_length == 0
+    self.current_length == 0u128
 }
 
 ////////////////////////////////////////////////////////////////

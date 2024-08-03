@@ -13,48 +13,46 @@ let main() -> i32
 {
     let m: stl::matrix<i32>;
 
-    m = (3, 3);
+    m = (3i32, 3i32);
 
-    let y: u128 = 0;
-    while y < 3
+    let y: u128 = 0u128;
+    while y < 3u128
     {
-        let x: u128 = 0;
-        while x < 3
+        let x = 0u128;
+        while x < 3u128
         {
             m.set(x, y, to_i32(x * y));
-
-            x += 1;
+            ++x;
         }
-        y += 1;
+        ++y;
     }
 
-    y = 0;
-    while y < 3
+    y = 0u128;
+    while y < 3u128
     {
-        let x: u128 = 0;
-        while x < 3
+        let x = 0u128;
+        while x < 3u128
         {
             print(m.Get(x, y));
             print(" ");
-
-            x += 1;
+            ++x;
         }
 
         endl();
-        y += 1;
+        ++y;
     }
 
     print("Row test:\n");
 
-    let r = m.row(1);
-    let i: u128 = 0;
+    let r = m.row(1u128);
+    let i = 0u128;
     while i < r.l
     {
         print(r.Get(i));
         print(" ");
-        i += 1;
+        ++i;
     }
     endl();
 
-    0
+    0i32
 }

@@ -25,13 +25,12 @@ let print(what: ^user) -> void
     );
 }
 
-cereal::serializable<user>;
-
 let main() -> i32
 {
+    cereal::serializable<user>;
     let user_1: user;
 
-    user_1.id = 987;
+    user_1.id = 987i32;
     strcpy(user_1.name, "Dave");
     strcpy(user_1.message, "Hi!");
 
@@ -47,5 +46,5 @@ let main() -> i32
 
     print(user_2);
 
-    0
+    0i32
 }

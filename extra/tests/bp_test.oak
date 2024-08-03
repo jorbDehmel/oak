@@ -1,25 +1,22 @@
 // Tests the bit print functions from the extra package
 
 package!("std");
+use_rule!("std");
 include!("extra/bit_print.oak");
 
 let main() -> i32
 {
-    let j: u8;
-    extra::bit_print<u8>(_: ^u8);
-    extra::hex_print<u8>(_: ^u8);
-
-    j = 0u8;
-    while (j < to_u8(255))
+    let j = 0u8;
+    while j < 255u8
     {
-        extra::bit_print(j);
+        extra::bit_print(@j);
         print("\n");
 
-        extra::hex_print(j);
+        extra::hex_print(@j);
         print("\n");
 
-        j += 1u8;
+        ++j;
     }
 
-    0
+    0i32
 }

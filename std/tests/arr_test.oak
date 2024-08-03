@@ -26,12 +26,12 @@ post
 
 let New<t>(self: ^arr<t>) -> void
 {
-    self.size = to_u128(0);
+    self.size = 0u128;
 }
 
 let Del<t>(self: ^arr<t>) -> void
 {
-    if self.size != to_u128(0)
+    if self.size != 0u128
     {
         free!(self.data);
     }
@@ -39,7 +39,7 @@ let Del<t>(self: ^arr<t>) -> void
 
 let Copy<t>(self: ^arr<t>, size: u128) -> arr<t>
 {
-    if self.size != to_u128(0)
+    if self.size != 0u128
     {
         free!(self.data);
     }
@@ -69,23 +69,19 @@ let Get<t>(self: ^arr<t>, index: u128) -> opt<^t>
 let main() -> i32
 {
     let a: arr<i32>;
-    a = to_u128(5);
+    a = 5u128;
 
     let result: opt<^i32>;
-    result = a.Get(to_u128(1));
+    result = a.Get(1u128);
     match (result)
     {
         case some(data)
         {
-            Copy(^data, 5);
-        }
-
-        default
-        {
+            data = 5i32;
         }
     }
 
-    result = a.Get(to_u128(1));
+    result = a.Get(1u128);
     match (result)
     {
         case some(data)
@@ -100,5 +96,5 @@ let main() -> i32
 
     print("\n");
 
-    0
+    0i32
 }

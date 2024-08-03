@@ -6,9 +6,9 @@ include!("std/printf.oak");
 include!("std/rand.oak");
 
 // Preprocessor definitions
-let low! = 0;
-let high! = 10;
-let num_guesses! = 5;
+let low! = 0i32;
+let high! = 10i32;
+let num_guesses! = 5i32;
 
 let main() -> i32
 {
@@ -21,9 +21,9 @@ let main() -> i32
         high!
     );
 
-    for (let current_guess: i32 = 0;
+    for (let current_guess = 0i32;
         current_guess < num_guesses! && has_chosen_incorrectly;
-        current_guess += 1)
+        ++current_guess)
     {
         print("Guess: ");
         let guess: i32 = to_i32(get_i128());
@@ -43,5 +43,5 @@ let main() -> i32
         }
     }
 
-    0
+    0i32
 }

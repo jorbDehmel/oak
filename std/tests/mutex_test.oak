@@ -11,19 +11,17 @@ use_rule!("std");
 
 let main() -> i32
 {
-    println<i32>(_: i32);
-
     let m: mutex<i32>;
     let d: ^i32;
     let r: bool = false;
 
-    while Not(r)
+    while !r
     {
         r = m.get_data(d);
     }
 
-    d = 5;
-    println(d);
+    d = 5i32;
+    println(^d);
 
-    0
+    0i32
 }

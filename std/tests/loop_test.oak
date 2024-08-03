@@ -6,16 +6,15 @@ use_rule!("std");
 
 let main() -> i32
 {
-    let flag_var: i32;
-    flag_var = 10;
+    let flag_var = 10i32;
 
-    while (flag_var > 0)
+    while flag_var > 0i32
     {
         print(flag_var);
         print("\n");
 
-        flag_var -= 1;
+        --flag_var;
     }
 
-    0
+    0i32
 }

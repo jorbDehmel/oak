@@ -63,7 +63,7 @@ new_rule!(
 new_rule!(
     "get_method",
     "$/<$let $~ $$ $>a . Get (",
-    "Get ( @ $a ,"
+    "Get ( $a ,"
 );
 
 // Definition-Instantiation rules

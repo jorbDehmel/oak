@@ -5,30 +5,30 @@ jdehmel@outlook.com
 */
 
 package!("std");
+use_rule!("std");
 include!("std/printf.oak");
 
 let main() -> i32
 {
-    let i: u128;
-    i = 1;
+    let i = 1u128;
 
     // Test leftward bitshifts
     print("Left bitshifts:\n");
-    while (i != 0u128)
+    while i != 0u128
     {
         i = i << 1u128;
         printf!("%\n", i);
     }
 
-    i = 123456789;
+    i = 123 456 789 u128;
 
     // Test rightward bitshifts
     print("Right bitshifts:\n");
-    while (i != 0u128)
+    while i != 0u128
     {
         i = i >> 1u128;
         printf!("%\n", i);
     }
 
-    0
+    0i32
 }

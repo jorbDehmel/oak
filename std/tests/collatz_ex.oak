@@ -1,22 +1,24 @@
+/*
+Collatz sequences in Oak
+*/
+
 package!("std");
 use_rule!("std");
-
 include!("std/math.oak");
 
 // Takes in n_i and returns n_{i + 1}
 let collatz(n: u128) -> u128
 {
-    let out: u128;
-    out = n;
+    let out = n;
 
-    if n % to_u128(2) == to_u128(0)
+    if n % 2u128 == 0u128
     {
-        out /= to_u128(2);
+        out /= 2u128;
     }
     else
     {
-        out *= to_u128(3);
-        out += to_u128(1);
+        out *= 3u128;
+        ++out;
     }
 
     out
@@ -27,11 +29,9 @@ let print_collatz_sequence(n: u128) -> void
     print(n);
     print(" ");
 
-    if n > to_u128(1)
+    if n > 1u128
     {
-        let next: u128;
-        next = collatz(n);
-
+        let next = collatz(n);
         print_collatz_sequence(next);
     }
     else
@@ -42,10 +42,10 @@ let print_collatz_sequence(n: u128) -> void
 
 let main() -> i32
 {
-    for (let i: u128 = 1; i < to_u128(10); i += 1)
+    for (let i = 1u128; i < 10u128; ++i)
     {
         print_collatz_sequence(i);
     }
 
-    0
+    0i32
 }

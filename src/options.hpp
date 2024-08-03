@@ -37,7 +37,7 @@ jdehmel@outlook.com
 namespace fs = std::filesystem;
 
 // The current version of Oak.
-const static std::string VERSION = "0.7.0";
+const static std::string VERSION = "0.7.1";
 
 // The license that this version of Oak uses.
 const static std::string LICENSE = "GPLv3";
@@ -118,7 +118,8 @@ const static std::string PACKAGE_TEMP_LOCATION =
 const static std::string PACKAGE_INCLUDE_PATH = OAK_DIR_PATH;
 
 // The file name to use as the package information file.
-const static std::string INFO_FILE = "oak_package_info.txt";
+// Will attempt to use .json, and .txt if fails.
+const static std::string INFO_FILE = "oak_package_info";
 
 // A locally stored list of all official packages.
 const static std::string PACKAGES_LIST_PATH =
@@ -317,7 +318,7 @@ struct AcornSettings
     MultiSymbolTable table;
 
     // The current line.
-    unsigned long long int curLine = 1;
+    uint64_t curLine = 1, curCol = 0;
 
     // The current file.
     fs::path curFile = "NULL";

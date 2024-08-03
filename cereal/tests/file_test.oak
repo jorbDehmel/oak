@@ -10,7 +10,7 @@ use_rule!("std");
 
 let main() -> i32
 {
-    let data: u128 = 1234;
+    let data = 1234u128;
     let serialized: string = data.serialize();
     let filename: string = "data.cereal\0";
 
@@ -29,5 +29,5 @@ let main() -> i32
         retrieved_data
     );
 
-    0
+    0i32
 }

@@ -9,7 +9,7 @@ package!("std");
 include!("stl/arr.oak");
 use_rule!("std");
 
-let size! = 20;
+let size! = 20i32;
 
 let main() -> i32
 {
@@ -17,24 +17,24 @@ let main() -> i32
 
     a = size!;
 
-    let x: u128 = 0;
+    let x: u128 = 0u128;
     while x < size!
     {
         a.set(x, to_i32(x));
 
-        x += 1;
+        ++x;
     }
 
-    x = 0;
+    x = 0u128;
     while x < size!
     {
         print(a.Get(x));
         print(" ");
 
-        x += 1;
+        ++x;
     }
 
     endl();
 
-    0
+    0i32
 }

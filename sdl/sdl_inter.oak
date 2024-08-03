@@ -142,8 +142,8 @@ let Neq(l: sdl::color, r: sdl::color) -> bool
 // Create a new SDL2 coordinate. Begins at (0, 0) by default.
 let New(self: ^sdl::coord) -> void
 {
-    self.x = to_u64(0);
-    self.y = to_u64(0);
+    self.x = 0u64;
+    self.y = 0u64;
 }
 
 // Initialize an SDL2 coordinate from a 2-tuple.

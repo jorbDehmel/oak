@@ -24,12 +24,12 @@ include!(
 );
 
 // Screen dimensions for SDL
-let sdl_w! = 512;
-let sdl_h! = 512;
+let sdl_w! = 512u64;
+let sdl_h! = 512u64;
 
 // The center, both x and y. This is ALSO the radius, such that
 // the min is always the origin.
-let rand_center! = 2048;
+let rand_center! = 2048u128;
 
 let point: struct
 {
@@ -106,8 +106,8 @@ let is_inside(what: point) -> bool
 
 let main() -> i32
 {
-    let n_inside: u128 = 0;
-    let n_total: u128 = 0;
+    let n_inside: u128 = 0u128;
+    let n_total: u128 = 0u128;
     let wind: sdl::window = (sdl_w!, sdl_h!);
     let flag_var, inside: bool;
     let event: sdl_event;
@@ -157,7 +157,7 @@ let main() -> i32
 
                 case sdl::key_down_event(data)
                 {
-                    if data.keycode == to_i128(27)
+                    if data.keycode == 27i128
                     {
                         running = false;
                     }
@@ -166,5 +166,5 @@ let main() -> i32
         }
     }
 
-    0
+    0i32
 }

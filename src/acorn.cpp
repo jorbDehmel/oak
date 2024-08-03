@@ -156,7 +156,7 @@ int main(const int argc, const char *argv[])
                             << "License: " << LICENSE << '\n'
                             << INFO << '\n';
                     }
-                    else if (cur == "--settings.debug")
+                    else if (cur == "--debug")
                     {
                         settings.debug = !settings.debug;
                         std::cout << "Set settings.debug to "
@@ -272,7 +272,7 @@ int main(const int argc, const char *argv[])
 
                         i++;
                     }
-                    else if (cur == "--exe_settings.debug")
+                    else if (cur == "--exe_debug")
                     {
                         if (settings.cflags.count("-g") == 0)
                         {
@@ -755,16 +755,6 @@ int main(const int argc, const char *argv[])
                             "Failed to prettify output source "
                             "files.");
                     }
-
-                    if (system(
-                            (PRETTIFIER +
-                             " .oak_build/*.h 2>&1 >/dev/null")
-                                .c_str()) != 0)
-                    {
-                        throw sequencing_error(
-                            "Failed to prettify output header "
-                            "files.");
-                    }
                 }
 #endif
 
@@ -936,8 +926,8 @@ int main(const int argc, const char *argv[])
         }
 
         std::cout << tags::red_bold << "\n"
-                  << settings.curFile << ":"
-                  << settings.curLine;
+                  << settings.curFile << ":" << settings.curLine
+                  << "." << settings.curCol;
 
         if (settings.curLineSymbols.size() != 0)
         {
@@ -975,8 +965,8 @@ int main(const int argc, const char *argv[])
         }
 
         std::cout << tags::red_bold << "\n"
-                  << settings.curFile << " " << settings.curLine
-                  << '\n'
+                  << settings.curFile << ":" << settings.curLine
+                  << "." << settings.curCol << '\n'
                   << "\nAn unknown error ocurred.\n"
                   << "This is an issue with acorn, please "
                      "report this bug!\n"

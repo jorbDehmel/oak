@@ -6,12 +6,12 @@ use_rule!("std");
 
 let times_two(self: ^i32) -> i32
 {
-    (^self * 2)
+    (^self * 2i32)
 }
 
 let times_two(self: i32) -> i32
 {
-    (self * 100)
+    (self * 100i32)
 }
 
 let times(self: i32, other: i32, other_other: i32) -> i32
@@ -21,8 +21,7 @@ let times(self: i32, other: i32, other_other: i32) -> i32
 
 let main() -> i32
 {
-    let a: i32;
-    a = 5;
+    let a = 5i32;
 
     print(a.times_two());
     print("\n");
@@ -30,8 +29,8 @@ let main() -> i32
     print(a.times_two());
     print("\n");
 
-    print(a.times(10, 10));
+    print(a.times(10i32, 10i32));
     print("\n");
 
-    0
+    0i32
 }

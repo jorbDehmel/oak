@@ -42,8 +42,8 @@ post
 
 let New<t>(self: ^stl::stack<t>) -> void
 {
-    self.size = 0;
-    self.capacity = 8;
+    self.size = 0u128;
+    self.capacity = 8u128;
 
     alloc!(self.data, self.capacity);
 }
@@ -67,11 +67,11 @@ let expand<t>(self: ^stl::stack<t>) -> void
     alloc!(new_data, new_capacity);
 
     // Copy into aux array
-    let i: u128 = 0;
+    let i = 0u128;
     while (i < self.size)
     {
         Copy(ptrarr!(new_data, i), ptrarr!(self.data, i));
-        i += 1;
+        ++i;
     }
 
     free!(self.data);
@@ -95,11 +95,11 @@ let shrink<t>(self: ^stl::stack<t>) -> void
         alloc!(new_data, new_capacity);
 
         // Copy into aux array
-        let i: u128 = 0;
+        let i = 0u128;
         while (i < self.size && i < self.capacity)
         {
             Copy(ptrarr!(new_data, i), ptrarr!(self.data, i));
-            i += 1;
+            ++i;
         }
 
         // Set cur array to aux array
@@ -118,7 +118,7 @@ let push<t>(self: ^stl::stack<t>, what: t) -> void
     }
 
     Copy(ptrarr!(self.data, self.size), what);
-    self.size += 1;
+    ++self.size;
 }
 
 let pop<t>(self: ^stl::stack<t>) -> opt<t>
@@ -129,13 +129,13 @@ let pop<t>(self: ^stl::stack<t>) -> opt<t>
     if (self.size > 0u128)
     {
         let data: t;
-        data = ptrarr!(self.data, self.size - 1);
+        data = ptrarr!(self.data, self.size - 1u128);
 
-        self.size -= 1;
+        --self.size;
 
         wrap_some(@out, data);
 
-        if (self.size > 16 && self.size * 4u128
+        if (self.size > 16u128 && self.size * 4u128
             < self.capacity)
         {
             shrink(self);
@@ -159,10 +159,10 @@ let top<t>(self: ^stl::stack<t>) -> opt<t>
     let out: opt<t>;
     out.wrap_none();
 
-    if (self.size > 0)
+    if (self.size > 0u128)
     {
         let real_i: u128 = self.size;
-        real_i -= 1;
+        --real_i;
         out.wrap_some(ptrarr!(self.data, real_i));
     }
 

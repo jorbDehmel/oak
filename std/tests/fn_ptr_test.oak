@@ -10,7 +10,7 @@ let a(what: i32) -> i32
 
 let b(what: i32) -> i32
 {
-    (2 * what)
+    (2i32 * what)
 }
 
 let main() -> i32
@@ -18,13 +18,13 @@ let main() -> i32
     let f: ^(i32) -> i32;
     ptrcpy!(f, @a);
 
-    print(f(1));
+    print(f(1i32));
     print("\n");
 
     ptrcpy!(f, @b);
 
-    print(f(1));
+    print(f(1i32));
     print("\n");
 
-    0
+    0i32
 }

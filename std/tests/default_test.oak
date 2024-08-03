@@ -15,24 +15,18 @@ let node: struct
 
 let main(argc: i32, argv: []str) -> i32
 {
-    println<i32>(_: i32);
-    extra::bit_print<i32>(_: ^i32);
-    extra::hex_print<i32>(_: ^i32);
-
-    extra::bit_print<node>(_: ^node);
-
     let a: i32;
     println(a);
 
-    extra::bit_print(a);
-    print("\n");
+    extra::bit_print(@a);
+    endl();
 
-    extra::hex_print(a);
-    print("\n");
+    extra::hex_print(@a);
+    endl();
 
     let n: node;
-    extra::bit_print(n);
-    print("\n");
+    extra::bit_print(@n);
+    endl();
 
-    0
+    0i32
 }

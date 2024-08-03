@@ -1,0 +1,11 @@
+{
+    "NAME": "stl",
+    "VERSION": "0.0.4",
+    "LICENSE": "GPLv3",
+    "DATE": "Jan 5, 2024",
+    "SOURCE": "github.com/jorbDehmel/oak",
+    "PATH": "stl",
+    "AUTHOR": "Jordan Dehmel",
+    "EMAIL": "jdehmel@outlook.com",
+    "ABOUT": "Oak Standard Templated Library"
+}

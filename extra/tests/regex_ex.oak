@@ -57,5 +57,5 @@ let main() -> i32
 
     print("Done with everything!\n");
 
-    0
+    0i32
 }

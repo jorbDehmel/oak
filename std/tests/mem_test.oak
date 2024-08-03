@@ -13,7 +13,7 @@ let New(self: ^test) -> void
 {
     print("Alloc called\n");
 
-    alloc!(self.data, to_u128(5));
+    alloc!(self.data, 5u128);
 }
 
 let Del(self: ^test) -> void
@@ -31,5 +31,5 @@ let main() -> i32
     let b: test;
     b.Del();
 
-    0
+    0i32
 }

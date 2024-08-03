@@ -376,8 +376,8 @@ std::string __instantiateGeneric(
         catch (std::exception &e)
         {
             throw generic_error(
-                "Post-block failed to instantiate given "
-                "prerequisites: " +
+                "Post-block failed to instantiate "
+                "dependents: " +
                 std::string(e.what()));
         }
     }
@@ -394,7 +394,8 @@ std::string instantiateGeneric(
     // Get mangled version (only meaningful for struct
     // instantiations)
     std::string oldCurFile = settings.curFile;
-    int oldCurLine = settings.curLine;
+    auto oldCurLine = settings.curLine;
+    auto oldCurCol = settings.curCol;
 
     std::string mangleStr = mangleStruct(what, genericSubs);
     std::list<std::string> errors;
@@ -486,6 +487,8 @@ std::string instantiateGeneric(
                             " (" + settings.curFile.string() +
                             ":" +
                             std::to_string(settings.curLine) +
+                            "." +
+                            std::to_string(settings.curCol) +
                             ")");
                     }
 
@@ -503,13 +506,15 @@ std::string instantiateGeneric(
                 errors.push_back(
                     "Did not match generic substitution. (" +
                     settings.curFile.string() + ":" +
-                    std::to_string(settings.curLine) + ")");
+                    std::to_string(settings.curLine) + "." +
+                    std::to_string(settings.curCol) + ")");
             }
         }
     }
 
     settings.curFile = oldCurFile;
     settings.curLine = oldCurLine;
+    settings.curCol = oldCurCol;
 
     if (!didInstantiate)
     {
@@ -745,4 +750,171 @@ void printGenericDumpInfo(std::ostream &file,
             }
         }
     }
+}
+
+// Attempt to instantiate some template such that a given
+// function call is valid. This is a last-ditch call, and may
+// easily throw. This must be a precise match; If multiple or
+// zero are found, an error will be thrown.
+MultiTableSymbol implicitInstantiateGeneric(
+    const std::string &name,
+    const std::list<Type> &argTypes,
+    AcornSettings &settings)
+{
+    auto candidates = settings.generics[name];
+    for (auto it = candidates.begin();
+         it != candidates.end(); ++it)
+    {
+        // Basically do a reverse substitution match
+        // This will halt on the first matching candidate
+
+        // current candidate
+        auto c = *it;
+
+        // prepare substitution table
+        std::map<std::string, Type> generic_to_real;
+        for (const auto &gen : c.genericNames)
+        {
+            generic_to_real[gen] = nullType;
+        }
+
+        // Get arg types
+        // Note that this will not check if the typenames
+        // therein are actually valid, so generics are fine
+        auto t = toType(c.typeVec, settings, true);
+        t.append(maps);
+        t.append(atomic, "void");
+
+        const auto candArgTypes = getArgs(t, settings);
+        const auto candGenerics = c.genericNames;
+
+        // Iterate over both candidate and requirement
+        if (candArgTypes.size() != argTypes.size())
+        {
+            continue;
+        }
+
+        auto candIt = candArgTypes.begin(); // generic
+        auto reqIt = argTypes.begin(); // real
+        bool is_viable = true;
+
+        while (is_viable &&
+               candIt != candArgTypes.end() &&
+               reqIt != argTypes.end())
+        {
+            // Compare these two types
+            const auto candArgType = candIt->second; // generic
+            const auto reqArgType = *reqIt; // real
+
+            if (candArgType.size() != reqArgType.size())
+            {
+                is_viable = false;
+                break;
+            }
+
+            for (uint64_t i = 0;
+                 i < reqArgType.size() && is_viable;
+                 ++i)
+            {
+                const auto reqNode = reqArgType[i]; // real
+                const auto candNode = candArgType[i]; // generic
+
+                if (reqNode.info != candNode.info)
+                {
+                    is_viable = false;
+                    break;
+                }
+                else if (candNode.info == atomic)
+                {
+                    // if candNode is a generic
+                    if (generic_to_real.count(candNode.name)
+                        != 0)
+                    {
+                        // If this generic has already been
+                        // mapped
+                        if (generic_to_real[candNode.name] !=
+                            nullType)
+                        {
+                            // Assert match
+                            if (Type(reqArgType, i) !=
+                                generic_to_real[candNode.name])
+                            {
+                                is_viable = false;
+                                break;
+                            }
+                        }
+
+                        // Otherwise, map this generic for
+                        // future
+                        else
+                        {
+                            generic_to_real[candNode.name] = 
+                                Type(reqArgType, i);
+                        }
+                    }
+
+                    // reqNode is a literal
+                    else
+                    {
+                        // Assert simple match
+                        if (candNode.name != reqNode.name)
+                        {
+                            is_viable = false;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            ++candIt;
+            ++reqIt;
+        }
+
+        // Check for unspecified generics
+        for (const auto &p : generic_to_real)
+        {
+            if (p.second == nullType)
+            {
+                is_viable = false;
+                break;
+            }
+        }
+
+        if (!is_viable)
+        {
+            continue;
+        }
+
+        // Order generic subs
+        std::list<std::list<std::string>> genericSubs;
+        for (const auto &key : candGenerics)
+        {
+            const auto t = generic_to_real[key];
+
+            std::list<std::string> builder;
+            toStr(&t, t.internal.begin(), builder);
+
+            genericSubs.push_back(builder);
+        }
+
+        // If we have made it this far, this is valid
+        // Instantiate and return
+
+        auto oldCurFile = settings.curFile;
+        auto oldCurLine = settings.curLine;
+        auto oldCurCol = settings.curCol;
+        auto oldType = settings.currentReturnType;
+        settings.currentReturnType = nullType;
+
+        __instantiateGeneric(name, c, genericSubs, settings);
+
+        settings.curFile = oldCurFile;
+        settings.curLine = oldCurLine;
+        settings.curCol = oldCurCol;
+        settings.currentReturnType = oldType;
+
+        return settings.table[name].back();
+    }
+
+    throw generic_error("No implicit template matched.");
 }

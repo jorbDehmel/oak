@@ -10,61 +10,27 @@ other things.
 tag!("no_dialect");
 
 /*
-Any percentage sign % in the format string
-will be replaced by the corresponding thing.
-Note that this does not use the C system
-of types- a % will print whatever's next
-no matter what.
-
-For instance:
-
-```oak
-package!("std");
-use_rule!("std");
-
-let main() -> i32
-{
-    let i: i32 = 123;
-    let j: f64 = 1.234;
-
-    printf!(
-        "Variable i is %, j is %, and some text is '%'.\n",
-        i,
-        j,
-        "some text here"
-    );
-
-    0
-}
-
-```
-
-```bash
-Variable i is 123, j is 1.234, and some text is \
-'some text here'.
-```
-
-You can escape this behavior for a literal
-% via the backslash.
-
-This is not the most efficient implementation,
-but it works.
+Any percentage sign % in the format string will be replaced by
+the corresponding thing. Note that this does not use the C
+system of types- a % will print whatever's next no matter what.
+You can escape this behavior for a literal % via the backslash.
+This is compile-time, with no option for runtime modifiable
+behavior.
 */
-
 let printf!(argc: i32, argv: [][]i8) -> i32
 {
     package!("std");
     use_rule!("std");
 
-    let cur_char: i32 = 0;
-    let cur_arg: i32 = 2;
+    let cur_char: i32 = 0i32;
+    let cur_arg: i32 = 2i32;
 
     let is_valid: bool;
 
     // Iterate through
-    while (ptrarr!(ptrarr!(argv, 1), cur_char) != to_i8(0))
+    while (ptrarr!(ptrarr!(argv, 1i32), cur_char) != 0i8)
     {
-        let cur: i8 = ptrarr!(ptrarr!(argv, 1), cur_char);
+        let cur: i8 = ptrarr!(ptrarr!(argv, 1i8), cur_char);
 
         if (cur == to_i8("%"))
         {
@@ -79,7 +45,7 @@ let printf!(argc: i32, argv: [][]i8) -> i32
                 print(ptrarr!(argv, cur_arg));
                 print(");\n");
 
-                cur_arg += 1;
+                cur_arg += 1i32;
             }
         }
         else if (cur == to_i8("\\"))
@@ -87,25 +53,26 @@ let printf!(argc: i32, argv: [][]i8) -> i32
             // Escape character
 
             let temp: i32 = cur_char;
-            temp += 1;
+            temp += 1i32;
 
-            if (ptrarr!(ptrarr!(argv, 1), temp) == to_i8(0))
+            if (ptrarr!(ptrarr!(argv, 1i32), temp) == 0i8)
             {
                 print("print(\"\\\\\");\n");
             }
             else
             {
-                if (ptrarr!(ptrarr!(argv, 1), temp) == to_i8("%"))
+                if (ptrarr!(ptrarr!(argv, 1i32), temp)
+                    == to_i8("%"))
                 {
                     print("print(\"%\");\n");
-                    cur_char += 1;
+                    cur_char += 1i32;
                 }
                 else
                 {
                     print("print(\"\\");
-                    print(ptrarr!(ptrarr!(argv, 1), temp));
+                    print(ptrarr!(ptrarr!(argv, 1i32), temp));
                     print("\");\n");
-                    cur_char += 1;
+                    cur_char += 1i32;
                 }
             }
 
@@ -120,16 +87,17 @@ let printf!(argc: i32, argv: [][]i8) -> i32
             print("\");\n");
         }
 
-        cur_char += 1;
+        cur_char += 1i32;
     }
 
     // Warn if more arguments are provided than are needed
     if (cur_arg < argc)
     {
         print(
-            "c::print!(\"Warning: Unused printf! argument(s).\");\n"
+            "c::print!(\"Warning: Unused printf! "
+            "argument(s).\");\n"
         );
     }
 
-    0
+    0i32
 }

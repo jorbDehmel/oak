@@ -1,6 +1,6 @@
 /*
 Ensures that the lexer is not mistaking Neq operations for
-pro proc macros.
+pre proc macros.
 */
 
 package!("std");
@@ -9,10 +9,7 @@ use_rule!("std");
 
 let main() -> i32
 {
-    let item: i128;
-    item = 5;
-
-    assert!(item != 9);
-
-    0
+    let item = 5i128;
+    assert!(item != 9i128);
+    0i32
 }

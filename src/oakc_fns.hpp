@@ -94,6 +94,15 @@ std::string instantiateGeneric(
     const std::list<std::string> &typeVec,
     AcornSettings &settings);
 
+// Attempt to instantiate some template such that a given
+// function call is valid. This is a last-ditch call, and may
+// easily throw. This must be a precise match; If multiple or
+// zero are found, an error will be thrown.
+MultiTableSymbol implicitInstantiateGeneric(
+    const std::string &name,
+    const std::list<Type> &argTypes,
+    AcornSettings &settings);
+
 // Also holds the skeleton of the inst block system, although
 // gathering of these happens elsewhere.
 void addGeneric(const std::list<Token> &what,
@@ -283,11 +292,13 @@ void doRuleAcorn(std::list<Token> &From,
 
 // Converts lexed symbols into a type.
 Type toType(const std::list<Token> &whatIn,
-            AcornSettings &settings);
+            AcornSettings &settings,
+            const bool generic = false);
 
 // Converts lexed symbols into a type.
 Type toType(const std::list<std::string> &what,
-            AcornSettings &settings);
+            AcornSettings &settings,
+            const bool generic = false);
 
 // ASTNode message assert
 void sm_assert(const bool &expression,
@@ -410,6 +421,11 @@ the current table (not backup).
 std::list<std::pair<std::string, std::string>>
 restoreSymbolTable(MultiSymbolTable &backup,
                    MultiSymbolTable &realTable);
+
+// Internal
+void toStr(const Type *const What,
+           const std::list<TypeNode>::const_iterator &pos,
+           std::list<std::string> &builder);
 
 // Return the standard C representation of this type.
 std::string toStr(const Type *const what);

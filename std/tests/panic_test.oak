@@ -8,6 +8,5 @@ include!("std/panic.oak");
 let main() -> i32
 {
     panic!("Don't do that!");
-
-    0
+    0i32
 }

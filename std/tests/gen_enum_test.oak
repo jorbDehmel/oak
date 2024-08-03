@@ -26,14 +26,13 @@ let print<t>(what: opt<t>) -> void
 let main() -> i32
 {
     let inst: opt<i32>;
-
     print<i32>(_: opt<i32>);
 
     print(inst);
 
-    inst.wrap_some(123);
+    inst.wrap_some(123i32);
 
     print(inst);
 
-    0
+    0i32
 }

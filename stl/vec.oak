@@ -47,8 +47,8 @@ post
 // Create an empty vector with capacity 8 by default.
 let New<t>(self: ^stl::vec<t>) -> void
 {
-    self.size = 0;
-    self.capacity = 8;
+    self.size = 0u128;
+    self.capacity = 8u128;
 
     alloc!(self.data, self.capacity);
 }
@@ -71,11 +71,11 @@ let Copy<t>(self: ^stl::vec<t>, other: stl::vec<t>
     }
 
     // Iteratively copy
-    let i: u128 = 0;
+    let i = 0u128;
     while (i < self.size)
     {
         Copy(ptrarr!(self.data, i), ptrarr!(other.data, i));
-        i += 1;
+        ++i;
     }
 
     ^self
@@ -84,7 +84,7 @@ let Copy<t>(self: ^stl::vec<t>, other: stl::vec<t>
 // Free the heap memory associated.
 let Del<t>(self: ^stl::vec<t>) -> void
 {
-    if (self.capacity != 0u128)
+    if self.capacity != 0u128
     {
         free!(self.data);
     }
@@ -128,11 +128,11 @@ let Expand<t>(self: ^stl::vec<t>) -> void
     alloc!(new_data, new_capacity);
 
     // Copy into aux array
-    let i: u128 = 0;
+    let i = 0u128;
     while (i < self.size)
     {
         Copy(ptrarr!(new_data, i), ptrarr!(self.data, i));
-        i += 1;
+        ++i;
     }
 
     free!(self.data);
@@ -156,11 +156,11 @@ let Shrink<t>(self: ^stl::vec<t>) -> void
         alloc!(new_data, new_capacity);
 
         // Copy into aux array
-        let i: u128 = 0;
+        let i: u128 = 0u128;
         while (i < self.size && i < self.capacity)
         {
             Copy(ptrarr!(new_data, i), ptrarr!(self.data, i));
-            i += 1;
+            ++i;
         }
 
         // Set cur array to aux array
@@ -186,7 +186,7 @@ let push_back<t>(self: ^stl::vec<t>, what: t) -> void
     }
 
     Copy(ptrarr!(self.data, self.size), what);
-    self.size += 1;
+    ++self.size;
 }
 
 // Pop the item off the end of the vector.
@@ -198,9 +198,9 @@ let pop_back<t>(self: ^stl::vec<t>) -> opt<t>
     if (self.size > 0u128)
     {
         let data: t;
-        data = ptrarr!(self.data, self.size - 1);
+        data = ptrarr!(self.data, self.size - 1u128);
 
-        self.size -= 1;
+        --self.size;
 
         wrap_some(@out, data);
 
@@ -247,9 +247,9 @@ let front<t>(self: ^stl::vec<t>) -> opt<t>
     let out: opt<t>;
     out.wrap_none();
 
-    if (self.size > 0)
+    if (self.size > 0u128)
     {
-        out.wrap_some(ptrarr!(self.data, 0));
+        out.wrap_some(ptrarr!(self.data, 0u128));
     }
 
     return out;
@@ -261,9 +261,9 @@ let back<t>(self: ^stl::vec<t>) -> opt<t>
     let out: opt<t>;
     out.wrap_none();
 
-    if (self.size > 0)
+    if (self.size > 0u128)
     {
-        out.wrap_some(ptrarr!(self.data, self.size - 1));
+        out.wrap_some(ptrarr!(self.data, self.size - 1u128));
     }
 
     return out;

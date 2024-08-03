@@ -14,8 +14,8 @@ let main() -> i32
     let c: u128;
 
     t.up();
-    t.x = 256;
-    t.y = 256;
+    t.x = 256u64;
+    t.y = 256u64;
     t.down();
 
     while t.is_running
@@ -24,9 +24,9 @@ let main() -> i32
         a = b;
         b = c;
 
-        t.forward(10);
+        t.forward(10u64);
         t.orientation = to_f64(to_i32(a % 360u128));
     }
 
-    0
+    0i32
 }

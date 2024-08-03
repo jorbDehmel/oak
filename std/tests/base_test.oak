@@ -17,14 +17,16 @@ let main() -> i32
     let j: u32;
 
     // Binary
-    i = 0b11110000;
-    j = 0b10101010101010101010101010101010;
+    i = 0b1111 0000;
+
+    j = 0b1010 1010 1010 1010
+          1010 1010 1010 1010;
 
     printf!("i: %\nj: %\n\n", to_i32(i), j);
 
     // Hex
     i = 0xAB;
-    j = 0x01234567;
+    j = 0x01 23 45 67;
 
     printf!("i: %\nj: %\n\n", to_i32(i), j);
 
@@ -41,7 +43,7 @@ let main() -> i32
 
     printf!("i: %\n\n", to_i32(i));
 
-    j = 123 456;
+    j = 123 456 i32;
 
     printf!("j: %\n\n", j);
 
@@ -51,5 +53,5 @@ let main() -> i32
         "over multiple lines.\n\n"
     );
 
-    0
+    0i32
 }

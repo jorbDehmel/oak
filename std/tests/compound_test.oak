@@ -8,16 +8,15 @@ use_rule!("std");
 let main() -> i32
 {
 	let one: u8 = 1u8;
-	if (one != to_u8(1) == false)
+	if (one != 1u8 == false)
 	{
 		print("Worked!\n");
 	}
 
-	one = 1u8;
 	if ((one != 1u8) == false)
 	{
 		print("Worked!\n");
 	}
 
-    0
+    0i32
 }

@@ -7,13 +7,21 @@ jdehmel@outlook.com
 
 #include "../lexer.hpp"
 #include "test.hpp"
+#include <iostream>
 
 void assert_lex_match(const std::string &_inp,
                       const std::list<std::string> &_exp)
 {
     Lexer l;
-
     auto obs = l.lex_list(_inp);
+
+    std::cout << "Observed: `";
+    for (const auto &o : obs)
+    {
+        std::cout << o.text << ' ';
+    }
+    std::cout << '\n';
+
     auto o = obs.begin();
     auto e = _exp.begin();
 

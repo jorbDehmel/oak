@@ -22,11 +22,11 @@ let main() -> i32
 {
     let s: stl::set<i32>;
 
-    s.insert(1);
-    s.insert(3);
-    s.insert(5);
+    s.insert(1i32);
+    s.insert(3i32);
+    s.insert(5i32);
 
-    for (let i: i32 = 0; i < 6; i += 1)
+    for (let i = 0i32; i < 6i32; ++i)
     {
         if s.has(i)
         {
@@ -35,10 +35,10 @@ let main() -> i32
         }
     }
 
-    s.erase(3);
+    s.erase(3i32);
 
     print("After erasure:\n");
-    for (let i = 0; i < 6; i += 1)
+    for (let i = 0i32; i < 6i32; ++i)
     {
         if s.has(i)
         {
@@ -47,5 +47,5 @@ let main() -> i32
         }
     }
 
-    0
+    0i32
 }

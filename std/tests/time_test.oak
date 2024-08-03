@@ -15,7 +15,7 @@ let main() -> i32
 
     start.now();
 
-    sdl_delay(100);
+    sdl_delay(100i32);
 
     end.now();
 
@@ -24,5 +24,5 @@ let main() -> i32
 
     printf!("Elapsed ns: %\n", elapsed);
 
-    0
+    0i32
 }

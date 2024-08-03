@@ -21,11 +21,8 @@ let foobar(what: i32) -> void
 
 let main() -> i32
 {
-    foobar<i32>(_: i32);
-    foobar<bool>(_: bool);
-
-    foobar(5);
+    foobar(5i32);
     foobar(true);
 
-    0
+    0i32
 }

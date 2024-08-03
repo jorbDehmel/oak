@@ -17,5 +17,5 @@ let main() -> i32
 
     print("This is not inside an if statement.\n");
 
-    0
+    0i32
 }

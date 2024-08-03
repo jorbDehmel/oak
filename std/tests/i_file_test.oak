@@ -27,8 +27,8 @@ let main() -> i32
 
     let inp: i_file;
     inp.open("hi.txt");
-    str_a = inp.read(to_u128(5));
-    str_b = inp.read(to_u128(5));
+    str_a = inp.read(5u128);
+    str_b = inp.read(5u128);
 
     print("a: ");
     print(str_a);
@@ -41,5 +41,5 @@ let main() -> i32
     Del(@str_b);
     Del(@inp);
 
-    0
+    0i32
 }

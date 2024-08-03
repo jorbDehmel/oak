@@ -8,6 +8,8 @@ tag!("no_dialect");
 
 include!("std/unit.oak");
 
+// Either `ok`, `err` or `none`. ok and err have types, but
+// none is the standard opt unit struct.
 let result<g, b>: enum
 {
     ok: g,
@@ -20,9 +22,10 @@ post
     Copy<g, b>(self: ^result<g, b>, other: result<g, b>);
 }
 
+// Initialize the result w/ the unit struct (none)
 let New<g, b>(self: ^result<g, b>) -> void
 {
-    wrap_none(self);
+    self.wrap_none();
 }
 
 let Copy<g, b>(self: ^result<g, b>, other: result<g, b>

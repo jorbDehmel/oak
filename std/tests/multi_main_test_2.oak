@@ -19,5 +19,5 @@ let main() -> i32
 {
     print("Hello from main 2!\n");
     foo();
-    0
+    0i32
 }

@@ -24,11 +24,11 @@ let main() -> i32
     print(test.cyan_bold());
 
     begin_red_bold();
-    print(123);
+    print(123u128);
     print("\nHi!\n");
-    print(12.345);
+    print(12.345f64);
     print("\n");
     end_effects();
 
-    0
+    0i32
 }

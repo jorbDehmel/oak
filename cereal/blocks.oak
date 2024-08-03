@@ -33,11 +33,11 @@ let serialize<t>(
     serialize(size, into);
 
     // Sequentially save contents of array
-    let i: u128 = 0;
+    let i = 0u128;
     while i < size
     {
         serialize(Get(self, i), into);
-        i += 1;
+        ++i;
     }
 }
 pre
@@ -54,17 +54,17 @@ let deserialize<t>(
 {
     // Load size
     deserialize(size, from, pos);
-    assert!(size != 0);
+    assert!(size != 0u128);
 
     // Allocate arr
     alloc!(^self, ^size);
 
     // Sequentially load contents of array
-    let i: u128 = 0;
+    let i = 0u128;
     while i < size
     {
         deserialize(Get(^self, i), from, pos);
-        i += 1;
+        ++i;
     }
 }
 pre

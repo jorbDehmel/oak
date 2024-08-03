@@ -10,6 +10,7 @@ common aliases.
 tag!("no_dialect");
 link!("std/conv.o");
 
+// Various antiquated definitions
 let s_to_i(what: str) -> i32;
 let s_to_i(what: ^i8) -> i32;
 let s_to_i(what: []i8) -> i32;
@@ -18,6 +19,7 @@ let b_to_s(what: bool) -> str;
 let i_to_f(what: i128) -> f64;
 let f_to_i(what: f64) -> i128;
 
+// Casts everything to standard int
 let to_i32(what: u8) -> i32;
 let to_i32(what: i8) -> i32;
 let to_i32(what: u16) -> i32;
@@ -28,6 +30,7 @@ let to_i32(what: i64) -> i32;
 let to_i32(what: u128) -> i32;
 let to_i32(what: i128) -> i32;
 
+// Casts everything from standard int
 let to_u8(what: i32) -> u8;
 let to_i8(what: i32) -> i8;
 let to_u16(what: i32) -> u16;
@@ -38,6 +41,7 @@ let to_i64(what: i32) -> i64;
 let to_u128(what: i32) -> u128;
 let to_i128(what: i32) -> i128;
 
+// Upward int casting
 let to_u8(what: i128) -> u8;
 let to_i8(what: i128) -> i8;
 let to_u16(what: i128) -> u16;
@@ -46,14 +50,17 @@ let to_u32(what: i128) -> u32;
 let to_u64(what: i128) -> u64;
 let to_i64(what: i128) -> i64;
 
+// Int to float conversions
 let to_f32(what: i128) -> f32;
 let to_f64(what: i128) -> f64;
 let to_f128(what: i128) -> f128;
 let to_bool(what: i128) -> bool;
 
+// Float-to-float conversions
 let to_f64(what: f32) -> f64;
 let to_f64(what: f128) -> f64;
 
+// Upward int conversions
 let to_u8(what: u128) -> u8;
 let to_i8(what: u128) -> i8;
 let to_u16(what: u128) -> u16;
@@ -62,11 +69,13 @@ let to_u32(what: u128) -> u32;
 let to_u64(what: u128) -> u64;
 let to_i64(what: u128) -> i64;
 
+// Downward int conversions
 let to_f32(what: u128) -> f32;
 let to_f64(what: u128) -> f64;
 let to_f128(what: u128) -> f128;
 let to_bool(what: u128) -> bool;
 
+// Downware float-to-int conversions
 let to_u8(what: f128) -> u8;
 let to_i8(what: f128) -> i8;
 let to_u16(what: f128) -> u16;
@@ -75,9 +84,7 @@ let to_u32(what: f128) -> u32;
 let to_u64(what: f128) -> u64;
 let to_i64(what: f128) -> i64;
 
-let Get(self: ^str, index: u128) -> i8;
-let Get(self: str, index: u128) -> i8;
-
+// Absolute value casts
 let to_u8(what: i8) -> u8;
 let to_u16(what: i16) -> u16;
 let to_u64(what: i64) -> u64;
@@ -87,23 +94,29 @@ let to_i16(what: u16) -> i16;
 let to_i64(what: u64) -> i64;
 let to_i128(what: u128) -> i128;
 
+// These are pretty antiquated
+let Get(self: ^str, index: u128) -> i8;
+let Get(self: str, index: u128) -> i8;
+
 // Get the i8 (char) version of a string
 // (only uses the first character)
 let to_i8(what: str) -> i8;
 let Eq(what: str, against: i8) -> bool;
 let Eq(what: i8, against: str) -> bool;
 
-// Common aliases below
+// Same as s_to_b(what)
 let to_bool(what: str) -> bool
 {
     s_to_b(what)
 }
 
+// Same as i_to_f(what)
 let to_f64(what: i32) -> f64
 {
     i_to_f(what)
 }
 
+// Same as f_to_i(what)
 let to_i32(what: f64) -> i32
 {
     f_to_i(what)

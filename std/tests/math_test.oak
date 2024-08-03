@@ -14,7 +14,7 @@ let main() -> i32
     print("\n");
 
     let pi: f64;
-    pi = math_pi! * -1.0;
+    pi = math_pi! * -1.0f64;
     print(pi);
     print("\n");
 
@@ -22,13 +22,12 @@ let main() -> i32
     print(pi);
     print("\n");
 
-    print(to_i32(pow(2, 12)));
+    print(to_i32(pow(2u128, 12u128)));
     print("\n\n");
 
-    let x: f64;
-    x = -2.0 * pi;
+    let x = -2.0f64 * pi;
 
-    while (x < 2.0 * pi)
+    while x < 2.0f64 * pi
     {
         print(x);
         print("\t");
@@ -37,39 +36,47 @@ let main() -> i32
         print(round(sin(x)));
         print("\n");
 
-        x += 0.1;
+        x += 0.1f64;
     }
 
-    print(tan(pi / 2.0));
+    print(tan(pi / 2.0f64));
     print("\n");
 
-    print(floor(2.0));
+    print(floor(2.0f64));
     print("\n");
 
-    print(sqrt(1666.0));
+    print(sqrt(1666.0f64));
     print("\n");
 
-    print(f_mod(11.999, 4.0));
+    print(f_mod(11.999f64, 4.0f64));
     print("\n");
 
-    print(ceiling(12.0));
+    print(ceiling(12.0f64));
     print("\n");
 
-    let rad: f64 = 0.0;
-    while rad < 4.0 * math_pi!
+    let rad = 0.0f64;
+    while rad < 4.0f64 * math_pi!
     {
-        printf!("The angle % is equal to % degrees.\n", rad, radians_to_degrees(rad));
+        printf!(
+            "The angle % is equal to % degrees.\n",
+            rad,
+            radians_to_degrees(rad)
+        );
 
-        rad += (math_pi! / 4.0);
+        rad += math_pi! / 4.0f64;
     }
 
-    let deg: f64 = 0.0;
-    while deg < 720.0!
+    let deg = 0.0f64;
+    while deg < 720.0f64
     {
-        printf!("The angle % is equal to % radians.\n", deg, degrees_to_radians(deg));
+        printf!(
+            "The angle % is equal to % radians.\n",
+            deg,
+            degrees_to_radians(deg)
+        );
 
-        deg += 45.0;
+        deg += 45.0f64;
     }
 
-    0
+    0i32
 }

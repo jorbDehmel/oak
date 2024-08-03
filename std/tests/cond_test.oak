@@ -46,5 +46,5 @@ let main() -> i32
         print("sldfkjslkdf\n");
     }
 
-    0
+    0i32
 }

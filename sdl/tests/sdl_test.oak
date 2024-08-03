@@ -14,23 +14,23 @@ let main() -> i32
 
     let wind: sdl_window;
 
-    Copy(@wind, to_u64(512), to_u64(512));
+    Copy(@wind, 512u64, 512u64);
     sdl::enable_window_fullscreen(wind);
 
     let black: sdl_color;
     let white: sdl_color;
-    white.Copy(to_u8(255), to_u8(255), to_u8(255), to_u8(255));
+    white.Copy(255u8, 255u8, 255u8, 255u8);
 
     let rect: sdl_rect;
-    rect.Copy(to_u64(10), to_u64(10), to_u64(10), to_u64(10));
+    rect.Copy(10u64, 10u64, 10u64, 10u64);
 
-    let y: i32 = 0;
-    let frame: i32 = 0;
+    let y: i32 = 0i32;
+    let frame: i32 = 0i32;
     let start_time: i64 = time();
 
     while (y < to_i32(wind.height))
     {
-        let x: i32 = 0;
+        let x: i32 = 0i32;
 
         while (x < to_i32(wind.width))
         {
@@ -41,12 +41,12 @@ let main() -> i32
             wind.draw_rect(rect, white);
 
             wind.show();
-            frame += 1;
+            ++frame;
 
-            x += 10;
+            x += 10i32;
         }
 
-        y += 10;
+        y += 10i32;
 
         let event: sdl_event;
         let flag_var: bool = true;
@@ -70,10 +70,7 @@ let main() -> i32
                     print("\n");
                 }
 
-                default
-                {
-                    ;
-                }
+                default {}
             }
         }
     }
@@ -100,5 +97,5 @@ let main() -> i32
     print(fps);
     print("\n");
 
-    0
+    0i32
 }

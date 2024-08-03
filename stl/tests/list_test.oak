@@ -4,12 +4,9 @@ use_rule!("std");
 
 let main() -> i32
 {
-    println<i32>(_: i32);
-    println<str>(_: str);
-
     let obj: stl::list<i32>;
 
-    for (let i: i32; i < 100; i += 1)
+    for (let i = 0i32; i < 100i32; ++i)
     {
         append(obj, i);
     }
@@ -21,7 +18,7 @@ let main() -> i32
     let it: ^stl::list_node<i32>;
     ptrcpy!(it, obj.head);
 
-    while to_void_ptr(it) != 0
+    while to_void_ptr(it) != 0u128
     {
         print(it.data);
         endl();
@@ -35,7 +32,7 @@ let main() -> i32
 
     ptrcpy!(it, obj.tail);
 
-    while to_void_ptr(it) != 0
+    while to_void_ptr(it) != 0u128
     {
         print(it.data);
         endl();
@@ -43,5 +40,5 @@ let main() -> i32
         ptrcpy!(it, it.prev);
     }
 
-    0
+    0i32
 }

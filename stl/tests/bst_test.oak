@@ -17,24 +17,24 @@ let main() -> i32
 {
     let b: stl::bst<i32, i32>;
 
-    b.set(1, 1);
-    b.set(-1, 2);
-    b.set(4, 3);
+    b.set(1i32, 1i32);
+    b.set(-1i32, 2i32);
+    b.set(4i32, 3i32);
 
-    let res = b.get(1);
+    let res = b.get(1i32);
     let i = res.unwrap();
     print(i);
     endl();
 
-    res = b.get(-1);
+    res = b.get(-1i32);
     i = res.unwrap();
     print(i);
     endl();
 
-    res = b.get(4);
+    res = b.get(4i32);
     i = res.unwrap();
     print(i);
     endl();
 
-    0
+    0i32
 }

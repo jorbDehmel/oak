@@ -18,21 +18,15 @@ let test<t>: struct
 let main() -> i32
 {
     // Auto-instantiation for structs (works fine)
-    let t: test<i32>;
-
     // Auto-instantiation for enums (works fine)
+    let t: test<i32>;
     let o: opt<i32>;
 
-    // Auto-instantiation for functions (does not work)
-
-    // We want to make lines like these unnecessary:
-    extra::hex_dump<opt<i32>>(_: ^opt<i32>);
-
     o.wrap_none();
-    extra::hex_dump(o);
+    extra::hex_dump(@o);
 
-    o.wrap_some(Lbs(255, 8));
-    extra::hex_dump(o);
+    o.wrap_some(Lbs(255i32, 8u8));
+    extra::hex_dump(@o);
 
-    0
+    0i32
 }

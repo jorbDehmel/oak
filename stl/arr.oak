@@ -50,19 +50,19 @@ post
 
 let New<t>(self: ^stl::arr<t>) -> void
 {
-    self.l = 0;
+    self.l = 0u128;
     self.responsible = false;
 }
 
 let Del<t>(self: ^stl::arr<t>) -> void
 {
-    if self.responsible && self.l != 0
+    if self.responsible && self.l != 0u128
     {
-        let i: u128 = 0;
+        let i: u128 = 0u128;
         while i < self.l
         {
             Del(Get(self.data, i));
-            i += 1;
+            ++i;
         }
 
         free!(self.data);
@@ -79,11 +79,11 @@ let Copy<t>(self: ^stl::arr<t>, l: u128) -> stl::arr<t>
 
     alloc!(self.data, l);
 
-    let i: u128 = 0;
+    let i: u128 = 0u128;
     while i < l
     {
         New(Get(self.data, i));
-        i += 1;
+        ++i;
     }
 
     self.l = l;
@@ -101,7 +101,7 @@ let Copy<t>(self: ^stl::arr<t>, other: stl::arr<t>
         // Deep copy
 
         self = other.l;
-        let i: u128 = 0;
+        let i: u128 = 0u128;
         while i < self.l
         {
             Get(self.data, i) = Get(other.data, i);
@@ -167,12 +167,12 @@ let Mult<t>(self: ^stl::arr<t>, other: ^stl::arr<t>) -> t
     assert!(self.l == other.l);
 
     let out: t;
-    let i: u128 = 0;
+    let i: u128 = 0u128;
     while i < self.l
     {
         out += self.get(i) * other.get(i);
 
-        i += 1;
+        ++i;
     }
 
     out
@@ -184,11 +184,11 @@ Return the sum of the array.
 let sum<t>(self: ^stl::arr<t>) -> t
 {
     let out: t;
-    let i: u128 = 0;
+    let i: u128 = 0u128;
     while i < self.l
     {
         out += self.get(i);
-        i += 1;
+        ++i;
     }
 
     out
@@ -200,7 +200,7 @@ Return the partial sums of the array.
 let partial_sums<t>(self: ^stl::arr<t>) -> stl::arr<t>
 {
     // Set everything up
-    assert!(self.l > 0);
+    assert!(self.l > 0u128);
     let out: stl::arr<t>;
     out = self.l;
 
@@ -208,7 +208,7 @@ let partial_sums<t>(self: ^stl::arr<t>) -> stl::arr<t>
     let sum: t;
 
     // Iterate over items in self.data, create sum array
-    for (let i: u128 = 0; i < self.l; i += 1)
+    for (let i = 0u128; i < self.l; ++i)
     {
         sum += Get(self.data, i);
         out.set(i, sum);
@@ -223,18 +223,18 @@ out.diff[i] = out[i + 1] - out[i]
 */
 let diff<t>(self: ^stl::arr<t>) -> stl::arr<t>
 {
-    assert!(self.l > 0);
+    assert!(self.l > 0u128);
     let out: stl::arr<t>;
 
     // Allocate correct size
-    out = (self.l - 1);
+    out = (self.l - 1u128);
 
     // Create values
-    let i: u128 = 0;
+    let i: u128 = 0u128;
     while i < out.l
     {
-        out.set(i, self.get(i + 1) - self.get(i));
-        i += 1;
+        out.set(i, self.get(i + 1u128) - self.get(i));
+        i += 1u128;
     }
 
     out

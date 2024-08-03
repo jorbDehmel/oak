@@ -1,0 +1,11 @@
+{
+    "NAME": "sdl",
+    "VERSION": "0.0.3",
+    "SOURCE": "github.com/jorbDehmel/oak",
+    "PATH": "sdl",
+    "ABOUT": "Oak interface with SDL2 via C++ library",
+    "INCLUDE": "sdl.oak",
+    "SYS_DEPS": "git clang sdl2",
+    "AUTHOR": "Maintained by Jordan Dehmel",
+    "EMAIL": "jdehmel@outlook.com"
+}

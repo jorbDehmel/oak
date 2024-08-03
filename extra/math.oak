@@ -19,7 +19,7 @@ let extra::exp(a: f64) -> f64;
 let extra::f_rand(min: f64, max: f64) -> f64
 {
     let base: f64;
-    base = to_f64(rand()) / to_f64(to_i32(pow(2, 32)));
+    base = to_f64(rand()) / to_f64(to_i32(pow(2i32, 32i32)));
     base *= (max - min);
     (min + base)
 }

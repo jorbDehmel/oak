@@ -6,7 +6,7 @@ use_rule!("std");
 
 let do_it(what: i32) -> void
 {
-    if what == 0
+    if what == 0i32
     {
         print(what);
     }
@@ -14,14 +14,14 @@ let do_it(what: i32) -> void
     {
         print(what);
 
-        let next: i32 = what;
-        next -= 1;
+        let next = what;
+        --next;
         do_it(next);
     }
 }
 
 let main() -> i32
 {
-    do_it(5);
-    0
+    do_it(5i32);
+    0i32
 }

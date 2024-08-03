@@ -12,10 +12,10 @@ let main() -> i32
 {
     let black: sdl_color;
     let white: sdl_color;
-    white = (to_u8(255), to_u8(255), to_u8(255), to_u8(255));
+    white = (255u8, 255u8, 255u8, 255u8);
 
-    let w: i32 = 512;
-    let h: i32 = 512;
+    let w: u64 = 512u64;
+    let h: u64 = 512u64;
 
     let wind: sdl_window;
     wind = (to_u64(w), to_u64(h));
@@ -23,16 +23,9 @@ let main() -> i32
     let event: sdl_event;
     let rect: sdl_rect;
 
-    rect.Copy(to_u64(
-        Div(w, 2)),
-        to_u64(h / 2),
-        to_u64(8),
-        to_u64(8)
-    );
+    rect = (w / 2u64, h / 2u64, 8u64, 8u64);
 
-    let start: i32;
-    let end: i32;
-    let elapsed: i32;
+    let start, end, elapsed: i32;
     let fps: f64;
 
     let running: bool = true;
@@ -64,7 +57,7 @@ let main() -> i32
 
                 case sdl::key_down_event(data)
                 {
-                    if data.keycode == to_i128(27)
+                    if data.keycode == 27i128
                     {
                         running = false;
                     }
@@ -84,21 +77,18 @@ let main() -> i32
                     );
                 }
 
-                default
-                {
-                    ;
-                }
+                default {}
             }
         }
 
         end = sdl::get_ticks();
         elapsed = end - start;
 
-        if elapsed < 32
+        if elapsed < 32i32
         {
-            sdl::delay(32 - elapsed);
+            sdl::delay(32i32 - elapsed);
         }
     }
 
-    0
+    0i32
 }

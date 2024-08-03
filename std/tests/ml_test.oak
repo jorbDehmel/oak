@@ -38,11 +38,11 @@ let Copy(self: ^node, num_inputs: u128) -> node
 // Randomize the weights of a node
 let randomize(self: ^node, min: f64, max: f64) -> void
 {
-    let i: u128 = 0;
+    let i: u128 = 0u128;
     while i < self.weights.l
     {
         set(self.weights, i, extra::f_rand(min, max));
-        i += 1;
+        ++i;
     }
 }
 
@@ -57,22 +57,22 @@ let propagate(self: ^node) -> f64
 // Return $\frac{1}{1 + e^{-x}}$
 let sigmoid(x: f64) -> f64
 {
-    1.0 / (1.0 + extra::pow(math_e!, -1.0 * x))
+    1.0f64 / (1.0f64 + extra::pow(math_e!, -1.0f64 * x))
 }
 
 // Return the derivative of the sigmoid activation function
 let sigmoid_derivative(x: f64) -> f64
 {
     let out = sigmoid(x);
-    out * (1.0 - out)
+    out * (1.0f64 - out)
 }
 
 // Rectifier activation function
 let relu(x: f64) -> f64
 {
-    if x < 0.0
+    if x < 0.0f64
     {
-        return 0.0;
+        return 0.0f64;
     }
     else
     {
@@ -83,20 +83,20 @@ let relu(x: f64) -> f64
 // Derivative of the rectifier activation function
 let relu_derivative(x: f64) -> f64
 {
-    if x < 0.0
+    if x < 0.0f64
     {
-        return 0.0;
+        return 0.0f64;
     }
     else
     {
-        return 1.0;
+        return 1.0f64;
     }
 }
 
 ////////////////////////////////////////////////////////////////
 
-let min! = -15.0;
-let max! = -1.0 * min!;
+let min! = -15.0f64;
+let max! = -1.0f64 * min!;
 
 let main() -> i32
 {
@@ -111,10 +111,10 @@ let main() -> i32
             sigmoid_derivative(x)
         );
 
-        x += 1.0;
+        x += 1.0f64;
     }
 
-    0
+    0i32
 }
 
 ////////////////////////////////////////////////////////////////

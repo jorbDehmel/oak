@@ -12,18 +12,18 @@ let main(argc: i32, argv: []str) -> i32
 {
     // If argc != 3, panic w/ the given message.
     assert!(
-        argc == 3,
+        argc == 3i32,
         "Please provide exactly 3 command line arguments."
     );
 
     // Get the command line arguments
-    let filepath: string = ptrarr!(argv, 1);
-    let pattern: string = ptrarr!(argv, 2);
+    let filepath: string = ptrarr!(argv, 1u128);
+    let pattern: string = ptrarr!(argv, 2u128);
 
     let pattern_reg: extra::regex;
     pattern_reg = pattern;
 
-    let num_matches = 0;
+    let num_matches = 0u128;
 
     // Open filepath
     let file: i_file;
@@ -32,12 +32,12 @@ let main(argc: i32, argv: []str) -> i32
 
     while !file.eof()
     {
-        line = file.getline(to_u128(512));
+        line = file.getline(512u128);
 
         if extra::regex_search(line, pattern_reg)
         {
             print(line.green());
-            num_matches += 1;
+            ++num_matches;
         }
     }
 
@@ -45,7 +45,7 @@ let main(argc: i32, argv: []str) -> i32
 
     print("\n");
 
-    if num_matches == 0
+    if num_matches == 0u128
     {
         print("No matches!\n".red());
     }
@@ -56,5 +56,5 @@ let main(argc: i32, argv: []str) -> i32
         end_effects();
     }
 
-    0
+    0i32
 }

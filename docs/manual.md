@@ -1,6 +1,6 @@
 
 # The Oak Programming Language
-## Version 0.7.0
+## Version 0.7.1
 
 ![](https://github.com/jorbDehmel/oak/actions/workflows/ci-test.yml/badge.svg)
 
@@ -83,6 +83,11 @@ languages use the same type specification syntax as `Oak`).
 
 **`Oak` is not compatible with Windows.** `Oak` assumes a UNIX
 system.
+
+You will need:
+- `clang++` compiler
+- `boost` libraries for `C++`
+- `make` resources
 
 To install, open a terminal in this folder and run
 `make install`. This will compile and install `Oak`, as well as
@@ -258,9 +263,9 @@ let foobar<t>(what: t) -> void
 
 ### Explicit Template Instantiation calls
 
-Unlike `C++` and `Rust`, `Oak` does not have implied template
-instantiation calls. The template instantiator must be called
-explicitly. For instance, the `C++` code
+Like `C++` and `Rust`, `Oak` has implied template instantiation
+calls. However, the template instantiator can (and sometimes
+must) be called explicitly. For instance, the `C++` code
 
 ```c++
 // Create foobar<i32> and call it
@@ -276,6 +281,8 @@ foobar<i32>(_: i32);
 // Call that function
 foobar(123);
 ```
+
+This is necessary in trait instantiations (see later).
 
 ### Classes and `public` / `private` / `protected`
 
@@ -1707,7 +1714,7 @@ let main() -> i32
     // Request the instantiation of the generic block
     // identified by the signature `gen_fn<i32>(what: i32)`
     // which is our gen_fn for the i32 type
-    gen_fn<i32>(what: i32);
+    gen_fn<i32>(_: i32);
 
     // Only now that the function has been instantiated is this
     // call valid.
@@ -1744,10 +1751,10 @@ Generic enumerations are defined exactly like structs (see later
 for more information on enumerations). See later in this
 document for more about instantiating generic structs.
 
-**Note:** Generic structs and enumerations *can* be
+**Note:** Generic structs, enumerations, and functions *can* be
 automatically instantiated; That is to say, the `node<i32>;`
-line in the above code is redundant. This is not the case for
-generic functions, as mentioned earlier.
+and `gen_fn<i32>(_: i32);` lines in the above code are
+redundant. However, traits cannot be implicitely instantiated.
 
 ## Acorn
 
@@ -3970,8 +3977,9 @@ sequencer like any other code. This causes the symbols within
 to be entered into the global namespace as if they were never
 generics at all.
 
-Note: The generic system exists exclusively within `Oak`; There
-is no way to interface `C++` generics with `Oak` or vice-versa.
+**Note:** The generic system exists exclusively within `Oak`;
+There is no way to interface `C++` generics with `Oak` or
+vice-versa.
 
 ## Package Importing Via the `package!` Macro
 

@@ -7,27 +7,25 @@ include!("std/thread.oak");
 
 let call() -> void
 {
-    let counter: i32;
-    counter = 100;
-    while (counter > 0)
+    let counter = 100i32;
+    while counter > 0i32
     {
         print(counter);
         print("\n");
 
-        counter -= 1;
+        --counter;
     }
 }
 
 let mega_call() -> void
 {
-    let counter: i32;
-    counter = 1000;
-    while (counter > 0)
+    let counter = 1000i32;
+    while counter > 0i32
     {
         print(counter);
         print("\n");
 
-        counter -= 1;
+        --counter;
     }
 }
 
@@ -51,5 +49,5 @@ let main() -> i32
     d.join();
     e.join();
 
-    0
+    0i32
 }

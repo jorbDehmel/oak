@@ -9,7 +9,7 @@ package!("std");
 let main() -> i32
 {
     let x: i32;
-    x = 0;
+    x = 0i32;
 
     print(x);
     endl();
@@ -29,5 +29,5 @@ let main() -> i32
         print("Hello!\n");
     }
 
-    0
+    0i32
 }

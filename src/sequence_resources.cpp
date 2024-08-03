@@ -21,13 +21,14 @@ void sm_assert(const bool &expression,
 }
 
 Type toType(const std::list<std::string> &What,
-            AcornSettings &settings)
+            AcornSettings &settings,
+            const bool generic)
 {
     Token templ;
     templ.file = settings.curFile;
     templ.line = settings.curLine;
-    templ.pos = 0;
-    templ.state = alpha_state;
+    templ.col = settings.curCol;
+    templ.type = "ID";
 
     std::list<Token> temp;
 
@@ -36,12 +37,13 @@ Type toType(const std::list<std::string> &What,
         temp.push_back(item);
     }
 
-    return toType(temp, settings);
+    return toType(temp, settings, generic);
 }
 
 // Converts lexed symbols into a type
 Type toType(const std::list<Token> &WhatIn,
-            AcornSettings &settings)
+            AcornSettings &settings,
+            const bool generic)
 {
     if (WhatIn.size() == 0)
     {
@@ -265,27 +267,30 @@ Type toType(const std::list<Token> &WhatIn,
         }
     }
 
-    for (const auto &what : out.internal)
+    if (!generic)
     {
-        if (what.info == atomic)
+        for (const auto &what : out.internal)
         {
-            sm_assert(
-                settings.structData.count(what.name) != 0 ||
-                    settings.enumData.count(what.name) ||
+            if (what.info == atomic)
+            {
+                sm_assert(
+                    settings.structData.count(what.name) != 0 ||
+                        settings.enumData.count(what.name) ||
+                        ATOMICS.count(what.name) != 0 ||
+                        what.name == "struct" ||
+                        what.name == "enum",
+                    "Type '" + what.name + "' does not exist.");
+                sm_assert(
                     ATOMICS.count(what.name) != 0 ||
-                    what.name == "struct" ||
-                    what.name == "enum",
-                "Type '" + what.name + "' does not exist.");
-            sm_assert(
-                ATOMICS.count(what.name) != 0 ||
-                    settings.structData[what.name]
-                            .members.size() != 0 ||
-                    settings.enumData[what.name]
-                            .options.size() != 0,
-                "Non-atomic struct with zero members may not "
-                "be instantiated. You are likely trying to "
-                "instantiate a unit generic (used for traits), "
-                "which is not valid usage.");
+                        settings.structData[what.name]
+                                .members.size() != 0 ||
+                        settings.enumData[what.name]
+                                .options.size() != 0,
+                    "Non-atomic struct with zero members may not "
+                    "be instantiated. You are likely trying to "
+                    "instantiate a unit generic (used for traits), "
+                    "which is not valid usage.");
+            }
         }
     }
 
@@ -543,7 +548,11 @@ void toCInternal(const ASTNode &What,
             if (usedOptions.size() != 0)
             {
                 std::cout << tags::yellow_bold
-                          << "Warning: Match statement does "
+                          << "Warning: Match statement at "
+                          << settings.curFile << ":"
+                          << settings.curLine << "."
+                          << settings.curCol
+                          << " does "
                              "not handle option(s) of enum '"
                           << typeStr << "':\n";
 

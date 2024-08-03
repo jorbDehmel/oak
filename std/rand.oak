@@ -9,19 +9,33 @@ jdehmel@outlook.com
 tag!("no_dialect");
 
 include!("std/limits.oak");
-link!("std/rand.o");
 
 // Seeds RNG with current time
-let seed_rand() -> void;
+let seed_rand() -> void
+{
+    raw_c!("#include <time.h>\n");
+    raw_c!("srand((unsigned int)time(NULL));");
+}
 
 // Seeds RNG with a given number
-let seed_rand(with: i32) -> void;
-
-// Generates a random number. This is modulo biased, beware!
-let rand(low: i32, high: i32) -> i32;
+let seed_rand(with: i32) -> void
+{
+    raw_c!("srand(with);");
+}
 
 // Generates a random number
-let rand() -> i32;
+let rand() -> i32
+{
+    let out: i32;
+    raw_c!("out = rand();");
+    out
+}
+
+// Generates a random number. This is modulo biased, beware!
+let rand(low: i32, high: i32) -> i32
+{
+    rand() % (high - low) + low
+}
 
 // Generate a random floating point number. This is *not*
 // modulo-biased.

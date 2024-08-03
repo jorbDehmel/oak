@@ -20,5 +20,5 @@ let main() -> i32
 
     print(a);
 
-    0
+    0i32
 }

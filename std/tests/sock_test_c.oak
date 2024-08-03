@@ -17,7 +17,7 @@ let main() -> i32
     let result: i32;
     client = ("127.0.0.1", 1234u16, result);
 
-    assert!(result == 0, "copy error");
+    assert!(result == 0i32, "copy error");
 
     let received: string = client.recv(8u128);
 
@@ -25,5 +25,5 @@ let main() -> i32
 
     client.close();
 
-    0
+    0i32
 }

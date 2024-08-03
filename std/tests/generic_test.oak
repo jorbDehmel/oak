@@ -17,9 +17,6 @@ let print_twice<t>(what: t) -> void
 
 let main() -> i32
 {
-    print_twice<i32>(what: i32);
-
-    print_twice(10);
-
-    0
+    print_twice(10i32);
+    0i32
 }

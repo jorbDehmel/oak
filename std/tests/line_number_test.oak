@@ -1,0 +1,20 @@
+/*
+Tests line numbering, since it tends to get off for some reason
+*/
+
+package!("std");
+include!(
+    "std/panic.oak",
+    "std/printf.oak"
+);
+
+let main() -> i32
+{
+    printf!("Line: %\n", line!);
+    assert!(line! == 14i32);
+
+    printf!("Line: %\n", line!);
+    assert!(line! == 17i32);
+
+    0i32
+}

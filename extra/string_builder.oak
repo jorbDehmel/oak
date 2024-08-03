@@ -31,7 +31,7 @@ let extra::string_builder: struct
 let New(self: ^extra::string_builder) -> void
 {
     New(self.internal);
-    self.size = 0;
+    self.size = 0u128;
 }
 
 let Del(self: ^extra::string_builder) -> void
@@ -76,7 +76,7 @@ Clear out the existing string.
 let clear(self: ^extra::string_builder) -> void
 {
     Del(self.internal);
-    self.size = 0;
+    self.size = 0u128;
 }
 
 /*
@@ -87,7 +87,7 @@ let collapse(self: ^extra::string_builder) -> string
 {
     // Create output string of correct size
     let out: string;
-    out.reserve(self.size + 1);
+    out.reserve(self.size + 1u128);
 
     // Copy over data
     while Not(empty(self.internal))

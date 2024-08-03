@@ -39,7 +39,7 @@ let cereal::load(
     ) -> string
 {
     let file: i_file;
-    let size: u128 = 0;
+    let size: u128 = 0u128;
     let out: string;
 
     file.open(filepath.data);

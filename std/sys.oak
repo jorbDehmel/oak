@@ -12,7 +12,12 @@ include!("std/string.oak");
 link!("std/sys.o");
 
 // Run a system command and return the exit code.
-let sys(command: str) -> i32;
+let sys(command: str) -> i32
+{
+    let out: i32;
+    raw_c!("out = system(command);");
+    out
+}
 
 // Run the given command and return the cout output.
 let s_sys(command: str) -> string;

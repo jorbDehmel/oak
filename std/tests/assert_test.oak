@@ -1,3 +1,5 @@
+// Tests the assert! macro in std oak
+
 package!("std");
 include!("std/panic.oak");
 
@@ -6,5 +8,5 @@ let main() -> i32
     // assert!(false);
     assert!(true);
 
-    0
+    0i32
 }

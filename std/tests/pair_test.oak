@@ -11,11 +11,11 @@ include!("std/pair.oak");
 let main() -> i32
 {
     let item: pair<i32, f64>;
-    item = (12, 13.0);
+    item = (12i32, 13.0f64);
 
     print(item.first);
     endl();
     print(item.second);
 
-    0
+    0i32
 }

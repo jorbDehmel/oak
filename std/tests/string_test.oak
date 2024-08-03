@@ -26,5 +26,5 @@ let main() -> i32
     print(test_c);
     print("\n");
 
-    0
+    0i32
 }

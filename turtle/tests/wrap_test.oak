@@ -9,16 +9,16 @@ let main() -> i32
 {
     let t: turtle::turtle;
 
-    t.x = 256;
-    t.y = 256;
-    t.orientation = 175.0;
+    t.x = 256u64;
+    t.y = 256u64;
+    t.orientation = 175.0f64;
 
     t.down();
 
     while t.is_running
     {
-        t.forward(20);
+        t.forward(20u64);
     }
 
-    0
+    0i32
 }

@@ -4,6 +4,11 @@ github.com/jorbDehmel/oak
 
 Acorn Version   | Date     | Justification
 ----------------|----------|------------------------------------
+0.7.1           | 8/3/24   | Added implicit instantiation for
+                |          | generic functions (exact matches
+                |          | only). Also fixed warnings in most
+                |          | tests about number literals.
+                |          |
 0.7.0           | 7/10/24  | Various bug fixes; Restricted
                 |          | return types on copy further, fixed
                 |          | bugs with return type checking.
