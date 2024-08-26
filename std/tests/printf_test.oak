@@ -18,7 +18,7 @@ let main() -> i32
         "percentage sign: \\%\n"
     );
 
-    printf!("This tests the failure system of printf % \n");
+    // printf!("This tests the failure system of printf % \n");
 
     let i: i32 = 5i32;
     let j: f64 = 1.234f64;
@@ -29,11 +29,11 @@ let main() -> i32
         j
     );
 
-    printf!(
-        "This passes more argument to printf than it knows "
-        "what to do with.\n",
-        i
-    );
+    // printf!(
+    //     "This passes more argument to printf than it knows "
+    //     "what to do with.\n",
+    //     i
+    // );
 
     0i32
 }

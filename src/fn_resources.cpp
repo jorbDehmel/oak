@@ -572,7 +572,9 @@ std::string callMacro(const std::string &Name,
             continue;
         }
 
-        if (s.front() != '"' || s.back() != '"')
+        bool str_enclosed = s.front() == '"' && s.back() == '"';
+
+        if (!str_enclosed)
         {
             command += '"';
         }
@@ -580,19 +582,19 @@ std::string callMacro(const std::string &Name,
         int pos = 0;
         for (char c : s)
         {
-            if (c == '"' && pos != 0 && pos + 1 != s.size())
+            if (c == '"' &&
+                !(str_enclosed &&
+                  (pos == 0 || pos + 1 == s.size())))
             {
-                command += std::string("\\") + c;
-            }
-            else
-            {
-                command += c;
+                // treat as literal quote
+                command += std::string("\\");
             }
 
+            command += c;
             pos++;
         }
 
-        if (s.front() != '"' || s.back() != '"')
+        if (!str_enclosed)
         {
             command += '"';
         }

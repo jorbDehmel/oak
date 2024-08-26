@@ -26,6 +26,7 @@ enum LexerState
     operator_state,
     string_literal_state_single,
     string_literal_state_double,
+    backtick_state,
     dollar_sign_state,
     colon_state,
     dash_state,
@@ -49,6 +50,7 @@ static LexerState dfa[number_states][number_chars];
 
 // Not all of these will actually be used
 const static std::map<LexerState, std::string> state_to_type = {
+    {delim_state, "DELIM"},
     {numerical_state, "NUMBER"},
     {alpha_state, "ID"},
     {dot_state, "DOT"},
@@ -56,6 +58,7 @@ const static std::map<LexerState, std::string> state_to_type = {
     {operator_state, "OP"},
     {string_literal_state_single, "SINGLE_STR"},
     {string_literal_state_double, "DOUBLE_STR"},
+    {backtick_state, "BACKTICK_STR"},
     {dollar_sign_state, "DOLLAR_SIGN"},
     {colon_state, "COLON"},
     {dash_state, "DASH"},
@@ -72,7 +75,7 @@ void init_dfa();
 void Lex::init_dfa()
 {
     const static char *alpha = "abcdefghijklmnopqrstuvwxyz_"
-                               "ABCDEFGHIJKLMNOPQRSTUVWXYZ`";
+                               "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     const static char *numer = "0123456789";
     const static char *oper = "!%&*=+|/~[]";
     const static char *singletons = "^@#(){};,?";
@@ -195,6 +198,7 @@ void Lex::init_dfa()
         string_literal_state_double;
 
     dfa[delim_state][(unsigned int)':'] = colon_state;
+    dfa[delim_state][(unsigned int)'`'] = backtick_state;
 
     for (int i = 1; i < number_states; ++i)
     {
@@ -250,12 +254,14 @@ void Lex::init_dfa()
         dfa[colon_state][i] = delim_state;
         dfa[singleton_state][i] = delim_state;
         dfa[passthrough_state][i] = delim_state;
+        dfa[backtick_state][i] = delim_state;
     }
 
     dfa[dollar_sign_state][(unsigned int)' '] = delim_state;
     dfa[dollar_sign_state][(unsigned int)'\t'] = delim_state;
     dfa[dollar_sign_state][(unsigned int)'\n'] = delim_state;
     dfa[colon_state][(unsigned int)':'] = colon_state;
+    dfa[backtick_state][(unsigned int)'`'] = backtick_state;
 
     dfa[string_literal_state_single][(unsigned int)'\''] =
         passthrough_state;
@@ -395,9 +401,7 @@ Token Lexer::single()
         --col;
     }
 
-    out.type = (Lex::state_to_type.count(prev_state) != 0)
-                   ? Lex::state_to_type.at(prev_state)
-                   : "NULL";
+    out.type = Lex::state_to_type.at(prev_state);
 
     // Error checking
     if (pos <= starting_pos)
@@ -428,7 +432,8 @@ Token Lexer::single()
 
         throw std::runtime_error(
             "Invalid lex: Token cannot be of size " +
-            std::to_string(pos - starting_pos));
+            std::to_string(pos - starting_pos) +
+            " (Failing type was '" + out.type + "')");
     }
 
     return out;
@@ -442,8 +447,20 @@ bool Lexer::done() const noexcept
 void erase_comments(std::list<Token> &what)
 {
     int count = 0;
+    bool in_code_str = false;
     for (auto it = what.begin(); it != what.end(); it++)
     {
+        if (count == 0 && it->type == "BACKTICK_STR")
+        {
+            in_code_str = !in_code_str;
+            continue;
+        }
+
+        if (count == 0 && in_code_str)
+        {
+            continue;
+        }
+
         if (it->text == "/*")
         {
             count++;
@@ -570,6 +587,69 @@ void join_namespaces(std::list<Token> &what)
                 it = what.erase(it);
                 it--;
                 it->text += "_" + temp;
+            }
+        }
+    }
+}
+
+/*
+Joins code strings. This assumes that whitespace IS present, and
+includes it in the result.
+*/
+void join_code_strings(std::list<Token> &what)
+{
+    for (auto it = what.begin(); it != what.end(); it++)
+    {
+        if (it->type == "BACKTICK_STR")
+        {
+            if (it->text.size() != 3)
+            {
+                throw std::runtime_error(
+                    "Code string opener of invalid size: "
+                    "Expected '```', saw '" + it->text + "'");
+            }
+
+            it->text = "\"";
+            ++it;
+
+            while (it->type != "BACKTICK_STR")
+            {
+                std::string temp = it->text;
+                --it;
+                it->text += temp;
+                ++it;
+
+                it = what.erase(it);
+            }
+
+            if (it->text.size() != 3)
+            {
+                throw std::runtime_error(
+                    "Code string closer of invalid size: "
+                    "Expected '```', saw '" + it->text + "'");
+            }
+
+            it = what.erase(it);
+            --it;
+            it->text += "\"";
+
+            // Fix internal strings
+            for (int i = 1; i + 1 < it->text.size(); ++i)
+            {
+                switch (it->text[i])
+                {
+                case '\\':
+                    ++i;
+                    break;
+                case '\n':
+                    it->text.replace(i, 1, "\\n");
+                    ++i;
+                    break;
+                case '"':
+                    it->text.replace(i, 1, "\\\"");
+                    ++i;
+                    break;
+                }
             }
         }
     }
@@ -762,6 +842,7 @@ std::list<Token> Lexer::lex_list(const std::string &What,
     }
 
     erase_comments(out);
+    join_code_strings(out);
     erase_whitespace(out);
     join_namespaces(out);
 

@@ -3,14 +3,10 @@ Test of Binary Search Tree from the Oak STL.
 
 Jordan Dehmel, 2023
 jdehmel@outlook.com
-
-TODO:
-- Fix memory leak (see valgrind output)
 */
 
 package!("std");
 use_rule!("std");
-
 include!("stl/bst.oak");
 
 let main() -> i32

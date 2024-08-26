@@ -15,11 +15,14 @@ tag!("no_dialect");
 
 package!("std");
 use_rule!("std");
-include!("std/string.oak");
+
+include!(
+    "std/string.oak",
+    "std/opt.oak"
+);
 
 c::warn!(
-    "std/string_ops.oak is currently under construction.\n"
-    "Some aspects will not work."
+    "std/string_ops.oak is currently under construction."
 );
 
 ////////////////////////////////////////////////////////////////
@@ -27,46 +30,76 @@ c::warn!(
 /*
 Takes in a number 1-10 and returns its ASCII char value.
 */
-let string_ops::__digit_to_char(digit: u8) -> i8
+let digit_to_char(digit: u128) -> i8
 {
-    let out: i8 = Get("0", 0);
-    out += digit;
+    let out: i8 = to_i8("0");
+
+    raw_c!(
+        ```
+        if (digit < 10)
+        {
+            out += digit;
+        }
+        ```
+    );
+
     out
 }
 
 /*
-The inverse of the above function.
+Takes a char representing a digit 0-9 and returns that digit.
 */
-let string_ops::__char_to_digit(character: i8) -> u8
+let char_to_digit(c: i8) -> u128
 {
-    let reference: i8 = Get("0", 0);
-    let out: u8 = character;
-    out -= reference;
+    let out: u128;
+    let zero_char: i8 = to_i8("0");
+
+    raw_c!(
+        ```
+        if (zero_char <= c && c - zero_char <= 9)
+        {
+            out = c - zero_char;
+        }
+        ```
+    );
+
     out
 }
 
 /*
-Returns log base 10 of the given number.
+Returns the number of decimal characters (0-9 or '-' for
+negatives) needed to represent the given positive integer.
 */
-let string_ops::__log_10(what: u128) -> u128
+let decimal_length(what: u128) -> u128
 {
-    let out: u128 = 1;
+    let out = 1u128;
     let temp: u128 = what;
-    while temp > 9
+    while temp > 9u128
     {
-        out += 1;
-        temp /= 10;
+        ++out;
+        temp /= 10u128;
     }
     out
 }
-let string_ops::__log_10(what: i128) -> u128
+
+/*
+Returns the number of decimal characters (0-9 or '-' for
+negatives) needed to represent the given integer.
+*/
+let decimal_length(what: i128) -> u128
 {
-    let out: u128 = 1;
-    let temp: u128 = what;
-    while temp > 9 || temp < -9
+    let out = 1u128;
+    let temp: i128 = what;
+
+    if temp < 0i128
     {
-        out += 1;
-        temp /= 10;
+        ++out;
+    }
+
+    while temp > 9i128 || temp < -9i128
+    {
+        ++out;
+        temp /= 10i128;
     }
     out
 }
@@ -74,21 +107,21 @@ let string_ops::__log_10(what: i128) -> u128
 /*
 Takes in a string and returns it reversed.
 */
-let string_ops::__reverse(what: string) -> string
+let reverse(what: string) -> string
 {
     let out: string;
     out.reserve(what.current_length);
 
     let i, j: u128;
-    i = 0;
-    j = what.current_length - 1;
+    i = 0u128;
+    j = what.current_length - 1u128;
 
     while i < what.current_length
     {
         ptrarr!(out.data, j) = ptrarr!(what.data, i);
 
-        i += 1;
-        j -= 1;
+        ++i;
+        --j;
     }
 
     out
@@ -98,51 +131,42 @@ let string_ops::__reverse(what: string) -> string
 
 let to_string(what: u128) -> string
 {
-    let r: u8 = 0;
+    let r: u8 = 0u8;
     let t: u128 = what;
 
     // Construct backwards version, since appending to the end
     // of the string is cheaper.
 
     let reversed: string;
-    reversed.reserve(string_ops::__log_10(what));
+    reversed.reserve(decimal_length(what));
 
-    while t != to_u128(0)
+    while t != 0u128
     {
-        reversed += string_ops::__digit_to_char(t % 10);
-        t /= to_u128(10);
+        reversed += digit_to_char(t % 10u128);
+        t /= 10u128;
     }
 
     // Reverse the backwards version and return the correct item
-    let out: string = string_ops::__reverse(reversed);
-    out
+    reverse(reversed)
 }
 
 let to_string(what: i128) -> string
 {
-    let is_negative: bool = (what < to_u128(0));
+    let is_negative: bool = (what < 0u128);
 
-    let r: u8 = 0;
+    let r: u8 = 0u8;
     let t: i128 = what;
 
     // Construct backwards version, since appending to the end
     // of the string is cheaper.
 
     let reversed: string;
+    reversed.reserve(decimal_length(what));
 
-    if is_negative
+    while t != 0u128
     {
-        reversed.reserve(string_ops::__log_10(what) + 1);
-    }
-    else
-    {
-        reversed.reserve(string_ops::__log_10(what));
-    }
-
-    while t != to_u128(0)
-    {
-        reversed += string_ops::__digit_to_char(t % 10);
-        t /= to_u128(10);
+        reversed += digit_to_char(t % 10u128);
+        t /= 10u128;
     }
 
     if is_negative
@@ -151,11 +175,40 @@ let to_string(what: i128) -> string
     }
 
     // Reverse the backwards version and return the correct item
-    let out: string = string_ops::__reverse(reversed);
+    reverse(reversed)
+}
+
+let to_string(what: f64) -> string
+{
+    let out: string;
+    let max_size: u128 = 20u128;
+
+    out.reserve(max_size);
+
+    raw_c!(
+        ```
+        out.current_length =
+            fnprintf(out.data, out.capacity, "%g\0", what);
+        ```
+    );
+
     out
 }
 
-let to_string(what: f64) -> string {}
+let to_string(what: f64, max_size: u128) -> string
+{
+    let out: string;
+    out.reserve(max_size);
+
+    raw_c!(
+        ```
+        out.current_length =
+            fnprintf(out.data, out.capacity, "%g\0", what);
+        ```
+    );
+
+    out
+}
 
 let to_string(what: bool) -> string
 {
@@ -173,20 +226,97 @@ let to_string(what: bool) -> string
 
 ////////////////////////////////////////////////////////////////
 
-let to_i128(what: ^string) -> i128 {}
-let to_u128(what: ^string) -> u128 {}
-let to_f64(what: ^string) -> f64 {}
+let to_i128(what: ^string) -> i128
+{
+    -1i128
+}
+
+let to_u128(what: ^string) -> u128
+{
+    0u128
+}
+
+let to_f64(what: ^string) -> f64
+{
+    -1.0f64
+}
 
 let to_bool(what: ^string) -> bool
 {
-    if what == "true"
+    what == "true"
+}
+
+////////////////////////////////////////////////////////////////
+
+// Returns the index of the first occurrance of the given
+// substr, or -1 if none exist.
+let find(self: ^string, what: ^string) -> opt<u128>
+{
+    // Left and right positions
+    let l_pos: u128 = 0;
+    let r_pos: u128 = 0;
+
+    // Limits
+    let l_size = self.size();
+    let r_size = what.size();
+
+    let out: opt<u128>;
+    out.wrap_none();
+
+    // Iterate
+    while what.size() + l_pos <= self.size() + r_pos
     {
-        true
+        if self.Get(l_pos) == what.Get(r_pos)
+        {
+            ++r_pos;
+            if r_pos == what.size()
+            {
+                out.wrap_some(l_pos - r_pos);
+                return out;
+            }
+        }
+        else
+        {
+            r_pos = 0u128;
+        }
+
+        ++l_pos;
     }
-    else
+
+    out
+}
+
+// Returns true iff the given substring exists in this string
+let contains(self: ^string, what: ^string) -> bool
+{
+    // Left and right positions
+    let l_pos: u128 = 0;
+    let r_pos: u128 = 0;
+
+    // Limits
+    let l_size = self.size();
+    let r_size = what.size();
+
+    // Iterate
+    while what.size() + l_pos <= self.size() + r_pos
     {
-        false
+        if self.Get(l_pos) == what.Get(r_pos)
+        {
+            ++r_pos;
+            if r_pos == what.size()
+            {
+                return true;
+            }
+        }
+        else
+        {
+            r_pos = 0u128;
+        }
+
+        ++l_pos;
     }
+
+    false
 }
 
 ////////////////////////////////////////////////////////////////

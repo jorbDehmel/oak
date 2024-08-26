@@ -320,6 +320,28 @@ let Add(a: string, b: []i8) -> string
     out
 }
 
+// Concat two strings.
+let Add(b: str, a: string) -> string
+{
+    let out: string;
+    out.reserve(a.current_length + strlen(b));
+    out = b;
+    out += a;
+
+    out
+}
+
+// Concat two strings.
+let Add(b: []i8, a: string) -> string
+{
+    let out: string;
+    out.reserve(a.current_length + strlen(b));
+    out = b;
+    out += a;
+
+    out
+}
+
 // Get the byte at the given index.
 // NOTE: This may not work properly on Unicode strings!
 let Get(self: ^string, index: u128) -> i8

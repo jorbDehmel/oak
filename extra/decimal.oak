@@ -1,0 +1,187 @@
+/*
+A base 10 arbitrary-precision number representation. This is a
+dynamically-resizing structure, basically a string with limited
+alphabet.
+*/
+
+package!("std");
+use_rule!("std");
+
+include!(
+    "std/assert.oak"
+);
+
+////////////////////////////////////////////////////////////////
+// Struct definitions
+
+// Doubly linked list
+let extra::__decimal_node: struct
+{
+    l, r: ^extra::__decimal_node,
+    data: u8,
+}
+
+// List wrapper
+let extra::decimal: struct
+{
+    leftmost,
+        rightmost,
+        pivot: ^extra::__decimal_node,
+    negative: bool,
+    size: u128,
+}
+
+// Forward definitions
+let append, prepend(self: mut extra::decimal, what: u8
+    ) -> void;
+let New, Del(self: mut extra::decimal) -> void;
+let Copy(self: mut extra::decimal, from: u128
+    ) -> extra::decimal;
+let Copy(self: mut extra::decimal, from: extra::decimal
+    ) -> extra::decimal;
+let Add, Sub, Mult(self: extra::decimal, other: extra::decimal
+    ) -> extra::decimal;
+let AddEq, SubEq, MultEq(self: extra::decimal,
+    other: extra::decimal) -> extra::decimal;
+let Eq, Neq, Less, Great, Leq, Greq(self: extra::decimal,
+    other: extra::decimal) -> bool;
+let Get(self: mut extra::decimal, i: u128) -> u128;
+let set(self: mut extra::decimal, i: u128, to: u128) -> void;
+let print(self: extra::decimal) -> void;
+
+////////////////////////////////////////////////////////////////
+// Operators
+
+let prepend(self: mut extra::decimal, what: u8) -> void
+{
+    let n: ^extra::__decimal_node;
+    alloc!(n);
+    n.data = what;
+
+    self.leftmost.l = n;
+    n.r = self.leftmost;
+
+    self.leftmost = n;
+    ++self.size;
+}
+
+let append(self: mut extra::decimal, what: u8) -> void
+{
+    let n: ^extra::__decimal_node;
+    alloc!(n);
+    n.data = what;
+
+    self.rightmost.r = n;
+    n.l = self.rightmost;
+
+    self.rightmost = n;
+    ++self.size;
+}
+
+let New(self: mut extra::decimal) -> void
+{
+    alloc!(self.pivot);
+    self.leftmost = self.rightmost = self.pivot;
+
+    self.pivot.data = 0u8;
+}
+
+let Del(self: mut extra::decimal) -> void
+{
+    let to_delete: ^extra::__decimal_node;
+
+    // Iterate leftmost to rightmost, deleting along the way
+    while self.leftmost != 0u128
+    {
+        to_delete = self.leftmost;
+        self.leftmost = self.leftmost.r;
+        free!(to_delete);
+    }
+}
+
+let Copy(self: mut extra::decimal, from: u128) -> extra::decimal
+{
+    // Reset self
+    self.Del();
+    self.New();
+
+    let temp: u128 = from;
+    let d: u8;
+
+    while temp > 0u128
+    {
+        d = temp % 10u128;
+        temp /= 10u128;
+
+        self.prepend(temp);
+    }
+
+    ^self
+}
+
+let Copy(self: mut extra::decimal, from: extra::decimal
+    ) -> extra::decimal
+{
+    // Deep copy
+}
+
+let Add(self: extra::decimal, other: extra::decimal
+    ) -> extra::decimal
+{
+}
+
+let Sub(self: extra::decimal, other: extra::decimal
+    ) -> extra::decimal
+{
+}
+
+let Mult(self: extra::decimal, other: extra::decimal
+    ) -> extra::decimal
+{}
+
+let AddEq(self: extra::decimal, other: extra::decimal
+    ) -> extra::decimal
+{}
+
+let SubEq(self: extra::decimal, other: extra::decimal
+    ) -> extra::decimal
+{}
+
+let MultEq(self: extra::decimal, other: extra::decimal
+    ) -> extra::decimal
+{}
+
+let Eq(self: extra::decimal, other: extra::decimal) -> bool
+{
+    if self.size == other.size
+    {
+    }
+
+    false
+}
+
+let Neq(self: extra::decimal, other: extra::decimal) -> bool
+{}
+
+let Less(self: extra::decimal, other: extra::decimal) -> bool
+{}
+
+let Great(self: extra::decimal, other: extra::decimal) -> bool
+{}
+
+let Leq(self: extra::decimal, other: extra::decimal) -> bool
+{}
+
+let Greq(self: extra::decimal, other: extra::decimal) -> bool
+{}
+
+let print(self: extra::decimal) -> void
+{}
+
+let Get(self: mut extra::decimal, i: u128) -> u128
+{}
+
+let set(self: mut extra::decimal, i: u128, to: u128) -> void
+{}
+
+////////////////////////////////////////////////////////////////

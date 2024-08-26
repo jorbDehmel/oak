@@ -2,24 +2,32 @@ name: GitHub Actions CI/CD
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "staging" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "staging" ]
 
 permissions:
   contents: read
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        arch: [amd64, arm64]
+
     steps:
     - uses: actions/checkout@v3
+
     - name: Install dependencies
       run: |
         sudo apt update && sudo apt upgrade -y
         sudo apt install -y valgrind clang libboost-all-dev git
         sudo apt install -y libsdl2-dev colorized-logs
         make install packages so
+
     - name: Run tests
       run: |
         make test

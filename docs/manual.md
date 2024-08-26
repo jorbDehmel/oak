@@ -1119,6 +1119,32 @@ let fn_which_returns_void()
 }
 ```
 
+### Pointer and mutability aliases
+
+Without `std`:
+```rust
+// Untyped pointer (void pointer in C)
+let a: ^void;
+
+// Takes a mutable argument `a`
+let foo(a: ^i32) -> void
+{
+    a = -1i32;
+}
+```
+
+With `std`:
+```rust
+// Untyped pointer (void pointer in C)
+let a: ptr;
+
+// Takes a mutable argument `a`
+let foo(a: mut i32)
+{
+    a = -1i32;
+}
+```
+
 ### Automatic parentheses for `if`, `while`, and `match`
 
 Without `std`:
@@ -1906,6 +1932,51 @@ let print_five_times!(argc: i32, argv: []str)
 If you were to call `print_five_times!(a)`, it would expand into
 `aaaaa`. If you were to call `print_five_times!(a[b].c)`, you
 would receive `a[b].ca[b].ca[b].ca[b].ca[b].c`.
+
+Macros also make use of **code strings**, which are `Oak`'s only
+direct form of multi-line string. The behavior of whitespace in
+these string should be assumed to be undefined, and thus they
+should not be used in the general case. However, they are very
+convenient for macros.
+
+```rust
+// Without code strings
+let hi_1!(argc: i32, argv: [][]i8) -> i32
+{
+    include!(
+        "std/std_io.oak",
+        "std/printf.oak"
+    );
+
+    printf!(
+        "print(\"This was started with the command '%'\");",
+        argv.Get(0i32)
+    );
+
+    0i32
+}
+
+// With code strings
+let hi_2!(argc: i32, argv: [][]i8) -> i32
+{
+    include!(
+        "std/std_io.oak",
+        "std/printf.oak"
+    );
+
+    // The interior `print` call is treated as one long string
+    // literal. This way you don't have to worry about escaping
+    // quotes, and the outputted code is more readable.
+    printf!(
+        ```
+        print("This was started with the command '%'");
+        ```,
+        argv.Get(0i32)
+    );
+
+    0i32
+}
+```
 
 ## Packages
 

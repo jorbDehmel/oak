@@ -23,18 +23,18 @@ include!(
 ////////////////////////////////////////////////////////////////
 // Rules
 
-// Void return rule
-new_rule!(
-    "void_return",
-    "let $~ $$ $>a ( $~ $*/[$)$] $>b ) {",
-    "let $~ $$ $>a ( $~ $$ $>b ) -> void {"
-);
-
 // `ptr` (^void) alias rule
 new_rule!(
     "ptr",
     "ptr",
     "^ void"
+);
+
+// `mut` (^) alias rule
+new_rule!(
+    "mut",
+    "mut",
+    "^"
 );
 
 // Auto-parenthesize rules
@@ -60,11 +60,6 @@ new_rule!(
     "let $~ $$ $>a . $~ $$ $>b (",
     "let $b ( self : ^ $a ,"
 );
-new_rule!(
-    "get_method",
-    "$/<$let $~ $$ $>a . Get (",
-    "Get ( $a ,"
-);
 
 // Definition-Instantiation rules
 new_rule!(
@@ -86,6 +81,18 @@ new_rule!(
     "{ $a ; while ( $b ) { $d $c ; } }"
 );
 
+new_rule!(
+    "foreach",
+    "for $~ $$ $>a in $~ $$ $>b $~ $<${$}$> $>c ",
+    "{ "
+        "let oakc::__iter = $b . begin ( ) ; "
+        "while ( ! end ( $b , oakc::__iter ) ) { "
+        "let $a : ^ i32 ; "
+        "ptrcpy! ( $a , get ( oakc::__iter ) ) ; "
+        "{ $c } ++ oakc::__iter ; } "
+    "}"
+);
+
 // Trait rule
 new_rule!(
     "trait",
@@ -95,7 +102,7 @@ new_rule!(
 
 // This is instantiable if and only if `a` has a member named
 // `b`.
-let __has<a, b>() -> void { let __item: a; New(__item.b); }
+let __has<a, b>() { let __item: a; New(__item.b); }
 
 // Clause rules
 new_rule!(
@@ -132,8 +139,7 @@ new_rule!(
 bundle_rule!(
     "std",              // Name of the bundle
     "ptr",              // Make `ptr` mean `^ void`
-    "get_method",       // Make `[]` be `Get`
-    "void_return",      // Add void returns where needed
+    "mut",              // Make `mut` mean `^`
     "auto_if_paren",    // Parenthesize if statements
     "auto_while_paren", // Parenthesize while loops
     "auto_match_paren", // Parenthesize match statements
@@ -141,7 +147,8 @@ bundle_rule!(
     "auto_init",        // Allows `let a: type = b;` notation
     "def_init",         // Allows `let a = b;` notation
     "for",              // Allow for loop syntax
-    "trait",            // Allows traits.
+    "foreach",          // Allow foreach loop syntax
+    "trait",            // Allows traits
     "does",             // Clause keyword aliases
     "is",               // Clause keyword aliases
     "has",              // Clause keyword aliases
