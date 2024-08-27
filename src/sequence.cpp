@@ -894,7 +894,8 @@ ASTNode __createSequence(std::list<Token> &From,
             {
                 // Templated function definition
 
-                std::list<Token> toAdd = {Token("let"), Token("NAME_HERE")};
+                std::list<Token> toAdd = {Token("let"),
+                                          Token("NAME_HERE")};
                 std::list<std::string> typeVec;
 
                 while (From.front() != "->")

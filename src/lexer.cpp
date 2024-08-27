@@ -606,7 +606,8 @@ void join_code_strings(std::list<Token> &what)
             {
                 throw std::runtime_error(
                     "Code string opener of invalid size: "
-                    "Expected '```', saw '" + it->text + "'");
+                    "Expected '```', saw '" +
+                    it->text + "'");
             }
 
             it->text = "\"";
@@ -626,7 +627,8 @@ void join_code_strings(std::list<Token> &what)
             {
                 throw std::runtime_error(
                     "Code string closer of invalid size: "
-                    "Expected '```', saw '" + it->text + "'");
+                    "Expected '```', saw '" +
+                    it->text + "'");
             }
 
             it = what.erase(it);

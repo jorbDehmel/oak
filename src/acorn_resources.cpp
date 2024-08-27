@@ -459,8 +459,7 @@ void doFile(const std::string &From, AcornSettings &settings)
                                 }
 
                                 std::string pkg = a.substr(
-                                    0,
-                                    a.find_first_of('/'));
+                                    0, a.find_first_of('/'));
 
                                 if (settings.packages.count(
                                         pkg) == 0)
