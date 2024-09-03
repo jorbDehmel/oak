@@ -1,23 +1,14 @@
-/*
-printf.oak
-Jordan Dehmel, 2023
-
-Takes a format string and some number of
-other things.
-*/
-
 // Ensure that this will work with other dialects
 tag!("no_dialect");
 
 /*
-Any percentage sign % in the format string will be replaced by
-the corresponding thing. Note that this does not use the C
-system of types- a % will print whatever's next no matter what.
-You can escape this behavior for a literal % via the backslash.
-This is compile-time, with no option for runtime modifiable
-behavior.
+String formatting macro. Works like printf.
+
+format!("flump % buzz %", foo, fizz)
+=>
+("flump " + to_string(foo) + " buzz " + to_string(fizz))
 */
-let printf!(argc: i32, argv: [][]i8) -> i32
+let format!(argc: i32, argv: [][]i8) -> i32
 {
     package!("std");
     use_rule!("std");
@@ -26,26 +17,29 @@ let printf!(argc: i32, argv: [][]i8) -> i32
     let cur_arg = 2i32;
     let is_valid = true;
     let is_in_str = false;
+    let is_beginning = true;
 
     if argc < 2i32
     {
         print(
-            "c::panic!(\"Missing printf! format string.\");\n"
+            "c::panic!(\"Missing format! string.\");\n"
         );
         0i32
     }
 
     // Iterate through chars in format string
+    print("(");
     while Get(Get(argv, 1i32), cur_char) != 0u8
     {
         let cur: i8 = Get(Get(argv, 1i32), cur_char);
 
         // Arg access
-        if (cur == to_i8("%"))
+        if cur == to_i8("%")
         {
+            is_beginning = false;
             if is_in_str
             {
-                print("\");\n");
+                print("\" + ");
                 is_in_str = false;
             }
 
@@ -53,7 +47,7 @@ let printf!(argc: i32, argv: [][]i8) -> i32
             {
                 // Error case
                 print(
-                    "c::panic!(\"Missing printf! "
+                    "c::panic!(\"Missing format! "
                     "argument(s).\");\n"
                 );
                 0i32
@@ -61,9 +55,9 @@ let printf!(argc: i32, argv: [][]i8) -> i32
             else
             {
                 // Formatted print
-                print("print(");
+                print("to_string(");
                 print(ptrarr!(argv, cur_arg));
-                print(");\n");
+                print(")");
                 ++cur_arg;
             }
         }
@@ -73,7 +67,16 @@ let printf!(argc: i32, argv: [][]i8) -> i32
         {
             if !is_in_str
             {
-                print("print(\"");
+                if is_beginning
+                {
+                    is_beginning = false;
+                }
+                else
+                {
+                    print(" + ");
+                }
+
+                print("\"");
                 is_in_str = true;
             }
 
@@ -120,16 +123,18 @@ let printf!(argc: i32, argv: [][]i8) -> i32
 
     if is_in_str
     {
-        print("\");\n");
+        print("\"");
     }
+    print(")");
 
     // Warn if more arguments are provided than are needed
     if (cur_arg < argc)
     {
         print(
-            "c::panic!(\"Unused printf! argument(s).\");\n"
+            "c::panic!(\"Unused format! argument(s).\");\n"
         );
     }
 
     0i32
 }
+

@@ -629,6 +629,11 @@ Type getReturnType(const Type &T, AcornSettings &settings)
             {
                 Type out(temp, cur + 1);
 
+                if (settings.getReturnTypeCache.size() > 1000)
+                {
+                    settings.getReturnTypeCache.clear();
+                }
+
                 settings.getReturnTypeCache[T.ID] = out;
 
                 return out;
@@ -641,9 +646,9 @@ Type getReturnType(const Type &T, AcornSettings &settings)
         settings.getReturnTypeCache.clear();
     }
 
-    settings.getReturnTypeCache[T.ID] = T;
-
-    return T;
+    // No return type present; Yield void.
+    settings.getReturnTypeCache[T.ID] = Type(atomic, "void");
+    return Type(atomic, "void");
 }
 
 std::list<std::pair<std::string, Type>> getArgs(

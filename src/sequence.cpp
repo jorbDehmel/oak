@@ -894,8 +894,8 @@ ASTNode __createSequence(std::list<Token> &From,
             {
                 // Templated function definition
 
-                std::list<Token> returnType,
-                    toAdd = {Token("let"), Token("NAME_HERE")};
+                std::list<Token> toAdd = {Token("let"),
+                                          Token("NAME_HERE")};
                 std::list<std::string> typeVec;
 
                 while (From.front() != "->")
@@ -905,26 +905,22 @@ ASTNode __createSequence(std::list<Token> &From,
 
                     From.pop_front();
 
+                    // Case for void-returning functions
                     if (From.empty() || From.front() == "{" ||
                         From.front() == ";")
                     {
-                        throw sequencing_error(
-                            "Malformed templated function "
-                            "definition; Expected return "
-                            "type.");
+                        From.push_front(Token("JUNK"));
+                        break;
                     }
                 }
 
                 toAdd.push_back(From.front());
-
                 From.pop_front();
 
                 while (From.front() != "{" &&
                        From.front() != ";")
                 {
                     toAdd.push_back(From.front());
-                    returnType.push_back(From.front());
-
                     From.pop_front();
                 }
 

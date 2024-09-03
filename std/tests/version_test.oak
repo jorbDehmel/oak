@@ -4,13 +4,27 @@ compile-time environment.
 */
 
 package!("std");
-include!("std/printf.oak");
+include!(
+    "std/printf.oak",
+    "std/version.oak"
+);
 
 let main() -> i32
 {
     printf!(
         "Package std is at version %.\n",
         std::VERSION!
+    );
+
+    let std: pkg = pkg!("std");
+
+    printf!(
+        "Major: %\n"
+        "Minor: %\n"
+        "Patch: %\n",
+        std.major,
+        std.minor,
+        std.patch
     );
 
     0i32

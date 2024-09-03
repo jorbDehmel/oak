@@ -1,0 +1,25 @@
+/*
+Tests the code string (```...```) for multi-line strings. We
+assume that all whitespace therein is maintained (including tabs
+and newlines).
+*/
+
+package!("std");
+
+let main() -> i32
+{
+    print(
+        ```
+        // This may look like code, but it is really just a
+        // regular old multi-line string.
+        print("This is some random code.");
+        let i: u128 = 0u128;
+        while i < 100u128
+        {
+            println(i);
+        }
+        ```
+    );
+
+    0i32
+}

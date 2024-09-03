@@ -360,6 +360,12 @@ void fixMethod(std::list<Token> &from,
     /*
     a.b.c.d.e.f.g(
     ^            ^ fnName = "g"
+
+    a.b().c()
+    ^  ^
+    b(a).c()
+    ^     ^
+    c(b(a))
     */
 
     /*
@@ -388,7 +394,7 @@ void fixMethod(std::list<Token> &from,
     }
 
     // Insert fnName, "(" at beginning
-    // g(a.b.c.d.e.f
+    // g(a.b.c.d.e.f,
     templ.text = fnName;
     from.emplace(beginObj, templ);
 

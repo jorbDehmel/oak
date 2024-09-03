@@ -1,0 +1,42 @@
+/*
+*/
+
+package!("std");
+use_rule!("std");
+include!(
+    "std/format.oak",
+    "std/string.oak",
+    "std/string_ops.oak"
+);
+
+let main() -> i32
+{
+    print(
+        format!(
+            "fizz %\n",
+            5i32
+        )
+    );
+
+    print(
+        format!(
+            "% fizz\n",
+            5i32
+        )
+    );
+
+    print(
+        format!(
+            "%\n",
+            5i32
+        )
+    );
+
+    print(
+        format!(
+            "fizz\n",
+        )
+    );
+
+    0i32
+}

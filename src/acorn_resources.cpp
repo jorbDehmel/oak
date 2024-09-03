@@ -11,6 +11,7 @@ GPLv3 held by author
 #include "oakc_structs.hpp"
 #include "tags.hpp"
 #include <filesystem>
+#include <string>
 
 // Prints the cumulative disk usage of Oak (in human-readable)
 void getDiskUsage()
@@ -444,6 +445,33 @@ void doFile(const std::string &From, AcornSettings &settings)
                             // Else, look in OAK_DIR_PATH
                             else
                             {
+                                // Make sure we have already
+                                // done `package!`
+
+                                if (a.find('/') ==
+                                    std::string::npos)
+                                {
+                                    throw package_error(
+                                        "Missing package name "
+                                        "when including file "
+                                        "'" +
+                                        a + "'");
+                                }
+
+                                std::string pkg = a.substr(
+                                    0, a.find_first_of('/'));
+
+                                if (settings.packages.count(
+                                        pkg) == 0)
+                                {
+                                    throw package_error(
+                                        "Cannot use file from "
+                                        "package '" +
+                                        pkg +
+                                        "' before calling "
+                                        "`package!()`");
+                                }
+
                                 doFile(OAK_DIR_PATH + a,
                                        settings);
                             }
@@ -1469,17 +1497,6 @@ void ensureSyntax(const std::string &text, const bool &fatal,
                             printSyntaxError(
                                 "Tab characters (\\t) are not "
                                 "allowed; Use spaces instead",
-                                curLineVec, curLine, curFile);
-                            errorCount++;
-                        }
-
-                        else if (c == '.' && j > 0 &&
-                                 curLineVec[j - 1] == ')')
-                        {
-                            printSyntaxError(
-                                "Illegal inline access to "
-                                "return value. Use a temporary "
-                                "variable instead.",
                                 curLineVec, curLine, curFile);
                             errorCount++;
                         }
