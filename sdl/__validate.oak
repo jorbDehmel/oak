@@ -1,0 +1,11 @@
+/*
+"SYS_DEPS": "git clang sdl2"
+*/
+
+let main() -> i32
+{
+    c::sys!("git --version");
+    c::sys!("clang --version");
+    c::sys!("sdl2-config --version");
+    0i32
+}

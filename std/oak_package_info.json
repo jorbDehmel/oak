@@ -8,6 +8,6 @@
     "EMAIL": "jdehmel@outlook.com",
     "ABOUT": "Oak STD Package",
     "INCLUDE": "std.oak",
-    "SYS_DEPS": "git clang boost",
+    "VALIDATION_SCRIPT": "std/__validate.oak",
     "PATH": "."
 }

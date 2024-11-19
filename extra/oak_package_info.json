@@ -8,6 +8,5 @@
     "AUTHOR": "Jordan Dehmel",
     "EMAIL": "jdehmel@outlook.com",
     "ABOUT": "Extra files for the Oak programming language",
-    "SYS_DEPS": "boost",
-    "OAK_DEPS": ""
+    "VALIDATION_SCRIPT": "extra/__validate.oak"
 }

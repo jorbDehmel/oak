@@ -461,17 +461,6 @@ void doFile(const std::string &From, AcornSettings &settings)
                                 std::string pkg = a.substr(
                                     0, a.find_first_of('/'));
 
-                                if (settings.packages.count(
-                                        pkg) == 0)
-                                {
-                                    throw package_error(
-                                        "Cannot use file from "
-                                        "package '" +
-                                        pkg +
-                                        "' before calling "
-                                        "`package!()`");
-                                }
-
                                 doFile(OAK_DIR_PATH + a,
                                        settings);
                             }

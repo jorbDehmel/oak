@@ -10,6 +10,7 @@ output v[3].
 */
 let c::if_file_exists!(c: i32, v: [][]i8) -> i32
 {
+    package!("std");
     include!(
         "std/io.oak",
         "std/sys.oak",
@@ -44,13 +45,17 @@ let c::if_file_exists!(c: i32, v: [][]i8) -> i32
 
 let main() -> i32
 {
-    c::if_file_exists!(
-        "foo.txt",
+    c::if_file_exists!("foo.txt",
         {
-            print("This file exists!\\n");
-        },
+            c::panic!(
+                "Invalid test result! File shouldn't exist.");
+        }, {}
+    );
+
+    c::if_file_exists!("/dev/null", {},
         {
-            print("This file does not exist...\\n");
+            c::panic!(
+                "Invalid test result! File should exist.");
         }
     );
 

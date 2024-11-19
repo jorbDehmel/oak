@@ -253,8 +253,8 @@ let to_bool(what: ^string) -> bool
 let find(self: ^string, what: ^string) -> opt<u128>
 {
     // Left and right positions
-    let l_pos: u128 = 0;
-    let r_pos: u128 = 0;
+    let l_pos = 0u128;
+    let r_pos = 0u128;
 
     // Limits
     let l_size = self.size();
@@ -290,8 +290,8 @@ let find(self: ^string, what: ^string) -> opt<u128>
 let contains(self: ^string, what: ^string) -> bool
 {
     // Left and right positions
-    let l_pos: u128 = 0;
-    let r_pos: u128 = 0;
+    let l_pos = 0u128;
+    let r_pos = 0u128;
 
     // Limits
     let l_size = self.size();

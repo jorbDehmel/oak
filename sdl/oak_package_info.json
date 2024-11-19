@@ -5,7 +5,7 @@
     "PATH": "sdl",
     "ABOUT": "Oak interface with SDL2 via C++ library",
     "INCLUDE": "sdl.oak",
-    "SYS_DEPS": "git clang sdl2",
     "AUTHOR": "Maintained by Jordan Dehmel",
-    "EMAIL": "jdehmel@outlook.com"
+    "EMAIL": "jdehmel@outlook.com",
+    "VALIDATION_SCRIPT": "sdl/__validate.oak"
 }

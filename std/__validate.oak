@@ -1,0 +1,12 @@
+/*
+"SYS_DEPS": "git clang boost",
+*/
+
+let main() -> i32
+{
+    c::sys!("git --version > /dev/null");
+    c::sys!("clang --version > /dev/null");
+    c::sys!("ls /usr/include/boost > /dev/null");
+
+    0i32
+}
