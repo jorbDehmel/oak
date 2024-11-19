@@ -1,5 +1,7 @@
 /*
 Resources for package version control.
+This defines a few compile-time checks, and should theoretically
+be useable for both compile and runtime cases.
 */
 
 package!("std");
@@ -13,6 +15,8 @@ include!(
 ////////////////////////////////////////////////////////////////
 // Struct def(s)
 
+// Some basic information about a package.
+// Includes major.minor.patch, as well as package name.
 let pkg: struct
 {
     major, minor, patch: u128,
@@ -90,6 +94,8 @@ let Neq(self: pkg, other: pkg) -> bool
 ////////////////////////////////////////////////////////////////
 // Forward-facing macro
 
+// Takes one argument (the package name) and yields a tuple
+// containing the information for a Copy call on the pkg struct.
 let pkg!(c: i32, v: []str) -> i32
 {
     package!("std");
@@ -103,7 +109,7 @@ let pkg!(c: i32, v: []str) -> i32
         ```
         (%, pkg::__unwrap_version!(%::VERSION!))
         ```,
-        v.Get(1), v.Get(1)
+        v.Get(1u128), v.Get(1u128)
     );
 
     0i32
@@ -129,7 +135,7 @@ let pkg::__unwrap_version!(argc: i32, argv: []str) -> i32
     let major, minor, patch, i, max: u128;
     let state: u8 = 1u8;
     let c: i8;
-    let version: string = argv.Get(1);
+    let version: string = argv.Get(1u128);
 
     i = 0u128;
     max = version.size();

@@ -3,7 +3,7 @@ Basic array testing
 */
 
 package!("std");
-use_rule!("std");
+use_rule!("std", "get");
 
 let main(c: i32, v: []str) -> i32
 {
@@ -12,7 +12,7 @@ let main(c: i32, v: []str) -> i32
     while i < c
     {
         // Print the current argument
-        println(v.Get(i));
+        println(v[i]);
         i += 1i32;
     }
 

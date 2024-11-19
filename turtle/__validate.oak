@@ -1,0 +1,9 @@
+/*
+*/
+
+package!("std");
+
+let main() -> i32
+{
+    0i32
+}

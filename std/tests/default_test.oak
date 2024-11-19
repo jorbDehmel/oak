@@ -1,7 +1,7 @@
 // Tests the default values of various atomic data values. NOT
 // the default keyword.
 
-package!("std");
+package!("std", "extra");
 use_rule!("std");
 
 include!("extra/bit_print.oak");

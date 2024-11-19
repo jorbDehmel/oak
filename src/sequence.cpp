@@ -909,8 +909,8 @@ ASTNode __createSequence(std::list<Token> &From,
                     if (From.empty() || From.front() == "{" ||
                         From.front() == ";")
                     {
-                        From.push_front(Token("JUNK"));
-                        break;
+                        From.push_front(Token("void"));
+                        From.push_front(Token("->"));
                     }
                 }
 

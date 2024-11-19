@@ -5,7 +5,7 @@ Jordan Dehmel, 2023
 jdehmel@outlook.com
 */
 
-package!("std");
+package!("std", "extra");
 include!("extra/bit_print.oak");
 include!("std/opt.oak");
 use_rule!("std");

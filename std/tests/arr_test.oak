@@ -2,7 +2,7 @@
 // Passed 9/22/23
 
 package!("std");
-use_rule!("std");
+use_rule!("std", "get");
 
 include!("std/opt.oak");
 include!("std/printf.oak");
@@ -72,26 +72,24 @@ let main() -> i32
     a = 5u128;
 
     let result: opt<^i32>;
-    result = a.Get(1u128);
+    result = a[1u128];
     match (result)
     {
         case some(data)
         {
             data = 5i32;
         }
+        default {}
     }
 
-    result = a.Get(1u128);
+    result = a[1u128];
     match (result)
     {
         case some(data)
         {
             print(^^data);
         }
-
-        default
-        {
-        }
+        default {}
     }
 
     print("\n");

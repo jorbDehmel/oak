@@ -2029,6 +2029,7 @@ AUTHOR = "Jordan Dehmel, Joe Shmoe"
 EMAIL = "jdehmel@outlook.com, example@example.com"
 ABOUT = "A demo of Oak package creation"
 INCLUDE = "main_file_to_link_to.oak,another_file.oak"
+VALIDATION_SCRIPT = "path/to/validation/script.oak"
 SYS_DEPS = "package1 package2"
 OAK_DEPS = "some oak packages here"
 ```
