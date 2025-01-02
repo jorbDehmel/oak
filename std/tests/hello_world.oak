@@ -1,9 +1,0 @@
-// Jordan Dehmel, 2023
-
-package!("std");
-include!("std/io.oak");
-
-let main(argc: i32, argv: []str) -> i32
-{
-    print("Hello, world!\n");
-}

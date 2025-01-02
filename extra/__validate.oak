@@ -1,9 +1,0 @@
-/*
-"SYS_DEPS": "boost"
-*/
-
-let main() -> i32
-{
-    c::sys!("ls /usr/include/boost > /dev/null");
-    0i32
-}
