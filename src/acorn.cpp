@@ -2,7 +2,10 @@
  * @brief Frontend for the Acorn compiler.
  */
 
+static_assert(__cplusplus >= 2020'00ULL);
+
 #include "oakc.hpp"
+#include <filesystem>
 #include <iostream>
 #include <stdexcept>
 
@@ -15,14 +18,24 @@
  */
 bool parse_args(const int _c, const char *const _v[],
                 OakCompiler &_oakc) {
+  if (_c == 1) {
+    _oakc.print_help_text();
+    return false;
+  }
+
   for (int i = 1; i < _c; ++i) {
     const std::string arg = _v[i];
 
     if (arg.size() > 2 && arg.substr(0, 2) == "--") {
       // Translate and compile
       if (arg == "--compile") {
-        _oakc.settings.compile_settings().mode =
-            OakCompiler::CompileSettings::TRANSLATE_AND_COMPILE;
+        _oakc.settings.compile_settings().mode = OakCompiler::
+            Settings::CompileSettings::TRANSLATE_AND_COMPILE;
+      }
+
+      // CD somewhere
+      else if (arg == "--cd") {
+        std::filesystem::current_path(_v[++i]);
       }
 
       // Activate debug mode
@@ -42,8 +55,9 @@ bool parse_args(const int _c, const char *const _v[],
 
       // Translate, compile, link, and execute
       else if (arg == "--execute") {
-        _oakc.settings.compile_settings().mode = OakCompiler::
-            CompileSettings::TRANSLATE_COMPILE_LINK_AND_EXECUTE;
+        _oakc.settings.compile_settings().mode =
+            OakCompiler::Settings::CompileSettings::
+                TRANSLATE_COMPILE_LINK_AND_EXECUTE;
       }
 
       // Add -g debug flag
@@ -60,20 +74,15 @@ bool parse_args(const int _c, const char *const _v[],
 
       // Translate, compile, and link
       else if (arg == "--link") {
-        _oakc.settings.compile_settings().mode = OakCompiler::
-            CompileSettings::TRANSLATE_COMPILE_AND_LINK;
-      }
-
-      // Produce manual
-      else if (arg == "--manual") {
-        _oakc.settings.compile_settings().doc_mode =
-            OakCompiler::CompileSettings::MARKDOWN;
+        _oakc.settings.compile_settings().mode =
+            OakCompiler::Settings::CompileSettings::
+                TRANSLATE_COMPILE_AND_LINK;
       }
 
       // Only syntax checking
       else if (arg == "--no_save") {
         _oakc.settings.compile_settings().mode =
-            OakCompiler::CompileSettings::NOTHING;
+            OakCompiler::Settings::CompileSettings::NOTHING;
       }
 
       // Set output
@@ -116,6 +125,7 @@ bool parse_args(const int _c, const char *const _v[],
       // List Oak's disk usage
       else if (arg == "--size") {
         _oakc.print_size();
+        return false;
       }
 
       // Install package
@@ -125,8 +135,8 @@ bool parse_args(const int _c, const char *const _v[],
 
       // Translate only
       else if (arg == "--translate") {
-        _oakc.settings.compile_settings().mode =
-            OakCompiler::CompileSettings::TRANSLATE_ONLY;
+        _oakc.settings.compile_settings().mode = OakCompiler::
+            Settings::CompileSettings::TRANSLATE_ONLY;
       }
 
       // Run test suite(s)
@@ -136,8 +146,16 @@ bool parse_args(const int _c, const char *const _v[],
 
       // Save dump file
       else if (arg == "--dump") {
-        _oakc.settings.compile_settings().doc_mode =
-            OakCompiler::CompileSettings::DUMP;
+        if (_oakc.settings.compile_settings()
+                .dump_file.has_value()) {
+          _oakc.settings.compile_settings().dump_file.reset();
+        } else {
+          _oakc.settings.compile_settings().dump_file =
+              std::make_shared<std::ofstream>(
+                  _oakc.settings.compile_settings()
+                      .entry_point.string() +
+                  ".acorn_dump");
+        }
       }
 
       // Print Oak version
@@ -163,7 +181,7 @@ bool parse_args(const int _c, const char *const _v[],
       }
     } else if (arg.size() > 1 && arg[0] == '-') {
       // Abbreviated flag
-      for (int j = 1; j < arg.size(); ++j) {
+      for (uint j = 1; j < arg.size(); ++j) {
         char flag = arg[j];
 
         switch (flag) {
@@ -175,7 +193,10 @@ bool parse_args(const int _c, const char *const _v[],
           return false;
         case 'c': // Translate and compile to object
           _oakc.settings.compile_settings().mode = OakCompiler::
-              CompileSettings::TRANSLATE_AND_COMPILE;
+              Settings::CompileSettings::TRANSLATE_AND_COMPILE;
+          break;
+        case 'C': // CD somewhere
+          std::filesystem::current_path(_v[++i]);
           break;
         case 'd': // Debug
           _oakc.settings.debug = !_oakc.settings.debug;
@@ -188,7 +209,7 @@ bool parse_args(const int _c, const char *const _v[],
           break;
         case 'E': // Translate, compile, link, and execute
           _oakc.settings.compile_settings().mode =
-              OakCompiler::CompileSettings::
+              OakCompiler::Settings::CompileSettings::
                   TRANSLATE_COMPILE_LINK_AND_EXECUTE;
           break;
         case 'g': // Use -g debugging flag
@@ -199,18 +220,15 @@ bool parse_args(const int _c, const char *const _v[],
           _oakc.print_help_text();
           return false;
         case 'l': // Translate, compile, and link
-          _oakc.settings.compile_settings().mode = OakCompiler::
-              CompileSettings::TRANSLATE_COMPILE_AND_LINK;
-          break;
-        case 'm': // Produce markdown manual
-          _oakc.settings.compile_settings().doc_mode =
-              OakCompiler::CompileSettings::MARKDOWN;
+          _oakc.settings.compile_settings().mode =
+              OakCompiler::Settings::CompileSettings::
+                  TRANSLATE_COMPILE_AND_LINK;
           break;
         case 'M': // Used for macro compilation
           break;
         case 'n': // Produce nothing: Just error checking
           _oakc.settings.compile_settings().mode =
-              OakCompiler::CompileSettings::NOTHING;
+              OakCompiler::Settings::CompileSettings::NOTHING;
           break;
         case 'o': // Set output
           _oakc.settings.compile_settings().target = _v[++i];
@@ -237,17 +255,25 @@ bool parse_args(const int _c, const char *const _v[],
           break;
         case 's': // Show Oak disk usage
           _oakc.print_size();
-          break;
+          return false;
         case 't': // Translate only
-          _oakc.settings.compile_settings().mode =
-              OakCompiler::CompileSettings::TRANSLATE_ONLY;
+          _oakc.settings.compile_settings().mode = OakCompiler::
+              Settings::CompileSettings::TRANSLATE_ONLY;
           break;
         case 'T': // Test
           _oakc.settings.test_settings();
           break;
-        case 'u': // Show dump files
-          _oakc.settings.compile_settings().doc_mode =
-              OakCompiler::CompileSettings::DUMP;
+        case 'u': // Save dump file
+          if (_oakc.settings.compile_settings()
+                  .dump_file.has_value()) {
+            _oakc.settings.compile_settings().dump_file.reset();
+          } else {
+            _oakc.settings.compile_settings().dump_file =
+                std::make_shared<std::ofstream>(
+                    _oakc.settings.compile_settings()
+                        .entry_point.string() +
+                    ".acorn_dump");
+          }
           break;
         case 'U': // Save rule log files
           _oakc.settings.compile_settings().rule_logs =
@@ -301,9 +327,12 @@ bool parse_args(const int _c, const char *const _v[],
 int main(int _c, char *_v[]) {
   OakCompiler oakc;
 
-  // Parse CLi args
+  // Parse CLI args
   try {
-    parse_args(_c, _v, oakc);
+    bool res = parse_args(_c, _v, oakc);
+    if (!res) {
+      return 0;
+    }
   } catch (std::runtime_error &e) {
     std::cerr << "Argument parsing error:\n"
               << e.what() << '\n';

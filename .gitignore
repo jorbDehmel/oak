@@ -1,2 +1,9 @@
 *.o
+*.so
 *.out
+*.log
+*.rule_log
+*.dump
+*.acorn_dump
+.oak_build/
+.vscode/

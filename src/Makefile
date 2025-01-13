@@ -1,12 +1,14 @@
-HEADERS := gql.hpp lexer.hpp oakc.hpp package.hpp parser.hpp rule.hpp
-OBJECTS := acorn.o lexer.o oakc.o package.o parser.o rule.o
+HEADERS := lexer.hpp oakc.hpp package.hpp rule.hpp type.hpp \
+	scope.hpp sapling.hpp
+OBJECTS := lexer.o oakc.o package.o rule.o type.o scope.o \
+	sapling.o
 CPP     := g++ -std=c++20 -pedantic -Wall -O3 -g
 
 acorn.out:	acorn-debug.out
 	cp $< $@
 	strip --strip-all $@
 
-acorn-debug.out:	$(OBJECTS)
+acorn-debug.out:	acorn.o $(OBJECTS)
 	$(CPP) -o $@ $^
 
 %.o:	%.cpp $(HEADERS)
@@ -19,7 +21,7 @@ install:	acorn.out acorn-debug.out
 
 .PHONY:	clean
 clean:
-	rm -f *.out *.o
+	rm -f *.out *.o *.so
 
 .PHONY:	format
 format:
