@@ -209,31 +209,33 @@ void OakCompiler::update_acorn() noexcept { assert(false); }
 void OakCompiler::uninstall_acorn() noexcept { assert(false); }
 
 /// Purge all temporary files
-void OakCompiler::clean() noexcept { assert(false); }
+void OakCompiler::clean() { assert(false); }
 
 /// Find and print the list of all viable installation
 /// candidates for some set of restrictions
-void OakCompiler::query_package(
-    const std::string &_name) noexcept {
+void OakCompiler::query_package(const std::string &_name) {
   assert(false);
 }
 
 /// Install some package globally
 /// To be called from the command line, so IO is acceptable
-void OakCompiler::install_package(
-    const std::string &_name) noexcept {
-  assert(false);
+void OakCompiler::install_package(const std::string &_name) {
+  if (std::filesystem::exists(_name)) {
+    std::cerr << "WARNING: Installing local package '" << _name
+              << "'. This may or may not be what you want!\n";
+    package_manager.install_local_package(_name);
+  } else {
+    assert(false);
+  }
 }
 
 /// Remove some globally-install package
-void OakCompiler::uninstall_package(
-    const std::string &_name) noexcept {
+void OakCompiler::uninstall_package(const std::string &_name) {
   assert(false);
 }
 
 /// Create a new template package with the given name
-void OakCompiler::new_package(
-    const std::string &_name) noexcept {
+void OakCompiler::new_package(const std::string &_name) {
   assert(false);
 }
 

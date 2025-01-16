@@ -161,21 +161,21 @@ public:
   static void uninstall_acorn() noexcept;
 
   /// Purge all temporary files
-  static void clean() noexcept;
+  static void clean();
 
   /// Find and print the list of all viable installation
   /// candidates for some set of restrictions
-  void query_package(const std::string &_name) noexcept;
+  void query_package(const std::string &_name);
 
   /// Install some package globally
   /// To be called from the command line, so IO is acceptable
-  void install_package(const std::string &_name) noexcept;
+  void install_package(const std::string &_name);
 
   /// Remove some globally-install package
-  void uninstall_package(const std::string &_name) noexcept;
+  void uninstall_package(const std::string &_name);
 
   /// Create a new template package with the given name
-  void new_package(const std::string &_name) noexcept;
+  void new_package(const std::string &_name);
 
   //////////////////////////////////////////////////////////////
 

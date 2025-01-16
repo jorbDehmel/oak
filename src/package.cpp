@@ -1,23 +1,16 @@
 #include "package.hpp"
-#include <stdexcept>
 
-// Exact versions only
+Package PackageManager::install_local_package(
+    const std::filesystem::path &_where) {
+  throw std::runtime_error(__FUNCTION__);
+}
+
 Package
-DefaultManager::install_package(const Package::Spec &_spec) {
+PackageManager::load_package(const Package::Spec &_spec) {
   throw std::runtime_error(__FUNCTION__);
 }
 
-// Exact versions only
-void DefaultManager::uninstall_package(
-    const Package::Spec &_spec) {
-  throw std::runtime_error(__FUNCTION__);
-}
-
-// Returns a set of specific package instances which satisfy
-// the given set of requirements
-std::set<Package> DefaultManager::query_package(
-    const std::string &_name,
-    const std::set<std::pair<Package, std::strong_ordering>>
-        &_restrictions) {
+void PackageManager::uninstall_package(
+    const Package::Spec &_spec, const std::string &_engine) {
   throw std::runtime_error(__FUNCTION__);
 }

@@ -41,15 +41,23 @@ public:
                     const uint &_max_passes);
 
 protected:
-  std::list<Rule> resolve(const std::string &_rules);
+  std::list<Rule> resolve(const std::list<std::string> &_rules);
 
   // All the things needed to run an arbitrary rule engine FST
   struct Engine {
-    uint default_state = 0;
+    // Matching, but NOT transforming function
+    std::function<std::pair<uint, bool>(
+        const Rule &, const uint &, const Lexer::Token &)>
+        state_transition;
+
+    // Transformation function
     std::function<std::list<Lexer::Token>(
-        const uint &, const Lexer::Token &, uint &, bool &,
-        const Rule &)>
-        delta;
+        const Rule &, const uint &,
+        const std::list<Lexer::Token> &)>
+        on_match;
+
+    // The state to start in
+    uint default_state = 0;
   };
 
   const std::map<std::string, Engine> engines;

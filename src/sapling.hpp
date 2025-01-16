@@ -15,21 +15,28 @@ namespace sapling {
 const static uint default_state = 0;
 
 /**
- * @brief Transition function for Sapling FSTs as prescribed by
- * rule.hpp
+ * @brief Transition function for Sapling FSTs
+ * @param _rule_to_use The specs of the rule being used
  * @param _current_state The current FST state
  * @param _current_input The input token
- * @param _new_state Delta will save the new state into this
- * @param _is_complete Delta will save the completion state into
- * this: True means the cumulative output will replace
- * everything processed since the last instance of the default
- * state.
- * @param _rule_to_use The specs of the rule being used: It is
- * OK to cache this statically by name.
+ * @returns A 2-tuple containing the next state and the exit
+ * status bool (true means to apply the transform function)
+ */
+std::pair<uint, bool>
+state_transition(const Rule &_rule_to_use,
+                 const uint &_current_state,
+                 const Lexer::Token &_current_input);
+
+/**
+ * @brief Transforms a given text match according to a rule
+ * @param _rule Which rule we are looking at
+ * @param _match_state The last state returned by the transition
+ * function
+ * @param _match_text The matched text
+ * @returns The text to replace the matched text with
  */
 std::list<Lexer::Token>
-delta(const uint &_current_state,
-      const Lexer::Token &_current_input, uint &_new_state,
-      bool &_is_complete, const Rule &_rule_to_use);
+on_match(const Rule &_rule, const uint &_match_state,
+         const std::list<Lexer::Token> &_match_text);
 
 } // namespace sapling
