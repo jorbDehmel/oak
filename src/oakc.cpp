@@ -1,7 +1,6 @@
 #include "oakc.hpp"
 #include "lexer.hpp"
 #include <cassert>
-#include <compare>
 #include <cstdint>
 #include <cstdlib>
 #include <filesystem>
@@ -10,7 +9,6 @@
 #include <iostream>
 #include <iterator>
 #include <map>
-#include <ratio>
 #include <stdexcept>
 #include <utility>
 

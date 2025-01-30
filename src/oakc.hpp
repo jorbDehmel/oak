@@ -22,7 +22,8 @@ const static std::string ACORN_VERSION = "0.8.0";
 
 /**
  * @class OakCompiler
- * @brief
+ * @brief Preprocessor and management. This is NOT a parser, but
+ * handles entry points and whatnot.
  */
 class OakCompiler {
 public:

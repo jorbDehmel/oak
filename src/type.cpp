@@ -7,6 +7,227 @@
 #include <map>
 #include <stdexcept>
 
+#include <iostream>
+
+// A higher number is more precise. The goal is not to lose
+// any precision in our casts.
+const static std::map<std::string, uint> int_literals = {
+    {"i8", 1},  {"i16", 2},   {"i32", 4},
+    {"i64", 8}, {"i128", 16}, {"int", sizeof(int)}};
+const static std::map<std::string, uint> uint_literals = {
+    {"u8", 1},  {"u16", 2},   {"u32", 4},
+    {"u64", 8}, {"u128", 16}, {"uint", sizeof(uint)}};
+const static std::map<std::string, uint> float_literals = {
+    {"f32", 4},
+    {"f64", 8},
+    {"f128", 16},
+    {"float", sizeof(double)}};
+
+/// Process one token. This should be treated as consumptive.
+void Type::process_next(const std::string &_symbol) {
+  if (_symbol == "^") {
+    append_ptr();
+  } else if (_symbol == ",") {
+    while (!enclosure.empty() && enclosure.top() == "*") {
+      enclosure.pop();
+    }
+
+    append_join();
+
+    // Denote that the next two tokens should be ignored
+    // since they will be 'name :'
+    enclosure.push("*");
+    enclosure.push("*");
+  } else if (_symbol == "->") {
+    append_maps();
+  }
+
+  else if (_symbol == "(") {
+    enclosure.push(_symbol);
+
+    // Denote that the next two tokens should be ignored
+    // since they will be 'name :'
+    enclosure.push("*");
+    enclosure.push("*");
+
+    append_fn();
+  } else if (_symbol == "[") {
+    enclosure.push(_symbol);
+  }
+
+  // Begining of 2-token "maps"
+  else if (_symbol == ")") {
+    while (!enclosure.empty() && enclosure.top() == "*") {
+      enclosure.pop();
+    }
+    if (enclosure.empty() || enclosure.top() != "(") {
+      throw std::runtime_error("Unexpected '" + _symbol + "'.");
+    }
+    enclosure.pop();
+  }
+
+  // Unclosed array
+  else if (!enclosure.empty() && enclosure.top() == "[") {
+    if (_symbol == "]") {
+      append_arr();
+      enclosure.pop();
+    } else {
+      uint64_t size = 0;
+      try {
+        size = std::stoull(_symbol);
+      } catch (...) {
+        throw std::runtime_error(
+            "Array size must be a compile-time integer: "
+            "Instead, saw " +
+            _symbol + ".");
+      }
+      if (size == 0) {
+        throw std::runtime_error("Array size must be nonzero.");
+      }
+      append_sized_arr(size);
+      enclosure.top().push_back('*');
+    }
+  }
+
+  // Overclosed array
+  else if (_symbol == "]") {
+    if (enclosure.empty() || enclosure.top() != "[*") {
+      throw std::runtime_error("Unexpected '" + _symbol + "'.");
+    }
+    enclosure.pop();
+  }
+
+  // Type or arg name
+  else if (_symbol != ";") {
+    if (!enclosure.empty() && enclosure.top() == "*") {
+      if (!nodes.empty()) {
+        if (nodes.back().following_arg_name == "") {
+          nodes.back().following_arg_name = _symbol;
+        } else if (_symbol != ":") {
+          throw std::runtime_error(
+              "Expected ':'. Arguments must take the form "
+              "'name: type' (even in implicit declarations).");
+        }
+      }
+      enclosure.pop();
+    } else {
+      append_literal(_symbol);
+    }
+  }
+}
+
+/// Returns true iff the first node is of type FUNCTION
+bool Type::is_fn() const noexcept {
+  return (nodes.size() >= 1 &&
+          nodes.front().type == TypeNode::FUNCTION);
+}
+
+/// Gets the arguments, given that this is a function
+std::map<std::string, Type> Type::fn_args() const {
+  if (!is_fn()) {
+    throw std::runtime_error(
+        "Cannot get arguments of non-function type '" +
+        oak_repr() + "'.");
+  } else if (!is_valid_type) {
+    throw std::runtime_error(
+        "Cannot get args of invalid type.");
+  }
+
+  uint64_t depth = 0;
+  std::map<std::string, Type> out;
+  Type t;
+  std::string argname;
+
+  for (const auto &node : nodes) {
+    if (node.type == TypeNode::FUNCTION) {
+      ++depth;
+      if (depth == 1) {
+        argname = node.following_arg_name;
+        continue;
+      }
+    } else if (node.type == TypeNode::MAPS) {
+      --depth;
+      if (depth == 0) {
+        while (out.contains(argname)) {
+          argname = "_" + argname;
+        }
+        out[argname] = t;
+        break;
+      }
+    }
+
+    if (depth == 0) {
+      continue;
+    } else {
+      if (depth == 1 && node.type == TypeNode::JOIN) {
+        while (out.contains(argname)) {
+          argname = "_" + argname;
+        }
+        out[argname] = t;
+        argname = node.following_arg_name;
+        t = Type{};
+      } else {
+        t.push_node(node);
+      }
+    }
+  }
+
+  return out;
+}
+
+/// Gets the fn return type, given that this is a function
+Type Type::fn_return_type() const {
+  if (!is_fn()) {
+    throw std::runtime_error(
+        "Cannot get return type of non-function type '" +
+        oak_repr() + "'.");
+  } else if (!is_valid_type) {
+    throw std::runtime_error(
+        "Cannot get return type of invalid type.");
+  }
+
+  std::stack<TypeNode> reversed_nodes;
+  for (auto rit = nodes.rbegin();
+       rit != nodes.rend() && rit->type != TypeNode::MAPS;
+       ++rit) {
+    reversed_nodes.push(*rit);
+  }
+
+  Type out;
+  while (!reversed_nodes.empty()) {
+    out.push_node(reversed_nodes.top());
+    reversed_nodes.pop();
+  }
+  return out;
+}
+
+/// Appends a TypeNode
+void Type::push_node(const TypeNode &_what) {
+  switch (_what.type) {
+  case TypeNode::POINTER:
+    append_ptr();
+    break;
+  case TypeNode::UNSIZED_ARRAY:
+    append_arr();
+    break;
+  case TypeNode::SIZED_ARRAY:
+    append_sized_arr(_what.sized_array_size);
+    break;
+  case TypeNode::LITERAL:
+    append_literal(_what.literal_name);
+    break;
+  case TypeNode::FUNCTION:
+    append_fn();
+    break;
+  case TypeNode::JOIN:
+    append_join();
+    break;
+  case TypeNode::MAPS:
+    append_maps();
+    break;
+  }
+}
+
 /// Return this type in Oak notation
 std::string Type::oak_repr(const std::string &_var_name) const {
   std::string out;
@@ -53,42 +274,93 @@ std::string Type::oak_repr(const std::string &_var_name) const {
 /// Return this type in C notation, mangling if a raw function
 /// (not function pointers though)
 std::string Type::c_repr(const std::string &_var_name) const {
-  // Mangle if needed
-  std::string real_name = _var_name;
-  if (nodes.front().type == TypeNode::FUNCTION) {
+  std::string name = _var_name;
+  std::string prefix, suffix;
+
+  const static auto normal_type = [&]() {
     for (const auto &node : nodes) {
       switch (node.type) {
       case TypeNode::POINTER:
-        real_name += "_PTR";
+        prefix += "*";
         break;
       case TypeNode::UNSIZED_ARRAY:
+        suffix += "[]";
+        break;
       case TypeNode::SIZED_ARRAY:
-        real_name += "_ARR";
+        suffix +=
+            "[" + std::to_string(node.sized_array_size) + "]";
         break;
       case TypeNode::LITERAL:
-        real_name += "_" + node.literal_name;
+        if (!int_literals.contains(node.literal_name) &&
+            !uint_literals.contains(node.literal_name) &&
+            !float_literals.contains(node.literal_name)) {
+          prefix = "struct " + node.literal_name + prefix;
+        } else {
+          prefix = node.literal_name + prefix;
+        }
         break;
-      case TypeNode::FUNCTION:
-        real_name += "_FN";
-        break;
-      case TypeNode::JOIN:
-        real_name += "_JOIN";
-        break;
-      case TypeNode::MAPS:
-        real_name += "_MAPS";
+
+      default:
         break;
       }
     }
+  };
+
+  const static auto fn = [&]() {
+    // Mangle
+    if (name != "main") {
+      for (const auto &node : nodes) {
+        switch (node.type) {
+        case TypeNode::POINTER:
+          name += "_PTR";
+          break;
+        case TypeNode::UNSIZED_ARRAY:
+        case TypeNode::SIZED_ARRAY:
+          name += "_ARR";
+          break;
+        case TypeNode::LITERAL:
+          name += "_" + node.literal_name;
+          break;
+        case TypeNode::FUNCTION:
+          name += "_FN";
+          break;
+        case TypeNode::JOIN:
+          name += "_JOIN";
+          break;
+        case TypeNode::MAPS:
+          name += "_MAPS";
+          break;
+        }
+      }
+    }
+
+    // Real stuff
+    throw;
+  };
+
+  const static auto fn_ptr = [&]() {
+    // Real stuff
+    throw;
+  };
+
+  // Dispatch based on type: Function pointers get one method,
+  // regular types get another.
+  if (nodes.size() >= 2 &&
+      nodes.front().type == TypeNode::POINTER &&
+      std::next(nodes.begin())->type == TypeNode::FUNCTION) {
+    fn_ptr();
+  } else if (nodes.size() >= 1 &&
+             nodes.front().type == TypeNode::FUNCTION) {
+    fn();
+  } else {
+    normal_type();
   }
 
-  std::string prefix, suffix;
+  if (!is_valid_type) {
+    prefix = "<INVALID TYPE> " + prefix;
+  }
 
-  // Do actual type construction
-  throw std::runtime_error(__FILE_NAME__ ":" +
-                           std::to_string(__LINE__) +
-                           "> Unimplemented!");
-
-  return prefix += _var_name + suffix;
+  return prefix + " " + _var_name + suffix;
 }
 
 /// Returns true iff the other matches this at every node
@@ -116,20 +388,6 @@ bool Type::exact_match(const Type &_other) const {
 
 /// Returns true iff this type can be cast to match the other
 bool Type::cast_match(const Type &_other) const {
-  // A higher number is more precise. The goal is not to lose
-  // any precision in our casts.
-  const static std::map<std::string, uint> int_literals = {
-      {"i8", 1},  {"i16", 2},   {"i32", 4},
-      {"i64", 8}, {"i128", 16}, {"int", sizeof(int)}};
-  const static std::map<std::string, uint> uint_literals = {
-      {"u8", 1},  {"u16", 2},   {"u32", 4},
-      {"u64", 8}, {"u128", 16}, {"uint", sizeof(uint)}};
-  const static std::map<std::string, uint> float_literals = {
-      {"f32", 4},
-      {"f64", 8},
-      {"f128", 16},
-      {"float", sizeof(double)}};
-
   if (nodes.size() != _other.nodes.size()) {
     return false;
   }
@@ -185,14 +443,16 @@ bool Type::ref_match(const Type &_other) const {
 }
 
 /// Returns whether or not this type is valid to instantiate
-bool Type::valid() const { return is_valid_type; }
+bool Type::valid() const noexcept { return is_valid_type; }
 
 /// Appends a pointer node to this type
 void Type::append_ptr() {
   if (is_valid_type) {
     throw std::runtime_error(
-        "Cannot append 'pointer' to an already concrete type: "
-        "Did you mean to put the caret before the type?");
+        "Cannot append 'pointer' to an already concrete "
+        "type '" +
+        oak_repr() +
+        "': Did you mean to put the caret before the type?");
   }
   nodes.push_back({TypeNode::POINTER});
 }
@@ -201,8 +461,9 @@ void Type::append_ptr() {
 void Type::append_arr() {
   if (is_valid_type) {
     throw std::runtime_error(
-        "Cannot append 'array' to an already concrete type: "
-        "Did you mean to put brackets before the type?");
+        "Cannot append 'array' to an already concrete type '" +
+        oak_repr() +
+        "': Did you mean to put brackets before the type?");
   }
   nodes.push_back({TypeNode::UNSIZED_ARRAY});
 }
@@ -212,7 +473,9 @@ void Type::append_sized_arr(const uint64_t &_size) {
   if (is_valid_type) {
     throw std::runtime_error(
         "Cannot append 'sized array' to an "
-        "already concrete type: Did you mean to put brackets "
+        "already concrete type '" +
+        oak_repr() +
+        "': Did you mean to put brackets "
         "before the type?");
   } else if (_size == 0) {
     throw std::runtime_error(
@@ -226,10 +489,13 @@ void Type::append_sized_arr(const uint64_t &_size) {
 void Type::append_literal(const std::string &_name) {
   if (is_valid_type) {
     throw std::runtime_error("Cannot append 'literal' to an "
-                             "already concrete type.");
+                             "already concrete type '" +
+                             oak_repr() + "'");
   }
   nodes.push_back({TypeNode::LITERAL, _name});
-  if (fn_depth == 0) {
+  if (is_valid_type) {
+    is_valid_type = false;
+  } else if (enclosure.empty()) {
     is_valid_type = true;
   }
 }
@@ -239,20 +505,22 @@ void Type::append_fn() {
   if (is_valid_type) {
     throw std::runtime_error(
         "Cannot append 'function open' to an "
-        "already concrete type.");
+        "already concrete type '" +
+        oak_repr() + "'");
   }
   nodes.push_back({TypeNode::FUNCTION});
-  ++fn_depth;
 }
 
 /// Appends a join node to this type
 void Type::append_join() {
   if (is_valid_type) {
     throw std::runtime_error(
-        "Cannot append 'join' to an already concrete type.");
-  } else if (fn_depth == 0) {
+        "Cannot append 'join' to an already concrete type '" +
+        oak_repr() + "'");
+  } else if (enclosure.empty() || enclosure.top() != "(") {
     throw std::runtime_error(
-        "Cannot append 'join' to a non-function type.");
+        "Cannot append 'join' to a non-function type '" +
+        oak_repr() + "'");
   }
   nodes.push_back({TypeNode::JOIN});
 }
@@ -261,14 +529,11 @@ void Type::append_join() {
 void Type::append_maps() {
   if (is_valid_type) {
     throw std::runtime_error(
-        "Cannot append 'maps' to an already concrete type.");
-  } else if (fn_depth == 0) {
-    throw std::runtime_error(
-        "Cannot append 'maps' to a non-function type.");
+        "Cannot append 'maps' to an already concrete type '" +
+        oak_repr() + "'");
   }
   if (nodes.back().type == TypeNode::JOIN) {
     nodes.pop_back();
   }
   nodes.push_back({TypeNode::MAPS});
-  --fn_depth;
 }

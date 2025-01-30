@@ -5,10 +5,12 @@
 
 #pragma once
 
+#include <cstdint>
+#include <initializer_list>
 #include <list>
 #include <map>
+#include <stack>
 #include <string>
-#include <variant>
 
 /**
  * @class Type
@@ -18,26 +20,58 @@
  */
 class Type {
 public:
+  Type() = default;
+  Type(const std::initializer_list<std::string> &_tokens) {
+    for (const auto &t : _tokens) {
+      process_next(t);
+    }
+  }
+
+  friend class Parser;
+
+  /// Process one token. This should be treated as consumptive.
+  /// O(1)
+  void process_next(const std::string &_symbol);
+
   /// Return this type in Oak notation
+  /// O(n)
   std::string oak_repr(const std::string &_var_name = "") const;
 
   /// Return this type in C notation. If this is a function,
   /// mangle it.
+  /// O(n)
   std::string c_repr(const std::string &_var_name = "") const;
 
   /// Returns true iff the other matches this at every node
+  /// O(n)
   bool exact_match(const Type &_other) const;
 
   /// Returns true iff this type can be cast to match the other
+  /// O(n)
   bool cast_match(const Type &_other) const;
 
   /// Returns true iff the other matches this after only legal
   /// reference handling
+  /// O(n)
   bool ref_match(const Type &_other) const;
 
   /// Returns whether or not this type is valid to instantiate
-  bool valid() const;
+  /// O(1)
+  bool valid() const noexcept;
 
+  /// Returns true iff the first node is of type FUNCTION
+  /// O(1)
+  bool is_fn() const noexcept;
+
+  /// Gets the arguments, given that this is a function
+  /// O(n)
+  std::map<std::string, Type> fn_args() const;
+
+  /// Gets the fn return type, given that this is a function
+  /// O(n)
+  Type fn_return_type() const;
+
+protected:
   /// Appends a pointer node to this type
   void append_ptr();
 
@@ -60,9 +94,8 @@ public:
   /// Appends a function close node ("maps") to this type
   void append_maps();
 
-protected:
   struct TypeNode {
-    enum {
+    enum TypeTag {
       POINTER,
       UNSIZED_ARRAY,
       SIZED_ARRAY,
@@ -70,11 +103,23 @@ protected:
       FUNCTION,
       JOIN,
       MAPS,
-    } type;
-    std::string literal_name;
-    uint64_t sized_array_size;
+    } type = LITERAL;
+
+    /// Used only in literal nodes
+    std::string literal_name = "";
+
+    /// Used only in sized array nodes
+    uint64_t sized_array_size = 0;
+
+    /// Used in "function" and "join" nodes to list argument
+    /// names
+    std::string following_arg_name = "";
   };
+
+  /// Appends a TypeNode
+  void push_node(const TypeNode &_what);
+
+  std::stack<std::string> enclosure;
   std::list<TypeNode> nodes;
-  uint fn_depth = 0;
   bool is_valid_type = false;
 };

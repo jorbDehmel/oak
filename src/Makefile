@@ -4,20 +4,31 @@ OBJECTS := lexer.o oakc.o package.o rule.o type.o scope.o \
 	sapling.o
 CPP     := g++ -std=c++20 -pedantic -Wall -O3 -g
 
-acorn.out:	acorn-debug.out
+TARGET = /usr/bin
+
+%.out:	%-debug.out
 	cp $< $@
 	strip --strip-all $@
 
-acorn-debug.out:	acorn.o $(OBJECTS)
+%-debug.out:	%.o $(OBJECTS)
 	$(CPP) -o $@ $^
 
 %.o:	%.cpp $(HEADERS)
 	$(CPP) -c -o $@ $<
 
 .PHONY:	install
-install:	acorn.out acorn-debug.out
-	sudo cp acorn.out /usr/bin/acorn
-	sudo cp acorn-debug.out /usr/bin/acorn-debug
+install:	acorn.out acorn-debug.out oak2c.out oak2c-debug.out
+	@echo "Installing debug binaries..."
+	@cp acorn-debug.out $(TARGET)/acorn-debug
+	@cp oak2c-debug.out $(TARGET)/oak2c-debug
+	@echo "Installing regular binaries..."
+	@cp acorn.out $(TARGET)/acorn
+	@cp oak2c.out $(TARGET)/oak2c
+
+.PHONY:	uninstall
+uninstall:
+	@echo "Uninstalling acorn..."
+	acorn -A
 
 .PHONY:	clean
 clean:

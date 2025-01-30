@@ -14,8 +14,8 @@ Lexer::lex(const std::string &_text,
   const static std::set<char> operators = {
       '~', '!', '@', '#', '$', '%', '^', '&', '*', '-', '+',
       '=', '|', ';', ':', ',', '<', '.', '>', '/', '?'};
-  const static std::set<char> singleton_operators = {'[', '{',
-                                                     '('};
+  const static std::set<char> singleton_operators = {
+      '[', ']', '{', '}', '(', ')'};
   const static auto next_line = [&]() {
     ++_line;
     _col = 0;
@@ -63,7 +63,6 @@ Lexer::lex(const std::string &_text,
       to_append.type = "OPERATOR";
       while (pos + 1 < _text.size() &&
              operators.contains(_text.at(pos + 1))) {
-
         if (pos + 2 < _text.size() &&
             _text.at(pos + 1) == '/' &&
             (_text.at(pos + 2) == '/' ||
