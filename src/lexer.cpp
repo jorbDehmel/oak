@@ -198,7 +198,7 @@ Lexer::lex(const std::string &_text,
       out.back().type = "OPERATOR";
     }
 
-    // Everything else: IDs
+    // Everything else: IDs and numbers
     else {
       Lexer::Token to_append =
           Lexer::Token("", _path, _line, _col);
@@ -226,4 +226,21 @@ Lexer::lex(const std::string &_text,
   }
 
   return out;
+}
+
+/**
+ * @brief Gets the type of a given literal, given that it is
+ * one. If not, returns nothing.
+ * @param _t The possible literal to examine.
+ */
+std::optional<Type> Lexer::get_literal_type(const Token &_t) {
+  if (_t.type == "STRING") {
+    return Type({"^", "i8"});
+  } else if (_t.type == "NUMBER") {
+  } else if (_t.text == "true" || _t.text == "false") {
+    return Type({"bool"});
+  }
+
+  // The empty option
+  return {};
 }

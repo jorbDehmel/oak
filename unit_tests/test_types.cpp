@@ -1,3 +1,8 @@
+/**
+ * @file test_types.cpp
+ * @brief Tests the Oak typing system
+ */
+
 #include "../src/type.hpp"
 #include <cassert>
 #include <iostream>
@@ -53,35 +58,68 @@ int main() {
     test_repr("foo", "bool* foo[64]",
               {"^", "[", "64", "]", "bool"});
 
-    test_repr("main", "i32 main(_: i32, __: i8 **)",
-              {"(", "_", ":", "i32", ",", "_", ":", "^", "^",
-               "i8", ")", "->", "i32"});
+    // Non-main fn
+    test_repr(
+        "not_main",
+        "i32 not_main_FN_i32_JOIN_PTR_PTR_i8_MAPS_i32(i32 c, "
+        "i8** v)",
+        {"(", "c", ":", "i32", ",", "v", ":", "^", "^", "i8",
+         ")", "->", "i32"});
+
+    // Fn ptr
+    test_repr("fn_ptr", "void (*fn_ptr)(i32 _, i32 (*__)())",
+              {"^", "(", "_", ":", "i32", ",", "_", ":", "^",
+               "(", ")", "->", "i32", ")", "->", "void"});
   }
 
   { // Test different equality modes
-    ;
+    assert(Type({"i32"}).exact_match(Type({"i32"})));
+    assert(!Type({"i32"}).exact_match(Type({"i64"})));
+
+    assert(Type({"i32"}).cast_match(Type({"i32"})));
+    assert(Type({"i32"}).cast_match(Type({"i64"})));
+    assert(!Type({"i64"}).cast_match(Type({"i32"})));
+
+    // t.ref_match();
+    assert(Type({"i32"}).ref_match(Type({"^", "i32"})));
+    assert(Type({"^", "^", "i32"}).ref_match(Type({"i32"})));
+    assert(!Type({"i32"}).ref_match(Type({"^", "^", "i32"})));
+
+    assert(!Type({"^", "i32"})
+                .exact_match(Type({"[", "]", "i32"})));
+    assert(!Type({"^", "i32"})
+                .cast_match(Type({"[", "]", "i32"})));
+    assert(
+        !Type({"^", "i32"}).ref_match(Type({"[", "]", "i32"})));
   }
 
   { // Test fn operations
     Type t;
-    for (const auto &i : {"(", "_", ":", "i32", ",", "__", ":",
-                          "bool", ",", "___", ":", "^", "[",
-                          "]", "i8", ",", ")", "->", "void"}) {
+    for (const auto &i :
+         {"(", "_", ":", "i32", ",", "_", ":", "bool", ",", "_",
+          ":", "^", "[", "]", "i8", ",", ")", "->", "void"}) {
       t.process_next(i);
     }
-    std::cout << t.oak_repr() << '\n';
-    assert(t.oak_repr() == "(i32, bool, ^[]i8) -> void");
+    assert(t.oak_repr() ==
+           "(_: i32, _: bool, _: ^[]i8) -> void");
 
     assert(t.is_fn());
     const auto args = t.fn_args();
 
     assert(args.size() == 3);
-    assert(args.at("_").oak_repr() == "i32");
-    assert(args.at("__").oak_repr() == "bool");
-    assert(args.at("___").oak_repr() == "^[]i8");
+
+    assert(args[0].first == "_");
+    assert(args[1].first == "__");
+    assert(args[2].first == "___");
+
+    assert(args[0].second.oak_repr() == "i32");
+    assert(args[1].second.oak_repr() == "bool");
+    assert(args[2].second.oak_repr() == "^[]i8");
 
     const auto ret = t.fn_return_type();
     assert(ret.oak_repr() == "void");
+
+    assert(ret.c_repr() == "void");
   }
 
   std::cout << "All type unit tests passed!\n";

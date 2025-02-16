@@ -286,11 +286,11 @@ void OakCompiler::do_compilation() {
   }
 
   // Parse to translation unit
-  TranslationUnit translation_unit_info;
+  Parser translation_unit_info;
 
   try {
-    translation_unit_info =
-        do_file(csettings.entry_point, csettings);
+    do_file(csettings.entry_point, csettings,
+            translation_unit_info);
   } catch (std::runtime_error &e) {
     throw std::runtime_error(
         "Error occurred while loading entry point " +
@@ -657,7 +657,7 @@ void OakCompiler::load_dialect_file(
 /**
  * @brief
  */
-void OakCompiler::translate(const TranslationUnit &_unit,
+void OakCompiler::translate(const Parser &_unit,
                             std::ostream &_into) const {
   throw std::runtime_error(__FUNCTION__);
 }
@@ -668,9 +668,10 @@ void OakCompiler::translate(const TranslationUnit &_unit,
  * is called by do_compilation, and should not be called
  * outside of it!
  */
-TranslationUnit OakCompiler::do_file(
+void OakCompiler::do_file(
     const std::filesystem::path &_path,
-    const Settings::CompileSettings &_csettings) const {
+    const Settings::CompileSettings &_csettings,
+    Parser &_parser) const {
   // Load and lex
   if (!std::filesystem::exists(_path)) {
     throw std::runtime_error("File '" + _path.string() +

@@ -11,6 +11,7 @@
 #include <map>
 #include <stack>
 #include <string>
+#include <vector>
 
 /**
  * @class Type
@@ -20,6 +21,12 @@
  */
 class Type {
 public:
+  // A higher number is more precise. The goal is not to lose
+  // any precision in our casts.
+  const static std::map<std::string, uint> int_literals;
+  const static std::map<std::string, uint> uint_literals;
+  const static std::map<std::string, uint> float_literals;
+
   Type() = default;
   Type(const std::initializer_list<std::string> &_tokens) {
     for (const auto &t : _tokens) {
@@ -40,7 +47,8 @@ public:
   /// Return this type in C notation. If this is a function,
   /// mangle it.
   /// O(n)
-  std::string c_repr(const std::string &_var_name = "") const;
+  std::string c_repr(const std::string &_var_name = "",
+                     const bool &_no_mangle = false) const;
 
   /// Returns true iff the other matches this at every node
   /// O(n)
@@ -51,9 +59,21 @@ public:
   bool cast_match(const Type &_other) const;
 
   /// Returns true iff the other matches this after only legal
-  /// reference handling
+  /// reference handling. We are allowed to deref ourselves any
+  /// number of times, but we are only allowed to add one ref.
+  /// No casting is allowed here!
   /// O(n)
-  bool ref_match(const Type &_other) const;
+  bool ref_match(const Type &_other, int &_num_deref) const;
+
+  /// Helper that ignores the _num_deref arg, only giving a bool
+  inline bool ref_match(const Type &_other) const {
+    int junk;
+    return ref_match(_other, junk);
+  }
+
+  /// Returns the struct name of this type for parse-time
+  /// lookup. Errors if not a direct instance of a struct
+  std::string struct_name() const;
 
   /// Returns whether or not this type is valid to instantiate
   /// O(1)
@@ -65,7 +85,7 @@ public:
 
   /// Gets the arguments, given that this is a function
   /// O(n)
-  std::map<std::string, Type> fn_args() const;
+  std::vector<std::pair<std::string, Type>> fn_args() const;
 
   /// Gets the fn return type, given that this is a function
   /// O(n)
@@ -94,6 +114,10 @@ protected:
   /// Appends a function close node ("maps") to this type
   void append_maps();
 
+  /// Returns a COPY of this type if it were to be dereferenced
+  /// once
+  Type deref() const;
+
   struct TypeNode {
     enum TypeTag {
       POINTER,
@@ -115,9 +139,6 @@ protected:
     /// names
     std::string following_arg_name = "";
   };
-
-  /// Appends a TypeNode
-  void push_node(const TypeNode &_what);
 
   std::stack<std::string> enclosure;
   std::list<TypeNode> nodes;

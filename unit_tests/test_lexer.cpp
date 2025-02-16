@@ -1,3 +1,8 @@
+/**
+ * @file test_lexer.cpp
+ * @brief Tests the Oak lexer
+ */
+
 #include "../src/lexer.hpp"
 #include <cassert>
 #include <iostream>

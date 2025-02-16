@@ -7,9 +7,11 @@
 
 static_assert(__cplusplus >= 2020'00ULL);
 
+#include "type.hpp"
 #include <cstdint>
 #include <filesystem>
 #include <list>
+#include <optional>
 #include <string>
 
 /**
@@ -47,5 +49,10 @@ public:
                        const std::filesystem::path &_path,
                        uint64_t &_line, uint64_t &_col);
 
-protected:
+  /**
+   * @brief Gets the type of a given literal, given that it is
+   * one. If not, returns nothing.
+   * @param _t The possible literal to examine.
+   */
+  static std::optional<Type> get_literal_type(const Token &_t);
 };

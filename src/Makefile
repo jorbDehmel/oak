@@ -1,6 +1,6 @@
 HEADERS := lexer.hpp oakc.hpp package.hpp rule.hpp type.hpp \
-	scope.hpp sapling.hpp
-OBJECTS := lexer.o oakc.o package.o rule.o type.o scope.o \
+	parser.hpp sapling.hpp
+OBJECTS := lexer.o oakc.o package.o rule.o type.o parser.o \
 	sapling.o
 CPP     := g++ -std=c++20 -pedantic -Wall -O3 -g
 

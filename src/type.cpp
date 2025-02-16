@@ -4,20 +4,20 @@
  */
 
 #include "type.hpp"
+#include <cwctype>
 #include <map>
+#include <set>
 #include <stdexcept>
-
-#include <iostream>
 
 // A higher number is more precise. The goal is not to lose
 // any precision in our casts.
-const static std::map<std::string, uint> int_literals = {
+const std::map<std::string, uint> Type::int_literals = {
     {"i8", 1},  {"i16", 2},   {"i32", 4},
     {"i64", 8}, {"i128", 16}, {"int", sizeof(int)}};
-const static std::map<std::string, uint> uint_literals = {
+const std::map<std::string, uint> Type::uint_literals = {
     {"u8", 1},  {"u16", 2},   {"u32", 4},
     {"u64", 8}, {"u128", 16}, {"uint", sizeof(uint)}};
-const static std::map<std::string, uint> float_literals = {
+const std::map<std::string, uint> Type::float_literals = {
     {"f32", 4},
     {"f64", 8},
     {"f128", 16},
@@ -28,28 +28,10 @@ void Type::process_next(const std::string &_symbol) {
   if (_symbol == "^") {
     append_ptr();
   } else if (_symbol == ",") {
-    while (!enclosure.empty() && enclosure.top() == "*") {
-      enclosure.pop();
-    }
-
     append_join();
-
-    // Denote that the next two tokens should be ignored
-    // since they will be 'name :'
-    enclosure.push("*");
-    enclosure.push("*");
   } else if (_symbol == "->") {
     append_maps();
-  }
-
-  else if (_symbol == "(") {
-    enclosure.push(_symbol);
-
-    // Denote that the next two tokens should be ignored
-    // since they will be 'name :'
-    enclosure.push("*");
-    enclosure.push("*");
-
+  } else if (_symbol == "(") {
     append_fn();
   } else if (_symbol == "[") {
     enclosure.push(_symbol);
@@ -61,7 +43,7 @@ void Type::process_next(const std::string &_symbol) {
       enclosure.pop();
     }
     if (enclosure.empty() || enclosure.top() != "(") {
-      throw std::runtime_error("Unexpected '" + _symbol + "'.");
+      throw std::runtime_error("Unexpected ')'.");
     }
     enclosure.pop();
   }
@@ -123,7 +105,8 @@ bool Type::is_fn() const noexcept {
 }
 
 /// Gets the arguments, given that this is a function
-std::map<std::string, Type> Type::fn_args() const {
+std::vector<std::pair<std::string, Type>>
+Type::fn_args() const {
   if (!is_fn()) {
     throw std::runtime_error(
         "Cannot get arguments of non-function type '" +
@@ -134,7 +117,8 @@ std::map<std::string, Type> Type::fn_args() const {
   }
 
   uint64_t depth = 0;
-  std::map<std::string, Type> out;
+  std::vector<std::pair<std::string, Type>> out;
+  std::set<std::string> used_names;
   Type t;
   std::string argname;
 
@@ -148,10 +132,14 @@ std::map<std::string, Type> Type::fn_args() const {
     } else if (node.type == TypeNode::MAPS) {
       --depth;
       if (depth == 0) {
-        while (out.contains(argname)) {
+        while (used_names.contains(argname)) {
           argname = "_" + argname;
         }
-        out[argname] = t;
+        if (!t.nodes.empty()) {
+          t.is_valid_type = is_valid_type;
+          out.push_back({argname, t});
+          used_names.insert(argname);
+        }
         break;
       }
     }
@@ -160,14 +148,18 @@ std::map<std::string, Type> Type::fn_args() const {
       continue;
     } else {
       if (depth == 1 && node.type == TypeNode::JOIN) {
-        while (out.contains(argname)) {
+        while (used_names.contains(argname)) {
           argname = "_" + argname;
         }
-        out[argname] = t;
+        if (!t.nodes.empty()) {
+          t.is_valid_type = is_valid_type;
+          out.push_back({argname, t});
+          used_names.insert(argname);
+        }
         argname = node.following_arg_name;
         t = Type{};
       } else {
-        t.push_node(node);
+        t.nodes.push_back(node);
       }
     }
   }
@@ -186,46 +178,21 @@ Type Type::fn_return_type() const {
         "Cannot get return type of invalid type.");
   }
 
-  std::stack<TypeNode> reversed_nodes;
-  for (auto rit = nodes.rbegin();
-       rit != nodes.rend() && rit->type != TypeNode::MAPS;
-       ++rit) {
-    reversed_nodes.push(*rit);
-  }
-
-  Type out;
-  while (!reversed_nodes.empty()) {
-    out.push_node(reversed_nodes.top());
-    reversed_nodes.pop();
+  Type out = *this;
+  int count = 0;
+  while (!out.nodes.empty()) {
+    if (out.nodes.front().type == TypeNode::FUNCTION) {
+      ++count;
+    } else if (out.nodes.front().type == TypeNode::MAPS) {
+      --count;
+      if (count == 0) {
+        out.nodes.pop_front();
+        break;
+      }
+    }
+    out.nodes.pop_front();
   }
   return out;
-}
-
-/// Appends a TypeNode
-void Type::push_node(const TypeNode &_what) {
-  switch (_what.type) {
-  case TypeNode::POINTER:
-    append_ptr();
-    break;
-  case TypeNode::UNSIZED_ARRAY:
-    append_arr();
-    break;
-  case TypeNode::SIZED_ARRAY:
-    append_sized_arr(_what.sized_array_size);
-    break;
-  case TypeNode::LITERAL:
-    append_literal(_what.literal_name);
-    break;
-  case TypeNode::FUNCTION:
-    append_fn();
-    break;
-  case TypeNode::JOIN:
-    append_join();
-    break;
-  case TypeNode::MAPS:
-    append_maps();
-    break;
-  }
 }
 
 /// Return this type in Oak notation
@@ -264,6 +231,9 @@ std::string Type::oak_repr(const std::string &_var_name) const {
       out += ") -> ";
       break;
     }
+    if (!node.following_arg_name.empty()) {
+      out += node.following_arg_name + ": ";
+    }
   }
   if (!is_valid_type) {
     out = "<INVALID TYPE> " + out;
@@ -273,42 +243,22 @@ std::string Type::oak_repr(const std::string &_var_name) const {
 
 /// Return this type in C notation, mangling if a raw function
 /// (not function pointers though)
-std::string Type::c_repr(const std::string &_var_name) const {
-  std::string name = _var_name;
-  std::string prefix, suffix;
-
-  const static auto normal_type = [&]() {
-    for (const auto &node : nodes) {
-      switch (node.type) {
-      case TypeNode::POINTER:
-        prefix += "*";
-        break;
-      case TypeNode::UNSIZED_ARRAY:
-        suffix += "[]";
-        break;
-      case TypeNode::SIZED_ARRAY:
-        suffix +=
-            "[" + std::to_string(node.sized_array_size) + "]";
-        break;
-      case TypeNode::LITERAL:
-        if (!int_literals.contains(node.literal_name) &&
-            !uint_literals.contains(node.literal_name) &&
-            !float_literals.contains(node.literal_name)) {
-          prefix = "struct " + node.literal_name + prefix;
-        } else {
-          prefix = node.literal_name + prefix;
-        }
-        break;
-
-      default:
-        break;
-      }
-    }
-  };
-
-  const static auto fn = [&]() {
+std::string Type::c_repr(const std::string &_var_name,
+                         const bool &_no_mangle) const {
+  // Dispatch based on type: Function pointers get one method,
+  // regular types get another.
+  std::string repr;
+  if (nodes.size() >= 2 &&
+      nodes.front().type == TypeNode::POINTER &&
+      std::next(nodes.begin())->type == TypeNode::FUNCTION) {
+    // Function pointer
+    repr = deref().c_repr("(*" + _var_name + ")", true);
+  } else if (nodes.size() >= 1 &&
+             nodes.front().type == TypeNode::FUNCTION) {
+    // Regular function
     // Mangle
-    if (name != "main") {
+    std::string name = _var_name;
+    if (!_no_mangle) {
       for (const auto &node : nodes) {
         switch (node.type) {
         case TypeNode::POINTER:
@@ -334,33 +284,67 @@ std::string Type::c_repr(const std::string &_var_name) const {
       }
     }
 
-    // Real stuff
-    throw;
-  };
+    const auto ret_type = fn_return_type();
+    const auto args = fn_args();
 
-  const static auto fn_ptr = [&]() {
     // Real stuff
-    throw;
-  };
-
-  // Dispatch based on type: Function pointers get one method,
-  // regular types get another.
-  if (nodes.size() >= 2 &&
-      nodes.front().type == TypeNode::POINTER &&
-      std::next(nodes.begin())->type == TypeNode::FUNCTION) {
-    fn_ptr();
-  } else if (nodes.size() >= 1 &&
-             nodes.front().type == TypeNode::FUNCTION) {
-    fn();
+    std::string out = ret_type.c_repr(name) + "(";
+    bool first = true;
+    for (const auto &arg : args) {
+      if (first) {
+        first = false;
+      } else {
+        out += ", ";
+      }
+      out += arg.second.c_repr(arg.first);
+    }
+    out += ")";
+    repr = out;
   } else {
-    normal_type();
+    // Normal type
+    std::string prefix, suffix;
+
+    for (const auto &node : nodes) {
+      switch (node.type) {
+      case TypeNode::POINTER:
+        prefix += "*";
+        break;
+      case TypeNode::UNSIZED_ARRAY:
+        suffix += "[]";
+        break;
+      case TypeNode::SIZED_ARRAY:
+        suffix +=
+            "[" + std::to_string(node.sized_array_size) + "]";
+        break;
+      case TypeNode::LITERAL:
+        if (!int_literals.contains(node.literal_name) &&
+            !uint_literals.contains(node.literal_name) &&
+            !float_literals.contains(node.literal_name) &&
+            node.literal_name != "bool" &&
+            node.literal_name != "void") {
+          prefix = "struct " + node.literal_name + prefix;
+        } else {
+          prefix = node.literal_name + prefix;
+        }
+        break;
+
+      default:
+        break;
+      }
+    }
+
+    repr = prefix + " " + _var_name + suffix;
   }
 
   if (!is_valid_type) {
-    prefix = "<INVALID TYPE> " + prefix;
+    repr = "<INVALID TYPE> " + repr;
   }
 
-  return prefix + " " + _var_name + suffix;
+  while (std::isspace(repr.back())) {
+    repr.pop_back();
+  }
+
+  return repr;
 }
 
 /// Returns true iff the other matches this at every node
@@ -435,15 +419,45 @@ bool Type::cast_match(const Type &_other) const {
 }
 
 /// Returns true iff the other matches this after only legal
-/// reference handling
-bool Type::ref_match(const Type &_other) const {
-  throw std::runtime_error(__FILE_NAME__ ":" +
-                           std::to_string(__LINE__) +
-                           "> Unimplemented!");
+/// reference handling. We are allowed to deref ourselves any
+/// number of times, but we are only allowed to add one ref.
+/// No casting is allowed here!
+bool Type::ref_match(const Type &_other,
+                     int &_num_deref) const {
+  Type me = *this;
+  Type it = _other;
+  uint num_me_derefs = 0;
+  uint num_it_derefs = 0;
+
+  // Fully deref both sides
+  while (!me.nodes.empty() &&
+         me.nodes.front().type == TypeNode::POINTER) {
+    me = me.deref();
+    ++num_me_derefs;
+  }
+  while (!it.nodes.empty() &&
+         it.nodes.front().type == TypeNode::POINTER) {
+    it = it.deref();
+    ++num_it_derefs;
+  }
+
+  // Net number of derefs on this to get to other
+  _num_deref = num_me_derefs - num_it_derefs;
+
+  // CCheck for legality
+  if (!me.exact_match(it)) {
+    return false;
+  } else if (_num_deref < -1) {
+    return false;
+  } else {
+    return true;
+  }
 }
 
 /// Returns whether or not this type is valid to instantiate
-bool Type::valid() const noexcept { return is_valid_type; }
+bool Type::valid() const noexcept {
+  return is_valid_type;
+}
 
 /// Appends a pointer node to this type
 void Type::append_ptr() {
@@ -502,6 +516,13 @@ void Type::append_literal(const std::string &_name) {
 
 /// Appends a function open node to this type
 void Type::append_fn() {
+  enclosure.push("(");
+
+  // Denote that the next two tokens should be ignored
+  // since they will be 'name :'
+  enclosure.push("*");
+  enclosure.push("*");
+
   if (is_valid_type) {
     throw std::runtime_error(
         "Cannot append 'function open' to an "
@@ -513,6 +534,10 @@ void Type::append_fn() {
 
 /// Appends a join node to this type
 void Type::append_join() {
+  while (!enclosure.empty() && enclosure.top() == "*") {
+    enclosure.pop();
+  }
+
   if (is_valid_type) {
     throw std::runtime_error(
         "Cannot append 'join' to an already concrete type '" +
@@ -523,6 +548,11 @@ void Type::append_join() {
         oak_repr() + "'");
   }
   nodes.push_back({TypeNode::JOIN});
+
+  // Denote that the next two tokens should be ignored
+  // since they will be 'name :'
+  enclosure.push("*");
+  enclosure.push("*");
 }
 
 /// Appends a function close node ("maps") to this type
@@ -536,4 +566,33 @@ void Type::append_maps() {
     nodes.pop_back();
   }
   nodes.push_back({TypeNode::MAPS});
+}
+
+/// Returns a COPY of this type if it were to be dereferenced
+/// once
+Type Type::deref() const {
+  if (nodes.empty() ||
+      nodes.front().type != TypeNode::POINTER) {
+    throw std::runtime_error("Cannot deref non-pointer type '" +
+                             oak_repr() + "'");
+  }
+
+  Type out = *this;
+  out.nodes.pop_front();
+  return out;
+}
+
+/// Returns the struct name of this type for parse-time
+/// lookup. Errors if not a direct instance of a struct
+std::string Type::struct_name() const {
+  if (!is_valid_type) {
+    throw std::runtime_error(
+        "Cannot get struct name of invalid type.");
+  } else if (nodes.empty() ||
+             nodes.front().type == TypeNode::LITERAL) {
+    throw std::runtime_error(
+        "Cannot get struct name of non-terminal type '" +
+        oak_repr() + "'");
+  }
+  return nodes.front().literal_name;
 }

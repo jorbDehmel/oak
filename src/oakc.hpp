@@ -9,7 +9,7 @@ static_assert(__cplusplus >= 2020'00ULL);
 
 #include "lexer.hpp"
 #include "package.hpp"
-#include "scope.hpp"
+#include "parser.hpp"
 #include <filesystem>
 #include <fstream>
 #include <list>
@@ -205,9 +205,9 @@ protected:
    * is called by do_compilation, and should not be called
    * outside of it!
    */
-  TranslationUnit
-  do_file(const std::filesystem::path &_path,
-          const Settings::CompileSettings &_csettings) const;
+  void do_file(const std::filesystem::path &_path,
+               const Settings::CompileSettings &_csettings,
+               Parser &_p) const;
 
   /**
    * @brief
@@ -234,6 +234,6 @@ protected:
    * @brief Write the parsed information to the given stream in
    * C format.
    */
-  void translate(const TranslationUnit &_unit,
+  void translate(const Parser &_unit,
                  std::ostream &_into) const;
 };
