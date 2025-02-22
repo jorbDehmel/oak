@@ -1,5 +1,5 @@
 include!("std/io.oak");
 let main() -> i32 {
   print("Hello, 'world'!\n");
-  0i32
+  return 0i32;
 }

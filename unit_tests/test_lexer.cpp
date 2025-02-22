@@ -6,17 +6,38 @@
 #include "../src/lexer.hpp"
 #include <cassert>
 #include <iostream>
+#include <stdexcept>
 
 void assert_match(const std::string &_path,
                   const std::list<std::string> &_texts,
                   const std::list<Lexer::Token> &_observed) {
-  assert(_texts.size() == _observed.size());
+  bool match = true;
+
+  match &= (_texts.size() == _observed.size());
+
   auto l = _texts.begin();
   auto r = _observed.begin();
-  while (l != _texts.end()) {
-    assert(r->text == *l);
-    assert(r->file == _path);
+  while (l != _texts.end() && match) {
+    match &= (r->text == *l);
+    match &= (r->file == _path);
     ++l, ++r;
+  }
+
+  if (!match) {
+    // Write error message
+    std::cerr << "With path '" << _path << "':\n"
+              << "Expected: ";
+
+    for (const auto &item : _texts) {
+      std::cerr << item << ' ';
+    }
+    std::cerr << "\nObserved: ";
+    for (const auto &item : _observed) {
+      std::cerr << item.text << ' ';
+    }
+    std::cerr << '\n';
+
+    throw std::runtime_error("Failed match!");
   }
 }
 
@@ -48,8 +69,8 @@ int main() {
 
     const auto observed = l.lex(text, path, line, col);
     assert_match(path,
-                 {"include", "!", "(", "\"std/io.oak\"", ")",
-                  ";", "let", "main", "(", ")", "->", "i32"},
+                 {"include!", "(", "\"std/io.oak\"", ")", ";",
+                  "let", "main", "(", ")", "->", "i32"},
                  observed);
   }
 

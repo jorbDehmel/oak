@@ -1,4 +1,5 @@
 #include "lexer.hpp"
+#include "debug.hpp"
 #include <optional>
 #include <set>
 
@@ -9,10 +10,12 @@ std::list<Lexer::Token>
 Lexer::lex(const std::string &_text,
            const std::filesystem::path &_path, uint64_t &_line,
            uint64_t &_col) {
+  debug_print();
+
   // Statics
   const static std::set<char> whitespace = {' ', '\t', '\n'};
   const static std::set<char> operators = {
-      '~', '!', '@', '#', '$', '%', '^', '&', '*', '-', '+',
+      '~', '@', '#', '$', '%', '^', '&', '*', '-', '+',
       '=', '|', ';', ':', ',', '<', '.', '>', '/', '?'};
   const static std::set<char> singleton_operators = {
       '[', ']', '{', '}', '(', ')'};
@@ -234,6 +237,7 @@ Lexer::lex(const std::string &_text,
  * @param _t The possible literal to examine.
  */
 std::optional<Type> Lexer::get_literal_type(const Token &_t) {
+  debug_print();
   if (_t.type == "STRING") {
     return Type({"^", "i8"});
   } else if (_t.type == "NUMBER") {

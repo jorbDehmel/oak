@@ -4,21 +4,22 @@
  */
 
 #include "rule.hpp"
+#include "debug.hpp"
 #include "sapling.hpp"
 #include <cstdint>
-#include <queue>
 #include <set>
-#include <stack>
 #include <stdexcept>
 #include <variant>
 
 RuleRunner::RuleRunner()
     : engines({{"sapling",
                 {sapling::state_transition, sapling::on_match,
-                 sapling::default_state}}}) {}
+                 sapling::default_state}}}) {
+}
 
 void RuleRunner::register_rule(const std::string &_name,
                                const Rule &_data) {
+  debug_print();
   if (registered_rules.contains(_name)) {
     throw std::runtime_error(
         "Cannot reregister rule or bundle '" + _name + "'.");
@@ -29,6 +30,7 @@ void RuleRunner::register_rule(const std::string &_name,
 void RuleRunner::register_bundle(
     const std::string &_name,
     const std::list<std::string> &_entails) {
+  debug_print();
   if (registered_rules.contains(_name)) {
     throw std::runtime_error(
         "Cannot reregister rule or bundle '" + _name + "'.");
@@ -36,7 +38,8 @@ void RuleRunner::register_bundle(
   registered_rules[_name] = _entails;
 }
 
-void RuleRunner::deregister_rule(const std::string &_name) {
+void RuleRunner::remove_entry_point(const std::string &_name) {
+  debug_print();
   if (!registered_rules.contains(_name)) {
     throw std::runtime_error(
         "Cannot deregister nonexistant rule or bundle '" +
@@ -46,13 +49,18 @@ void RuleRunner::deregister_rule(const std::string &_name) {
 }
 
 void RuleRunner::add_entry_point(const std::string &_name) {
+  debug_print();
   entry_points.push_back(_name);
 }
 
-void RuleRunner::purge_entry_points() { entry_points.clear(); }
+void RuleRunner::purge_entry_points() {
+  debug_print();
+  entry_points.clear();
+}
 
 std::list<Rule>
 RuleRunner::resolve(const std::list<std::string> &_rules) {
+  debug_print();
   // Build graph where edges mean "needs target before source"
   // Maps source to targets
   std::set<std::string> visited;
@@ -109,10 +117,9 @@ RuleRunner::resolve(const std::list<std::string> &_rules) {
   return out;
 }
 
-uint RuleRunner::process_text(
-    std::list<Lexer::Token>::iterator &_begin,
-    std::list<Lexer::Token>::iterator &_end,
-    const uint &_max_passes) {
+uint RuleRunner::process_text(std::list<Lexer::Token> &_what,
+                              const uint &_max_passes) {
+  debug_print();
   const auto rules = resolve(entry_points);
   uintmax_t pass = 0, rule_pass = 0;
   bool did_change = false;
@@ -130,11 +137,11 @@ uint RuleRunner::process_text(
       // Fetch engine details
       const auto engine = engines.at(rule_spec.engine);
 
-      auto pos = _begin;
+      auto pos = _what.begin();
       auto state = engine.default_state;
       auto most_recent_reset = pos;
 
-      while (pos != _end) {
+      while (pos != _what.end()) {
         auto res =
             engine.state_transition(rule_spec, state, *pos);
 

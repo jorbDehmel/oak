@@ -1,5 +1,10 @@
 #include "oakc.hpp"
+#include "debug.hpp"
 #include "lexer.hpp"
+#include "macro.hpp"
+#include "package.hpp"
+#include "parser.hpp"
+#include "rule.hpp"
 #include <cassert>
 #include <cstdint>
 #include <cstdlib>
@@ -200,14 +205,20 @@ void OakCompiler::print_size() noexcept {
 
 /// Register some update lambda to run after this process has
 /// ceased
-void OakCompiler::update_acorn() noexcept { assert(false); }
+void OakCompiler::update_acorn() noexcept {
+  assert(false);
+}
 
 /// Register some uninstallation lambda to run after this
 /// process has ceased
-void OakCompiler::uninstall_acorn() noexcept { assert(false); }
+void OakCompiler::uninstall_acorn() noexcept {
+  assert(false);
+}
 
 /// Purge all temporary files
-void OakCompiler::clean() { assert(false); }
+void OakCompiler::clean() {
+  assert(false);
+}
 
 /// Find and print the list of all viable installation
 /// candidates for some set of restrictions
@@ -218,13 +229,10 @@ void OakCompiler::query_package(const std::string &_name) {
 /// Install some package globally
 /// To be called from the command line, so IO is acceptable
 void OakCompiler::install_package(const std::string &_name) {
-  if (std::filesystem::exists(_name)) {
-    std::cerr << "WARNING: Installing local package '" << _name
-              << "'. This may or may not be what you want!\n";
-    package_manager.install_local_package(_name);
-  } else {
-    assert(false);
-  }
+  std::cerr << "WARNING: Installing local package '" << _name
+            << "'. This may or may not be what you want!\n";
+  PackageManager::install_package(
+      _name, settings.compile_settings().include_path);
 }
 
 /// Remove some globally-install package
@@ -239,6 +247,7 @@ void OakCompiler::new_package(const std::string &_name) {
 
 /// Compile according to settings
 void OakCompiler::operator()() {
+  debug_print();
   if (settings.is_compile()) {
     do_compilation();
   } else {
@@ -247,6 +256,7 @@ void OakCompiler::operator()() {
 }
 
 void OakCompiler::do_compilation() {
+  debug_print();
   // Variables needed by the entire process
   auto &csettings = settings.compile_settings();
   std::filesystem::path translated_file = "N/A";
@@ -276,7 +286,8 @@ void OakCompiler::do_compilation() {
       throw std::runtime_error(
           "Error occurred while loading dialect "
           "file '" +
-          settings.dialect.value().string() + "': " + e.what());
+          settings.dialect.value().string() + "':\n" +
+          e.what());
     } catch (...) {
       throw std::runtime_error(
           "An unknown error occurred while loading dialect "
@@ -285,20 +296,16 @@ void OakCompiler::do_compilation() {
     }
   }
 
-  // Parse to translation unit
-  Parser translation_unit_info;
-
   try {
-    do_file(csettings.entry_point, csettings,
-            translation_unit_info);
+    do_file(csettings.entry_point, csettings);
   } catch (std::runtime_error &e) {
     throw std::runtime_error(
         "Error occurred while loading entry point " +
-        settings.dialect.value().string() + ": " + e.what());
+        csettings.entry_point.string() + ":\n" + e.what());
   } catch (...) {
     throw std::runtime_error(
         "An unknown error occurred while loading entry point " +
-        settings.dialect.value().string());
+        csettings.entry_point.string());
   }
 
   // If requested, translate
@@ -306,7 +313,7 @@ void OakCompiler::do_compilation() {
       Settings::CompileSettings::TRANSLATE_ONLY) {
     // Translate Oak token stream to C directly to file
     std::ofstream target_file(translated_file);
-    translate(translation_unit_info, target_file);
+    translate(target_file);
   }
 
   // If requested, call compiler
@@ -403,6 +410,8 @@ void OakCompiler::do_compilation() {
 }
 
 void OakCompiler::do_testing() {
+  debug_print();
+
   // Variables needed by entire process
   auto &tsettings = settings.test_settings();
 
@@ -542,7 +551,9 @@ void OakCompiler::do_testing() {
  */
 void OakCompiler::syntax_check(
     const std::list<Lexer::Token> &_token_stream) const {
-  // All detected errors: Maps positions to messages
+  debug_print();
+  // All detected errors: Maps
+  // positions to messages
   std::list<std::pair<std::list<Lexer::Token>::const_iterator,
                       std::string>>
       errors;
@@ -629,21 +640,146 @@ void OakCompiler::syntax_check(
 /**
  * @brief
  */
-bool OakCompiler::preprocess(
-    std::list<Lexer::Token> &_token_stream) const {
+uint64_t
+OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
+                        Settings::CompileSettings &_csettings) {
+  debug_print();
   bool did_change = false;
+  uint64_t passes = 0;
 
-  // Resolve inline macros
+  do {
+    ++passes;
 
-  // Resolve functional macros
+    // Macro definitions
+    bool saw_let = false;
+    for (auto it = _token_stream.begin();
+         it != _token_stream.end(); ++it) {
+      if (*it == "let") {
+        saw_let = true;
+      } else if (saw_let && *it != "!" &&
+                 it->text.find('!') != std::string::npos) {
+        macros.process_definition(_token_stream, it,
+                                  _token_stream.end());
+        saw_let = false;
+      } else {
+        saw_let = false;
+      }
+    }
 
-  // Resolve ruleset
+    // Resolve includes and packages
+    for (auto it = _token_stream.begin();
+         it != _token_stream.end(); ++it) {
+      if (*it == "include!") {
+        const auto args = MacroManager::get_macro_args(
+            _token_stream, it, _token_stream.end());
+        for (const auto &f : args) {
+          std::filesystem::path p(f);
+          if (std::filesystem::exists(_csettings.include_path /
+                                      p)) {
+            // Package file exists
+            if (std::filesystem::exists(p)) {
+              std::cout << "Warning: Including local file " << p
+                        << " over package file of same name\n";
+            } else {
+              p = _csettings.include_path / p;
+            }
+          }
+          do_file(p, _csettings);
+        }
+      } else if (*it == "link!") {
+        const auto args = MacroManager::get_macro_args(
+            _token_stream, it, _token_stream.end());
+        for (const auto &f : args) {
 
-  // Apply ruleset
+          std::filesystem::path p(f);
+          if (std::filesystem::exists(_csettings.include_path /
+                                      p)) {
+            // Package file exists
+            if (std::filesystem::exists(p)) {
+              std::cout << "Warning: Linking local object " << p
+                        << " over package file of same name\n";
+            } else {
+              p = _csettings.include_path / p;
+            }
+          }
+          _csettings.objects.push_back(p);
+        }
+      } else if (*it == "flag!") {
+        const auto args = MacroManager::get_macro_args(
+            _token_stream, it, _token_stream.end());
+        for (const auto &f : args) {
 
-  throw std::runtime_error(__FUNCTION__);
+          std::filesystem::path p(f);
+          if (std::filesystem::exists(_csettings.include_path /
+                                      p)) {
+            // Package file exists
+            if (std::filesystem::exists(p)) {
+              std::cout << "Warning: Linking local object " << p
+                        << " over package file of same name\n";
+            } else {
+              p = _csettings.include_path / p;
+            }
+          }
+          _csettings.link_flags.push_back(p);
+        }
+      } else if (*it == "pragma!") {
+        auto args = MacroManager::get_macro_args(
+            _token_stream, it, _token_stream.end());
+        if (args.size() == 1) {
+          args.push_back(Lexer::Token(args.front(), ""));
+        }
+        _csettings.pragmas[args.front().text] =
+            std::next(args.begin())->text;
+      } else if (*it == "new_rule!") {
+        const auto args = MacroManager::get_macro_args(
+            _token_stream, it, _token_stream.end());
 
-  return did_change;
+        Rule to_add;
+        throw std::runtime_error(__FILE__);
+
+        rules.register_rule(args.front(), to_add);
+      } else if (*it == "use_rule!") {
+        const auto args = MacroManager::get_macro_args(
+            _token_stream, it, _token_stream.end());
+        for (const auto &arg : args) {
+          rules.add_entry_point(arg);
+        }
+      } else if (*it == "del_rule!") {
+        const auto args = MacroManager::get_macro_args(
+            _token_stream, it, _token_stream.end());
+        for (const auto &arg : args) {
+          rules.remove_entry_point(arg);
+        }
+      } else if (*it == "bundle!") {
+        const auto args = MacroManager::get_macro_args(
+            _token_stream, it, _token_stream.end());
+
+        std::list<std::string> entails;
+        for (auto it = std::next(args.begin());
+             it != args.end(); ++it) {
+          entails.push_back(*it);
+        }
+
+        rules.register_bundle(args.front(), entails);
+      }
+    }
+
+    // Resolve macros (functional and inline)
+    for (auto it = _token_stream.begin();
+         it != _token_stream.end(); ++it) {
+      if (*it != "!" && it->type == "ID" &&
+          it->text.find('!') != std::string::npos) {
+        macros.replace(_token_stream, it, _token_stream.end());
+      }
+    }
+
+    // Apply ruleset
+    rules.process_text(_token_stream,
+                       _csettings.rule_pass_limit);
+  } while (did_change &&
+           passes < _csettings.preprocess_pass_limit);
+
+  return passes;
 }
 
 /**
@@ -651,15 +787,16 @@ bool OakCompiler::preprocess(
  */
 void OakCompiler::load_dialect_file(
     const std::filesystem::path &_file) {
+  debug_print();
   throw std::runtime_error(__FUNCTION__);
 }
 
 /**
  * @brief
  */
-void OakCompiler::translate(const Parser &_unit,
-                            std::ostream &_into) const {
-  throw std::runtime_error(__FUNCTION__);
+void OakCompiler::translate(std::ostream &_into) const {
+  debug_print();
+  p.reconstruct(_into);
 }
 
 /**
@@ -670,16 +807,22 @@ void OakCompiler::translate(const Parser &_unit,
  */
 void OakCompiler::do_file(
     const std::filesystem::path &_path,
-    const Settings::CompileSettings &_csettings,
-    Parser &_parser) const {
+    Settings::CompileSettings &_csettings) {
+  debug_print();
+
+  if (_csettings.visited.contains(_path)) {
+    return;
+  }
+  _csettings.visited.insert(_path);
+
   // Load and lex
   if (!std::filesystem::exists(_path)) {
-    throw std::runtime_error("File '" + _path.string() +
-                             "' does not exist.");
+    throw std::runtime_error("File " + _path.string() +
+                             " does not exist.");
   } else if (!std::filesystem::is_regular_file(_path)) {
     throw std::runtime_error(
-        "File '" + _path.string() +
-        "' exists, but is not a regular file.");
+        "File " + _path.string() +
+        " exists, but is not a regular file.");
   }
 
   std::string text;
@@ -700,13 +843,11 @@ void OakCompiler::do_file(
   try {
     token_stream = l.lex(text, _path, line, col);
   } catch (std::runtime_error &e) {
-    throw std::runtime_error(
-        "Error occurred while lexing entry point " +
-        _path.string() + ": " + e.what());
+    throw std::runtime_error("Error occurred while lexing " +
+                             _path.string() + ":\n" + e.what());
   } catch (...) {
     throw std::runtime_error(
-        "An unknown error occurred while lexing "
-        "entry point " +
+        "An unknown error occurred while lexing " +
         _path.string() + "");
   }
 
@@ -715,6 +856,10 @@ void OakCompiler::do_file(
     syntax_check(token_stream);
   }
 
-  // Do actual parsing to translation unit here
-  throw std::runtime_error(__FUNCTION__);
+  // Preprocess (including includes)
+  preprocess(token_stream, _csettings);
+
+  // Do actual parsing here
+  debug_print();
+  p.parse_global(token_stream);
 }

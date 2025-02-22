@@ -32,12 +32,11 @@ public:
                      const Rule &_data);
   void register_bundle(const std::string &_name,
                        const std::list<std::string> &_entails);
-  void deregister_rule(const std::string &_name);
+  void remove_entry_point(const std::string &_name);
   void add_entry_point(const std::string &_name);
   void purge_entry_points();
 
-  uint process_text(std::list<Lexer::Token>::iterator &_begin,
-                    std::list<Lexer::Token>::iterator &_end,
+  uint process_text(std::list<Lexer::Token> &_what,
                     const uint &_max_passes);
 
 protected:

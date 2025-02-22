@@ -2,6 +2,7 @@
  * @brief Frontend for the Acorn compiler.
  */
 
+#include "debug.hpp"
 static_assert(__cplusplus >= 2020'00ULL);
 
 #include "oakc.hpp"
@@ -18,10 +19,14 @@ static_assert(__cplusplus >= 2020'00ULL);
  */
 bool parse_args(const int _c, const char *const _v[],
                 OakCompiler &_oakc) {
+  debug_print();
+
   if (_c == 1) {
     _oakc.print_help_text();
     return false;
   }
+
+  bool out = true;
 
   for (int i = 1; i < _c; ++i) {
     const std::string arg = _v[i];
@@ -115,11 +120,13 @@ bool parse_args(const int _c, const char *const _v[],
       else if (arg == "--reinstall") {
         _oakc.uninstall_package(_v[++i]);
         _oakc.install_package(_v[i]);
+        out = false;
       }
 
       // Uninstall a package
       else if (arg == "--remove") {
         _oakc.uninstall_package(_v[++i]);
+        out = false;
       }
 
       // List Oak's disk usage
@@ -131,6 +138,7 @@ bool parse_args(const int _c, const char *const _v[],
       // Install package
       else if (arg == "--install") {
         _oakc.install_package(_v[++i]);
+        out = false;
       }
 
       // Translate only
@@ -249,9 +257,11 @@ bool parse_args(const int _c, const char *const _v[],
         case 'r': // Reinstall a package
           _oakc.uninstall_package(_v[++i]);
           _oakc.install_package(_v[++i]);
+          out = false;
           break;
         case 'R': // Uninstall a package
           _oakc.uninstall_package(_v[++i]);
+          out = false;
           break;
         case 's': // Show Oak disk usage
           _oakc.print_size();
@@ -294,6 +304,7 @@ bool parse_args(const int _c, const char *const _v[],
         case 'i': // Install package
         case 'S':
           _oakc.install_package(_v[++i]);
+          out = false;
           break;
 
         default:
@@ -315,7 +326,7 @@ bool parse_args(const int _c, const char *const _v[],
     }
   }
 
-  return true;
+  return out;
 }
 
 /**
@@ -349,10 +360,11 @@ int main(int _c, char *_v[]) {
   } catch (std::runtime_error &e) {
     std::cerr << "Compiler error:\n" << e.what() << '\n';
     return 2;
-  } catch (...) {
-    std::cerr << "An unknown compiler error occurred.\n";
-    return 3;
   }
+  // catch (...) {
+  //   std::cerr << "An unknown compiler error occurred.\n";
+  //   return 3;
+  // }
 
   return 0;
 }

@@ -19,14 +19,15 @@ check:
 install: check
 	@echo "Compiling and installing acorn..."
 	$(MAKE) -C src $@
+	$(MAKE) -C src $@-debug
 
 	@echo "Installing default Oak libraries..."
 	acorn -S ./std
-	acorn -S ./stl
-	acorn -S ./sdl
-	acorn -S ./turtle
-	acorn -S ./cereal
-	acorn -S ./extra
+	# acorn -S ./stl
+	# acorn -S ./sdl
+	# acorn -S ./turtle
+	# acorn -S ./cereal
+	# acorn -S ./extra
 
 .PHONY:	test
 test:

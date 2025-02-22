@@ -4,6 +4,7 @@
  */
 
 #include "sapling.hpp"
+#include "debug.hpp"
 #include <stdexcept>
 
 struct CompiledRule {
@@ -14,6 +15,7 @@ struct CompiledRule {
 
 /// Compiles a rule to store in the cache
 CompiledRule compile(const Rule &_from) {
+  debug_print();
   CompiledRule out;
   std::string cur;
 
@@ -62,6 +64,7 @@ CompiledRule compile(const Rule &_from) {
 
 /// Fetches from cache
 const CompiledRule &fetch(const Rule &_from) {
+  debug_print();
   // Matches I/O rule pair to compiled version
   static std::map<std::pair<std::string, std::string>,
                   CompiledRule>
@@ -87,6 +90,7 @@ std::pair<uint, bool>
 sapling::state_transition(const Rule &_rule_to_use,
                           const uint &_current_state,
                           const Lexer::Token &_current_input) {
+  debug_print();
   const auto &fst = fetch(_rule_to_use);
 
   if (fst.delta.contains(_current_state)) {
@@ -112,6 +116,7 @@ sapling::state_transition(const Rule &_rule_to_use,
 std::list<Lexer::Token>
 sapling::on_match(const Rule &_rule, const uint &_match_state,
                   const std::list<Lexer::Token> &_match_text) {
+  debug_print();
   // Rerun the input rule in more detail, then interpret the
   // output rule
   throw std::runtime_error(__FUNCTION__);

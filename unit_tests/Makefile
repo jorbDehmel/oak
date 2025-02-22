@@ -2,8 +2,8 @@ TESTS := test_lexer.out test_oakc.out test_packages.out \
 	test_rules.out  test_types.out test_parser.out
 
 CPP := g++ -pedantic -Wall -std=c++20 -O3 -g
-OBJECT_NAMES := lexer.o oakc.o package.o rule.o type.o \
-	parser.o sapling.o
+OBJECT_NAMES := lexer.o macro.o oakc.o package.o parser.o \
+	rule.o sapling.o type.o
 
 VALGRIND := valgrind --leak-check=full --error-exitcode=128
 

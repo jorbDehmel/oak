@@ -140,11 +140,14 @@ public:
   void reset();
 
   /// Resolve the given variable
-  Type resolve_variable(const std::string &_name);
+  Type resolve_variable(const Lexer::Token &_name);
 
   /// Constructs the equivalent C program in the given
   /// stringstream
-  void reconstruct(std::ostream &_where);
+  void reconstruct(std::ostream &_where) const noexcept;
+
+  /// Dump to the given stream
+  void dump(std::ostream &_where) const noexcept;
 
   /// Fetch a symbol
   std::optional<

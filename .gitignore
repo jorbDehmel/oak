@@ -7,3 +7,5 @@
 *.acorn_dump
 .oak_build/
 .vscode/
+build/
+bin/

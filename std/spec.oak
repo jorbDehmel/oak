@@ -1,0 +1,17 @@
+/**
+ * @file std/spec.oak
+ * @brief Defines the specifications of the `std` package.
+ */
+
+pragma!("no_dialect")
+
+let std::ABOUT!   = "Oak standard Package";
+let std::AUTHOR!  = "Jordan Dehmel";
+let std::BUILD!   = "make";
+let std::EMAIL!   = "jdehmel@outlook.com";
+let std::INCLUDE! = "std.oak";
+let std::INSTALL! = "std/install.oak";
+let std::LICENSE! = "MIT";
+let std::SOURCE!  = "github.com/jorbDehmel";
+let std::VERSION! = oak::VERSION!;
+let std::YEAR!    = "2025";

@@ -8,8 +8,9 @@
 static_assert(__cplusplus >= 2020'00ULL);
 
 #include "lexer.hpp"
-#include "package.hpp"
+#include "macro.hpp"
 #include "parser.hpp"
+#include "rule.hpp"
 #include <filesystem>
 #include <fstream>
 #include <list>
@@ -27,6 +28,10 @@ const static std::string ACORN_VERSION = "0.8.0";
  */
 class OakCompiler {
 public:
+  Parser p;
+  RuleRunner rules;
+  MacroManager macros;
+
   ///
   class Settings {
   public:
@@ -42,7 +47,13 @@ public:
       std::filesystem::path entry_point = "main.oak";
 
       ///
+      std::filesystem::path include_path = "/usr/include/oak";
+
+      ///
       uint preprocess_pass_limit = 0x10'00;
+
+      ///
+      uint rule_pass_limit = 0x01'00;
 
       ///
       std::string compilation_command = "gcc ^ -o @";
@@ -82,6 +93,12 @@ public:
 
       ///
       std::list<std::string> libs;
+
+      ///
+      std::map<std::string, std::string> pragmas;
+
+      ///
+      std::set<std::filesystem::path> visited;
     };
 
     /**
@@ -181,9 +198,6 @@ public:
   //////////////////////////////////////////////////////////////
 
   ///
-  PackageManager package_manager;
-
-  ///
   Settings settings;
 
   /**
@@ -206,8 +220,7 @@ protected:
    * outside of it!
    */
   void do_file(const std::filesystem::path &_path,
-               const Settings::CompileSettings &_csettings,
-               Parser &_p) const;
+               Settings::CompileSettings &_csettings);
 
   /**
    * @brief
@@ -223,7 +236,8 @@ protected:
   /**
    * @brief
    */
-  bool preprocess(std::list<Lexer::Token> &_token_stream) const;
+  uint64_t preprocess(std::list<Lexer::Token> &_token_stream,
+                      Settings::CompileSettings &_csettings);
 
   /**
    * @brief
@@ -234,6 +248,5 @@ protected:
    * @brief Write the parsed information to the given stream in
    * C format.
    */
-  void translate(const Parser &_unit,
-                 std::ostream &_into) const;
+  void translate(std::ostream &_into) const;
 };
