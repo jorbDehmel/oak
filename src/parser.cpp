@@ -5,6 +5,7 @@
 #include "parser.hpp"
 #include "debug.hpp"
 #include "lexer.hpp"
+#include <functional>
 #include <linux/limits.h>
 #include <stdexcept>
 #include <string>
@@ -38,40 +39,62 @@ void Parser::parse_global(
   const auto end = _file_contents.end();
 
   while (pos != _file_contents.end()) {
-    if (*pos == "let") {
-      incr(pos, end);
-      std::set<std::string> names = {*pos};
-      incr(pos, end);
-      if (*pos == ":") {
-        // Struct, enum, or invalid global definition
+    try {
+      if (*pos == "let") {
         incr(pos, end);
-        if (*pos == "struct") {
+        std::set<std::string> names = {*pos};
+        incr(pos, end);
+        if (*pos == ":") {
+          // Struct, enum, or invalid global definition
           incr(pos, end);
-          parse_struct(names, pos, end);
-          ++pos; // Don't use incr here
-        } else if (*pos == "enum") {
-          incr(pos, end);
-          parse_enum(names, pos, end);
-          ++pos; // Don't use incr here
+          if (*pos == "struct") {
+            incr(pos, end);
+            parse_struct(names, pos, end);
+            ++pos; // Don't use incr here
+          } else if (*pos == "enum") {
+            incr(pos, end);
+            parse_enum(names, pos, end);
+            ++pos; // Don't use incr here
+          } else {
+            throw std::runtime_error(
+                "Global scope 'let' error: Expected 'struct' "
+                "or "
+                "'enum', saw '" +
+                pos->text + "'");
+          }
+        } else if (*pos == "(") {
+          // Function
+          parse_function(names, pos, end);
+          ++pos;
         } else {
           throw std::runtime_error(
-              "Global scope 'let' error: Expected 'struct' or "
-              "'enum', saw '" +
-              pos->text + "'.");
+              "Global scope 'let' error: "
+              "Expected '(' or ':', saw '" +
+              pos->text + "'");
         }
-      } else if (*pos == "(") {
-        // Function
-        parse_function(names, pos, end);
+      } else if (*pos == ";") {
         ++pos;
       } else {
-        throw std::runtime_error("Global scope 'let' error: "
-                                 "Expected '(' or ':', saw '" +
-                                 pos->text + "'.");
+        throw std::runtime_error(
+            "Global scope parse error: Unexpected token '" +
+            pos->text + "'");
       }
-    } else {
-      throw std::runtime_error(
-          "Global scope parse error: Unexpected token '" +
-          pos->text + "'.");
+    } catch (std::runtime_error &e) {
+      if (pos == _file_contents.end()) {
+        throw e;
+      }
+      throw std::runtime_error("At " + pos->file.string() +
+                               ":" + std::to_string(pos->line) +
+                               "." + std::to_string(pos->col) +
+                               "\n" + e.what());
+    } catch (...) {
+      if (pos == _file_contents.end()) {
+        throw;
+      }
+      throw std::runtime_error("At " + pos->file.string() +
+                               ":" + std::to_string(pos->line) +
+                               "." + std::to_string(pos->col) +
+                               "\nUnknown error");
     }
   }
 }
@@ -84,6 +107,9 @@ void Parser::reset() {
 // Constructs the equivalent C program at the given path
 void Parser::reconstruct(std::ostream &_where) const noexcept {
   debug_print();
+
+  // Include std header
+  _where << "#include \"oak/std/std_oak_header.h\"\n";
 
   // Struct and enum signatures
   for (const auto &g : globals) {
@@ -98,6 +124,7 @@ void Parser::reconstruct(std::ostream &_where) const noexcept {
   for (const auto &p : functions) {
     const auto name = p.first;
     for (const auto &info : p.second) {
+      _where << info.t.c_repr(name, name == "main") << ";\n";
     }
   }
 
@@ -108,19 +135,90 @@ void Parser::reconstruct(std::ostream &_where) const noexcept {
       _where << "struct " << g.first << " {\n";
       for (const auto &item : info.member_order) {
         info.members.at(item).c_repr(item);
-        _where << '\n';
+        _where << ";\n";
       }
+      _where << "};\n";
     } else {
-      _where << "enum " << g.first << " {\n";
-      for (const auto &item :
-           std::get<EnumInfo>(g.second).option_order) {
+      const EnumInfo info = std::get<EnumInfo>(g.second);
+      _where << "enum " << g.first << "{enum{\n";
+      for (const auto &item : info.option_order) {
+        _where << g.first << "_OPT_" << item << ",";
       }
+      _where << "}__info;union{\n";
+      for (const auto &item : info.option_order) {
+        info.options.at(item).c_repr(item);
+        _where << ";";
+      }
+      _where << "}__data;};\n";
     }
   }
 
-  const auto reconstruct_object = [&](const Node &obj) {};
-  const auto reconstruct_statement = [&](const Node &stmt) {};
-  const auto reconstruct_function = [&](const FnInfo &fn) {};
+  const std::function<void(const Node &)> reconstruct_node =
+      [&](const Node &stmt) -> void {
+    bool first;
+    switch (stmt.node_type) {
+    case Node::IF:
+      _where << "if (";
+      reconstruct_node(stmt.children.front());
+      _where << ")";
+      reconstruct_node(*std::next(stmt.children.begin()));
+      if (stmt.children.size() == 3) {
+        _where << "else ";
+        reconstruct_node(*std::next(stmt.children.begin(), 2));
+      }
+      break;
+    case Node::WHILE:
+      _where << "while (";
+      reconstruct_node(stmt.children.front());
+      _where << ")";
+      reconstruct_node(*std::next(stmt.children.begin()));
+      break;
+    case Node::MATCH:
+      throw std::runtime_error(__FUNCTION__);
+      break;
+    case Node::CASE:
+      throw std::runtime_error(__FUNCTION__);
+      break;
+    case Node::OBJECT:
+      // Literal or variable
+      _where << stmt.c_name.value();
+      break;
+    case Node::CALL:
+      _where << stmt.c_name.value() << "(";
+      first = true;
+      for (const auto &item : stmt.children) {
+        if (first) {
+          first = false;
+        } else {
+          _where << ", ";
+        }
+        reconstruct_node(item);
+      }
+      _where << ")";
+      break;
+    case Node::NONE:
+      _where << ";\n";
+      break;
+    case Node::STMT:
+      if (*stmt.token == "return") {
+        // Return statement
+        _where << "return ";
+        if (!stmt.children.empty()) {
+          reconstruct_node(stmt.children.front());
+        }
+        _where << ";\n";
+      } else {
+        // Scope
+        _where << "{\n";
+        for (const auto &child : stmt.children) {
+          reconstruct_node(child);
+          _where << ";\n";
+        }
+        _where << "}\n";
+      }
+      break;
+    }
+  };
 
   // Function definitions
   for (const auto &p : functions) {
@@ -129,12 +227,10 @@ void Parser::reconstruct(std::ostream &_where) const noexcept {
       if (info.tags.contains("signature")) {
         continue;
       }
+      _where << info.t.c_repr(name, name == "main");
+      reconstruct_node(info.n);
     }
   }
-
-  // Implementations
-
-  throw std::runtime_error(__FUNCTION__);
 }
 
 /// Dump to the given stream
@@ -406,7 +502,7 @@ Node Parser::parse_statement(
     if (*_cur_pos != ":") {
       throw std::runtime_error(
           "Expected ':' after 'let' statement. Instead saw '" +
-          _cur_pos->text + "'.");
+          _cur_pos->text + "'");
     }
     incr(_cur_pos, _end);
 
@@ -526,8 +622,12 @@ Node Parser::parse_statement(
         "Match statements are unimplemented");
   } else if (*_cur_pos == "return") {
     // Return statement
-    throw std::runtime_error(
-        "Return statements are unimplemented");
+    Node out;
+    out.token = *_cur_pos;
+    incr(_cur_pos, _end);
+    out.node_type = Node::STMT;
+    out.children.push_back(parse_object(_cur_pos, _end));
+    return out;
   } else {
     // Function call
     return parse_function_call(_cur_pos, _end);
@@ -564,18 +664,34 @@ Node Parser::parse_function_call(
         "Missing semicolon after function call.");
   }
 
+  // Return type only
   out.type = resolve_fn_call(out.token.value().text, args);
+
+  // Build c-name
+  Type full_type;
+  full_type.append_fn();
+
+  bool first = true;
+  for (const auto &arg : args) {
+    if (first) {
+      first = false;
+    } else {
+      full_type.append_join();
+    }
+
+    full_type.append_type(arg);
+  }
+  full_type.append_maps();
+  full_type.append_type(out.type.value());
+
+  out.c_name = full_type.mangle(out.token.value().text);
+
   return out;
 }
 
 /// Resolve the given variable
 Type Parser::resolve_variable(const Lexer::Token &_name) {
   debug_print();
-
-  const auto lit_attempt = Lexer::get_literal_type(_name);
-  if (lit_attempt.has_value()) {
-    return lit_attempt.value();
-  }
 
   for (auto frame = locals.rbegin(); frame != locals.rend();
        ++frame) {
@@ -604,52 +720,64 @@ Node Parser::parse_object(
     return parse_function_call(_cur_pos, _end);
   }
 
-  // Name
-  Node out;
-  out.token = *_cur_pos;
+  auto cur = *_cur_pos;
+  const auto literal_type = Lexer::get_literal_type(cur);
+  if (literal_type.has_value()) {
+    // Literal
+    Node out;
+    out.node_type = Node::OBJECT;
+    out.c_name = cur;
+    out.type = literal_type.value();
+    return out;
+  } else {
+    // Name
+    Node out;
+    out.token = *_cur_pos;
 
-  auto name = *_cur_pos;
-  Type t = resolve_variable(name);
+    auto name = *_cur_pos;
+    Type t = resolve_variable(name);
 
-  // Member access
-  while (std::next(_cur_pos) != _end &&
-         *std::next(_cur_pos) == ".") {
+    // Member access
+    while (std::next(_cur_pos) != _end &&
+           *std::next(_cur_pos) == ".") {
 
-    incr(_cur_pos, _end); // pointing at .
-    incr(_cur_pos, _end); // pointing at member name
-    const auto member_name = _cur_pos->text;
+      incr(_cur_pos, _end); // pointing at .
+      incr(_cur_pos, _end); // pointing at member name
+      const auto member_name = _cur_pos->text;
 
-    const auto info = globals.at(t.struct_name());
+      const auto info = globals.at(t.struct_name());
 
-    if (std::holds_alternative<StructInfo>(info)) {
-      const StructInfo struct_info = std::get<StructInfo>(info);
+      if (std::holds_alternative<StructInfo>(info)) {
+        const StructInfo struct_info =
+            std::get<StructInfo>(info);
 
-      if (!struct_info.members.contains(member_name)) {
-        throw std::runtime_error("Struct '" + t.struct_name() +
-                                 "' has no member '" +
-                                 member_name + "'");
+        if (!struct_info.members.contains(member_name)) {
+          throw std::runtime_error(
+              "Struct '" + t.struct_name() +
+              "' has no member '" + member_name + "'");
+        }
+
+        t = struct_info.members.at(member_name);
+      } else {
+        const EnumInfo enum_info = std::get<EnumInfo>(info);
+
+        if (!enum_info.options.contains(member_name)) {
+          throw std::runtime_error("Enum '" + t.struct_name() +
+                                   "' has no option '" +
+                                   member_name + "'");
+        }
+
+        t = enum_info.options.at(member_name);
       }
 
-      t = struct_info.members.at(member_name);
-    } else {
-      const EnumInfo enum_info = std::get<EnumInfo>(info);
-
-      if (!enum_info.options.contains(member_name)) {
-        throw std::runtime_error("Enum '" + t.struct_name() +
-                                 "' has no option '" +
-                                 member_name + "'");
-      }
-
-      t = enum_info.options.at(member_name);
+      name.text += "." + member_name;
     }
 
-    name.text += "." + member_name;
+    out.node_type = Node::OBJECT;
+    out.c_name = name;
+    out.type = t;
+    return out;
   }
-
-  out.node_type = Node::OBJECT;
-  out.c_name = name;
-  out.type = t;
-  return out;
 }
 
 /// Returns whether the given substitutions would cause the
@@ -720,10 +848,10 @@ std::list<Lexer::Token> Parser::TemplateInfo::replace(
 /// This first checks for existing instances. If one exists,
 /// returns true. If none exist, it replaces and parses the
 /// validate block. If that works, it replaces and parses the
-/// instantiate block. If the instantiate block fails, it raises
-/// an error. If not, the instance is logged and we return
-/// without error. Returns true on full success, false on
-/// failure w/o error
+/// instantiate block. If the instantiate block fails, it
+/// raises an error. If not, the instance is logged and we
+/// return without error. Returns true on full success, false
+/// on failure w/o error
 bool Parser::TemplateInfo::attempt_instantiation(
     Parser &_p,
     const std::list<std::list<std::string>> &_substitutions) {
@@ -781,7 +909,6 @@ Type Parser::resolve_fn_call(const std::string &_name,
 
   // Do any templates
   try {
-
     std::list<std::pair<std::list<std::list<std::string>>,
                         std::list<TemplateInfo>::iterator>>
         candidates;

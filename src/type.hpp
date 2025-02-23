@@ -50,6 +50,10 @@ public:
   std::string c_repr(const std::string &_var_name = "",
                      const bool &_no_mangle = false) const;
 
+  /// If this is a function, mangle it.
+  /// O(n)
+  std::string mangle(const std::string &_var_name = "") const;
+
   /// Returns true iff the other matches this at every node
   /// O(n)
   bool exact_match(const Type &_other) const;
@@ -76,7 +80,7 @@ public:
   std::string struct_name() const;
 
   /// Returns whether or not this type is valid to instantiate
-  /// O(1)
+  /// O(n)
   bool valid() const noexcept;
 
   /// Returns true iff the first node is of type FUNCTION
@@ -114,6 +118,9 @@ protected:
   /// Appends a function close node ("maps") to this type
   void append_maps();
 
+  /// Appends the entire other type (EG fn arg)
+  void append_type(const Type &_other);
+
   /// Returns a COPY of this type if it were to be dereferenced
   /// once
   Type deref() const;
@@ -142,5 +149,4 @@ protected:
 
   std::stack<std::string> enclosure;
   std::list<TypeNode> nodes;
-  bool is_valid_type = false;
 };

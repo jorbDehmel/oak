@@ -8,6 +8,7 @@
 #include "macro.hpp"
 #include "debug.hpp"
 #include "lexer.hpp"
+#include <set>
 #include <stdexcept>
 
 std::list<Lexer::Token> MacroManager::replace(
@@ -68,6 +69,15 @@ std::list<Lexer::Token> MacroManager::get_macro_args(
   // Delete everything related to macro call, leave pointing to
   // item after call
   _whole.erase(range_start, first_after_range);
+
+  // Clean quotes
+  const static std::set<char> str_chars = {'\'', '"', '`'};
+  for (auto it = out.begin(); it != out.end(); ++it) {
+    while (it->text.front() == it->text.back() &&
+           str_chars.contains(it->text.front())) {
+      it->text = it->text.substr(1, it->text.size() - 2);
+    }
+  }
 
   return out;
 }

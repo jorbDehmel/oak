@@ -5,6 +5,7 @@
 
 #include "type.hpp"
 #include <cwctype>
+#include <iostream>
 #include <map>
 #include <set>
 #include <stdexcept>
@@ -104,6 +105,13 @@ bool Type::is_fn() const noexcept {
           nodes.front().type == TypeNode::FUNCTION);
 }
 
+/// Appends the entire other type (EG fn arg)
+void Type::append_type(const Type &_other) {
+  for (const auto &node : _other.nodes) {
+    nodes.push_back(node);
+  }
+}
+
 /// Gets the arguments, given that this is a function
 std::vector<std::pair<std::string, Type>>
 Type::fn_args() const {
@@ -111,9 +119,6 @@ Type::fn_args() const {
     throw std::runtime_error(
         "Cannot get arguments of non-function type '" +
         oak_repr() + "'.");
-  } else if (!is_valid_type) {
-    throw std::runtime_error(
-        "Cannot get args of invalid type.");
   }
 
   uint64_t depth = 0;
@@ -136,7 +141,6 @@ Type::fn_args() const {
           argname = "_" + argname;
         }
         if (!t.nodes.empty()) {
-          t.is_valid_type = is_valid_type;
           out.push_back({argname, t});
           used_names.insert(argname);
         }
@@ -152,7 +156,6 @@ Type::fn_args() const {
           argname = "_" + argname;
         }
         if (!t.nodes.empty()) {
-          t.is_valid_type = is_valid_type;
           out.push_back({argname, t});
           used_names.insert(argname);
         }
@@ -173,9 +176,6 @@ Type Type::fn_return_type() const {
     throw std::runtime_error(
         "Cannot get return type of non-function type '" +
         oak_repr() + "'.");
-  } else if (!is_valid_type) {
-    throw std::runtime_error(
-        "Cannot get return type of invalid type.");
   }
 
   Type out = *this;
@@ -235,9 +235,6 @@ std::string Type::oak_repr(const std::string &_var_name) const {
       out += node.following_arg_name + ": ";
     }
   }
-  if (!is_valid_type) {
-    out = "<INVALID TYPE> " + out;
-  }
   return out;
 }
 
@@ -259,29 +256,7 @@ std::string Type::c_repr(const std::string &_var_name,
     // Mangle
     std::string name = _var_name;
     if (!_no_mangle) {
-      for (const auto &node : nodes) {
-        switch (node.type) {
-        case TypeNode::POINTER:
-          name += "_PTR";
-          break;
-        case TypeNode::UNSIZED_ARRAY:
-        case TypeNode::SIZED_ARRAY:
-          name += "_ARR";
-          break;
-        case TypeNode::LITERAL:
-          name += "_" + node.literal_name;
-          break;
-        case TypeNode::FUNCTION:
-          name += "_FN";
-          break;
-        case TypeNode::JOIN:
-          name += "_JOIN";
-          break;
-        case TypeNode::MAPS:
-          name += "_MAPS";
-          break;
-        }
-      }
+      name = mangle(_var_name);
     }
 
     const auto ret_type = fn_return_type();
@@ -336,15 +311,41 @@ std::string Type::c_repr(const std::string &_var_name,
     repr = prefix + " " + _var_name + suffix;
   }
 
-  if (!is_valid_type) {
-    repr = "<INVALID TYPE> " + repr;
-  }
-
   while (std::isspace(repr.back())) {
     repr.pop_back();
   }
 
   return repr;
+}
+
+/// If this is a function, mangle it.
+/// O(n)
+std::string Type::mangle(const std::string &_var_name) const {
+  std::string name = _var_name;
+  for (const auto &node : nodes) {
+    switch (node.type) {
+    case TypeNode::POINTER:
+      name += "_PTR";
+      break;
+    case TypeNode::UNSIZED_ARRAY:
+    case TypeNode::SIZED_ARRAY:
+      name += "_ARR";
+      break;
+    case TypeNode::LITERAL:
+      name += "_" + node.literal_name;
+      break;
+    case TypeNode::FUNCTION:
+      name += "_FN";
+      break;
+    case TypeNode::JOIN:
+      name += "_JOIN";
+      break;
+    case TypeNode::MAPS:
+      name += "_MAPS";
+      break;
+    }
+  }
+  return name;
 }
 
 /// Returns true iff the other matches this at every node
@@ -456,42 +457,40 @@ bool Type::ref_match(const Type &_other,
 
 /// Returns whether or not this type is valid to instantiate
 bool Type::valid() const noexcept {
-  return is_valid_type;
+  if (nodes.empty()) {
+    return false;
+  } else if (nodes.back().type != TypeNode::LITERAL) {
+    return false;
+  }
+
+  int depth = 0;
+  for (const auto &node : nodes) {
+    if (node.type == TypeNode::FUNCTION) {
+      ++depth;
+    } else if (node.type == TypeNode::MAPS) {
+      if (depth == 0) {
+        return false;
+      }
+      --depth;
+    }
+  }
+
+  return depth == 0;
 }
 
 /// Appends a pointer node to this type
 void Type::append_ptr() {
-  if (is_valid_type) {
-    throw std::runtime_error(
-        "Cannot append 'pointer' to an already concrete "
-        "type '" +
-        oak_repr() +
-        "': Did you mean to put the caret before the type?");
-  }
   nodes.push_back({TypeNode::POINTER});
 }
 
 /// Appends an unsized array node to this type
 void Type::append_arr() {
-  if (is_valid_type) {
-    throw std::runtime_error(
-        "Cannot append 'array' to an already concrete type '" +
-        oak_repr() +
-        "': Did you mean to put brackets before the type?");
-  }
   nodes.push_back({TypeNode::UNSIZED_ARRAY});
 }
 
 /// Appends a size array node to this type
 void Type::append_sized_arr(const uint64_t &_size) {
-  if (is_valid_type) {
-    throw std::runtime_error(
-        "Cannot append 'sized array' to an "
-        "already concrete type '" +
-        oak_repr() +
-        "': Did you mean to put brackets "
-        "before the type?");
-  } else if (_size == 0) {
+  if (_size == 0) {
     throw std::runtime_error(
         "Sized array cannot be of size zero!");
   }
@@ -501,17 +500,7 @@ void Type::append_sized_arr(const uint64_t &_size) {
 /// Appends a literal node ot this type WITHOUT checking its
 /// existence or size.
 void Type::append_literal(const std::string &_name) {
-  if (is_valid_type) {
-    throw std::runtime_error("Cannot append 'literal' to an "
-                             "already concrete type '" +
-                             oak_repr() + "'");
-  }
   nodes.push_back({TypeNode::LITERAL, _name});
-  if (is_valid_type) {
-    is_valid_type = false;
-  } else if (enclosure.empty()) {
-    is_valid_type = true;
-  }
 }
 
 /// Appends a function open node to this type
@@ -523,12 +512,6 @@ void Type::append_fn() {
   enclosure.push("*");
   enclosure.push("*");
 
-  if (is_valid_type) {
-    throw std::runtime_error(
-        "Cannot append 'function open' to an "
-        "already concrete type '" +
-        oak_repr() + "'");
-  }
   nodes.push_back({TypeNode::FUNCTION});
 }
 
@@ -538,11 +521,7 @@ void Type::append_join() {
     enclosure.pop();
   }
 
-  if (is_valid_type) {
-    throw std::runtime_error(
-        "Cannot append 'join' to an already concrete type '" +
-        oak_repr() + "'");
-  } else if (enclosure.empty() || enclosure.top() != "(") {
+  if (enclosure.empty() || enclosure.top() != "(") {
     throw std::runtime_error(
         "Cannot append 'join' to a non-function type '" +
         oak_repr() + "'");
@@ -557,11 +536,6 @@ void Type::append_join() {
 
 /// Appends a function close node ("maps") to this type
 void Type::append_maps() {
-  if (is_valid_type) {
-    throw std::runtime_error(
-        "Cannot append 'maps' to an already concrete type '" +
-        oak_repr() + "'");
-  }
   if (nodes.back().type == TypeNode::JOIN) {
     nodes.pop_back();
   }
@@ -585,11 +559,8 @@ Type Type::deref() const {
 /// Returns the struct name of this type for parse-time
 /// lookup. Errors if not a direct instance of a struct
 std::string Type::struct_name() const {
-  if (!is_valid_type) {
-    throw std::runtime_error(
-        "Cannot get struct name of invalid type.");
-  } else if (nodes.empty() ||
-             nodes.front().type == TypeNode::LITERAL) {
+  if (nodes.empty() ||
+      nodes.front().type == TypeNode::LITERAL) {
     throw std::runtime_error(
         "Cannot get struct name of non-terminal type '" +
         oak_repr() + "'");

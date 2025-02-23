@@ -19,7 +19,6 @@ check:
 install: check
 	@echo "Compiling and installing acorn..."
 	$(MAKE) -C src $@
-	$(MAKE) -C src $@-debug
 
 	@echo "Installing default Oak libraries..."
 	acorn -S ./std
@@ -28,6 +27,24 @@ install: check
 	# acorn -S ./turtle
 	# acorn -S ./cereal
 	# acorn -S ./extra
+
+.PHONY:	install-debug
+install-debug: check
+	@echo "Compiling and installing acorn..."
+	$(MAKE) -C src $@
+
+	@echo "Installing default Oak libraries..."
+	acorn -S ./std
+	# acorn -S ./stl
+	# acorn -S ./sdl
+	# acorn -S ./turtle
+	# acorn -S ./cereal
+	# acorn -S ./extra
+
+.PHONY:	uninstall
+uninstall:
+	rm -rf /usr/include/oak /usr/bin/acorn /usr/bin/oak2c \
+		/usr/bin/acorn-debug /usr/bin/oak2c-debug
 
 .PHONY:	test
 test:

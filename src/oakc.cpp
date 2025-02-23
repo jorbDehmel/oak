@@ -15,6 +15,7 @@
 #include <iterator>
 #include <map>
 #include <stdexcept>
+#include <string>
 #include <utility>
 
 /// Print the version of Acorn
@@ -331,9 +332,6 @@ void OakCompiler::do_compilation() {
         skip = true;
       } else if (c == '^') {
         command += translated_file;
-        for (const auto &obj : csettings.objects) {
-          command += " " + obj.string();
-        }
       } else if (c == '@') {
         command += compiled_file;
       } else {
@@ -371,6 +369,9 @@ void OakCompiler::do_compilation() {
         skip = true;
       } else if (c == '^') {
         command += compiled_file;
+        for (const auto &obj : csettings.objects) {
+          command += " " + obj.string();
+        }
       } else if (c == '@') {
         command += linked_file;
       } else {
@@ -399,7 +400,7 @@ void OakCompiler::do_compilation() {
   if (csettings.mode >=
       Settings::CompileSettings::
           TRANSLATE_COMPILE_LINK_AND_EXECUTE) {
-    int execution_result = system(linked_file.c_str());
+    int execution_result = system(("." / linked_file).c_str());
     if (execution_result != 0) {
       throw std::runtime_error(
           "Execution of file '" + linked_file.string() +
@@ -672,19 +673,34 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
       if (*it == "include!") {
         const auto args = MacroManager::get_macro_args(
             _token_stream, it, _token_stream.end());
-        for (const auto &f : args) {
-          std::filesystem::path p(f);
-          if (std::filesystem::exists(_csettings.include_path /
-                                      p)) {
-            // Package file exists
-            if (std::filesystem::exists(p)) {
-              std::cout << "Warning: Including local file " << p
-                        << " over package file of same name\n";
-            } else {
-              p = _csettings.include_path / p;
+
+        try {
+          for (const auto &f : args) {
+            std::filesystem::path path(f);
+
+            if (std::filesystem::exists(
+                    _csettings.include_path / path)) {
+              // Package file exists
+              if (std::filesystem::exists(path)) {
+                std::cout
+                    << "Warning: Including local file " << path
+                    << " over package file of same name\n";
+              } else {
+                path = _csettings.include_path / path;
+              }
             }
+            do_file(path, _csettings);
           }
-          do_file(p, _csettings);
+        } catch (std::runtime_error &e) {
+          throw std::runtime_error(
+              "In file included from " + it->file.string() +
+              ":" + std::to_string(it->line) + "." +
+              std::to_string(it->col) + "\n" + e.what());
+        } catch (...) {
+          throw std::runtime_error(
+              "In file included from " + it->file.string() +
+              ":" + std::to_string(it->line) + "." +
+              std::to_string(it->col) + "\nUnknown error");
         }
       } else if (*it == "link!") {
         const auto args = MacroManager::get_macro_args(
@@ -730,7 +746,7 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
         }
         _csettings.pragmas[args.front().text] =
             std::next(args.begin())->text;
-      } else if (*it == "new_rule!") {
+      } else if (*it == "rule_new!") {
         const auto args = MacroManager::get_macro_args(
             _token_stream, it, _token_stream.end());
 
@@ -738,19 +754,19 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
         throw std::runtime_error(__FILE__);
 
         rules.register_rule(args.front(), to_add);
-      } else if (*it == "use_rule!") {
+      } else if (*it == "rule_use!") {
         const auto args = MacroManager::get_macro_args(
             _token_stream, it, _token_stream.end());
         for (const auto &arg : args) {
           rules.add_entry_point(arg);
         }
-      } else if (*it == "del_rule!") {
+      } else if (*it == "rule_use!") {
         const auto args = MacroManager::get_macro_args(
             _token_stream, it, _token_stream.end());
         for (const auto &arg : args) {
           rules.remove_entry_point(arg);
         }
-      } else if (*it == "bundle!") {
+      } else if (*it == "rule_bundle!") {
         const auto args = MacroManager::get_macro_args(
             _token_stream, it, _token_stream.end());
 
@@ -761,6 +777,60 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
         }
 
         rules.register_bundle(args.front(), entails);
+      } else if (*it == "compile_time_system!") {
+        std::cout << it->file.string() << ":" << it->line << "."
+                  << it->col << ">" << it->text
+                  << " is running system command:\n";
+
+        const auto args = MacroManager::get_macro_args(
+            _token_stream, it, _token_stream.end());
+        std::string cmd;
+        for (const auto &arg : args) {
+          cmd += arg.text + " ";
+        }
+
+        std::cout << cmd << "\tat " << it->file.parent_path()
+                  << '\n'
+                  << std::flush;
+
+        const auto old_cwd = std::filesystem::current_path();
+        std::filesystem::current_path(it->file.parent_path());
+
+        auto result = system(cmd.c_str());
+
+        std::filesystem::current_path(old_cwd);
+
+        if (result != 0) {
+          throw std::runtime_error(
+              "System call '" + cmd +
+              "' exited with nonzero exit code " +
+              std::to_string(result));
+        }
+      } else if (*it == "compile_time_error!") {
+        std::cout << it->file.string() << ":" << it->line << "."
+                  << it->col << ">" << it->text
+                  << " Compile-time error:\n";
+
+        const auto args = MacroManager::get_macro_args(
+            _token_stream, it, _token_stream.end());
+        std::string msg;
+        for (const auto &arg : args) {
+          msg += arg.text + " ";
+        }
+        std::cout << msg << '\n';
+        throw std::runtime_error(msg);
+      } else if (*it == "compile_time_warning!") {
+        std::cout << it->file.string() << ":" << it->line << "."
+                  << it->col << ">" << it->text
+                  << " Compile-time warning:\n";
+
+        const auto args = MacroManager::get_macro_args(
+            _token_stream, it, _token_stream.end());
+        std::string msg;
+        for (const auto &arg : args) {
+          msg += arg.text + " ";
+        }
+        std::cout << msg << '\n';
       }
     }
 

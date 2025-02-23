@@ -1,0 +1,90 @@
+/**
+ * @file std/io.c
+ * @brief Basic interfacial I/O file for std oak
+ * @author Jordan Dehmel
+ * @year 2025
+ * @license MIT
+ */
+
+#include "oak/std/std_oak_header.h"
+#include <stdio.h>
+
+// print(_: ^i8) -> void
+void print_FN_PTR_i8_MAPS_void(i8 *_to_print) {
+  printf("%s", _to_print);
+}
+
+// print(_: bool) -> void
+void print_FN_bool_MAPS_void(bool _to_print) {
+  printf("%s", _to_print ? "true" : "false");
+}
+
+// print(_: ^void) -> void
+void print_FN_PTR_void_MAPS_void(void *_to_print) {
+  printf("%p", _to_print);
+}
+
+// print(_: i8) -> void
+void print_FN_i8_MAPS_void(i8 _to_print) {
+  printf("%hhi", _to_print);
+}
+
+// print(_: u8) -> void
+void print_FN_u8_MAPS_void(u8 _to_print) {
+  printf("%hhu", _to_print);
+}
+
+// print(_: i16) -> void
+void print_FN_i16_MAPS_void(i16 _to_print) {
+  printf("%hi", _to_print);
+}
+
+// print(_: u16) -> void
+void print_FN_u16_MAPS_void(u16 _to_print) {
+  printf("%hu", _to_print);
+}
+
+// print(_: i32) -> void
+void print_FN_i32_MAPS_void(i32 _to_print) {
+  printf("%i", _to_print);
+}
+
+// print(_: u32) -> void
+void print_FN_u32_MAPS_void(u32 _to_print) {
+  printf("%u", _to_print);
+}
+
+// print(_: i64) -> void
+void print_FN_i64_MAPS_void(i64 _to_print) {
+  printf("%li", _to_print);
+}
+
+// print(_: u64) -> void
+void print_FN_u64_MAPS_void(u64 _to_print) {
+  printf("%lu", _to_print);
+}
+
+// print(_: f32) -> void
+void print_FN_f32_MAPS_void(f32 _to_print) {
+  printf("%f", _to_print);
+}
+
+// print(_: f64) -> void
+void print_FN_f64_MAPS_void(f64 _to_print) {
+  printf("%f", _to_print);
+}
+
+// print(_: i128) -> void
+void print_FN_i128_MAPS_void(i128 _to_print) {
+  printf("%lli", _to_print);
+}
+
+// print(_: u128) -> void
+void print_FN_u128_MAPS_void(u128 _to_print) {
+  printf("%llu", _to_print);
+}
+
+// print(_: f128) -> void
+void print_FN_f128_MAPS_void(f128 _to_print) {
+  printf("%Lf", _to_print);
+}

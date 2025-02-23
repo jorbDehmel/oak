@@ -5,6 +5,7 @@
 *.rule_log
 *.dump
 *.acorn_dump
+*.oak.c
 .oak_build/
 .vscode/
 build/

@@ -1,0 +1,8 @@
+/*
+
+*/
+
+pragma!("no_dialect");
+link!("panic.o");
+
+let panic() -> void;

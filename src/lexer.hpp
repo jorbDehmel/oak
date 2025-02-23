@@ -28,10 +28,12 @@ public:
     Token(const std::string &_text,
           const std::filesystem::path &_file,
           const uint64_t &_line, const uint64_t &_col)
-        : text(_text), file(_file), line(_line), col(_col) {}
+        : text(_text), file(_file), line(_line), col(_col) {
+    }
     Token(const Token &_other, const std::string &_new_text)
         : text(_new_text), file(_other.file), line(_other.line),
-          col(_other.col) {}
+          col(_other.col) {
+    }
 
     inline bool operator==(const std::string &_o) const {
       return text == _o;
@@ -39,7 +41,9 @@ public:
     inline bool operator!=(const std::string &_o) const {
       return text != _o;
     }
-    inline operator std::string() const { return text; }
+    inline operator std::string() const {
+      return text;
+    }
   };
 
   /**
@@ -51,8 +55,10 @@ public:
 
   /**
    * @brief Gets the type of a given literal, given that it is
-   * one. If not, returns nothing.
+   * one. If not, returns nothing and does not modify _t. If it
+   * is, the literal will be adjusted into C form (EG u64 ->
+   * UL).
    * @param _t The possible literal to examine.
    */
-  static std::optional<Type> get_literal_type(const Token &_t);
+  static std::optional<Type> get_literal_type(Token &_t);
 };

@@ -56,7 +56,7 @@ public:
       uint rule_pass_limit = 0x01'00;
 
       ///
-      std::string compilation_command = "gcc ^ -o @";
+      std::string compilation_command = "gcc ^ -c -o @";
 
       ///
       std::string linkage_command = "g++ ^ -o @";

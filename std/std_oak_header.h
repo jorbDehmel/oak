@@ -13,8 +13,8 @@ extern "C" {
 #endif
 
 #include <assert.h>
-#include <cstdint>
 #include <limits.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <sys/types.h>
 
@@ -32,6 +32,14 @@ typedef float f32;
 typedef uint64_t u64;
 typedef int64_t i64;
 typedef double f64;
+
+typedef unsigned int uint;
+
+// Experimental definitions: Not usually supported at their true
+// sizes.
+typedef long double f128;
+typedef unsigned long long u128;
+typedef long long i128;
 
 // Validity assertions
 static_assert(sizeof(u8) == 1, "Invalid compile-time sizes!");

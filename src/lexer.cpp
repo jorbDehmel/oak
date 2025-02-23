@@ -1,7 +1,9 @@
 #include "lexer.hpp"
 #include "debug.hpp"
+#include <cstring>
 #include <optional>
 #include <set>
+#include <stdexcept>
 
 /**
  * @brief
@@ -220,6 +222,11 @@ Lexer::lex(const std::string &_text,
       if ('0' <= to_append.text.front() &&
           to_append.text.front() <= '9') {
         to_append.type = "NUMBER";
+      } else if (Type::float_literals.contains(
+                     to_append.text) ||
+                 Type::int_literals.contains(to_append.text) ||
+                 Type::uint_literals.contains(to_append.text)) {
+        to_append.type = "NUMBER";
       } else {
         to_append.type = "ID";
       }
@@ -228,7 +235,59 @@ Lexer::lex(const std::string &_text,
     }
   }
 
+  // Merge successive literals
+  for (auto it = out.begin(); it != out.end(); ++it) {
+    if (it->type == "NUMBER" || it->type == "STRING") {
+      while (std::next(it) != out.end() &&
+             std::next(it)->type == it->type) {
+        if (it->type == "STRING") {
+          it->text.pop_back();
+          std::next(it)->text = std::next(it)->text.substr(1);
+        }
+        it->text += std::next(it)->text;
+        out.erase(std::next(it));
+      }
+    }
+  }
+
+  // Replace '::'s with '_'s
+  for (auto it = out.begin(); it != out.end(); ++it) {
+    while (it->type == "ID" && std::next(it) != out.end() &&
+           std::next(it)->text == "::" &&
+           std::next(it, 2) != out.end() &&
+           std::next(it, 2)->type == "ID") {
+      it->text += "_" + std::next(it, 2)->text;
+      out.erase(std::next(it));
+      out.erase(std::next(it));
+    }
+  }
+
   return out;
+}
+
+/**
+ * @brief Returns true iff _what has the suffix _suffix, in
+ * which case it is replaced.
+ * @param _what The string to examine
+ * @param _suffix The suffix desired
+ * @param _with The item to replace the suffix with, if present
+ */
+const static bool replace_suffix(std::string &_what,
+                                 const std::string &_suffix,
+                                 const std::string &_with) {
+  if (_what.size() < _suffix.size()) {
+    return false;
+  }
+
+  bool has_suffix =
+      (strncmp(_what.c_str() + _what.size() - _suffix.size(),
+               _suffix.c_str(), _suffix.size()) == 0);
+
+  if (has_suffix) {
+    _what =
+        _what.substr(0, _what.size() - _suffix.size()) + _with;
+  }
+  return has_suffix;
 }
 
 /**
@@ -236,13 +295,54 @@ Lexer::lex(const std::string &_text,
  * one. If not, returns nothing.
  * @param _t The possible literal to examine.
  */
-std::optional<Type> Lexer::get_literal_type(const Token &_t) {
+std::optional<Type> Lexer::get_literal_type(Token &_t) {
   debug_print();
   if (_t.type == "STRING") {
     return Type({"^", "i8"});
-  } else if (_t.type == "NUMBER") {
   } else if (_t.text == "true" || _t.text == "false") {
     return Type({"bool"});
+  }
+
+  else if (_t.type == "NUMBER") {
+    if (replace_suffix(_t.text, "u8", "")) {
+      return Type({"u8"});
+    } else if (replace_suffix(_t.text, "u16", "")) {
+      return Type({"u16"});
+    } else if (replace_suffix(_t.text, "u32", "U")) {
+      return Type({"u32"});
+    } else if (replace_suffix(_t.text, "u64", "UL")) {
+      return Type({"u64"});
+    } else if (replace_suffix(_t.text, "u128", "ULL")) {
+      return Type({"u128"});
+    } else if (replace_suffix(_t.text, "uint", "")) {
+      return Type({"uint"});
+    }
+
+    else if (replace_suffix(_t.text, "i8", "")) {
+      return Type({"i8"});
+    } else if (replace_suffix(_t.text, "i16", "")) {
+      return Type({"i16"});
+    } else if (replace_suffix(_t.text, "i32", "")) {
+      return Type({"i32"});
+    } else if (replace_suffix(_t.text, "i64", "L")) {
+      return Type({"i64"});
+    } else if (replace_suffix(_t.text, "i128", "LL")) {
+      return Type({"i128"});
+    } else if (replace_suffix(_t.text, "int", "")) {
+      return Type({"int"});
+    }
+
+    else if (replace_suffix(_t.text, "f32", "F")) {
+      return Type({"f32"});
+    } else if (replace_suffix(_t.text, "f64", "")) {
+      return Type({"f64"});
+    } else if (replace_suffix(_t.text, "f128", "L")) {
+      return Type({"f128"});
+    }
+
+    throw std::runtime_error(
+        "Untyped number literal '" + _t.text + "' at " +
+        _t.file.string() + ":" + std::to_string(_t.line));
   }
 
   // The empty option

@@ -20,6 +20,7 @@ public:
           std::list<Lexer::Token>::iterator &_it,
           const std::list<Lexer::Token>::iterator &_end) const;
 
+  /// Erases AND STRIPS QUOTES OFF OF a macro occurrence.
   static std::list<Lexer::Token>
   get_macro_args(std::list<Lexer::Token> &_whole,
                  std::list<Lexer::Token>::iterator &_it,

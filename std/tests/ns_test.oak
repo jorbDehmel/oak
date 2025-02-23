@@ -1,0 +1,11 @@
+/*
+Tests "namespaces" in oak (by which I just mean the :: -> _
+substitution)
+*/
+
+let fizz::buzz() -> void;
+
+let main() -> i32 {
+    let a::b::c::d: i32;
+    return 0i32;
+}

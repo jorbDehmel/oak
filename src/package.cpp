@@ -83,8 +83,8 @@ void PackageManager::install_package(
     OakCompiler::Settings::CompileSettings &settings =
         c.settings.compile_settings();
 
-    settings.mode = OakCompiler::Settings::CompileSettings::
-        TRANSLATE_COMPILE_LINK_AND_EXECUTE;
+    settings.mode =
+        OakCompiler::Settings::CompileSettings::TRANSLATE_ONLY;
     settings.entry_point = _package / spec.at("INSTALL!");
 
     try {

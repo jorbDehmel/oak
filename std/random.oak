@@ -1,0 +1,9 @@
+/*
+
+*/
+
+pragma!("no_dialect");
+link!("panic.o");
+
+let srand(seed: uint) -> void;
+let rand() -> int;

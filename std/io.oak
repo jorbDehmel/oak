@@ -1,0 +1,27 @@
+/*
+Oak-side interfacial file for std I/O
+Jordan Dehmel, 2025, MIT license
+*/
+
+pragma!("no_dialect");
+link!("std/io.o");
+
+let print(_: ^i8) -> void;
+let print(_: bool) -> void;
+let print(_: ^void) -> void;
+
+let print(_: i8) -> void;
+let print(_: u8) -> void;
+let print(_: i16) -> void;
+let print(_: u16) -> void;
+let print(_: i32) -> void;
+let print(_: u32) -> void;
+let print(_: i64) -> void;
+let print(_: u64) -> void;
+
+let print(_: f32) -> void;
+let print(_: f64) -> void;
+
+let print(_: i128) -> void;
+let print(_: u128) -> void;
+let print(_: f128) -> void;

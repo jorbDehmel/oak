@@ -2,11 +2,10 @@
 Tests the 'At' operator.
 */
 
-package!("std");
 include!("std/io.oak");
 
-let main(c: i32, v: []str) -> i32 {
+let main(c: i32, v: ^ ^i8) -> i32 {
     print(v[0]);
 
-    0i32
+    return 0i32;
 }
