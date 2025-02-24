@@ -560,7 +560,8 @@ Type Type::deref() const {
 /// lookup. Errors if not a direct instance of a struct
 std::string Type::struct_name() const {
   if (nodes.empty() ||
-      nodes.front().type == TypeNode::LITERAL) {
+      nodes.front().type != TypeNode::LITERAL) {
+    std::cout << nodes.front().type << '\n';
     throw std::runtime_error(
         "Cannot get struct name of non-terminal type '" +
         oak_repr() + "'");

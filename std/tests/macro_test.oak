@@ -1,0 +1,7 @@
+include!("std/io.oak");
+let main() -> i32 {
+  print("Hello from ");
+  print(FILE!);
+  endl();
+  return 0i32;
+}

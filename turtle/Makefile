@@ -1,5 +1,5 @@
 CC = gcc -O3
-OBJECTS = io.o system.o random.o panic.o math.o operators.o
+OBJECTS =
 
 .PHONY:	all
 all:	$(OBJECTS)

@@ -25,3 +25,7 @@ let print(_: f64) -> void;
 let print(_: i128) -> void;
 let print(_: u128) -> void;
 let print(_: f128) -> void;
+
+let endl() -> void {
+  print("\n");
+}

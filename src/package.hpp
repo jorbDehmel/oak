@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "oakc.hpp"
 static_assert(__cplusplus >= 2020'00ULL);
 
 #include <filesystem>
@@ -21,10 +22,11 @@ namespace PackageManager {
  * via the `package!` macro.
  * @param _package The path to the local version of the
  * package.
- * @param _oak_include The include directory for all of oak.
+ * @param _csettings The settings for all of oak.
  */
-void install_package(const std::filesystem::path &_package,
-                     const std::filesystem::path &_oak_include);
+void install_package(
+    const std::filesystem::path &_package,
+    const OakCompiler::Settings::CompileSettings &_csettings);
 
 /**
  * @brief Erases some package from the system

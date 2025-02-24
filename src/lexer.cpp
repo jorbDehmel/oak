@@ -235,6 +235,29 @@ Lexer::lex(const std::string &_text,
     }
   }
 
+  // Merge '.'s in float literals
+  for (auto it = out.begin(); it != out.end(); ++it) {
+    if (it->text == ".") {
+      if (it != out.begin() &&
+          std::prev(it)->type == "NUMBER" &&
+          !std::prev(it)->text.empty() &&
+          std::prev(it)->text.back() != '.') {
+        std::prev(it)->text += ".";
+        const auto to_erase = it;
+        --it;
+        out.erase(to_erase);
+      } else if (std::next(it) != out.end() &&
+                 std::next(it)->type == "NUMBER" &&
+                 !std::next(it)->text.empty() &&
+                 std::next(it)->text.front() != '.') {
+        std::next(it)->text = "." + std::next(it)->text;
+        const auto to_erase = it;
+        --it;
+        out.erase(to_erase);
+      }
+    }
+  }
+
   // Merge successive literals
   for (auto it = out.begin(); it != out.end(); ++it) {
     if (it->type == "NUMBER" || it->type == "STRING") {

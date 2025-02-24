@@ -11,6 +11,7 @@
 #include <filesystem>
 #include <fstream>
 #include <functional>
+#include <iomanip>
 #include <iostream>
 #include <iterator>
 #include <map>
@@ -46,37 +47,36 @@ void OakCompiler::print_help_text() noexcept {
          "\n"
          "1.1. List of all flags\n"
          "\n"
-         "    | Verbose     |Arg| Description\n"
-         "----|-------------|---|-------------------------------------\n"
-         " -a |             |   | Update Acorn\n"
-         " -A |             |   | Uninstall Acorn\n"
-         " -c | --compile   |   | Translate and compile to object file\n"
-         " -C | --cd        | 1 | Change to the given directory\n"
-         " -d | --debug     |   | Toggle debug mode (default off)\n"
-         " -D | --dialect   | 1 | Use some dialect file\n"
-         " -e | --clean     |   | Clean all local build files\n"
-         " -E | --execute   |   | Translate, compile, link, and execute\n"
-         " -g | --exe_debug |   | Use debugging flag at compile-time\n"
-         " -h | --help      |   | Print help (this)\n"
-         " -i | --install   | 1 | Install some package\n"
-         " -l | --link      |   | Translate, compile, and link\n"
-         " -n | --no_save   |   | Produce nothing, just do syntax check\n"
-         " -o | --output    | 1 | Set output file\n"
-         " -O | --optimize  |   | Use optimization flag at compile-time\n"
-         " -p | --prettify  |   | Use clang-format on the produced C\n"
-         " -q | --quit      |   | Quit without error immediately\n"
-         " -Q | --query     | 1 | Query some installed package\n"
-         " -r | --reinstall | 1 | Reinstall some package\n"
-         " -R | --remove    | 1 | Remove a package\n"
-         " -s | --size      |   | Show Acorn/Oak disk usage\n"
-         " -S | --install   | 1 | Install some package\n"
-         " -t | --translate |   | Translate to C\n"
-         " -T | --test      | * | Toggle testing mode\n"
-         " -u | --dump      |   | Save dump files\n"
-         " -U |             |   | Save rule log files\n"
-         " -v | --version   |   | Show version and halt\n"
-         " -w | --new       |   | Create a new package\n"
-         " -x | --syntax    |   | Toggle syntax checks (default on)\n"
+         "    | Verbose      |Arg| Description\n"
+         "----|--------------|---|-------------------------------------\n"
+         " -A |              |   | Uninstall Acorn\n"
+         " -c | --compile    |   | Translate and compile to object file\n"
+         " -C | --cd         | 1 | Change to the given directory\n"
+         " -d | --debug      |   | Toggle debug mode (default off)\n"
+         " -D | --dialect    | 1 | Use some dialect file\n"
+         " -e | --clean      |   | Clean all local build files\n"
+         " -E | --execute    |   | Translate, compile, link, and execute\n"
+         " -g | --exe_debug  |   | Use debugging flag at compile-time\n"
+         " -h | --help       |   | Print help (this)\n"
+         " -i | --install    | 1 | Install some package\n"
+         " -l | --link       |   | Translate, compile, and link\n"
+         " -n | --no_save    |   | Produce nothing, just do syntax check\n"
+         " -o | --output     | 1 | Set output file\n"
+         " -O | --optimize   |   | Use optimization flag at compile-time\n"
+         " -p | --prettify   |   | Use clang-format on the produced C\n"
+         " -q | --quit       |   | Quit without error immediately\n"
+         " -r | --reinstall  | 1 | Reinstall some package\n"
+         " -R | --remove     | 1 | Remove a package\n"
+         " -s | --size       |   | Show Acorn/Oak disk usage\n"
+         " -S | --install    | 1 | Install some package\n"
+         " -t | --translate  |   | Translate to C\n"
+         " -T | --test       | * | Toggle testing mode\n"
+         " -u | --dump       |   | Save dump files\n"
+         " -U |              |   | Save rule log files\n"
+         " -v | --version    |   | Show version and halt\n"
+         " -w | --new        |   | Create a new package\n"
+         " -y | --no_confirm |   | Always allow compile_time::system!\n"
+         " -x | --syntax     |   | Toggle syntax checks (default on)\n"
          "\n"
          "1.2. Compilation Examples\n"
          "\n"
@@ -204,36 +204,81 @@ void OakCompiler::print_size() noexcept {
   print_bytes(total_size);
 }
 
-/// Register some update lambda to run after this process has
-/// ceased
-void OakCompiler::update_acorn() noexcept {
-  assert(false);
+void internal_uninstall() {
+  char choice = 'n';
+
+  std::cout
+      << "Are you sure you want to uninstall acorn? [y/N] ";
+  std::cin >> choice;
+
+  if (std::tolower(choice) != 'y') {
+    std::cout << "Aborting.\n";
+    return;
+  }
+
+  std::cout << "Should installed packages be deleted? [y/N] ";
+  std::cin >> choice;
+
+  if (std::tolower(choice) == 'y') {
+    std::cout << "Removing packages...\n";
+    std::filesystem::remove_all("/usr/include/oak");
+  }
+
+  for (const auto &p :
+       {"/usr/bin/oak2c", "/usr/bin/oak2c-debug",
+        "/usr/bin/acorn", "/usr/bin/acorn-debug"}) {
+    if (std::filesystem::exists(p) &&
+        !std::filesystem::is_directory(p)) {
+      std::cout << "Removing " << p << "...\n";
+      std::filesystem::remove(p);
+    }
+  }
+
+  std::cout << "Acorn has been erased. Farewell!\n";
 }
 
 /// Register some uninstallation lambda to run after this
 /// process has ceased
 void OakCompiler::uninstall_acorn() noexcept {
-  assert(false);
+  std::atexit(internal_uninstall);
 }
 
 /// Purge all temporary files
 void OakCompiler::clean() {
-  assert(false);
-}
+  std::list<std::filesystem::path> to_erase;
+  for (const auto &path :
+       std::filesystem::recursive_directory_iterator(
+           std::filesystem::current_path())) {
+    if (!std::filesystem::is_directory(path)) {
+      const std::string filename =
+          path.path().filename().string();
+      if (filename.find(".oak.") != std::string::npos ||
+          filename == "acorn_test.log") {
+        to_erase.push_back(path.path());
+        std::cout << path.path() << '\n';
+      }
+    }
+  }
 
-/// Find and print the list of all viable installation
-/// candidates for some set of restrictions
-void OakCompiler::query_package(const std::string &_name) {
-  assert(false);
+  std::cout << "\nThis will erase all the above files. Are you "
+               "sure? [y/N] ";
+  char choice = std::cin.get();
+  if (std::tolower(choice) != 'y') {
+    throw std::runtime_error("clean aborted");
+  }
+
+  for (const auto &item : to_erase) {
+    if (!std::filesystem::remove(item)) {
+      std::cout << "Failed to remove " << item << '\n';
+    }
+  }
 }
 
 /// Install some package globally
 /// To be called from the command line, so IO is acceptable
 void OakCompiler::install_package(const std::string &_name) {
-  std::cerr << "WARNING: Installing local package '" << _name
-            << "'. This may or may not be what you want!\n";
-  PackageManager::install_package(
-      _name, settings.compile_settings().include_path);
+  PackageManager::install_package(_name,
+                                  settings.compile_settings());
 }
 
 /// Remove some globally-install package
@@ -243,14 +288,97 @@ void OakCompiler::uninstall_package(const std::string &_name) {
 
 /// Create a new template package with the given name
 void OakCompiler::new_package(const std::string &_name) {
-  assert(false);
+  const std::filesystem::path path(_name);
+
+  // Package dir
+  if (std::filesystem::exists(path)) {
+    if (!std::filesystem::is_directory(path)) {
+      throw std::runtime_error(
+          "Cannot create package '" + path.string() +
+          "': A non-directory of that name already exists.");
+    }
+  } else {
+    std::filesystem::create_directory(path);
+  }
+
+  // `tests` dir
+  if (std::filesystem::exists(path / "tests")) {
+    if (!std::filesystem::is_directory(path / "tests")) {
+      throw std::runtime_error(
+          "Cannot create package test dir '" +
+          (path / "tests").string() +
+          "': A non-directory of that name already exists.");
+    }
+  } else {
+    std::filesystem::create_directory(path / "tests");
+  }
+
+  // Spec file
+  if (!std::filesystem::exists(path / "spec.oak")) {
+    std::ofstream f(path / "spec.oak");
+    // clang-format off
+    f << "/*\n"
+         "Generated by acorn\n"
+         "*/\n\n"
+         "pragma!(\"no_dialect\");\n\n";
+    // clang-format on
+
+    std::map<std::string, std::string> key_value_pairs;
+    key_value_pairs["INSTALL!"] = _name + "/install.oak";
+    for (const auto &key :
+         {"ABOUT!", "AUTHOR!", "EMAIL", "LICENSE!", "SOURCE!",
+          "VERSION!", "YEAR!"}) {
+      std::string response;
+      std::cout << "Value for '" << key << "': ";
+      std::getline(std::cin, response);
+      key_value_pairs[key] = response;
+    }
+
+    for (const auto &p : key_value_pairs) {
+      if (!p.second.empty()) {
+        f << "let " << _name << "::" << p.first << " = \""
+          << p.second << "\";\n";
+      }
+    }
+  }
+
+  // Install file
+  if (!std::filesystem::exists(path / "install.oak")) {
+    std::ofstream f(path / "install.oak");
+    // clang-format off
+    f << "/*\n"
+         "Generated by acorn\n"
+         "*/\n\n"
+         "pragma!(\"no_dialect\");\n"
+         "\n"
+         "compile_time::system!(\n"
+         "  \"echo 'Put commands here'\"\n"
+         ");\n";
+    // clang-format on
+  }
 }
 
 /// Compile according to settings
 void OakCompiler::operator()() {
   debug_print();
+  bool did_fail = false;
   if (settings.is_compile()) {
-    do_compilation();
+    try {
+      do_compilation();
+    } catch (...) {
+      if (!settings.compile_settings().pragmas.contains(
+              "compile_should_fail")) {
+        throw;
+      }
+      did_fail = true;
+    }
+    if (!did_fail &&
+        settings.compile_settings().pragmas.contains(
+            "compile_should_fail")) {
+      throw std::runtime_error(
+          "Compilation succeeded with "
+          "pragma!(\"compile_should_fail\")");
+    }
   } else {
     do_testing();
   }
@@ -289,7 +417,9 @@ void OakCompiler::do_compilation() {
           "file '" +
           settings.dialect.value().string() + "':\n" +
           e.what());
-    } catch (...) {
+    }
+
+    catch (...) {
       throw std::runtime_error(
           "An unknown error occurred while loading dialect "
           "file '" +
@@ -303,7 +433,9 @@ void OakCompiler::do_compilation() {
     throw std::runtime_error(
         "Error occurred while loading entry point " +
         csettings.entry_point.string() + ":\n" + e.what());
-  } catch (...) {
+  }
+
+  catch (...) {
     throw std::runtime_error(
         "An unknown error occurred while loading entry point " +
         csettings.entry_point.string());
@@ -416,6 +548,11 @@ void OakCompiler::do_testing() {
   // Variables needed by entire process
   auto &tsettings = settings.test_settings();
 
+  // Test log file
+  const static std::filesystem::path test_log_path =
+      "acorn_test.log";
+  std::ofstream test_log(test_log_path);
+
   // Each key is a `test` dir
   // Each entry is a 4-tuple: (tried to compile, tried to run,
   // compiled successfully, ran successfully)
@@ -435,6 +572,8 @@ void OakCompiler::do_testing() {
 
   // Run all tests
   for (const auto &dir_to_search : tsettings.dirs) {
+    test_log << "Testing dir " << dir_to_search << "\n\n";
+
     if (!std::filesystem::exists(dir_to_search)) {
       throw std::runtime_error("Requested testing dir " +
                                dir_to_search.string() +
@@ -458,18 +597,22 @@ void OakCompiler::do_testing() {
     }
 
     // Compile test files, possibly running
+    uint64_t tried_to_compile = 0, tried_to_run = 0,
+             compiled_successfully = 0, ran_successfully = 0;
+
     for (const auto &test_file :
          std::filesystem::directory_iterator(test_path)) {
+      test_log << "Testing file " << test_file << "\n\n";
 
       if (std::filesystem::is_regular_file(test_file) &&
           test_file.path().string().ends_with(".oak")) {
-
-        OakCompiler comp;
-        comp.settings = settings;
+        ++tried_to_compile;
+        ++compiled_successfully;
 
         const std::filesystem::path target =
             test_file.path().string() + ".out";
 
+        OakCompiler comp(test_log);
         comp.settings.compile_settings().entry_point =
             test_file;
         comp.settings.compile_settings().target = target;
@@ -477,16 +620,42 @@ void OakCompiler::do_testing() {
         try {
           comp();
 
-          int res = system(target.root_path().c_str());
-          if (res != 0) {
-            run_problems.push_back(test_file);
+          if (tsettings.mode !=
+              OakCompiler::Settings::TestSettings::
+                  COMPILE_ONLY) {
+            ++tried_to_run;
+            ++ran_successfully;
+
+            int res = system(target.root_path().c_str());
+            if (res != 0) {
+              run_problems.push_back(test_file);
+              --ran_successfully;
+
+              if (tsettings.mode !=
+                  OakCompiler::Settings::TestSettings::
+                      EXECUTE_IGNORE_FAILURE) {
+                throw std::runtime_error(
+                    "Run failed on file " +
+                    test_file.path().string());
+              }
+            }
           }
         } catch (...) {
           compile_problems.push_back(test_file);
+          --compiled_successfully;
+          if (tsettings.halt_on_compiler_failure) {
+            throw std::runtime_error(
+                "Compilation failed on file " +
+                test_file.path().string());
+          }
           continue;
         }
       }
     }
+
+    dirs[dir_to_search] = {tried_to_compile, tried_to_run,
+                           compiled_successfully,
+                           ran_successfully};
   }
 
   // Output information
@@ -506,13 +675,18 @@ void OakCompiler::do_testing() {
     const auto did_comp = std::get<2>(p.second);
     const auto did_run = std::get<3>(p.second);
 
-    std::cout << path << ":\n"
-              << "\tCompiled " << did_comp << "/" << tried_comp
-              << " (" << 100.0 * (double)did_comp / tried_comp
-              << "%)\n"
-              << "\tRan      " << did_run << "/" << tried_run
-              << " (" << 100.0 * (double)did_run / tried_run
-              << "%)\n";
+    settings.ostream << std::fixed << std::setprecision(2)
+                     << path << ":\n"
+                     << "\tCompiled " << did_comp << "/"
+                     << tried_comp << " ("
+                     << 100.0 * (double)did_comp /
+                            (tried_comp ? tried_comp : 1)
+                     << "%)\n"
+                     << "\tRan      " << did_run << "/"
+                     << tried_run << " ("
+                     << 100.0 * (double)did_run /
+                            (tried_run ? tried_run : 1)
+                     << "%)\n";
 
     total_compiles_tried += tried_comp;
     total_runs_tried += tried_run;
@@ -520,30 +694,32 @@ void OakCompiler::do_testing() {
     total_runs_succeeded += did_run;
   }
 
-  std::cout << "Over all test directories:\n"
-            << "\tCompiled " << total_compiles_succeeded << "/"
-            << total_compiles_tried << " ("
-            << 100.0 * (double)total_compiles_succeeded /
-                   total_compiles_tried
-            << "%)\n"
-            << "\tRan      " << total_runs_succeeded << "/"
-            << total_runs_tried << " ("
-            << 100.0 * (double)total_runs_succeeded /
-                   total_runs_tried
-            << "%)\n";
+  settings.ostream
+      << std::fixed << std::setprecision(2)
+      << "Over all test directories:\n"
+      << "\tCompiled " << total_compiles_succeeded << "/"
+      << total_compiles_tried << " ("
+      << 100.0 * (double)total_compiles_succeeded /
+             (total_compiles_tried ? total_compiles_tried : 1)
+      << "%)\n"
+      << "\tRan      " << total_runs_succeeded << "/"
+      << total_runs_tried << " ("
+      << 100.0 * (double)total_runs_succeeded /
+             (total_runs_tried ? total_runs_tried : 1)
+      << "%)\n";
 
   for (const auto &i : compile_problems) {
-    std::cout << "compile-time error: " << i << "\n";
+    settings.ostream << "compile-time error: " << i << "\n";
   }
   for (const auto &i : run_problems) {
-    std::cout << "run-time error:     " << i << "\n";
+    settings.ostream << "run-time error:     " << i << "\n";
   }
 
   if (!compile_problems.empty() || !run_problems.empty()) {
     throw std::runtime_error(
         "One or more errors occurred; Test failed.");
   } else {
-    std::cout << "All tests passed!\n";
+    settings.ostream << "All tests passed!\n";
   }
 }
 
@@ -655,191 +831,287 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
     bool saw_let = false;
     for (auto it = _token_stream.begin();
          it != _token_stream.end(); ++it) {
-      if (*it == "let") {
-        saw_let = true;
-      } else if (saw_let && *it != "!" &&
-                 it->text.find('!') != std::string::npos) {
-        macros.process_definition(_token_stream, it,
-                                  _token_stream.end());
-        saw_let = false;
-      } else {
-        saw_let = false;
+      try {
+        if (*it == "let") {
+          saw_let = true;
+        } else if (saw_let && *it != "!" &&
+                   it->text.find('!') != std::string::npos) {
+          macros.process_definition(_token_stream, it,
+                                    _token_stream.end());
+          saw_let = false;
+          --it;
+        } else {
+          saw_let = false;
+        }
+      } catch (std::runtime_error &e) {
+        if (it == _token_stream.end()) {
+          throw e;
+        }
+        throw std::runtime_error(
+            "At " + it->file.string() + ":" +
+            std::to_string(it->line) + "." +
+            std::to_string(it->col) + "\n" + e.what());
+      }
+
+      catch (...) {
+        if (it == _token_stream.end()) {
+          throw;
+        }
+        throw std::runtime_error(
+            "At " + it->file.string() + ":" +
+            std::to_string(it->line) + "." +
+            std::to_string(it->col) + "\nUnknown error");
       }
     }
 
     // Resolve includes and packages
     for (auto it = _token_stream.begin();
          it != _token_stream.end(); ++it) {
-      if (*it == "include!") {
-        const auto args = MacroManager::get_macro_args(
-            _token_stream, it, _token_stream.end());
 
-        try {
+      try {
+
+        if (*it == "include!") {
+          const auto args = MacroManager::get_macro_args(
+              _token_stream, it, _token_stream.end());
+
+          try {
+            for (const auto &f : args) {
+              std::filesystem::path path(f);
+
+              if (std::filesystem::exists(
+                      _csettings.include_path / path)) {
+                // Package file exists
+                if (std::filesystem::exists(path)) {
+                  settings.ostream
+                      << "Warning: Including local file "
+                      << path
+                      << " over package file of same name\n";
+                } else {
+                  path = _csettings.include_path / path;
+                }
+              }
+              do_file(path, _csettings);
+            }
+          } catch (std::runtime_error &e) {
+            throw std::runtime_error(
+                "In file included from " + it->file.string() +
+                ":" + std::to_string(it->line) + "." +
+                std::to_string(it->col) + "\n" + e.what());
+          }
+
+          catch (...) {
+            throw std::runtime_error(
+                "In file included from " + it->file.string() +
+                ":" + std::to_string(it->line) + "." +
+                std::to_string(it->col) + "\nUnknown error");
+          }
+
+        } else if (*it == "link!") {
+          const auto args = MacroManager::get_macro_args(
+              _token_stream, it, _token_stream.end());
           for (const auto &f : args) {
-            std::filesystem::path path(f);
 
+            std::filesystem::path p(f);
             if (std::filesystem::exists(
-                    _csettings.include_path / path)) {
+                    _csettings.include_path / p)) {
               // Package file exists
-              if (std::filesystem::exists(path)) {
-                std::cout
-                    << "Warning: Including local file " << path
+              if (std::filesystem::exists(p)) {
+                settings.ostream
+                    << "Warning: Linking local object " << p
                     << " over package file of same name\n";
               } else {
-                path = _csettings.include_path / path;
+                p = _csettings.include_path / p;
               }
             }
-            do_file(path, _csettings);
+            _csettings.objects.push_back(p);
           }
-        } catch (std::runtime_error &e) {
-          throw std::runtime_error(
-              "In file included from " + it->file.string() +
-              ":" + std::to_string(it->line) + "." +
-              std::to_string(it->col) + "\n" + e.what());
-        } catch (...) {
-          throw std::runtime_error(
-              "In file included from " + it->file.string() +
-              ":" + std::to_string(it->line) + "." +
-              std::to_string(it->col) + "\nUnknown error");
-        }
-      } else if (*it == "link!") {
-        const auto args = MacroManager::get_macro_args(
-            _token_stream, it, _token_stream.end());
-        for (const auto &f : args) {
+        } else if (*it == "flag!") {
+          const auto args = MacroManager::get_macro_args(
+              _token_stream, it, _token_stream.end());
+          for (const auto &f : args) {
 
-          std::filesystem::path p(f);
-          if (std::filesystem::exists(_csettings.include_path /
-                                      p)) {
-            // Package file exists
-            if (std::filesystem::exists(p)) {
-              std::cout << "Warning: Linking local object " << p
-                        << " over package file of same name\n";
-            } else {
-              p = _csettings.include_path / p;
+            std::filesystem::path p(f);
+            if (std::filesystem::exists(
+                    _csettings.include_path / p)) {
+              // Package file exists
+              if (std::filesystem::exists(p)) {
+                settings.ostream
+                    << "Warning: Linking local object " << p
+                    << " over package file of same name\n";
+              } else {
+                p = _csettings.include_path / p;
+              }
             }
+            _csettings.link_flags.push_back(p);
           }
-          _csettings.objects.push_back(p);
-        }
-      } else if (*it == "flag!") {
-        const auto args = MacroManager::get_macro_args(
-            _token_stream, it, _token_stream.end());
-        for (const auto &f : args) {
+        } else if (*it == "pragma!") {
+          auto args = MacroManager::get_macro_args(
+              _token_stream, it, _token_stream.end());
+          if (args.size() == 1) {
+            args.push_back(Lexer::Token(args.front(), ""));
+          }
+          _csettings.pragmas[args.front().text] =
+              std::next(args.begin())->text;
+        } else if (*it == "rule_new!") {
+          const auto args = MacroManager::get_macro_args(
+              _token_stream, it, _token_stream.end());
 
-          std::filesystem::path p(f);
-          if (std::filesystem::exists(_csettings.include_path /
-                                      p)) {
-            // Package file exists
-            if (std::filesystem::exists(p)) {
-              std::cout << "Warning: Linking local object " << p
-                        << " over package file of same name\n";
-            } else {
-              p = _csettings.include_path / p;
+          Rule to_add;
+          throw std::runtime_error(__FILE__);
+
+          rules.register_rule(args.front(), to_add);
+        } else if (*it == "rule_use!") {
+          const auto args = MacroManager::get_macro_args(
+              _token_stream, it, _token_stream.end());
+          for (const auto &arg : args) {
+            rules.add_entry_point(arg);
+          }
+        } else if (*it == "rule_use!") {
+          const auto args = MacroManager::get_macro_args(
+              _token_stream, it, _token_stream.end());
+          for (const auto &arg : args) {
+            rules.remove_entry_point(arg);
+          }
+        } else if (*it == "rule_bundle!") {
+          const auto args = MacroManager::get_macro_args(
+              _token_stream, it, _token_stream.end());
+
+          std::list<std::string> entails;
+          for (auto it = std::next(args.begin());
+               it != args.end(); ++it) {
+            entails.push_back(*it);
+          }
+
+          rules.register_bundle(args.front(), entails);
+        } else if (*it == "compile_time_system!") {
+          settings.ostream
+              << it->file.string() << ":" << it->line << "."
+              << it->col
+              << "> compile_time::system! is running "
+                 "system command `";
+
+          const auto args = MacroManager::get_macro_args(
+              _token_stream, it, _token_stream.end());
+          std::string cmd;
+          for (const auto &arg : args) {
+            if (!cmd.empty()) {
+              cmd.push_back(' ');
             }
+            cmd += arg.text;
           }
-          _csettings.link_flags.push_back(p);
+
+          settings.ostream << cmd << "`\n" << std::flush;
+
+          if (!_csettings.no_confirm) {
+            settings.ostream << "Allow? [N/y/a] ";
+            char choice = std::cin.get();
+
+            switch (choice) {
+            default:
+              throw std::runtime_error("Abort!");
+            case 'a':
+            case 'A':
+              settings.ostream << "Not asking again!\n";
+              _csettings.no_confirm = true;
+            case 'y':
+            case 'Y':
+              break;
+            }
+          } else {
+            settings.ostream
+                << "(no_confirm is enabled, so running "
+                   "without asking)\n";
+          }
+
+          const auto old_cwd = std::filesystem::current_path();
+          std::filesystem::current_path(it->file.parent_path());
+
+          auto result = system(cmd.c_str());
+
+          std::filesystem::current_path(old_cwd);
+
+          if (result != 0) {
+            throw std::runtime_error(
+                "System call '" + cmd +
+                "' exited with nonzero exit code " +
+                std::to_string(result));
+          }
+        } else if (*it == "compile_time_error!") {
+          settings.ostream << it->file.string() << ":"
+                           << it->line << "." << it->col << ">"
+                           << it->text
+                           << " Compile-time error:\n";
+
+          const auto args = MacroManager::get_macro_args(
+              _token_stream, it, _token_stream.end());
+          std::string msg;
+          for (const auto &arg : args) {
+            msg += arg.text + " ";
+          }
+          settings.ostream << msg << '\n';
+          throw std::runtime_error(msg);
+        } else if (*it == "compile_time_warning!") {
+          settings.ostream << it->file.string() << ":"
+                           << it->line << "." << it->col << ">"
+                           << it->text
+                           << " Compile-time warning:\n";
+
+          const auto args = MacroManager::get_macro_args(
+              _token_stream, it, _token_stream.end());
+          std::string msg;
+          for (const auto &arg : args) {
+            msg += arg.text + " ";
+          }
+          settings.ostream << msg << '\n';
         }
-      } else if (*it == "pragma!") {
-        auto args = MacroManager::get_macro_args(
-            _token_stream, it, _token_stream.end());
-        if (args.size() == 1) {
-          args.push_back(Lexer::Token(args.front(), ""));
+      } catch (std::runtime_error &e) {
+        if (it == _token_stream.end()) {
+          throw e;
         }
-        _csettings.pragmas[args.front().text] =
-            std::next(args.begin())->text;
-      } else if (*it == "rule_new!") {
-        const auto args = MacroManager::get_macro_args(
-            _token_stream, it, _token_stream.end());
+        throw std::runtime_error(
+            "At " + it->file.string() + ":" +
+            std::to_string(it->line) + "." +
+            std::to_string(it->col) + "\n" + e.what());
+      }
 
-        Rule to_add;
-        throw std::runtime_error(__FILE__);
-
-        rules.register_rule(args.front(), to_add);
-      } else if (*it == "rule_use!") {
-        const auto args = MacroManager::get_macro_args(
-            _token_stream, it, _token_stream.end());
-        for (const auto &arg : args) {
-          rules.add_entry_point(arg);
+      catch (...) {
+        if (it == _token_stream.end()) {
+          throw;
         }
-      } else if (*it == "rule_use!") {
-        const auto args = MacroManager::get_macro_args(
-            _token_stream, it, _token_stream.end());
-        for (const auto &arg : args) {
-          rules.remove_entry_point(arg);
-        }
-      } else if (*it == "rule_bundle!") {
-        const auto args = MacroManager::get_macro_args(
-            _token_stream, it, _token_stream.end());
-
-        std::list<std::string> entails;
-        for (auto it = std::next(args.begin());
-             it != args.end(); ++it) {
-          entails.push_back(*it);
-        }
-
-        rules.register_bundle(args.front(), entails);
-      } else if (*it == "compile_time_system!") {
-        std::cout << it->file.string() << ":" << it->line << "."
-                  << it->col << ">" << it->text
-                  << " is running system command:\n";
-
-        const auto args = MacroManager::get_macro_args(
-            _token_stream, it, _token_stream.end());
-        std::string cmd;
-        for (const auto &arg : args) {
-          cmd += arg.text + " ";
-        }
-
-        std::cout << cmd << "\tat " << it->file.parent_path()
-                  << '\n'
-                  << std::flush;
-
-        const auto old_cwd = std::filesystem::current_path();
-        std::filesystem::current_path(it->file.parent_path());
-
-        auto result = system(cmd.c_str());
-
-        std::filesystem::current_path(old_cwd);
-
-        if (result != 0) {
-          throw std::runtime_error(
-              "System call '" + cmd +
-              "' exited with nonzero exit code " +
-              std::to_string(result));
-        }
-      } else if (*it == "compile_time_error!") {
-        std::cout << it->file.string() << ":" << it->line << "."
-                  << it->col << ">" << it->text
-                  << " Compile-time error:\n";
-
-        const auto args = MacroManager::get_macro_args(
-            _token_stream, it, _token_stream.end());
-        std::string msg;
-        for (const auto &arg : args) {
-          msg += arg.text + " ";
-        }
-        std::cout << msg << '\n';
-        throw std::runtime_error(msg);
-      } else if (*it == "compile_time_warning!") {
-        std::cout << it->file.string() << ":" << it->line << "."
-                  << it->col << ">" << it->text
-                  << " Compile-time warning:\n";
-
-        const auto args = MacroManager::get_macro_args(
-            _token_stream, it, _token_stream.end());
-        std::string msg;
-        for (const auto &arg : args) {
-          msg += arg.text + " ";
-        }
-        std::cout << msg << '\n';
+        throw std::runtime_error(
+            "At " + it->file.string() + ":" +
+            std::to_string(it->line) + "." +
+            std::to_string(it->col) + "\nUnknown error");
       }
     }
 
     // Resolve macros (functional and inline)
     for (auto it = _token_stream.begin();
          it != _token_stream.end(); ++it) {
-      if (*it != "!" && it->type == "ID" &&
-          it->text.find('!') != std::string::npos) {
-        macros.replace(_token_stream, it, _token_stream.end());
+      try {
+        if (*it != "!" && it->type == "ID" &&
+            it->text.find('!') != std::string::npos) {
+          macros.replace(_token_stream, it,
+                         _token_stream.end());
+        }
+      } catch (std::runtime_error &e) {
+        if (it == _token_stream.end()) {
+          throw e;
+        }
+        throw std::runtime_error(
+            "At " + it->file.string() + ":" +
+            std::to_string(it->line) + "." +
+            std::to_string(it->col) + "\n" + e.what());
+      }
+
+      catch (...) {
+        if (it == _token_stream.end()) {
+          throw;
+        }
+        throw std::runtime_error(
+            "At " + it->file.string() + ":" +
+            std::to_string(it->line) + "." +
+            std::to_string(it->col) + "\nUnknown error");
       }
     }
 
@@ -913,9 +1185,21 @@ void OakCompiler::do_file(
   try {
     token_stream = l.lex(text, _path, line, col);
   } catch (std::runtime_error &e) {
+    // If requested, dump
+    if (_csettings.dump_file.has_value()) {
+      p.dump(*_csettings.dump_file.value(), token_stream);
+    }
+
     throw std::runtime_error("Error occurred while lexing " +
                              _path.string() + ":\n" + e.what());
-  } catch (...) {
+  }
+
+  catch (...) {
+    // If requested, dump
+    if (_csettings.dump_file.has_value()) {
+      p.dump(*_csettings.dump_file.value(), token_stream);
+    }
+
     throw std::runtime_error(
         "An unknown error occurred while lexing " +
         _path.string() + "");
@@ -932,4 +1216,9 @@ void OakCompiler::do_file(
   // Do actual parsing here
   debug_print();
   p.parse_global(token_stream);
+
+  // If requested, dump
+  if (_csettings.dump_file.has_value()) {
+    p.dump(*_csettings.dump_file.value(), token_stream);
+  }
 }

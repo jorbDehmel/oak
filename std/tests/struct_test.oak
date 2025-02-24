@@ -1,0 +1,18 @@
+include!("std/io.oak");
+
+let bundle: struct {
+  a: i32,
+  b: bool,
+}
+
+let main() -> i32 {
+  let foo: bundle;
+
+  print(foo.a);
+  endl();
+
+  print(foo.b);
+  endl();
+
+  return 0i32;
+}

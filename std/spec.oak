@@ -7,7 +7,6 @@ pragma!("no_dialect");
 
 let std::ABOUT!   = "Oak standard Package";
 let std::AUTHOR!  = "Jordan Dehmel";
-let std::BUILD!   = "make";
 let std::EMAIL!   = "jdehmel@outlook.com";
 let std::INSTALL! = "std/install.oak";
 let std::LICENSE! = "MIT";

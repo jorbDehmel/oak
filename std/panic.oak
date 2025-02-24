@@ -3,6 +3,6 @@
 */
 
 pragma!("no_dialect");
-link!("panic.o");
+link!("std/panic.o");
 
 let panic() -> void;

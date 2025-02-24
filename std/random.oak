@@ -3,7 +3,7 @@
 */
 
 pragma!("no_dialect");
-link!("panic.o");
+link!("std/random.o");
 
 let srand(seed: uint) -> void;
 let rand() -> int;

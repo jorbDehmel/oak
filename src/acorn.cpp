@@ -111,11 +111,6 @@ bool parse_args(const int _c, const char *const _v[],
         return false;
       }
 
-      // Query an installed package
-      else if (arg == "--query") {
-        _oakc.query_package(_v[++i]);
-      }
-
       // Reinstall the given package
       else if (arg == "--reinstall") {
         _oakc.uninstall_package(_v[++i]);
@@ -183,6 +178,12 @@ bool parse_args(const int _c, const char *const _v[],
             !_oakc.settings.compile_settings().do_syntax_check;
       }
 
+      // No confirm for compile-time system commands
+      else if (arg == "--no_confirm") {
+        _oakc.settings.compile_settings().no_confirm =
+            !_oakc.settings.compile_settings().no_confirm;
+      }
+
       else {
         throw std::runtime_error("Unknown verbose flag '" +
                                  arg + "'");
@@ -193,9 +194,6 @@ bool parse_args(const int _c, const char *const _v[],
         char flag = arg[j];
 
         switch (flag) {
-        case 'a': // Update
-          _oakc.update_acorn();
-          return false;
         case 'A': // Uninstall
           _oakc.uninstall_acorn();
           return false;
@@ -216,9 +214,14 @@ bool parse_args(const int _c, const char *const _v[],
           _oakc.clean();
           break;
         case 'E': // Translate, compile, link, and execute
-          _oakc.settings.compile_settings().mode =
-              OakCompiler::Settings::CompileSettings::
-                  TRANSLATE_COMPILE_LINK_AND_EXECUTE;
+          if (_oakc.settings.is_compile()) {
+            _oakc.settings.compile_settings().mode =
+                OakCompiler::Settings::CompileSettings::
+                    TRANSLATE_COMPILE_LINK_AND_EXECUTE;
+          } else {
+            _oakc.settings.test_settings().mode = OakCompiler::
+                Settings::TestSettings::REGULAR_EXECUTE;
+          }
           break;
         case 'g': // Use -g debugging flag
           _oakc.settings.compile_settings()
@@ -251,9 +254,6 @@ bool parse_args(const int _c, const char *const _v[],
           break;
         case 'q': // Quit immediately
           return false;
-        case 'Q': // Query some installed package
-          _oakc.query_package(_v[++i]);
-          break;
         case 'r': // Reinstall a package
           _oakc.uninstall_package(_v[++i]);
           _oakc.install_package(_v[++i]);
@@ -271,7 +271,17 @@ bool parse_args(const int _c, const char *const _v[],
               Settings::CompileSettings::TRANSLATE_ONLY;
           break;
         case 'T': // Test
-          _oakc.settings.test_settings();
+          if (_oakc.settings.is_compile()) {
+            _oakc.settings.test_settings().mode = OakCompiler::
+                Settings::TestSettings::COMPILE_ONLY;
+            _oakc.settings.test_settings()
+                .halt_on_compiler_failure = false;
+          } else {
+            _oakc.settings.test_settings()
+                .halt_on_compiler_failure = true;
+            _oakc.settings.test_settings().mode = OakCompiler::
+                Settings::TestSettings::EXECUTE_IGNORE_FAILURE;
+          }
           break;
         case 'u': // Save dump file
           if (_oakc.settings.compile_settings()
@@ -299,6 +309,10 @@ bool parse_args(const int _c, const char *const _v[],
           _oakc.settings.compile_settings().do_syntax_check =
               !_oakc.settings.compile_settings()
                    .do_syntax_check;
+          break;
+        case 'y': // No confirm for compile_time::system!
+          _oakc.settings.compile_settings().no_confirm =
+              !_oakc.settings.compile_settings().no_confirm;
           break;
 
         case 'i': // Install package
@@ -348,7 +362,9 @@ int main(int _c, char *_v[]) {
     std::cerr << "Argument parsing error:\n"
               << e.what() << '\n';
     return 1;
-  } catch (...) {
+  }
+
+  catch (...) {
     std::cerr
         << "An unknown argument parsing error occurred.\n";
     return 1;
@@ -360,11 +376,10 @@ int main(int _c, char *_v[]) {
   } catch (std::runtime_error &e) {
     std::cerr << "Compiler error:\n" << e.what() << '\n';
     return 2;
+  } catch (...) {
+    std::cerr << "An unknown compiler error occurred.\n";
+    return 3;
   }
-  // catch (...) {
-  //   std::cerr << "An unknown compiler error occurred.\n";
-  //   return 3;
-  // }
 
   return 0;
 }

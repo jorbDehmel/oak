@@ -39,6 +39,9 @@ struct Node {
     OBJECT,
     CALL,
     NONE,
+    DECL,
+    MODIFIER, // A raw C prefix modifier (EG &, *)
+    OTHER,    // Special cases determinable by c_name
     STMT
   } node_type;
 
@@ -147,7 +150,9 @@ public:
   void reconstruct(std::ostream &_where) const noexcept;
 
   /// Dump to the given stream
-  void dump(std::ostream &_where) const noexcept;
+  void dump(std::ostream &_where,
+            const std::list<Lexer::Token> &_file_contents)
+      const noexcept;
 
   /// Fetch a symbol
   std::optional<
@@ -222,7 +227,9 @@ protected:
   /// it cannot be resolved, an error is thrown. Returns the
   /// ENTIRE FN TYPE, not just the return type!
   Type resolve_fn_call(const std::string &_name,
-                       const std::vector<Type> &_args);
+                       const std::vector<Type> &_args,
+                       FnInfo &_into,
+                       std::vector<int> &_derefs);
 
   /// Throws an error on invalid type (EG undefined struct name)
   void validate_type(const Type &_t) const;

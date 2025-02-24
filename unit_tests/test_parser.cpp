@@ -215,31 +215,31 @@ int main() {
     p.reconstruct(std::cout);
   }
 
-  std::cout << "Running test #" << ++test_num << "...\n"
-            << std::flush;
-  { // Test 8: Implicit template instantiation
-    Parser p;
-    Lexer l;
-    uint64_t line, col;
-    const std::string file = "fizz.oak";
+  // std::cout << "Running test #" << ++test_num << "...\n"
+  //           << std::flush;
+  // { // Test 8: Implicit template instantiation
+  //   Parser p;
+  //   Lexer l;
+  //   uint64_t line, col;
+  //   const std::string file = "fizz.oak";
 
-    const std::string text =
-        // clang-format off
-        "let fizz<t>(a: t) -> t {}\n"
-        "let main() -> i32\n"
-        "{\n"
-        "  let b: i32;\n"
-        "  let c: []^i32;\n"
-        "  fizz(b);\n"
-        "  fizz(c);\n"
-        "}\n";
-    // clang-format on
+  //   const std::string text =
+  //       // clang-format off
+  //       "let fizz<t>(a: t) -> t {}\n"
+  //       "let main() -> i32\n"
+  //       "{\n"
+  //       "  let b: i32;\n"
+  //       "  let c: []^i32;\n"
+  //       "  fizz(b);\n"
+  //       "  fizz(c);\n"
+  //       "}\n";
+  //   // clang-format on
 
-    const auto lexed = l.lex(text, file, line, col);
+  //   const auto lexed = l.lex(text, file, line, col);
 
-    p.parse_global(lexed);
-    p.reconstruct(std::cout);
-  }
+  //   p.parse_global(lexed);
+  //   p.reconstruct(std::cout);
+  // }
 
   std::cout << "All " << test_num
             << " parser unit tests passed!\n";

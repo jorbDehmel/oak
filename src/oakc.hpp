@@ -13,6 +13,7 @@ static_assert(__cplusplus >= 2020'00ULL);
 #include "rule.hpp"
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <list>
 #include <memory>
 #include <optional>
@@ -28,6 +29,10 @@ const static std::string ACORN_VERSION = "0.8.0";
  */
 class OakCompiler {
 public:
+  OakCompiler(std::ostream &_strm = std::cout)
+      : settings(_strm) {
+  }
+
   Parser p;
   RuleRunner rules;
   MacroManager macros;
@@ -35,6 +40,9 @@ public:
   ///
   class Settings {
   public:
+    Settings(std::ostream &_strm) : ostream(_strm) {
+    }
+
     /**
      * @struct CompileSettings
      * @brief
@@ -54,6 +62,9 @@ public:
 
       ///
       uint rule_pass_limit = 0x01'00;
+
+      ///
+      bool no_confirm = false;
 
       ///
       std::string compilation_command = "gcc ^ -c -o @";
@@ -120,6 +131,9 @@ public:
       } mode = REGULAR_EXECUTE;
     };
 
+    /// Where to write information to (usually cout)
+    std::ostream &ostream;
+
     ///
     bool debug = false;
 
@@ -170,20 +184,12 @@ public:
   /// Print the total disk usage of Oak
   static void print_size() noexcept;
 
-  /// Register some update lambda to run after this process has
-  /// ceased
-  static void update_acorn() noexcept;
-
   /// Register some uninstallation lambda to run after this
   /// process has ceased
   static void uninstall_acorn() noexcept;
 
   /// Purge all temporary files
   static void clean();
-
-  /// Find and print the list of all viable installation
-  /// candidates for some set of restrictions
-  void query_package(const std::string &_name);
 
   /// Install some package globally
   /// To be called from the command line, so IO is acceptable

@@ -1,0 +1,10 @@
+/*
+Tests the 'Get' operator.
+*/
+
+include!("std/std.oak");
+
+let main(c: i32, v: [] ^i8) -> i32 {
+  print(Get(v, 0i32));
+  return 0i32;
+}

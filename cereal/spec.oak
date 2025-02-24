@@ -1,0 +1,11 @@
+/**
+ * @file spec.oak
+ */
+
+pragma!("no_dialect");
+
+let cereal::AUTHOR!  = "Jordan Dehmel";
+let cereal::INSTALL! = "cereal/install.oak";
+let cereal::LICENSE! = "MIT";
+let cereal::VERSION! = "0.1.0";
+let cereal::YEAR!    = "2025";

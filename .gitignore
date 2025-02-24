@@ -1,11 +1,12 @@
 *.o
 *.so
 *.out
+*.pdf
 *.log
-*.rule_log
 *.dump
-*.acorn_dump
 *.oak.c
+*.rule_log
+*.acorn_dump
 .oak_build/
 .vscode/
 build/

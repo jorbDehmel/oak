@@ -1,5 +1,14 @@
 /*
-
 */
 
 pragma!("no_dialect");
+
+include!(
+  "std/spec.oak",
+  "std/io.oak",
+  "std/math.oak",
+  "std/panic.oak",
+  "std/random.oak",
+  "std/system.oak",
+  "std/operators.oak"
+);

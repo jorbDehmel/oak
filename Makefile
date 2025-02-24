@@ -21,12 +21,12 @@ install: check
 	$(MAKE) -C src $@
 
 	@echo "Installing default Oak libraries..."
-	acorn -S ./std
-	# acorn -S ./stl
-	# acorn -S ./sdl
-	# acorn -S ./turtle
-	# acorn -S ./cereal
-	# acorn -S ./extra
+	acorn -yS ./std
+	acorn -yS ./stl
+	acorn -yS ./sdl
+	acorn -yS ./turtle
+	acorn -yS ./cereal
+	acorn -yS ./extra
 
 .PHONY:	install-debug
 install-debug: check
@@ -34,17 +34,16 @@ install-debug: check
 	$(MAKE) -C src $@
 
 	@echo "Installing default Oak libraries..."
-	acorn -S ./std
-	# acorn -S ./stl
-	# acorn -S ./sdl
-	# acorn -S ./turtle
-	# acorn -S ./cereal
-	# acorn -S ./extra
+	acorn -yS ./std
+	acorn -yS ./stl
+	acorn -yS ./sdl
+	acorn -yS ./turtle
+	acorn -yS ./cereal
+	acorn -yS ./extra
 
 .PHONY:	uninstall
 uninstall:
-	rm -rf /usr/include/oak /usr/bin/acorn /usr/bin/oak2c \
-		/usr/bin/acorn-debug /usr/bin/oak2c-debug
+	acorn -A
 
 .PHONY:	test
 test:
@@ -64,6 +63,6 @@ format:
 clean:
 	find . -type f \
 		\( -iname "*.o" -or -iname "*.out" \
-		-or -iname "*.so" \) \
+		-or -iname "*.so" -or -iname "*.oak.c" \) \
 		-exec rm -f "{}" \;
 	acorn --clean --quit

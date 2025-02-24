@@ -1,0 +1,10 @@
+/*
+Demonstrates the 'compile_should_fail' pragma
+*/
+
+pragma!("compile_should_fail");
+
+let main() -> i32 {
+    fn_that_does_not_exist();
+    return 0i32;
+}

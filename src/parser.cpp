@@ -5,6 +5,8 @@
 #include "parser.hpp"
 #include "debug.hpp"
 #include "lexer.hpp"
+#include "type.hpp"
+#include <cassert>
 #include <functional>
 #include <linux/limits.h>
 #include <stdexcept>
@@ -42,8 +44,16 @@ void Parser::parse_global(
     try {
       if (*pos == "let") {
         incr(pos, end);
-        std::set<std::string> names = {*pos};
+        std::set<std::string> names;
+        names.insert(*pos);
         incr(pos, end);
+
+        while (*pos == ",") {
+          incr(pos, end);
+          names.insert(*pos);
+          incr(pos, end);
+        }
+
         if (*pos == ":") {
           // Struct, enum, or invalid global definition
           incr(pos, end);
@@ -87,7 +97,9 @@ void Parser::parse_global(
                                ":" + std::to_string(pos->line) +
                                "." + std::to_string(pos->col) +
                                "\n" + e.what());
-    } catch (...) {
+    }
+
+    catch (...) {
       if (pos == _file_contents.end()) {
         throw;
       }
@@ -134,8 +146,7 @@ void Parser::reconstruct(std::ostream &_where) const noexcept {
       const auto info = std::get<StructInfo>(g.second);
       _where << "struct " << g.first << " {\n";
       for (const auto &item : info.member_order) {
-        info.members.at(item).c_repr(item);
-        _where << ";\n";
+        _where << info.members.at(item).c_repr(item) << ";\n";
       }
       _where << "};\n";
     } else {
@@ -179,6 +190,12 @@ void Parser::reconstruct(std::ostream &_where) const noexcept {
     case Node::CASE:
       throw std::runtime_error(__FUNCTION__);
       break;
+    case Node::MODIFIER:
+      // Literal C prefix
+      _where << stmt.c_name.value();
+      assert(stmt.children.size() == 1);
+      reconstruct_node(stmt.children.front());
+      break;
     case Node::OBJECT:
       // Literal or variable
       _where << stmt.c_name.value();
@@ -196,8 +213,10 @@ void Parser::reconstruct(std::ostream &_where) const noexcept {
       }
       _where << ")";
       break;
+    case Node::DECL:
+      _where << stmt.type->c_repr(stmt.token->text) << ";\n";
+      break;
     case Node::NONE:
-      _where << ";\n";
       break;
     case Node::STMT:
       if (*stmt.token == "return") {
@@ -217,6 +236,17 @@ void Parser::reconstruct(std::ostream &_where) const noexcept {
         _where << "}\n";
       }
       break;
+
+    case Node::OTHER:
+      if (stmt.c_name == "[]") {
+        // Array access: 2 children (var and index)
+        _where << "(";
+        reconstruct_node(stmt.children.front());
+        _where << "[";
+        reconstruct_node(stmt.children.back());
+        _where << "])";
+      }
+      break;
     }
   };
 
@@ -234,9 +264,33 @@ void Parser::reconstruct(std::ostream &_where) const noexcept {
 }
 
 /// Dump to the given stream
-void Parser::dump(std::ostream &_where) const noexcept {
+void Parser::dump(std::ostream &_where,
+                  const std::list<Lexer::Token> &_file_contents)
+    const noexcept {
   debug_print();
-  throw std::runtime_error(__FUNCTION__);
+
+  _where << "// Lexed contents of file "
+         << _file_contents.front().file;
+
+  uint64_t cur_line = 0;
+  for (auto it = _file_contents.begin();
+       it != _file_contents.end(); ++it) {
+    if (cur_line == it->line) {
+      _where << ' ' << it->text;
+    } else {
+      _where << '\n' << cur_line << "\t|";
+    }
+  }
+
+  _where << "\n// Attempted reconstruction\n";
+
+  try {
+    reconstruct(_where);
+  } catch (std::runtime_error &e) {
+    _where << "// FAILURE: " << e.what() << '\n';
+  } catch (...) {
+    _where << "// UNKNOWN FAILURE\n";
+  }
 }
 
 // Parse a single function declaration
@@ -260,7 +314,20 @@ void Parser::parse_function(
     to_add.tags = {{"signature", "true"}};
   } else {
     // Implementation
+
+    // Push stack frame w/ args
+    std::map<std::string, Type> arg_map;
+    auto args = t.fn_args();
+    for (const auto &p : args) {
+      arg_map[p.first] = p.second;
+    }
+
+    locals.push_back(arg_map);
+
     to_add.n = parse_statement(_cur_pos, _end);
+
+    // Pop stack frame
+    locals.pop_back();
   }
 
   for (const auto &name : _names) {
@@ -368,6 +435,11 @@ void Parser::parse_struct(
   // Declaration
   else if (*_cur_pos == "{") {
     const auto members = parse_members(_cur_pos, _end);
+
+    for (const auto &member : members) {
+      to_add.member_order.push_back(member.first);
+      to_add.members[member.first] = member.second;
+    }
   }
 
   // Invalid
@@ -432,6 +504,11 @@ void Parser::parse_enum(
   // Declaration
   else if (*_cur_pos == "{") {
     const auto members = parse_members(_cur_pos, _end);
+
+    for (const auto &member : members) {
+      to_add.option_order.push_back(member.first);
+      to_add.options[member.first] = member.second;
+    }
   }
 
   // Invalid
@@ -510,13 +587,21 @@ Node Parser::parse_statement(
     Type t = parse_type(_cur_pos, _end);
     validate_type(t);
 
+    Node out;
+    out.type = t;
+    out.node_type = Node::DECL;
+    out.token = Lexer::Token(*_cur_pos, "");
+
     // Add all to symbol table
     for (const auto &name : names) {
+      if (!out.token.value().text.empty()) {
+        out.token.value().text += ", ";
+      }
+      out.token.value().text += name;
+
       locals.back()[name] = t;
     }
 
-    Node out;
-    out.node_type = Node::NONE;
     return out;
   } else if (*_cur_pos == "{") {
     // Scope
@@ -630,7 +715,13 @@ Node Parser::parse_statement(
     return out;
   } else {
     // Function call
-    return parse_function_call(_cur_pos, _end);
+    Node ret = parse_function_call(_cur_pos, _end);
+    incr(_cur_pos, _end);
+    if (*_cur_pos != ";") {
+      throw std::runtime_error(
+          "Missing semicolon after function call.");
+    }
+    return ret;
   }
 }
 
@@ -658,33 +749,59 @@ Node Parser::parse_function_call(
     }
     incr(_cur_pos, _end);
   }
-  incr(_cur_pos, _end);
-  if (*_cur_pos != ";") {
-    throw std::runtime_error(
-        "Missing semicolon after function call.");
+
+  //////////////////////////////////////////////////////////////
+  // Special cases here
+
+  // Array access via the 'Get' operator
+  if (out.token.value() == "Get" && out.children.size() == 2 &&
+      (out.children.back().type->cast_match(Type({"u128"})) ||
+       out.children.back().type->cast_match(Type({"i128"}))) &&
+      (out.children.front().type->nodes.front().type ==
+           Type::TypeNode::SIZED_ARRAY ||
+       out.children.front().type->nodes.front().type ==
+           Type::TypeNode::UNSIZED_ARRAY)) {
+    // Only resolvable at reconstruction-time
+    out.node_type = Node::OTHER;
+    out.c_name = "[]";
+    out.type = out.children.front().type;
+    out.type->nodes.pop_front();
+    return out;
   }
+
+  // End special cases
+  //////////////////////////////////////////////////////////////
 
   // Return type only
-  out.type = resolve_fn_call(out.token.value().text, args);
+  FnInfo f;
+  std::vector<int> derefs;
+  out.type =
+      resolve_fn_call(out.token.value().text, args, f, derefs);
 
   // Build c-name
-  Type full_type;
-  full_type.append_fn();
+  out.c_name = f.t.mangle(out.token.value().text);
 
-  bool first = true;
-  for (const auto &arg : args) {
-    if (first) {
-      first = false;
-    } else {
-      full_type.append_join();
+  // Modify children as needed
+  if (!derefs.empty()) {
+    for (uint i = 0; i < out.children.size(); ++i) {
+      if (derefs[i] == -1) {
+        Node new_child;
+        new_child.node_type = Node::MODIFIER;
+        new_child.children = {out.children[i]};
+        new_child.c_name = "&";
+        out.children[i] = new_child;
+      } else if (derefs[i] > 0) {
+        Node new_child;
+        new_child.node_type = Node::MODIFIER;
+        new_child.children = {out.children[i]};
+        new_child.c_name->reserve(derefs[i]);
+        for (int j = 0; j < derefs[i]; ++j) {
+          new_child.c_name->push_back('*');
+        }
+        out.children[i] = new_child;
+      }
     }
-
-    full_type.append_type(arg);
   }
-  full_type.append_maps();
-  full_type.append_type(out.type.value());
-
-  out.c_name = full_type.mangle(out.token.value().text);
 
   return out;
 }
@@ -731,11 +848,35 @@ Node Parser::parse_object(
     return out;
   } else {
     // Name
-    Node out;
-    out.token = *_cur_pos;
+    uint derefs = 0;
+    while (_cur_pos != _end && *_cur_pos == "^") {
+      ++derefs;
+      ++_cur_pos;
+    }
+
+    if (_cur_pos == _end) {
+      throw std::runtime_error(
+          "'^' operator must operate on a variable.");
+    }
 
     auto name = *_cur_pos;
     Type t = resolve_variable(name);
+
+    // Derefs
+    if (derefs > 0) {
+      for (uint i = 0; i < derefs; ++i) {
+        name.text = "(*" + name.text + ")";
+
+        if (!t.nodes.empty() &&
+            t.nodes.front().type == Type::TypeNode::POINTER) {
+          t.nodes.pop_front();
+        } else {
+          throw std::runtime_error(
+              "Cannot dereference non-pointer type '" +
+              t.oak_repr() + "'");
+        }
+      }
+    }
 
     // Member access
     while (std::next(_cur_pos) != _end &&
@@ -773,6 +914,7 @@ Node Parser::parse_object(
       name.text += "." + member_name;
     }
 
+    Node out;
     out.node_type = Node::OBJECT;
     out.c_name = name;
     out.type = t;
@@ -887,25 +1029,29 @@ bool Parser::TemplateInfo::attempt_instantiation(
   return true;
 }
 
+std::string fn_call_str(const std::string &_name,
+                        const std::vector<Type> &_args) {
+  std::string call_text = _name + "(";
+  bool first = true;
+  for (const auto &arg_type : _args) {
+    if (first) {
+      first = false;
+    } else {
+      call_text += ", ";
+    }
+    call_text += "_: " + arg_type.oak_repr();
+  }
+  call_text += ")";
+  return call_text;
+}
+
 // Resolves a function call through any means necessary. If
 // it cannot be resolved, an error is thrown.
 Type Parser::resolve_fn_call(const std::string &_name,
-                             const std::vector<Type> &_args) {
+                             const std::vector<Type> &_args,
+                             FnInfo &_into,
+                             std::vector<int> &_derefs) {
   debug_print();
-  const static auto fn_call_str = [&]() -> std::string {
-    std::string call_text = _name + "(";
-    bool first = true;
-    for (const auto &arg_type : _args) {
-      if (first) {
-        first = false;
-      } else {
-        call_text += ", ";
-      }
-      call_text += "_: " + arg_type.oak_repr();
-    }
-    call_text += ")";
-    return call_text;
-  };
 
   // Do any templates
   try {
@@ -919,17 +1065,20 @@ Type Parser::resolve_fn_call(const std::string &_name,
   } catch (std::runtime_error &_e) {
     throw std::runtime_error("Error during template checking "
                              "requested by function call '" +
-                             fn_call_str() + "':\n" +
-                             _e.what());
-  } catch (...) {
+                             fn_call_str(_name, _args) +
+                             "':\n" + _e.what());
+  }
+
+  catch (...) {
     throw std::runtime_error(
         "Unknown error during template checking "
         "requested by function call '" +
-        fn_call_str() + "'");
+        fn_call_str(_name, _args) + "'");
   }
 
   // Attempt existing instances
   std::list<FnInfo> exact_matches, cast_matches, ref_matches;
+  std::list<std::vector<int>> ref_match_deref_counts;
   for (const auto &instance : functions[_name]) {
     bool exact = true, ref = true, cast = true;
     const auto instance_args = instance.t.fn_args();
@@ -938,14 +1087,21 @@ Type Parser::resolve_fn_call(const std::string &_name,
       continue;
     }
 
+    std::vector<int> num_derefs;
+    num_derefs.reserve(instance_args.size());
     for (uint i = 0; i < instance_args.size(); ++i) {
       if (exact &&
           !_args[i].exact_match(instance_args[i].second)) {
         exact = false;
       }
-      if (ref && !_args[i].ref_match(instance_args[i].second)) {
+
+      int num_arg_derefs = 0;
+      if (ref && !_args[i].ref_match(instance_args[i].second,
+                                     num_arg_derefs)) {
         ref = false;
       }
+      num_derefs.push_back(num_arg_derefs);
+
       if (cast &&
           !_args[i].cast_match(instance_args[i].second)) {
         cast = false;
@@ -956,6 +1112,7 @@ Type Parser::resolve_fn_call(const std::string &_name,
       exact_matches.push_back(instance);
     } else if (ref) {
       ref_matches.push_back(instance);
+      ref_match_deref_counts.push_back(num_derefs);
     } else if (cast) {
       cast_matches.push_back(instance);
     }
@@ -969,8 +1126,9 @@ Type Parser::resolve_fn_call(const std::string &_name,
           throw std::runtime_error(
               "Multiple castable matches were "
               "found for function call '" +
-              fn_call_str() + "'");
+              fn_call_str(_name, _args) + "'");
         } else {
+          _into = cast_matches.front();
           return cast_matches.front().t.fn_return_type();
         }
       }
@@ -980,8 +1138,10 @@ Type Parser::resolve_fn_call(const std::string &_name,
         throw std::runtime_error(
             "Multiple reference matches were "
             "found for function call '" +
-            fn_call_str() + "'");
+            fn_call_str(_name, _args) + "'");
       } else {
+        _into = ref_matches.front();
+        _derefs = ref_match_deref_counts.front();
         return ref_matches.front().t.fn_return_type();
       }
     }
@@ -990,8 +1150,9 @@ Type Parser::resolve_fn_call(const std::string &_name,
     if (exact_matches.size() != 1) {
       throw std::runtime_error("Multiple exact matches were "
                                "found for function call '" +
-                               fn_call_str() + "'");
+                               fn_call_str(_name, _args) + "'");
     } else {
+      _into = exact_matches.front();
       return exact_matches.front().t.fn_return_type();
     }
   }
@@ -1000,7 +1161,7 @@ Type Parser::resolve_fn_call(const std::string &_name,
   throw std::runtime_error("No existing candidate nor "
                            "providing template could be "
                            "found for function call '" +
-                           fn_call_str() + "'");
+                           fn_call_str(_name, _args) + "'");
 }
 
 /// Finds all possible template instantiations to match the

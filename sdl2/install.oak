@@ -1,0 +1,5 @@
+pragma!("no_dialect");
+
+compile_time::system!(
+  "make"
+);

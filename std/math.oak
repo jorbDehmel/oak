@@ -1,0 +1,21 @@
+/*
+Math stuff
+*/
+
+pragma!("no_dialect");
+link!("std/math.o");
+
+let math::e!  = 2.71828182f64;
+let math::pi! = 3.14159265f64;
+
+let pow(base: f64, exp: f64) -> f64;
+let exp(power: f64) -> f64;
+let sqrt(x: f64) -> f64;
+
+let sin(rad: f64) -> f64;
+let cos(rad: f64) -> f64;
+let tan(rad: f64) -> f64;
+
+let sinh(x: f64) -> f64;
+let cosh(x: f64) -> f64;
+let tanh(x: f64) -> f64;

@@ -15,7 +15,7 @@
 
 class MacroManager {
 public:
-  std::list<Lexer::Token>
+  void
   replace(std::list<Lexer::Token> &_whole,
           std::list<Lexer::Token>::iterator &_it,
           const std::list<Lexer::Token>::iterator &_end) const;
