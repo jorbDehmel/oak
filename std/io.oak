@@ -6,7 +6,7 @@ Jordan Dehmel, 2025, MIT license
 pragma!("no_dialect");
 link!("std/io.o");
 
-let print(_: ^i8) -> void;
+let print(_: []i8) -> void;
 let print(_: bool) -> void;
 let print(_: ^void) -> void;
 
@@ -18,6 +18,8 @@ let print(_: i32) -> void;
 let print(_: u32) -> void;
 let print(_: i64) -> void;
 let print(_: u64) -> void;
+let print(_: int) -> void;
+let print(_: uint) -> void;
 
 let print(_: f32) -> void;
 let print(_: f64) -> void;

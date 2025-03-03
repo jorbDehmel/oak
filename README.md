@@ -31,8 +31,8 @@ ONF:
 // "let "
 let main() -> i32 {
     let a: i32;
-    Copy(@a, 5i32);
-    AddEq(@a, Add(Mult(5i32, 2i32), 4i32));
+    Copy(a, 5i32);
+    AddEq(a, Add(Mult(5i32, 2i32), 4i32));
     return 0i32;
 }
 ```
@@ -55,8 +55,8 @@ let add(a: i32, b: i32) -> i32 {
 
 let main() -> i32 {
     let c, d: i32;
-    Copy(@c, 123i32);
-    Copy(@d, 321i32);
+    Copy(c, 123i32);
+    Copy(d, 321i32);
 
     // This would not normally be allowed, but the rule causes
     // it to be ok!

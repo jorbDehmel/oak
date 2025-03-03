@@ -1,6 +1,6 @@
 /**
  * @file oakc.hpp
- * @brief
+ * @brief Defines the OakCompiler class
  */
 
 #pragma once
@@ -29,50 +29,69 @@ const static std::string ACORN_VERSION = "0.8.0";
  */
 class OakCompiler {
 public:
+  /**
+   * @brief Initialize a compiler instance
+   * @param _strm The stream to use as cout
+   */
   OakCompiler(std::ostream &_strm = std::cout)
       : settings(_strm) {
   }
 
+  /// The parser
   Parser p;
+
+  /// Rule definitions
   RuleRunner rules;
+
+  /// Macro definitions
   MacroManager macros;
 
-  ///
+  /**
+   * @class OakCompiler::Settings
+   * @brief Describes settings (either testing or compilation)
+   * for an acorn CLI run.
+   */
   class Settings {
   public:
+    /// Construct with the given stream as cout
     Settings(std::ostream &_strm) : ostream(_strm) {
     }
 
     /**
-     * @struct CompileSettings
-     * @brief
+     * @struct OakCompiler::Settings::CompileSettings
+     * @brief The compilation option of the settings enum. This
+     * holds settings for any non-testing run of the CLI.
      */
     struct CompileSettings {
-      ///
+      /// The target file: Usually `.c`, `.o`, or `.out`
       std::filesystem::path target = "a.out";
 
-      ///
+      /// The entry point: Only main functions from this file
+      /// will be kept at link-time
       std::filesystem::path entry_point = "main.oak";
 
-      ///
+      /// The system path where all oak packages are stored
       std::filesystem::path include_path = "/usr/include/oak";
 
-      ///
+      /// The max number of preprocessor passes to apply before
+      /// erroring
       uint preprocess_pass_limit = 0x10'00;
 
-      ///
-      uint rule_pass_limit = 0x01'00;
-
-      ///
+      /// If true, allows unmonitored use of the
+      /// compile_time::system! macro
       bool no_confirm = false;
 
-      ///
+      /// The command to call for compilation. '^' is replaced
+      /// by the input file(s) and '@' is replaced by the
+      /// target.
       std::string compilation_command = "gcc ^ -c -o @";
 
-      ///
+      /// The command to call for linkage. Follows same
+      /// substitution rules as compilation.
       std::string linkage_command = "g++ ^ -o @";
 
-      ///
+      /// The mode of the run. Can be NOTHING (syntax check
+      /// only) or specify some other options.
       enum {
         NOTHING = 0,
         TRANSLATE_ONLY = 1,
@@ -81,49 +100,58 @@ public:
         TRANSLATE_COMPILE_LINK_AND_EXECUTE = 4,
       } mode = TRANSLATE_COMPILE_AND_LINK;
 
-      ///
+      /// If requested, where to write logs ('dumps')
       std::optional<std::shared_ptr<std::ofstream>> dump_file;
 
-      ///
+      /// If true, calls an autoformatter (clang-format) on the
+      /// produced C files
       bool prettify = false;
 
-      ///
+      /// If true, enforces compliance to best practices. This
+      /// is not always desirable (EG macros)
       bool do_syntax_check = true;
 
-      ///
+      /// If true, write logs of all rule operations
       bool rule_logs = false;
 
-      ///
+      /// A list of flags to put AFTER the compilation command
       std::list<std::string> compile_flags;
 
-      ///
+      /// A list of flags to put AFTER the linkage command
       std::list<std::string> link_flags;
 
-      ///
+      /// A list of object files ('.o') to include at link time
       std::list<std::filesystem::path> objects;
 
-      ///
+      /// Libraries requested for inclusion via g++ at link time
       std::list<std::string> libs;
 
-      ///
-      std::map<std::string, std::string> pragmas;
+      /// Maps filepaths to their pragma mappings
+      std::map<std::filesystem::path,
+               std::map<std::string, std::string>>
+          pragmas;
 
-      ///
+      /// Keeps track of all files processed to avoid
+      /// duplication
       std::set<std::filesystem::path> visited;
     };
 
     /**
      * @struct TestSettings
-     * @brief
+     * @brief The testing option of the settings variant. This
+     * contains the settings for when acorn is running in test
+     * mode (EG test suites)
      */
     struct TestSettings {
-      ///
+      /// A list of directories to look for tests in
       std::list<std::filesystem::path> dirs;
 
-      ///
+      /// If true, compilation errors cause us to stop in our
+      /// tracks
       bool halt_on_compiler_failure = true;
 
-      ///
+      /// The testing mode: Allows compilation only or two modes
+      /// of compilation+running
       enum {
         COMPILE_ONLY,
         REGULAR_EXECUTE,
@@ -134,14 +162,14 @@ public:
     /// Where to write information to (usually cout)
     std::ostream &ostream;
 
-    ///
+    /// If true, logs more to cout
     bool debug = false;
 
-    ///
+    /// If desired, the dialect file to load before running
     std::optional<std::filesystem::path> dialect;
 
     /**
-     * @brief
+     * @brief Yields this object as a TestSettings variant
      */
     inline TestSettings &test_settings() noexcept {
       if (!std::holds_alternative<TestSettings>(internal)) {
@@ -151,7 +179,7 @@ public:
     }
 
     /**
-     * @brief
+     * @brief Yields this object as a CompileSettings variant
      */
     inline CompileSettings &compile_settings() noexcept {
       if (!std::holds_alternative<CompileSettings>(internal)) {
@@ -161,14 +189,14 @@ public:
     }
 
     /**
-     * @brief
+     * @brief Returns true iff we are in compile mode
      */
     inline bool is_compile() const noexcept {
       return std::holds_alternative<CompileSettings>(internal);
     }
 
   protected:
-    ///
+    /// The underlying variant of the settings
     std::variant<CompileSettings, TestSettings> internal =
         CompileSettings{};
   };
@@ -203,7 +231,7 @@ public:
 
   //////////////////////////////////////////////////////////////
 
-  ///
+  /// The settings to run after argument parsing
   Settings settings;
 
   /**
@@ -229,24 +257,24 @@ protected:
                Settings::CompileSettings &_csettings);
 
   /**
-   * @brief
+   * @brief Runs in testing mode
    */
   void do_testing();
 
   /**
-   * @brief
+   * @brief Tests the input token stream for validity
    */
   void syntax_check(
       const std::list<Lexer::Token> &_token_stream) const;
 
   /**
-   * @brief
+   * @brief Preprocess until a fixed point is reached
    */
   uint64_t preprocess(std::list<Lexer::Token> &_token_stream,
                       Settings::CompileSettings &_csettings);
 
   /**
-   * @brief
+   * @brief Load a given dialect file and apply it
    */
   void load_dialect_file(const std::filesystem::path &_file);
 

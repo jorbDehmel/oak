@@ -1,0 +1,14 @@
+/*
+std::filesystem Oak-to-C++ interface
+*/
+
+pragma!("no_dialect");
+link!("std/fs.o");
+
+let fs::exists(path: []i8) -> bool;
+let fs::is_dir(path: []i8) -> bool;
+let fs::is_regular_file(path: []i8) -> bool;
+let fs::copy(src: []i8, tgt: []i8) -> void;
+let fs::chdir(path: []i8) -> void;
+let fs::mkdir(path: []i8) -> void;
+let fs::remove(path: []i8) -> void;

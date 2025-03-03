@@ -9,8 +9,8 @@
 #include "oak/std/std_oak_header.h"
 #include <stdio.h>
 
-// print(_: ^i8) -> void
-void print_FN_PTR_i8_MAPS_void(i8 *_to_print) {
+// print(_: []i8) -> void
+void print_FN_ARR_i8_MAPS_void(i8 *_to_print) {
   printf("%s", _to_print);
 }
 
@@ -87,4 +87,14 @@ void print_FN_u128_MAPS_void(u128 _to_print) {
 // print(_: f128) -> void
 void print_FN_f128_MAPS_void(f128 _to_print) {
   printf("%Lf", _to_print);
+}
+
+// print(_: int) -> void
+void print_FN_int_MAPS_void(int _to_print) {
+  printf("%d", _to_print);
+}
+
+// print(_: uint) -> void
+void print_FN_uint_MAPS_void(uint _to_print) {
+  printf("%u", _to_print);
 }

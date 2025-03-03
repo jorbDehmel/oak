@@ -19,14 +19,11 @@ check:
 install: check
 	@echo "Compiling and installing acorn..."
 	$(MAKE) -C src $@
+	sudo mkdir -p /usr/include/oak/std
+	sudo cp std/std_oak_header.h /usr/include/oak/std/std_oak_header.h
 
 	@echo "Installing default Oak libraries..."
 	acorn -yS ./std
-	acorn -yS ./stl
-	acorn -yS ./sdl
-	acorn -yS ./turtle
-	acorn -yS ./cereal
-	acorn -yS ./extra
 
 .PHONY:	install-debug
 install-debug: check
@@ -35,11 +32,6 @@ install-debug: check
 
 	@echo "Installing default Oak libraries..."
 	acorn -yS ./std
-	acorn -yS ./stl
-	acorn -yS ./sdl
-	acorn -yS ./turtle
-	acorn -yS ./cereal
-	acorn -yS ./extra
 
 .PHONY:	uninstall
 uninstall:
@@ -47,17 +39,25 @@ uninstall:
 
 .PHONY:	test
 test:
+	@echo "Ensuring proper documentation..."
+	doxygen -q
+
 	@echo "Running unit tests..."
 	$(MAKE) -C unit_tests $@
 
 	@echo "Running integration tests..."
-	acorn -TTE std cereal turtle extra stl sdl
+	acorn -TE std
 
 .PHONY:	format
 format:
 	find . -type f \
 		\( -iname "*.cpp" -or -iname "*.hpp" \) \
 		-exec clang-format -i "{}" \;
+
+.PHONY:	docs
+docs:
+	doxygen -q
+	$(MAKE) -C latex
 
 .PHONY:	clean
 clean:

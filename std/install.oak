@@ -1,3 +1,7 @@
+/*
+Builds the std package objects for installation
+*/
+
 pragma!("no_dialect");
 
 compile_time::system!(

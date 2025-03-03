@@ -1,6 +1,6 @@
 /**
  * @file package.hpp
- * @brief
+ * @brief Resources for resolving packages in Oak
  */
 
 #pragma once

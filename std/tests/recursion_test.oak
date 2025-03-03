@@ -1,0 +1,19 @@
+/*
+Tests recursive function calls in Oak
+*/
+
+include!("std/std.oak");
+
+let foo(i: i32) -> i32 {
+  if (Leq(i, 0i32)) {
+    return i;
+  } else {
+    return Add(i, foo(Sub(i, 1i32)));
+  }
+}
+
+let main() -> i32 {
+  print(foo(10i32));
+  endl();
+  return 0i32;
+}

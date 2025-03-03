@@ -5,9 +5,10 @@
 
 #include "rule.hpp"
 #include "debug.hpp"
+#include "lexer.hpp"
 #include "sapling.hpp"
-#include <cstdint>
 #include <set>
+#include <stack>
 #include <stdexcept>
 #include <variant>
 
@@ -117,60 +118,53 @@ RuleRunner::resolve(const std::list<std::string> &_rules) {
   return out;
 }
 
-uint RuleRunner::process_text(std::list<Lexer::Token> &_what,
-                              const uint &_max_passes) {
+void RuleRunner::process_text(std::list<Lexer::Token> &_what) {
   debug_print();
   const auto rules = resolve(entry_points);
-  uintmax_t pass = 0, rule_pass = 0;
-  bool did_change = false;
 
-  do {
-    if (pass >= _max_passes) {
-      throw std::runtime_error(
-          "Ruleset failed to converge within " +
-          std::to_string(_max_passes) +
-          " meta-passes! A loop of length >1 is likely!");
-    }
+  // Do rules here
+  for (const auto &rule_spec : rules) {
+    // Fetch engine details
+    const auto engine = engines.at(rule_spec.engine);
 
-    // Do rules here
-    for (const auto &rule_spec : rules) {
-      // Fetch engine details
-      const auto engine = engines.at(rule_spec.engine);
+    auto pos = _what.begin();
+    auto state = engine.default_state;
+    std::stack<
+        std::pair<std::list<Lexer::Token>::iterator, uint>>
+        resets;
 
-      auto pos = _what.begin();
-      auto state = engine.default_state;
-      auto most_recent_reset = pos;
+    while (pos != _what.end()) {
+      auto res =
+          engine.state_transition(rule_spec, state, *pos);
 
-      while (pos != _what.end()) {
-        auto res =
-            engine.state_transition(rule_spec, state, *pos);
+      if (res.second) {
+        // Do replacement
+        std::list<Lexer::Token> matched_text;
+        matched_text.assign(std::next(resets.top().first),
+                            std::next(pos));
 
-        if (res.second) {
-          // Do replacement
-          std::list<Lexer::Token> matched_text;
-          matched_text.assign(most_recent_reset,
-                              std::next(pos));
+        const auto replacement =
+            engine.on_match(rule_spec, res.first, matched_text);
 
-          const auto replacement = engine.on_match(
-              rule_spec, res.first, matched_text);
+        _what.erase(std::next(resets.top().first),
+                    std::next(pos));
+        _what.insert(std::next(resets.top().first),
+                     replacement.begin(), replacement.end());
 
-          // Pop most recent reset
-        } else if (res.first == engine.default_state) {
-          // Log as most recent reset
-          state = res.first;
-        } else {
-          // Normal transition
-          state = res.first;
-        }
-
-        ++pos;
+        // Pop most recent reset
+        pos = resets.top().first;
+        state = resets.top().second;
+        resets.pop();
+      } else if (res.first == engine.default_state) {
+        // Log as most recent reset
+        state = res.first;
+        resets.push({pos, state});
+      } else {
+        // Normal transition
+        state = res.first;
       }
 
-      ++rule_pass;
+      ++pos;
     }
-
-    ++pass;
-  } while (did_change);
-
-  return pass;
+  }
 }

@@ -1,0 +1,20 @@
+/*
+Tests rules
+*/
+
+include!("std/std.oak");
+rule::new!(
+  "test_rule", // Rule name
+  "fizz",      // Input rule
+  "buzz",      // Output rule
+  "sapling"    // Engine name
+  // Any more would be prerequisites
+);
+rule::use!("test_rule");
+
+let main() -> i32 {
+  let buzz: i32;
+  Copy(buzz, 0i32);
+  print(fizz); // Shouldn't be defined unless rule works
+  return 0i32;
+}

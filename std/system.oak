@@ -5,4 +5,4 @@ Interfaces with the std `c` system call
 pragma!("no_dialect");
 link!("std/system.o");
 
-let system(cmd: ^i8) -> i32;
+let system(cmd: []i8) -> i32;

@@ -1,9 +1,0 @@
-/*
-SDL2 Oak-side interface
-*/
-
-link!("sdl/sdl.o");
-flag!(
-  "-L/usr/lib -lSDL2 -I/usr/include/SDL2 "
-  "-D_GNU_SOURCE=1 -D_REENTRANT"
-);

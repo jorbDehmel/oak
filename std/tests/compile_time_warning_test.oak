@@ -1,0 +1,9 @@
+include!("std/std.oak");
+
+compile_time::warning!(
+  "Warning!"
+);
+
+let main() -> i32 {
+  return 0i32;
+}

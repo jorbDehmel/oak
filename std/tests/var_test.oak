@@ -1,7 +1,7 @@
 include!("std/io.oak");
 let main() -> i32 {
-    let foo: i32;
-    print(foo);
-    endl();
-    return 0i32;
+  let foo: i32;
+  print(foo);
+  endl();
+  return 0i32;
 }

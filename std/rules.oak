@@ -1,0 +1,29 @@
+/*
+Defines the std ruleset
+*/
+
+pragma!("no_dialect");
+
+rule::new!(
+  "mult",
+  "$~ $* $>lhs * $~ $* $>rhs",
+  "Mult ( $lhs , $rhs )");
+rule::new!(
+  "div",
+  "$~ $* $>lhs / $~ $* $>rhs",
+  "Div ( $lhs , $rhs )", "sapling",
+  "mult");
+rule::new!(
+  "add",
+  "$~ $* $>lhs + $~ $* $>rhs",
+  "Add ( $lhs , $rhs )", "sapling",
+  "div");
+rule::new!(
+  "sub",
+  "$~ $* $>lhs - $~ $* $>rhs",
+  "Sub ( $lhs , $rhs )", "sapling",
+  "add");
+
+rule::bundle!(
+  "std",
+  "sub");

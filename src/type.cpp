@@ -282,10 +282,8 @@ std::string Type::c_repr(const std::string &_var_name,
     for (const auto &node : nodes) {
       switch (node.type) {
       case TypeNode::POINTER:
-        prefix += "*";
-        break;
       case TypeNode::UNSIZED_ARRAY:
-        suffix += "[]";
+        prefix += "*";
         break;
       case TypeNode::SIZED_ARRAY:
         suffix +=
@@ -373,6 +371,16 @@ bool Type::exact_match(const Type &_other) const {
 
 /// Returns true iff this type can be cast to match the other
 bool Type::cast_match(const Type &_other) const {
+  // Special case: Void pointer casting
+  // NOTE: This may cause some issues on C-side
+  if (_other.nodes.front().type == TypeNode::POINTER &&
+      exact_match(Type({"^", "void"}))) {
+    return true;
+  } else if (nodes.front().type == TypeNode::POINTER &&
+             _other.exact_match(Type({"^", "void"}))) {
+    return true;
+  }
+
   if (nodes.size() != _other.nodes.size()) {
     return false;
   }
@@ -413,6 +421,8 @@ bool Type::cast_match(const Type &_other) const {
                mine->sized_array_size !=
                    theirs->sized_array_size) {
       return false;
+    } else if (mine->type == TypeNode::UNSIZED_ARRAY) {
+      return exact_match(_other);
     }
     ++mine, ++theirs;
   }
@@ -546,7 +556,9 @@ void Type::append_maps() {
 /// once
 Type Type::deref() const {
   if (nodes.empty() ||
-      nodes.front().type != TypeNode::POINTER) {
+      (nodes.front().type != TypeNode::POINTER &&
+       nodes.front().type != TypeNode::UNSIZED_ARRAY &&
+       nodes.front().type != TypeNode::SIZED_ARRAY)) {
     throw std::runtime_error("Cannot deref non-pointer type '" +
                              oak_repr() + "'");
   }
@@ -563,7 +575,7 @@ std::string Type::struct_name() const {
       nodes.front().type != TypeNode::LITERAL) {
     std::cout << nodes.front().type << '\n';
     throw std::runtime_error(
-        "Cannot get struct name of non-terminal type '" +
+        "Cannot get struct/enum name of non-terminal type '" +
         oak_repr() + "'");
   }
   return nodes.front().literal_name;

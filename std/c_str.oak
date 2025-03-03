@@ -1,0 +1,9 @@
+/*
+C-string operations in oak
+*/
+
+pragma!("no_dialect");
+link!("std/c_str.o");
+
+let strcpy(dest: ^[]i8, src: []i8) -> []i8;
+let strlen(what: []i8) -> uint;

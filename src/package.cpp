@@ -66,12 +66,6 @@ load_package_spec(const std::filesystem::path &_path) {
   return out;
 }
 
-/**
- * @brief Installs a local package.
- * @param _package The path to the local version of the
- * package.
- * @param _oak_include The include directory for all of oak.
- */
 void PackageManager::install_package(
     const std::filesystem::path &_package,
     const OakCompiler::Settings::CompileSettings &_csettings) {

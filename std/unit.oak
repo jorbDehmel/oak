@@ -1,0 +1,9 @@
+/*
+Defines the unit struct
+*/
+
+pragma!("no_dialect");
+
+let unit: struct {
+  _: u8,
+}

@@ -2,7 +2,6 @@
  * @file macro.hpp
  * @brief Resources for managing macros
  * @author Jordan Dehmel
- * @year 2025
  */
 
 #include "macro.hpp"
@@ -13,6 +12,21 @@
 #include <stdexcept>
 #include <string>
 #include <variant>
+
+const std::set<std::string> MacroManager::reserved_macro_names =
+    {"size!", "type!", "c!", "alloc!", "free!"};
+
+std::string MacroManager::strip_string_literal(
+    const std::string &_str_lit) {
+  const static std::set<char> str_chars = {'\'', '"', '`'};
+
+  std::string out = _str_lit;
+  while (out.front() == out.back() &&
+         str_chars.contains(out.front())) {
+    out = out.substr(1, out.size() - 2);
+  }
+  return out;
+}
 
 void MacroManager::replace(
     std::list<Lexer::Token> &_whole,
@@ -50,7 +64,7 @@ void MacroManager::replace(
     const auto to_remove = _it;
     for (const auto &item :
          std::get<Alias>(macros.at(name)).contents) {
-      _whole.insert(to_remove, Lexer::Token(name, item.text));
+      _whole.insert(to_remove, Lexer::Token(name, item));
     }
     _it = std::prev(to_remove);
     _whole.erase(to_remove);
@@ -119,12 +133,8 @@ std::list<Lexer::Token> MacroManager::get_macro_args(
   _whole.erase(range_start, first_after_range);
 
   // Clean quotes
-  const static std::set<char> str_chars = {'\'', '"', '`'};
   for (auto it = out.begin(); it != out.end(); ++it) {
-    while (it->text.front() == it->text.back() &&
-           str_chars.contains(it->text.front())) {
-      it->text = it->text.substr(1, it->text.size() - 2);
-    }
+    it->text = MacroManager::strip_string_literal(it->text);
   }
 
   return out;

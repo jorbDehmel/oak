@@ -1,0 +1,13 @@
+/*
+Tests the type! macro
+*/
+
+include!("std/std.oak");
+
+let main() -> i32 {
+  let a: i32;
+
+  let b: type!(a);
+
+  return 0i32;
+}

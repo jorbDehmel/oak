@@ -1,0 +1,18 @@
+/*
+Tests if statements w/ else clauses
+*/
+
+include!("std/std.oak");
+
+let main() -> i32 {
+  let condition: bool;
+  Copy(condition, true);
+
+  if (condition) {
+    print("Condition was true\n");
+  } else {
+    print("Condition was false\n");
+  }
+
+  return 0i32;
+}

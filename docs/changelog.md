@@ -1,0 +1,408 @@
+
+# Acorn Oak compiler changelog
+
+Jordan Dehmel, jdehmel@outlook.com
+
+[Oak on GitHub](github.com/jorbDehmel/oak)
+
+## 0.8.0 (2/26/25)
+
+- **Code before now will almost certainly not work**
+- 100% rewrite from ground up under MIT license (rather than
+    GPL)
+
+----------------------------------------------------------------
+## Everything below is pre-rewrite (and GPL'ed)
+----------------------------------------------------------------
+
+## 0.7.0 (7/10/24)
+
+Various bug fixes; Restricted return types on copy further,
+fixed bugs with return type checking.
+
+## 0.6.3 (5/28/24)
+
+Added serialization package `cereal`.
+
+## 0.6.2 (5/1/24)
+
+Bug fixes w/ update and uninstall, minor additions to `std` and
+test suites.
+
+## 0.6.1 (4/15/24)
+
+Added makefile rule for formatting. Also minor bug fixes.
+
+## 0.6.0 (4/14/24)
+
+Revamped `std` package, rules system, added unittests. Ensured
+compliance to new rule system; Code written before this likely
+will not work. Also, integrated method call notation.
+
+## 0.5.6 (3/15/24)
+
+Added memcheck requirement for push to main, added clause
+keywords (where, is, does, has, needs, and implies). Also minor
+issue fixes w/ lexer.
+
+## 0.5.5 (3/3/24)
+
+Expanded packages list, minor changes to return values of acorn,
+bug fixes in turtle package.
+
+## 0.5.4 (3/2/24)
+
+Added some more `to_*` fns to avoid stupid nested calls. Also
+allowed multiple inputs to `oak2c`.
+
+## 0.5.3 (3/1/24)
+
+Disallowed precision-losing implicit casts.
+
+## 0.5.2 (2/24/24)
+
+Added incrementation, decrementation, and negation unary
+operators (all prefix).
+
+## 0.5.1 (2/23/24)
+
+Allowed multiple main functions for a given translation unit.
+Also changed protocol for `c_` family of compile-time macros to
+be `c::` for easier memorization.
+
+## 0.5.0 (2/23/24)
+
+Switched internal representation of token streams to lists from
+vectors. Also limited return type of `Copy` operators and added
+the `pair` class in `std`.
+
+## 0.4.26 (2/9/24)
+
+Made the `namespace` rule intrinsic such that it is available at
+all times. Adjusted accordingly.
+
+## 0.4.25 (2/8/24)
+
+Added syntax errors prohibiting trailing whitespace and
+requiring comments. Reformatted provided libraries to conform to
+these new standards.
+
+## 0.4.24 (2/8/24)
+
+Minor efficiency boosts for macros, fixed bug where the
+`--execute` flag was broken. Also added warning for exceeding 64
+character lines.
+
+## 0.4.23 (2/3/24)
+
+Fixed bug which was causing all test suites to succeed, no
+matter what. Also added type suffixes.
+
+## 0.4.22 (2/3/24)
+
+Consolidated source code to make the include paths more
+sensible. Now primed for full compiler object-orientation.
+
+## 0.4.21 (2/1/24)
+
+Added the `C` keyword collision avoidance pass to rectify names.
+
+## 0.4.20 (1/31/24)
+
+Reformatting to remove capitalized parameter names, added
+documentation. No major functional changes.
+
+## 0.4.19 (1/29/24)
+
+Bug fix w/ input files.
+
+## 0.4.18 (1/28/24)
+
+Migrated most system calls over to OS-agnostic library calls.
+
+## 0.4.17 (1/27/24)
+
+Absorbed `pre` into `trait`, bug fixes around traits.
+
+## 0.4.16 (1/21/24)
+
+Fixed bugs which produced inviable object files using `-c`.
+
+## 0.4.15 (1/18/24)
+
+Bug fixes w/ plural definitions, more efficiency boosts.
+Consolidated std math interfaces, worked on
+std/smart_string.oak.
+
+## 0.4.14 (1/17/24)
+
+More efficiency boosts.
+
+## 0.4.13 (1/16/24)
+
+Fixed plural definition for functions, optimized `std` package
+and saved nontrivial time in std test suite.
+
+## 0.4.12 (1/13/24)
+
+Fixed package installation bugs, fixes plural declaration
+notation.
+
+## 0.4.11 (1/12/24)
+
+Added more tests, `trait` rule.
+
+## 0.4.10 (1/11/24)
+
+Added `arr` and `matrix` data structures to `stl` library. Minor
+bug fixes to preproc definitions.
+
+## 0.4.9 (1/11/24)
+
+Switched lexer to be DFA-based, various bug fixes.
+
+## 0.4.8 (1/7/24)
+
+Fixed bug w/ incorrect selection of function candidates. Also
+added turtle package and fixed various other bugs.
+
+## 0.4.7 (1/6/24)
+
+Required fully-qualified namespaces in all non-`std` packages.
+
+## 0.4.6 (1/5/24)
+
+Fixed automatic destructor calls, bugs w/ return type checking.
+
+## 0.4.5 (1/1/24)
+
+Reformatted code to remove 'using' statements, ##define
+statements.
+
+## 0.4.4 (12/31/23)
+
+Fixed bug w/ complex nested parenthesis. Also include macros.
+
+## 0.4.3 (12/30/23)
+
+Fixed installation process for unknown Linux distributions. Now
+allows manual installation instead of failing. Also fixed manual
+template overrides for pre blocks.
+
+## 0.4.2 (12/28/23)
+
+Fixed bugs with sizing due to C compiler's unknowable member
+padding. Removed redundant print candidates in io.oak. Various
+other bug fixes.
+
+## 0.4.1 (12/28/23)
+
+Added some extra functions to extra bit print file.
+
+## 0.4.0 (12/27/23)
+
+Replaced needs blocks with pre and post blocks. Generic code
+written before this will not work. Also bug fixes with packages.
+
+## 0.3.1 (12/26/23)
+
+Bug fixes with member New and Del calls.
+
+## 0.3.0 (12/23/23)
+
+Added arrays. Code written before this will likely not work.
+
+## 0.2.15 (12/22/23)
+
+Fixed return statements, added return keyword. Prepped for the
+addition of array types.
+
+## 0.2.14 (12/21/23)
+
+Revamped function candidate finding to be more modular. Also
+broke sequence.cpp in half and removed legacy `Copy` redundant
+special cases.
+
+## 0.2.13 (12/19/23)
+
+Finally fixed operator precedence. Also made file naming scheme
+internally consistent.
+
+## 0.2.12 (12/12/23)
+
+Added binary and hex int literals, made whitespace separated
+integers fuse together for readability.
+
+## 0.2.11 (12/11/23)
+
+Added support for multiple rule engines. Also some minor bug
+fixes.
+
+## 0.2.10 (12/9/23)
+
+Moved regex from std to extra. Improved test suite testing.
+
+## 0.2.9 (12/7/23)
+
+Efficiency boost via vectorization. Also added raw_c! macro for
+raw C code.
+
+## 0.2.8 (12/5/23)
+
+Added c_sys! for compile-time sys calls. Also, bug fixes.
+
+## 0.2.7 (11/29/23)
+
+Added ptrcpy! and ptrarr! for ease of use. Bug fixes and minor
+optimization, modified needs block.
+
+## 0.2.6 (11/23/23)
+
+Minor bug fixes
+
+## 0.2.5 (11/17/23)
+
+Added path to further specify package installation locations.
+Also added size! macro, added existing tests to test suite.
+
+## 0.2.4 (11/15/23)
+
+Added integrated uninstaller and updater.
+
+## 0.2.3 (10/31/23)
+
+Bug fixes, added regex_inter.oak. Expanded readme.
+
+## 0.2.2 (10/28/23)
+
+Bug fixes, added std/sock_inter.oak for POSIX sockets.
+
+## 0.2.1 (10/27/23)
+
+Quality of life std rule adds. Also reformatted rule eval timing
+to allow rules to call compile macros. Also added several new
+rule cards.
+
+## 0.2.0 (10/27/23)
+
+Made the target language C instead of C++. Marginal efficiency
+boosts.
+
+## 0.1.5 (10/25/23)
+
+Macro compilation caching, added -M for macros, -U for rule
+logs. Also, some experimental stuff.
+
+## 0.1.4 (10/21/23)
+
+Added type! macro for getting type.
+
+## 0.1.3 (10/18/23)
+
+Changed the format of preproc defines for internal consistency.
+Also, added bool-extension rules and some extra syntax checks,
+as well as limiting cache sizes.
+
+## 0.1.2 (10/15/23)
+
+Added some caching optimization.
+
+## 0.1.1 (10/13/23)
+
+Added syntax errors and the -x flag to disable them. Update
+std.od file. Removed the '..' rule for mutable methods, since
+the distinction is no longer necessary.
+
+## 0.1.0 (10/12/23)
+
+Large bug fixes, revamped types for better stability. Also
+reorganized phases for macro bug fixes. Also, added automatic
+dereference and referencing.
+
+## 0.0.20 (10/9/23)
+
+Fixed nested generics, automatic calls to New and Del.
+
+## 0.0.19 (10/7/23)
+
+Added automatic calls to New and Del to all struct members.
+
+## 0.0.18 (10/3/23)
+
+Added panics for unrecoverable errors. Misc bug fixes.
+
+## 0.0.17 (9/19/23)
+
+Redid template instantiator calls for more specificity and less
+redundancy.
+
+## 0.0.16 (9/15/23)
+
+Added needs blocks for generic structs.
+
+## 0.0.15 (9/12/23)
+
+Many large bug fixes for generics. Added inline template
+instantiation.
+
+## 0.0.14 (9/11/23)
+
+Fixed bug with overloaded functions falling out of scope upon
+redefinition.
+
+## 0.0.13 (9/7/23)
+
+Modernized generics (reintroduced). Also added mangling, setting
+scene for lower level translations later on.
+
+## 0.0.12 (9/4/23)
+
+Killed generics again, pending a future overhaul. Also revamped
+destructor and automatic constructor calls.
+
+## 0.0.11 (9/1/23)
+
+Added std/error.oak for runtime errors. (Note: Real exceptions
+are not allowed).
+
+## 0.0.10 (8/31/23)
+
+Added caveat that New and Del must be single-argument. Also
+added the multi argument copy constructor syntax a = (b, c, d);
+
+## 0.0.9 (8/18/23)
+
+Added enums and match, case, and default statements.
+
+## 0.0.8 (8/15/23)
+
+Fixed bug with struct member order in interfacial files.
+
+## 0.0.7 (8/8/23)
+
+Added function pointers.
+
+## 0.0.6 (8/8/23)
+
+Added std/string.oak, fixed alloc!
+
+## 0.0.5 (8/6/23)
+
+Fixed bug with templated functions and recursion.
+
+## 0.0.4 (8/5/23)
+
+Added multithreading file in std.
+
+## 0.0.3 (8/4/23)
+
+Fixed basic generic structs and recursive functions.
+
+## 0.0.2 (8/3/23)
+
+Fixed heap memory, macros, math, and finished rules. Basics are
+laid.
+
+## 0.0.1 (7/28/23)
+
+Initialization of changelog - NOT start of project.

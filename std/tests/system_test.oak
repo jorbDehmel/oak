@@ -1,0 +1,6 @@
+include!("std/std.oak");
+
+let main() -> i32 {
+  system("pwd");
+  return 0i32;
+}

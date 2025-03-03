@@ -1,4 +1,4 @@
-include!("std/io.oak");
+include!("std/std.oak");
 
 let bundle: struct {
   a: i32,
@@ -7,6 +7,8 @@ let bundle: struct {
 
 let main() -> i32 {
   let foo: bundle;
+  Copy(foo.a, 0i32);
+  Copy(foo.b, true);
 
   print(foo.a);
   endl();

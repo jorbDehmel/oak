@@ -1,0 +1,18 @@
+/*
+Tests while loops in oak
+*/
+
+include!("std/std.oak");
+
+let main() -> i32 {
+  let counter: i32;
+  Copy(counter, 0i32);
+
+  while (Less(counter, 128i32)) {
+    print(counter);
+    endl();
+    Incr(counter);
+  }
+
+  return 0i32;
+}

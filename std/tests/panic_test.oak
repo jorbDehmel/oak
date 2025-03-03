@@ -1,0 +1,11 @@
+/*
+Tests RUNTIME panics and the run_should_fail pragma
+*/
+
+include!("std/std.oak");
+pragma!("run_should_fail");
+
+let main() -> i32 {
+  panic();
+  return 0i32;
+}

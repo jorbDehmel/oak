@@ -16,6 +16,7 @@ extern "C" {
 #include <limits.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <sys/types.h>
 
 // Type defs

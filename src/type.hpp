@@ -21,13 +21,24 @@
  */
 class Type {
 public:
-  // A higher number is more precise. The goal is not to lose
-  // any precision in our casts.
+  /// A higher number is more precise. The goal is not to lose
+  /// any precision in our casts. These are EG i32, i64, int
   const static std::map<std::string, uint> int_literals;
+
+  /// A higher number is more precise. The goal is not to lose
+  /// any precision in our casts. These are EG u32, u64, uint
   const static std::map<std::string, uint> uint_literals;
+
+  /// A higher number is more precise. The goal is not to lose
+  /// any precision in our casts. These are EG f32, f64, float
   const static std::map<std::string, uint> float_literals;
 
+  /// Default constructor
   Type() = default;
+
+  /**
+   * @brief Parse some series of tokens as a type
+   */
   Type(const std::initializer_list<std::string> &_tokens) {
     for (const auto &t : _tokens) {
       process_next(t);
@@ -76,7 +87,8 @@ public:
   }
 
   /// Returns the struct name of this type for parse-time
-  /// lookup. Errors if not a direct instance of a struct
+  /// lookup. Errors if not a direct instance of a struct or
+  /// enum
   std::string struct_name() const;
 
   /// Returns whether or not this type is valid to instantiate
@@ -125,7 +137,16 @@ protected:
   /// once
   Type deref() const;
 
+  /**
+   * @struct TypeNode
+   * @brief A single node in a type
+   */
   struct TypeNode {
+    /**
+     * @enum TypeTag
+     * @brief The type of this typenode (EG pointer, literal,
+     * array)
+     */
     enum TypeTag {
       POINTER,
       UNSIZED_ARRAY,
@@ -134,7 +155,10 @@ protected:
       FUNCTION,
       JOIN,
       MAPS,
-    } type = LITERAL;
+    };
+
+    /// The type of this typenode
+    TypeTag type = LITERAL;
 
     /// Used only in literal nodes
     std::string literal_name = "";
@@ -147,6 +171,9 @@ protected:
     std::string following_arg_name = "";
   };
 
+  /// Used for parsing types from token streams
   std::stack<std::string> enclosure;
+
+  /// Internal type representation
   std::list<TypeNode> nodes;
 };

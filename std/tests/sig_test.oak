@@ -1,0 +1,14 @@
+include!("std/std.oak");
+
+let main() -> i32;
+
+let fizz() -> i32;
+
+let fizz() -> i32 {
+  return 0i32;
+}
+
+let main() -> i32 {
+  fizz();
+  return 0i32;
+}

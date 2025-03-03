@@ -1,0 +1,76 @@
+/*
+Defines the dynamically-allocated `str` class in Oak
+*/
+
+pragma!("no_dialect");
+include!(
+  "std/operators.oak",
+  "std/io.oak",
+  "std/panic.oak",
+  "std/c_str.oak");
+
+////////////////////////////////////////////////////////////////
+// Struct definition
+
+let str: struct {
+  c_str: []i8,
+  size: uint
+}
+
+////////////////////////////////////////////////////////////////
+// Signatures
+
+let New(self: ^str) -> str;
+let Del(self: ^str) -> void;
+let Copy(self: ^str, other: str) -> str;
+let Copy(self: ^str, other: []i8) -> str;
+let Add(lhs: str, rhs: str) -> str;
+let Mult(lhs: str, rhs: uint) -> str;
+
+let reserve(self: ^str, size: uint) -> void;
+let print(what: str) -> void;
+
+////////////////////////////////////////////////////////////////
+// Implementations
+
+let New(self: ^str) -> str {
+  Copy(self.size, 0uint);
+}
+
+let Del(self: ^str) -> void {
+  if (Neq(self.size, 0uint)) {
+    free!(self.c_str);
+    Copy(self.size, 0uint);
+  }
+}
+
+let Copy(self: ^str, other: str) -> str {
+  Del(self);
+  Copy(self.size, other.size);
+  strcpy(self.c_str, other.c_str);
+  return ^self;
+}
+
+let Copy(self: ^str, other: []i8) -> str {
+  Del(self);
+  Copy(self.size, strlen(other));
+  strcpy(self.c_str, other);
+  return ^self;
+}
+
+let Add(lhs: str, rhs: str) -> str {
+  panic();
+}
+
+let Mult(lhs: str, rhs: uint) -> str {
+  panic();
+}
+
+let reserve(self: ^str, size: uint) -> void {
+  Copy(self.size, size);
+  alloc!(self.c_str, self.size);
+}
+
+let print(what: str) -> void {
+  print(what.c_str);
+}

@@ -9,5 +9,7 @@
 *.acorn_dump
 .oak_build/
 .vscode/
+latex/
 build/
+html/
 bin/

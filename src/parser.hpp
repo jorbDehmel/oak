@@ -19,51 +19,43 @@
 #include <variant>
 #include <vector>
 
+/**
+ * @struct Node
+ * @brief A single node in an AST
+ */
 struct Node {
-  // NONE is the unit statement: Invalid in non-statement
-  // contexts. It will not have any data. IF, WHILE, STMT, CASE,
-  // and MATCH will have children, but no type or token.
-  // Function calls and variables will be of type OBJECT and
-  // have all their data.
-  // IF.children    = {condition, body, else?}
-  // WHILE.children = {condition, body}
-  // MATCH.children = {else, cases...}
-  // CASE.children  = {capture, body}
-  // STMT.children  = {stmts...}
-  // CALL
-  enum {
+  /// The AST node type: Used for reconstruction
+  enum NodeType {
     IF,
     WHILE,
     MATCH,
-    CASE,
     OBJECT,
     CALL,
     NONE,
     DECL,
-    MODIFIER, // A raw C prefix modifier (EG &, *)
-    OTHER,    // Special cases determinable by c_name
+    RAW_C_FMT, // Format strings w/ `%`
+    ARR,
     STMT
-  } node_type;
+  };
 
-  std::optional<Lexer::Token> token;
-  std::optional<std::string> c_name; // If different than token
-  std::optional<Type> type;
-  std::vector<Node> children;
-};
+  /// The type of this node
+  NodeType node_type;
 
-/**
- * @brief When thrown, the owner OakC object should print a
- * corresponding error or rethrow.
- */
-struct PrintableFileError : std::runtime_error {
-  PrintableFileError(const std::string &_msg,
-                     const Lexer::Token &_tok)
-      : std::runtime_error(_msg), path(_tok.file),
-        line(_tok.line), col(_tok.col) {
+  /// Initialize from some node type
+  Node(const NodeType &_node_type) : node_type(_node_type) {
   }
 
-  const std::filesystem::path path;
-  const uint64_t line, col;
+  /// If this node has one, the token
+  std::optional<Lexer::Token> token;
+
+  /// Some C literality
+  std::optional<std::string> c_name;
+
+  /// The return type of this node, if it has one
+  std::optional<Type> type;
+
+  /// The children of this AST node
+  std::vector<Node> children;
 };
 
 /**
@@ -76,34 +68,55 @@ public:
   /// Information about a single function. The type should be
   /// unique.
   struct FnInfo {
+    /// Pragma-like tags
     std::map<std::string, std::string> tags;
+
+    /// The fn's FULL type (not just return type)
     Type t;
-    Node n;
+
+    /// An AST node defining the behaviour
+    Node n = Node(Node::NONE);
   };
 
   /// Information about a single struct definition.
   struct StructInfo {
+    /// Pragma-like tags
     std::map<std::string, std::string> tags;
+
+    /// The order of the members, since that matters
     std::list<std::string> member_order;
+
+    /// The types of the members
     std::map<std::string, Type> members;
   };
 
   /// Information about a single enum definition
   struct EnumInfo {
+    /// Pragma-like tags (EG "casual")
     std::map<std::string, std::string> tags;
+
+    /// The order of the options, since this matters
     std::list<std::string> option_order;
+
+    /// The types of the options
     std::map<std::string, Type> options;
   };
 
   /// Information about a single template block
   struct TemplateInfo {
-    std::list<std::string> generics;  // The things to replace
-    std::list<Lexer::Token> provides; // For auto-instantiation
+    /// The things to replace
+    std::list<std::string> generics;
 
-    std::list<Lexer::Token> validate;    // Run beforehand
-    std::list<Lexer::Token> instantiate; // Run if valid
+    /// "Sample" of body used for auto-instantiation
+    std::list<Lexer::Token> provides;
 
-    // Instances which have already existed
+    /// Run beforehand: If fail, no error
+    std::list<Lexer::Token> validate;
+
+    /// Run if valid
+    std::list<Lexer::Token> instantiate;
+
+    /// Instances which already exist
     std::set<std::list<std::list<std::string>>>
         existing_instances;
 
@@ -138,9 +151,6 @@ public:
   /// handled already!
   void
   parse_global(const std::list<Lexer::Token> &_file_contents);
-
-  /// Resets the state of the translation unit
-  void reset();
 
   /// Resolve the given variable
   Type resolve_variable(const Lexer::Token &_name);
@@ -201,8 +211,7 @@ protected:
   /// Assumes we are pointing to "case" or "else"
   /// Non-global (inside match statement)
   Node parse_case(
-      const std::set<std::string> &_names,
-      const Type &_enum_type,
+      const EnumInfo &_enum_type,
       std::list<Lexer::Token>::const_iterator &_cur_pos,
       const std::list<Lexer::Token>::const_iterator &_end);
 

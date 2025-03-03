@@ -1,0 +1,22 @@
+include!("std/std.oak");
+
+let main() -> i32 {
+  srand(123uint);
+
+  let counter: i32;
+  Copy(counter, 0i32);
+
+  while (Less(counter, 10i32)) {
+    let foo: int;
+    Copy(foo, rand());
+
+    print(counter);
+    print("\t|\t");
+    print(foo);
+    endl();
+
+    Incr(counter);
+  }
+
+  return 0i32;
+}

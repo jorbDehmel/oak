@@ -15,6 +15,7 @@
 #include <iostream>
 #include <iterator>
 #include <map>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -366,15 +367,17 @@ void OakCompiler::operator()() {
     try {
       do_compilation();
     } catch (...) {
-      if (!settings.compile_settings().pragmas.contains(
-              "compile_should_fail")) {
+      if (!settings.compile_settings()
+               .pragmas[settings.compile_settings().entry_point]
+               .contains("compile_should_fail")) {
         throw;
       }
       did_fail = true;
     }
     if (!did_fail &&
-        settings.compile_settings().pragmas.contains(
-            "compile_should_fail")) {
+        settings.compile_settings()
+            .pragmas[settings.compile_settings().entry_point]
+            .contains("compile_should_fail")) {
       throw std::runtime_error(
           "Compilation succeeded with "
           "pragma!(\"compile_should_fail\")");
@@ -532,12 +535,26 @@ void OakCompiler::do_compilation() {
   if (csettings.mode >=
       Settings::CompileSettings::
           TRANSLATE_COMPILE_LINK_AND_EXECUTE) {
+    bool should_succeed =
+        !settings.compile_settings()
+             .pragmas[settings.compile_settings().entry_point]
+             .contains("run_should_fail");
+
     int execution_result = system(("." / linked_file).c_str());
-    if (execution_result != 0) {
-      throw std::runtime_error(
-          "Execution of file '" + linked_file.string() +
-          "' failed with exit code " +
-          std::to_string(execution_result));
+
+    if (should_succeed) {
+      if (execution_result != 0) {
+        throw std::runtime_error(
+            "Execution of file '" + linked_file.string() +
+            "' failed with exit code " +
+            std::to_string(execution_result));
+      }
+    } else {
+      if (execution_result == 0) {
+        throw std::runtime_error(
+            "Execution of file '" + linked_file.string() +
+            "' should have failed, but ran successfully");
+      }
     }
   }
 }
@@ -824,6 +841,31 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
   bool did_change = false;
   uint64_t passes = 0;
 
+  std::optional<std::shared_ptr<std::ostream>> log;
+  if (_csettings.rule_logs) {
+    if (_csettings.dump_file.has_value()) {
+      log = _csettings.dump_file.value();
+    } else {
+      log = std::make_shared<std::ofstream>("acorn_rules.log");
+    }
+
+    **log << "Raw lexed :\n ";
+    uint64_t prev_line = 0;
+    std::filesystem::path prev_path;
+    for (const auto &tok : _token_stream) {
+      if (tok.file != prev_path) {
+        **log << '\n' << tok.file << ":\n";
+        prev_path = tok.file;
+      }
+      if (tok.line != prev_line) {
+        **log << "\n" << tok.line << "\t|";
+        prev_line = tok.line;
+      }
+      **log << ' ' << tok.text;
+    }
+    **log << '\n';
+  }
+
   do {
     ++passes;
 
@@ -950,16 +992,41 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
           if (args.size() == 1) {
             args.push_back(Lexer::Token(args.front(), ""));
           }
-          _csettings.pragmas[args.front().text] =
+          _csettings.pragmas[it->file][args.front().text] =
               std::next(args.begin())->text;
         } else if (*it == "rule_new!") {
           const auto args = MacroManager::get_macro_args(
               _token_stream, it, _token_stream.end());
 
           Rule to_add;
-          throw std::runtime_error(__FILE__);
+          std::string name;
 
-          rules.register_rule(args.front(), to_add);
+          if (args.size() < 3) {
+            throw std::runtime_error(
+                "Malformed rule::new! call: Arguments must be "
+                "rule_name, input_rule, output_rule, "
+                "[engine_name], [prerequisites...]");
+          }
+
+          // Name, input, output (using sapling engine)
+          name = args.front();
+          to_add.input_pattern = *std::next(args.begin());
+          to_add.output_pattern = *std::next(args.begin(), 2);
+          to_add.engine = "sapling";
+
+          if (args.size() == 4) {
+            // Name, input, output, engine
+            to_add.engine = *std::next(args.begin(), 3);
+          } else if (args.size() > 4) {
+            // Name, input, output, engine, prerequisites
+            to_add.engine = *std::next(args.begin(), 3);
+            for (auto it = std::next(args.begin(), 4);
+                 it != args.end(); ++it) {
+              to_add.prereqs.push_back(*it);
+            }
+          }
+
+          rules.register_rule(name, to_add);
         } else if (*it == "rule_use!") {
           const auto args = MacroManager::get_macro_args(
               _token_stream, it, _token_stream.end());
@@ -1090,7 +1157,9 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
          it != _token_stream.end(); ++it) {
       try {
         if (*it != "!" && it->type == "ID" &&
-            it->text.find('!') != std::string::npos) {
+            it->text.find('!') != std::string::npos &&
+            !MacroManager::reserved_macro_names.contains(
+                it->text)) {
           macros.replace(_token_stream, it,
                          _token_stream.end());
         }
@@ -1116,8 +1185,25 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
     }
 
     // Apply ruleset
-    rules.process_text(_token_stream,
-                       _csettings.rule_pass_limit);
+    rules.process_text(_token_stream);
+
+    if (log.has_value()) {
+      **log << "\nAfter pass " << passes << ":\n";
+      uint64_t prev_line = 0;
+      std::filesystem::path prev_path;
+      for (const auto &tok : _token_stream) {
+        if (tok.file != prev_path) {
+          **log << '\n' << tok.file << ":\n";
+          prev_path = tok.file;
+        }
+        if (tok.line != prev_line) {
+          **log << "\n" << tok.line << "\t|";
+          prev_line = tok.line;
+        }
+        **log << ' ' << tok.text;
+      }
+      **log << '\n';
+    }
   } while (did_change &&
            passes < _csettings.preprocess_pass_limit);
 

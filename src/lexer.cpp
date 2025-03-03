@@ -5,9 +5,6 @@
 #include <set>
 #include <stdexcept>
 
-/**
- * @brief
- */
 std::list<Lexer::Token>
 Lexer::lex(const std::string &_text,
            const std::filesystem::path &_path, uint64_t &_line,
@@ -21,7 +18,7 @@ Lexer::lex(const std::string &_text,
       '=', '|', ';', ':', ',', '<', '.', '>', '/', '?'};
   const static std::set<char> singleton_operators = {
       '[', ']', '{', '}', '(', ')'};
-  const static auto next_line = [&]() {
+  const auto next_line = [&]() {
     ++_line;
     _col = 0;
   };
@@ -321,7 +318,7 @@ const static bool replace_suffix(std::string &_what,
 std::optional<Type> Lexer::get_literal_type(Token &_t) {
   debug_print();
   if (_t.type == "STRING") {
-    return Type({"^", "i8"});
+    return Type({"[", "]", "i8"});
   } else if (_t.text == "true" || _t.text == "false") {
     return Type({"bool"});
   }

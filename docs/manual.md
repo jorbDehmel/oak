@@ -119,6 +119,7 @@ entire translation unit). The following details current pragmas.
 ----------------------------------|-----------------------------
  `pragma!("no_dialect")`          | Do not apply dialect rules
  `pragma!("compile_should_fail")` | Compilation should fail
+ `pragma!("run_should_fail")`     | Execution should fail
 
 ## Rules and Dialects
 

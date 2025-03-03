@@ -1,0 +1,9 @@
+/*
+Tests std/str.oak
+*/
+
+include!("std/std.oak", "std/str.oak");
+
+let main() -> i32 {
+  return 0i32;
+}

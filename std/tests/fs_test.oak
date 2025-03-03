@@ -1,0 +1,18 @@
+/*
+
+*/
+
+include!("std/std.oak");
+include!("std/panic.oak");
+include!("std/fs.oak");
+
+let main() -> i32 {
+  if (Not(fs::exists(FILE!))) {
+    panic();
+  } else {
+    print(FILE!);
+    print(" exists (good)\n");
+  }
+
+  return 0i32;
+}

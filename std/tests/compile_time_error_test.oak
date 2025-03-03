@@ -1,0 +1,15 @@
+/*
+Tests COMPILE-TIME errors
+*/
+
+pragma!("compile_should_fail");
+include!("std/std.oak");
+
+compile_time::error!(
+  "Error!!!!!"
+);
+
+// Runtime will always exit cleanly
+let main() -> i32 {
+  return 0i32;
+}

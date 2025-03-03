@@ -1,0 +1,58 @@
+include!("std/std.oak");
+
+let test: enum {
+  a: i32,
+  b: bool,
+  c: f64,
+  d: i8
+}
+
+let main() -> i32 {
+  let inst: test;
+
+  wrap_a(inst, 0i32);
+  match (inst) {
+    case a(data: i32) {
+      print("a\n");
+    } case b(data: bool) {
+      print("b\n");
+    } else {
+      print("Else\n");
+    }
+  }
+
+  wrap_b(inst, false);
+  match (inst) {
+    case a(data: i32) {
+      print("a\n");
+    } case b(data: bool) {
+      print("b\n");
+    } else {
+      print("Else\n");
+    }
+  }
+
+  wrap_c(inst, 0f64);
+  match (inst) {
+    case a(data: i32) {
+      print("a\n");
+    } case b(data: bool) {
+      print("b\n");
+    } else {
+      print("Else\n");
+    }
+  }
+
+  wrap_d(inst, 0i8);
+  match (inst) {
+    case a(data: i32) {
+      print("a\n");
+    } case b(data: bool) {
+      print("b\n");
+    } else {
+      print("Else\n");
+    }
+  }
+
+  return 0i32;
+}
