@@ -1,5 +1,5 @@
 HEADERS := lexer.hpp oakc.hpp package.hpp rule.hpp type.hpp \
-	parser.hpp sapling.hpp debug.hpp macro.hpp
+	parser.hpp sapling.hpp debug.hpp macro.hpp settings.hpp
 OBJECTS := lexer.o oakc.o package.o rule.o type.o parser.o \
 	sapling.o macro.o
 CPP     := g++ -std=c++20 -pedantic -Wall -O3 -g

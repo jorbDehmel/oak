@@ -1,7 +1,22 @@
+/*
+Tests inline and functional macros
+*/
+
 include!("std/io.oak");
+
+let foo!(c: i32, v: [][]i8) -> i32 {
+  include!("std/io.oak");
+  print(
+    "print(\"Hello, world!\\n\");\n"
+  );
+}
+
 let main() -> i32 {
   print("Hello from ");
   print(FILE!);
   endl();
+
+  foo!();
+
   return 0i32;
 }

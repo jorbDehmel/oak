@@ -6,6 +6,7 @@
 *.dump
 *.oak.c
 *.rule_log
+*.macro.oak
 *.acorn_dump
 .oak_build/
 .vscode/

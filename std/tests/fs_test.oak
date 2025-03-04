@@ -14,5 +14,10 @@ let main() -> i32 {
     print(" exists (good)\n");
   }
 
+  fs::mkdir("test_junk_dir");
+  fs::chdir("test_junk_dir");
+  fs::chdir("..");
+  fs::remove("test_junk_dir");
+
   return 0i32;
 }

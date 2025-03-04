@@ -31,3 +31,5 @@ let print(_: f128) -> void;
 let endl() -> void {
   print("\n");
 }
+
+let getch() -> i8;

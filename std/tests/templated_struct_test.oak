@@ -1,0 +1,31 @@
+/*
+Tests templated structs
+*/
+
+let Node<t> : struct {
+  data: []t
+} pre {
+  // Intentionally fail
+  compile_time::error!("This one won't work...");
+}
+
+let Node<t> : struct {
+  data: t
+} pre {
+  // Validation code goes here
+  // It's ok if this block fails
+  compile_time::warning!("This one will!");
+} post {
+  // Instantiation calls go here
+  // It's NOT ok if this block fails!
+  let foo<t>() -> void;
+}
+
+let foo<t>() -> void {}
+
+let main() -> i32 {
+  // Should resolve to the second definition
+  let a: Node<i32>;
+
+  return 0i32;
+}

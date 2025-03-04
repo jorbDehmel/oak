@@ -8,13 +8,50 @@
 #include "debug.hpp"
 #include "lexer.hpp"
 #include "oakc.hpp"
+#include "settings.hpp"
+#include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <iterator>
 #include <set>
 #include <stdexcept>
 #include <string>
 #include <variant>
 
 const std::set<std::string> MacroManager::reserved_macro_names =
-    {"size!", "type!", "c!", "alloc!", "free!"};
+    {"size!",
+     "type!",
+     "c!",
+     "alloc!",
+     "free!",
+     "compile_time_error!",
+     "compile_time_warning!"};
+
+std::string get_cmd_output(const std::string &_cmd) {
+  char buffer[128];
+  std::string result;
+  FILE *pipe = popen(_cmd.c_str(), "r");
+
+  if (!pipe) {
+    throw std::runtime_error("'popen' failed for command '" +
+                             std::string(_cmd) + "'");
+  }
+
+  memset(buffer, '\0', 128);
+  while (fgets(buffer, 128, pipe) != nullptr) {
+    result.append(buffer, strnlen(buffer, 128));
+    memset(buffer, '\0', 128);
+  }
+
+  int code = pclose(pipe);
+  if (code != 0) {
+    throw std::runtime_error("Command '" + std::string(_cmd) +
+                             "' failed with error code " +
+                             std::to_string(code));
+  }
+
+  return result;
+}
 
 std::string MacroManager::strip_string_literal(
     const std::string &_str_lit) {
@@ -71,14 +108,109 @@ void MacroManager::replace(
   } else if (std::next(_it) != _end &&
              std::next(_it)->text == "(") {
     // Functional
-    throw std::runtime_error(
-        "Functional macro replacement is unimplemented");
+    auto args = get_macro_args(_whole, _it, _end);
+    ++_it;
+
+    const auto exe =
+        std::get<Compiled>(macros.at(name)).executable;
+
+    if (!std::filesystem::exists(exe)) {
+      throw std::runtime_error("Compiled macro " +
+                               exe.string() +
+                               " does not exist!");
+    }
+
+    // Prepare call
+    std::string command = exe;
+    for (const auto &arg : args) {
+      command += " \"";
+      for (const auto &c : arg.text) {
+        command += c;
+      }
+      command += "\"";
+    }
+
+    std::cout << "Command: '" << command << "'\n";
+
+    // Run call and get replacement
+    const auto replacement = get_cmd_output(command);
+
+    // Lex replacement
+    Lexer l;
+    uint64_t junk_line = 0, junk_col = 0;
+    const auto lexed_replacement =
+        l.lex(replacement, name.file, junk_line, junk_col);
+
+    // Do replacement
+    for (const auto &t : lexed_replacement) {
+      Lexer::Token to_insert = t;
+      to_insert.file = name.file;
+      to_insert.line = name.line;
+      to_insert.col = name.col;
+      _whole.insert(_it, to_insert);
+    }
+
+    // Decr one
+    --_it;
   } else {
     // Error
     throw std::runtime_error(
         "Compiled macro '" + name.text +
         "' must be invoked as a function call.");
   }
+}
+
+/// STRIPS QUOTES OFF OF a macro occurrence's
+/// args. Then returns those args WITHOUT ERASURE.
+std::list<Lexer::Token> MacroManager::get_macro_args(
+    const std::list<Lexer::Token>::const_iterator &_beg,
+    const std::list<Lexer::Token>::const_iterator &_end) {
+  debug_print();
+
+  // Points to name
+  uint depth = 0;
+  std::list<Lexer::Token> out;
+  auto it = _beg;
+  Lexer::Token cur(*_beg, "");
+  cur.text.clear();
+
+  do {
+    ++it;
+
+    if (*it == "(") {
+      ++depth;
+      if (depth == 1) {
+        continue;
+      }
+    } else if (*it == ")") {
+      --depth;
+      if (depth == 0) {
+        break;
+      }
+    }
+
+    if (depth == 1 && *it == ",") {
+      if (!cur.text.empty()) {
+        out.push_back(cur);
+        cur = Lexer::Token(*it, "");
+      }
+    } else {
+      if (!cur.text.empty()) {
+        cur.text.push_back(' ');
+      }
+      cur.text += it->text;
+    }
+  } while (it != _end);
+  if (!cur.text.empty()) {
+    out.push_back(cur);
+  }
+
+  // Clean quotes
+  for (auto it = out.begin(); it != out.end(); ++it) {
+    it->text = MacroManager::strip_string_literal(it->text);
+  }
+
+  return out;
 }
 
 std::list<Lexer::Token> MacroManager::get_macro_args(
@@ -169,8 +301,79 @@ void MacroManager::process_definition(
 
     macros[name] = info;
   } else if (_it->text == "(") {
-    throw std::runtime_error(
-        "Functional macro definition is unimplemented");
+    // Scrape definition
+    std::list<Lexer::Token> contents;
+    contents.push_back(Lexer::Token(*_it, "let"));
+    contents.push_back(Lexer::Token(*_it, "main"));
+
+    // Until first "{"
+    while (_it->text != "{") {
+      contents.push_back(*_it);
+      ++_it;
+
+      if (_it == _end) {
+        throw std::runtime_error(
+            "Functional macro definition '" + name +
+            "' must be followed by body");
+      }
+    }
+
+    contents.push_back(*_it);
+    ++_it;
+
+    uint count = 1;
+    while (count != 0) {
+      if (_it->text == "{") {
+        ++count;
+      } else if (_it->text == "}") {
+        --count;
+      }
+
+      contents.push_back(*_it);
+      if (_it == _end) {
+        throw std::runtime_error("Functional macro '" + name +
+                                 "' has no ending curly brace");
+      }
+
+      ++_it;
+    }
+    --_it;
+
+    // Write to file
+    const std::filesystem::path source_path =
+        _it->file.string() + "." + name + ".macro.oak";
+    const std::filesystem::path executable_path =
+        source_path.string() + ".out";
+
+    std::ofstream f(source_path);
+    for (const auto &item : contents) {
+      f << item.text << ' ';
+    }
+    f.close();
+
+    // Compile to executable
+    OakCompiler oc;
+    oc.settings.compile_settings().do_syntax_check = false;
+    oc.settings.compile_settings().mode =
+        Settings::CompileSettings::TRANSLATE_COMPILE_AND_LINK;
+    oc.settings.compile_settings().entry_point = source_path;
+    oc.settings.compile_settings().target = executable_path;
+
+    try {
+      oc();
+    } catch (std::runtime_error &e) {
+      throw std::runtime_error("During compilation of macro '" +
+                               name + "':\n" + e.what());
+    } catch (...) {
+      throw std::runtime_error("Unknown error occurred during "
+                               "compilation of macro '" +
+                               name + "'");
+    }
+
+    // Save executable
+    Compiled c;
+    c.executable = executable_path;
+    macros[name] = c;
   } else {
     throw std::runtime_error(
         "Malformed macro definition for " + name +

@@ -3,15 +3,18 @@ check:
 	@echo "Checking for C++ 20 or greater..."
 	@g++ -std=c++20 -c -o /dev/null unit_tests/assert_version.cpp -D DESIRED_VERSION=202000ULL
 
-	@echo "Checking for access to /usr/bin and /usr/include..."
+	@echo "Checking for /usr/bin and /usr/include..."
 	@ls /usr/bin > /dev/null
 	@ls /usr/include > /dev/null
 
 	@echo "Checking for strip..."
-	@strip --version > /dev/null
+	@which strip > /dev/null
 
 	@echo "Checking for valgrind..."
-	@valgrind --version > /dev/null
+	@which valgrind > /dev/null
+
+	@echo "Checking for Doxygen..."
+	@which doxygen > /dev/null
 
 	@echo "Installation (make install) should succeed. If it does not, please submit a bug report!"
 
@@ -27,11 +30,11 @@ install: check
 
 .PHONY:	install-debug
 install-debug: check
-	@echo "Compiling and installing acorn..."
+	@echo "Compiling and installing acorn in debug mode..."
 	$(MAKE) -C src $@
 
 	@echo "Installing default Oak libraries..."
-	acorn -yS ./std
+	acorn-debug -yS ./std
 
 .PHONY:	uninstall
 uninstall:
@@ -48,6 +51,11 @@ test:
 	@echo "Running integration tests..."
 	acorn -TE std
 
+.PHONY:	test-debug
+test-debug:
+	@echo "Running integration tests..."
+	acorn-debug -TE std
+
 .PHONY:	format
 format:
 	find . -type f \
@@ -58,6 +66,7 @@ format:
 docs:
 	doxygen -q
 	$(MAKE) -C latex
+	cp latex/refman.pdf refman.pdf
 
 .PHONY:	clean
 clean:

@@ -55,6 +55,8 @@ let Incr, Decr(self: ^u8) -> u8;
 let Incr, Decr(self: ^u16) -> u16;
 let Incr, Decr(self: ^u32) -> u32;
 let Incr, Decr(self: ^u64) -> u64;
+let Incr, Decr(self: ^uint) -> uint;
+let Incr, Decr(self: ^int) -> int;
 let Copy, AddEq, SubEq, MultEq, DivEq, ModEq(self: ^i8,
   other: i8) -> i8;
 let Copy, AddEq, SubEq, MultEq, DivEq, ModEq(self: ^i16,

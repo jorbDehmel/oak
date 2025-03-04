@@ -3,6 +3,8 @@
 
 J Dehmel, MIT License
 
+![The `Oak` logo: A pixelated tree](../logo.png)
+
 This document outlines the `Oak` programming language and the
 `acorn` translator. Part 1 details the programmer usage, while
 part 2 details maintainer usage.
@@ -14,7 +16,9 @@ and maintenance details, see part 2.
 
 ## What and Why is `Oak`?
 
-`Oak` is a modern extension of `C`.
+`Oak` is a modern extension of `C`. It has static typing, modern
+macros, generics, traits, packages, compile-time inflection, and
+compile-time modifiable syntax.
 
 ## `Hello, World!`
 
@@ -121,6 +125,55 @@ entire translation unit). The following details current pragmas.
  `pragma!("compile_should_fail")` | Compilation should fail
  `pragma!("run_should_fail")`     | Execution should fail
 
+## Macros
+
+There are two types of macros in Oak: Inline/alias and
+functional/compiled. Inline macros are almost exactly like basic
+`C` preprocessor definitions. They are defined as below.
+
+```rust
+// Declare an inline macro
+let foo! = the contents go here;
+
+// This will be replaced by the contents of the macro
+foo!;
+```
+
+There are several built-in inline macros (namely, `LINE!` and
+`FILE!`). Functional macros, on the other hand, are unrestricted
+Oak programs which are available to run at compile-time. These
+programs are run with the arguments provided at
+replacement-time, and their `cout` is lexed and inserted in
+their stead. They essentially compose a nested translation unit
+which can be used elsewhere.
+
+```rust
+// They take the same form as `main`
+let print_foo!(c: i32, v: [][]i8) -> i32 {
+  // Functional macros do not inherit their source files
+  // definitions! Therefore, you must put any inclusions you
+  // want access to directly inside.
+  include!("std/io.oak");
+
+  // Print a statement that prints 'foo'
+  print(
+    "print(\"foo\n\");\n"
+  );
+
+  return 0i32;
+}
+
+include!("std/io.oak");
+let main() -> i32 {
+
+  // The arguments are passed as argv, but ignored in this case
+  // This is replaced before compilation by `print("foo\n");`
+  print_foo!("hi", 123f64, 456i32);
+
+  return 0i32;
+}
+```
+
 ## Rules and Dialects
 
 # Part 2: Maintainer Manual
@@ -138,10 +191,37 @@ began. This document is associated with this "second version" of
 Original documentation can be found in legacy versions of the
 codebase.
 
-## Implementation
+## Parser classification
 
 I believe that the `Oak` parser is best classified as LALR,
 since it uses finite-token lookahead and reads left-to-right in
 a single pass with no backtracking ('I' being J Dehmel). It is
 implemented without the use of a parser generator, and thus I am
 not confident in that classification.
+
+## Passes
+
+This section details the passes that acorn performs when
+translating code.
+
+1. Load entry point file
+2. Lex / tokenize
+3. Syntax check
+4. Preprocess: Repeat until no changes are made or some max
+    number of passes is exceeded
+    1. Macro definitions: Compile any that are functional
+    2. Fetch and recurse on all `include!`-ed files
+    3. Process all linkages, pragmas, flags, rule additions, new
+        rules, rule removals, rule bundles, compile-time system
+        commands, errors, warning
+    4. Resolve inline and functional macro calls
+    5. Apply ruleset once
+5. Parse into AST
+6. (Optional) Translate to `C`
+7. (Optional) Call `gcc` from `C` to object file
+8. (Optional) Call `g++` on object file(s) to executable
+9. (Optional) Execute
+
+Note that the rule system, as iterated transduction, is
+Turing-complete. Thus, the question of compilation halting is
+undecidable except for the max passes limit.

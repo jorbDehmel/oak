@@ -1,6 +1,5 @@
 /**
- * @file rule.cpp
- * @brief
+ * @file
  */
 
 #include "rule.hpp"
@@ -54,9 +53,11 @@ void RuleRunner::add_entry_point(const std::string &_name) {
   entry_points.push_back(_name);
 }
 
-void RuleRunner::purge_entry_points() {
+std::list<std::string> RuleRunner::purge_entry_points() {
   debug_print();
+  const auto to_return = entry_points;
   entry_points.clear();
+  return to_return;
 }
 
 std::list<Rule>
@@ -118,9 +119,10 @@ RuleRunner::resolve(const std::list<std::string> &_rules) {
   return out;
 }
 
-void RuleRunner::process_text(std::list<Lexer::Token> &_what) {
+bool RuleRunner::process_text(std::list<Lexer::Token> &_what) {
   debug_print();
   const auto rules = resolve(entry_points);
+  bool has_changed = false;
 
   // Do rules here
   for (const auto &rule_spec : rules) {
@@ -138,6 +140,8 @@ void RuleRunner::process_text(std::list<Lexer::Token> &_what) {
           engine.state_transition(rule_spec, state, *pos);
 
       if (res.second) {
+        has_changed = true;
+
         // Do replacement
         std::list<Lexer::Token> matched_text;
         matched_text.assign(std::next(resets.top().first),
@@ -167,4 +171,6 @@ void RuleRunner::process_text(std::list<Lexer::Token> &_what) {
       ++pos;
     }
   }
+
+  return has_changed;
 }

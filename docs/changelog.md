@@ -176,7 +176,7 @@ Fixed automatic destructor calls, bugs w/ return type checking.
 
 ## 0.4.5 (1/1/24)
 
-Reformatted code to remove 'using' statements, ##define
+Reformatted code to remove 'using' statements, `#define`
 statements.
 
 ## 0.4.4 (12/31/23)

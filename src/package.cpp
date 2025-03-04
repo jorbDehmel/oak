@@ -27,11 +27,10 @@ load_package_spec(const std::filesystem::path &_path) {
 
   if (std::filesystem::exists(spec_file)) {
     OakCompiler c;
-    OakCompiler::Settings::CompileSettings &settings =
+    Settings::CompileSettings &settings =
         c.settings.compile_settings();
 
-    settings.mode =
-        OakCompiler::Settings::CompileSettings::NOTHING;
+    settings.mode = Settings::CompileSettings::NOTHING;
     settings.entry_point = _path / "spec.oak";
 
     c();
@@ -68,7 +67,7 @@ load_package_spec(const std::filesystem::path &_path) {
 
 void PackageManager::install_package(
     const std::filesystem::path &_package,
-    const OakCompiler::Settings::CompileSettings &_csettings) {
+    const Settings::CompileSettings &_csettings) {
   if (!std::filesystem::exists(_package)) {
     throw std::runtime_error(_package.string() +
                              " does not exist.");
@@ -92,11 +91,10 @@ void PackageManager::install_package(
   if (spec.contains("INSTALL!")) {
     OakCompiler c;
     c.settings.compile_settings() = _csettings;
-    OakCompiler::Settings::CompileSettings &settings =
+    Settings::CompileSettings &settings =
         c.settings.compile_settings();
 
-    settings.mode =
-        OakCompiler::Settings::CompileSettings::TRANSLATE_ONLY;
+    settings.mode = Settings::CompileSettings::TRANSLATE_ONLY;
     settings.entry_point = spec.at("INSTALL!");
 
     try {

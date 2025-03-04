@@ -7,6 +7,7 @@ static_assert(__cplusplus >= 2020'00ULL);
 
 #include "oakc.hpp"
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <stdexcept>
 
@@ -34,7 +35,7 @@ bool parse_args(const int _c, const char *const _v[],
     if (arg.size() > 2 && arg.substr(0, 2) == "--") {
       // Translate and compile
       if (arg == "--compile") {
-        _oakc.settings.compile_settings().mode = OakCompiler::
+        _oakc.settings.compile_settings().mode =
             Settings::CompileSettings::TRANSLATE_AND_COMPILE;
       }
 
@@ -60,9 +61,8 @@ bool parse_args(const int _c, const char *const _v[],
 
       // Translate, compile, link, and execute
       else if (arg == "--execute") {
-        _oakc.settings.compile_settings().mode =
-            OakCompiler::Settings::CompileSettings::
-                TRANSLATE_COMPILE_LINK_AND_EXECUTE;
+        _oakc.settings.compile_settings().mode = Settings::
+            CompileSettings::TRANSLATE_COMPILE_LINK_AND_EXECUTE;
       }
 
       // Add -g debug flag
@@ -79,15 +79,14 @@ bool parse_args(const int _c, const char *const _v[],
 
       // Translate, compile, and link
       else if (arg == "--link") {
-        _oakc.settings.compile_settings().mode =
-            OakCompiler::Settings::CompileSettings::
-                TRANSLATE_COMPILE_AND_LINK;
+        _oakc.settings.compile_settings().mode = Settings::
+            CompileSettings::TRANSLATE_COMPILE_AND_LINK;
       }
 
       // Only syntax checking
       else if (arg == "--no_save") {
         _oakc.settings.compile_settings().mode =
-            OakCompiler::Settings::CompileSettings::NOTHING;
+            Settings::CompileSettings::NOTHING;
       }
 
       // Set output
@@ -138,7 +137,7 @@ bool parse_args(const int _c, const char *const _v[],
 
       // Translate only
       else if (arg == "--translate") {
-        _oakc.settings.compile_settings().mode = OakCompiler::
+        _oakc.settings.compile_settings().mode =
             Settings::CompileSettings::TRANSLATE_ONLY;
       }
 
@@ -198,7 +197,7 @@ bool parse_args(const int _c, const char *const _v[],
           _oakc.uninstall_acorn();
           return false;
         case 'c': // Translate and compile to object
-          _oakc.settings.compile_settings().mode = OakCompiler::
+          _oakc.settings.compile_settings().mode =
               Settings::CompileSettings::TRANSLATE_AND_COMPILE;
           break;
         case 'C': // CD somewhere
@@ -216,10 +215,10 @@ bool parse_args(const int _c, const char *const _v[],
         case 'E': // Translate, compile, link, and execute
           if (_oakc.settings.is_compile()) {
             _oakc.settings.compile_settings().mode =
-                OakCompiler::Settings::CompileSettings::
+                Settings::CompileSettings::
                     TRANSLATE_COMPILE_LINK_AND_EXECUTE;
           } else {
-            _oakc.settings.test_settings().mode = OakCompiler::
+            _oakc.settings.test_settings().mode =
                 Settings::TestSettings::REGULAR_EXECUTE;
           }
           break;
@@ -231,15 +230,14 @@ bool parse_args(const int _c, const char *const _v[],
           _oakc.print_help_text();
           return false;
         case 'l': // Translate, compile, and link
-          _oakc.settings.compile_settings().mode =
-              OakCompiler::Settings::CompileSettings::
-                  TRANSLATE_COMPILE_AND_LINK;
+          _oakc.settings.compile_settings().mode = Settings::
+              CompileSettings::TRANSLATE_COMPILE_AND_LINK;
           break;
         case 'M': // Used for macro compilation
           break;
         case 'n': // Produce nothing: Just error checking
           _oakc.settings.compile_settings().mode =
-              OakCompiler::Settings::CompileSettings::NOTHING;
+              Settings::CompileSettings::NOTHING;
           break;
         case 'o': // Set output
           _oakc.settings.compile_settings().target = _v[++i];
@@ -267,19 +265,19 @@ bool parse_args(const int _c, const char *const _v[],
           _oakc.print_size();
           return false;
         case 't': // Translate only
-          _oakc.settings.compile_settings().mode = OakCompiler::
+          _oakc.settings.compile_settings().mode =
               Settings::CompileSettings::TRANSLATE_ONLY;
           break;
         case 'T': // Test
           if (_oakc.settings.is_compile()) {
-            _oakc.settings.test_settings().mode = OakCompiler::
+            _oakc.settings.test_settings().mode =
                 Settings::TestSettings::COMPILE_ONLY;
             _oakc.settings.test_settings()
                 .halt_on_compiler_failure = false;
           } else {
             _oakc.settings.test_settings()
                 .halt_on_compiler_failure = true;
-            _oakc.settings.test_settings().mode = OakCompiler::
+            _oakc.settings.test_settings().mode =
                 Settings::TestSettings::EXECUTE_IGNORE_FAILURE;
           }
           break;

@@ -10,6 +10,7 @@
 
 int main() {
   uint test_num = 0;
+  Settings settings(std::cout);
 
   std::cout << "Running test #" << ++test_num << "...\n"
             << std::flush;
@@ -25,7 +26,7 @@ int main() {
 
     const auto lexed = l.lex(text, file, line, col);
 
-    p.parse_global(lexed);
+    p.parse_global(lexed, settings);
     p.reconstruct(std::cout);
 
     assert(!p.fetch_symbol("var").has_value());
@@ -97,7 +98,7 @@ int main() {
 
     const auto lexed = l.lex(text, file, line, col);
 
-    p.parse_global(lexed);
+    p.parse_global(lexed, settings);
     p.reconstruct(std::cout);
   }
 
@@ -115,7 +116,7 @@ int main() {
 
     const auto lexed = l.lex(text, file, line, col);
 
-    p.parse_global(lexed);
+    p.parse_global(lexed, settings);
     p.reconstruct(std::cout);
   }
 
@@ -133,7 +134,7 @@ int main() {
 
     bool did_throw = false;
     try {
-      p.parse_global(lexed);
+      p.parse_global(lexed, settings);
     } catch (...) {
       did_throw = true;
     }
@@ -159,7 +160,7 @@ int main() {
 
     const auto lexed = l.lex(text, file, line, col);
 
-    p.parse_global(lexed);
+    p.parse_global(lexed, settings);
     p.reconstruct(std::cout);
   }
 
@@ -184,7 +185,7 @@ int main() {
 
     const auto lexed = l.lex(text, file, line, col);
 
-    p.parse_global(lexed);
+    p.parse_global(lexed, settings);
     p.reconstruct(std::cout);
   }
 
@@ -211,7 +212,7 @@ int main() {
 
     const auto lexed = l.lex(text, file, line, col);
 
-    p.parse_global(lexed);
+    p.parse_global(lexed, settings);
     p.reconstruct(std::cout);
   }
 

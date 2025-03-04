@@ -1,0 +1,13 @@
+/*
+Ensures that we fail given looping rules
+*/
+
+pragma!("compile_should_fail");
+
+rule::new!("a", "fizz", "buzz");
+rule::new!("b", "buzz", "fizz");
+rule::use!("a", "b");
+
+let main() -> i32 {
+  let fizz: i32;
+}

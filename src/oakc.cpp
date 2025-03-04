@@ -5,7 +5,9 @@
 #include "package.hpp"
 #include "parser.hpp"
 #include "rule.hpp"
+#include "settings.hpp"
 #include <cassert>
+#include <chrono>
 #include <cstdint>
 #include <cstdlib>
 #include <filesystem>
@@ -431,7 +433,7 @@ void OakCompiler::do_compilation() {
   }
 
   try {
-    do_file(csettings.entry_point, csettings);
+    do_file(csettings.entry_point, settings);
   } catch (std::runtime_error &e) {
     throw std::runtime_error(
         "Error occurred while loading entry point " +
@@ -619,54 +621,74 @@ void OakCompiler::do_testing() {
 
     for (const auto &test_file :
          std::filesystem::directory_iterator(test_path)) {
-      test_log << "Testing file " << test_file << "\n\n";
-
       if (std::filesystem::is_regular_file(test_file) &&
-          test_file.path().string().ends_with(".oak")) {
+          test_file.path().string().ends_with(".oak") &&
+          !test_file.path().string().ends_with(".macro.oak")) {
+        test_log << "Testing file " << test_file << "\n\n";
+        std::cout << test_file.path().string() << "\t";
+
         ++tried_to_compile;
         ++compiled_successfully;
 
         const std::filesystem::path target =
             test_file.path().string() + ".out";
 
+        std::chrono::high_resolution_clock::time_point start =
+            std::chrono::high_resolution_clock::now();
+
         OakCompiler comp(test_log);
         comp.settings.compile_settings().entry_point =
             test_file;
         comp.settings.compile_settings().target = target;
+        bool compilation_succeeded = true;
 
         try {
           comp();
-
-          if (tsettings.mode !=
-              OakCompiler::Settings::TestSettings::
-                  COMPILE_ONLY) {
-            ++tried_to_run;
-            ++ran_successfully;
-
-            int res = system(target.root_path().c_str());
-            if (res != 0) {
-              run_problems.push_back(test_file);
-              --ran_successfully;
-
-              if (tsettings.mode !=
-                  OakCompiler::Settings::TestSettings::
-                      EXECUTE_IGNORE_FAILURE) {
-                throw std::runtime_error(
-                    "Run failed on file " +
-                    test_file.path().string());
-              }
-            }
-          }
         } catch (...) {
+          compilation_succeeded = false;
           compile_problems.push_back(test_file);
           --compiled_successfully;
+
+          std::cout << "(COMPILE FAILURE) ";
+
           if (tsettings.halt_on_compiler_failure) {
             throw std::runtime_error(
                 "Compilation failed on file " +
                 test_file.path().string());
           }
-          continue;
         }
+
+        if (compilation_succeeded &&
+            tsettings.mode !=
+                Settings::TestSettings::COMPILE_ONLY) {
+          ++tried_to_run;
+          ++ran_successfully;
+
+          int res = system(target.root_path().c_str());
+          if (res != 0) {
+            run_problems.push_back(test_file);
+            --ran_successfully;
+
+            std::cout << "(RUNTIME FAILURE) ";
+
+            if (tsettings.mode != Settings::TestSettings::
+                                      EXECUTE_IGNORE_FAILURE) {
+              throw std::runtime_error(
+                  "Run failed on file " +
+                  test_file.path().string());
+            }
+          }
+        }
+
+        std::chrono::high_resolution_clock::time_point stop =
+            std::chrono::high_resolution_clock::now();
+
+        std::cout << (std::chrono::duration_cast<
+                          std::chrono::microseconds>(stop -
+                                                     start)
+                          .count() /
+                      1'000.0)
+                  << " ms\n";
       }
     }
 
@@ -692,7 +714,8 @@ void OakCompiler::do_testing() {
     const auto did_comp = std::get<2>(p.second);
     const auto did_run = std::get<3>(p.second);
 
-    settings.ostream << std::fixed << std::setprecision(2)
+    settings.ostream << '\n'
+                     << std::fixed << std::setprecision(2)
                      << path << ":\n"
                      << "\tCompiled " << did_comp << "/"
                      << tried_comp << " ("
@@ -731,6 +754,8 @@ void OakCompiler::do_testing() {
   for (const auto &i : run_problems) {
     settings.ostream << "run-time error:     " << i << "\n";
   }
+
+  db_assert(total_runs_tried <= total_compiles_succeeded);
 
   if (!compile_problems.empty() || !run_problems.empty()) {
     throw std::runtime_error(
@@ -788,6 +813,13 @@ void OakCompiler::syntax_check(
       }
       --square_bracket_count;
     }
+
+    else if (t->col - 1 + t->text.size() > 64) {
+      errors.push_back(
+          {t, "Line goes over 64 characters (" +
+                  std::to_string(t->col - 1 + t->text.size()) +
+                  ")"});
+    }
   }
 
   // End scanning
@@ -795,8 +827,9 @@ void OakCompiler::syntax_check(
   // If errors were found, throw them
   if (!errors.empty()) {
     for (const auto &p : errors) {
-      std::cerr << p.first->file << ":" << p.first->line << "."
-                << p.first->col << "> `";
+      std::cerr << p.first->file.string() << ":"
+                << p.first->line << "." << p.first->col
+                << "> `";
 
       // Calculate region
       auto begin_region = p.first,
@@ -868,6 +901,7 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
 
   do {
     ++passes;
+    did_change = false;
 
     // Macro definitions
     bool saw_let = false;
@@ -932,7 +966,15 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
                   path = _csettings.include_path / path;
                 }
               }
-              do_file(path, _csettings);
+
+              const auto backup = rules.purge_entry_points();
+
+              do_file(path, settings);
+
+              rules.purge_entry_points();
+              for (const auto &item : backup) {
+                rules.add_entry_point(item);
+              }
             }
           } catch (std::runtime_error &e) {
             throw std::runtime_error(
@@ -1028,12 +1070,13 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
 
           rules.register_rule(name, to_add);
         } else if (*it == "rule_use!") {
+          did_change |= true;
           const auto args = MacroManager::get_macro_args(
               _token_stream, it, _token_stream.end());
           for (const auto &arg : args) {
             rules.add_entry_point(arg);
           }
-        } else if (*it == "rule_use!") {
+        } else if (*it == "rule_remove!") {
           const auto args = MacroManager::get_macro_args(
               _token_stream, it, _token_stream.end());
           for (const auto &arg : args) {
@@ -1103,33 +1146,6 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
                 "' exited with nonzero exit code " +
                 std::to_string(result));
           }
-        } else if (*it == "compile_time_error!") {
-          settings.ostream << it->file.string() << ":"
-                           << it->line << "." << it->col << ">"
-                           << it->text
-                           << " Compile-time error:\n";
-
-          const auto args = MacroManager::get_macro_args(
-              _token_stream, it, _token_stream.end());
-          std::string msg;
-          for (const auto &arg : args) {
-            msg += arg.text + " ";
-          }
-          settings.ostream << msg << '\n';
-          throw std::runtime_error(msg);
-        } else if (*it == "compile_time_warning!") {
-          settings.ostream << it->file.string() << ":"
-                           << it->line << "." << it->col << ">"
-                           << it->text
-                           << " Compile-time warning:\n";
-
-          const auto args = MacroManager::get_macro_args(
-              _token_stream, it, _token_stream.end());
-          std::string msg;
-          for (const auto &arg : args) {
-            msg += arg.text + " ";
-          }
-          settings.ostream << msg << '\n';
         }
       } catch (std::runtime_error &e) {
         if (it == _token_stream.end()) {
@@ -1160,6 +1176,7 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
             it->text.find('!') != std::string::npos &&
             !MacroManager::reserved_macro_names.contains(
                 it->text)) {
+          did_change |= true;
           macros.replace(_token_stream, it,
                          _token_stream.end());
         }
@@ -1185,7 +1202,7 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
     }
 
     // Apply ruleset
-    rules.process_text(_token_stream);
+    did_change |= rules.process_text(_token_stream);
 
     if (log.has_value()) {
       **log << "\nAfter pass " << passes << ":\n";
@@ -1210,9 +1227,6 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
   return passes;
 }
 
-/**
- * @brief
- */
 void OakCompiler::load_dialect_file(
     const std::filesystem::path &_file) {
   debug_print();
@@ -1233,15 +1247,17 @@ void OakCompiler::translate(std::ostream &_into) const {
  * is called by do_compilation, and should not be called
  * outside of it!
  */
-void OakCompiler::do_file(
-    const std::filesystem::path &_path,
-    Settings::CompileSettings &_csettings) {
+void OakCompiler::do_file(const std::filesystem::path &_path,
+                          Settings &_settings) {
   debug_print();
 
-  if (_csettings.visited.contains(_path)) {
+  Settings::CompileSettings &csettings =
+      _settings.compile_settings();
+
+  if (csettings.visited.contains(_path)) {
     return;
   }
-  _csettings.visited.insert(_path);
+  csettings.visited.insert(_path);
 
   // Load and lex
   if (!std::filesystem::exists(_path)) {
@@ -1272,8 +1288,8 @@ void OakCompiler::do_file(
     token_stream = l.lex(text, _path, line, col);
   } catch (std::runtime_error &e) {
     // If requested, dump
-    if (_csettings.dump_file.has_value()) {
-      p.dump(*_csettings.dump_file.value(), token_stream);
+    if (csettings.dump_file.has_value()) {
+      p.dump(*csettings.dump_file.value(), token_stream);
     }
 
     throw std::runtime_error("Error occurred while lexing " +
@@ -1282,8 +1298,8 @@ void OakCompiler::do_file(
 
   catch (...) {
     // If requested, dump
-    if (_csettings.dump_file.has_value()) {
-      p.dump(*_csettings.dump_file.value(), token_stream);
+    if (csettings.dump_file.has_value()) {
+      p.dump(*csettings.dump_file.value(), token_stream);
     }
 
     throw std::runtime_error(
@@ -1292,19 +1308,19 @@ void OakCompiler::do_file(
   }
 
   // If requested, syntax check
-  if (_csettings.do_syntax_check) {
+  if (csettings.do_syntax_check) {
     syntax_check(token_stream);
   }
 
   // Preprocess (including includes)
-  preprocess(token_stream, _csettings);
+  preprocess(token_stream, csettings);
 
   // Do actual parsing here
   debug_print();
-  p.parse_global(token_stream);
+  p.parse_global(token_stream, settings);
 
   // If requested, dump
-  if (_csettings.dump_file.has_value()) {
-    p.dump(*_csettings.dump_file.value(), token_stream);
+  if (csettings.dump_file.has_value()) {
+    p.dump(*csettings.dump_file.value(), token_stream);
   }
 }

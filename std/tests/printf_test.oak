@@ -1,0 +1,19 @@
+/*
+Tests printf!
+*/
+
+include!("std/std.oak");
+include!("std/printf.oak");
+
+let main() -> i32 {
+  printf!("The number 0: \"%\"\n", 0i32);
+
+  let i: u64;
+  Copy(i, 0u64);
+  while (Less(i, 128u64)) {
+    printf!("Number: %\n", i);
+    Incr(i);
+  }
+
+  return 0i32;
+}

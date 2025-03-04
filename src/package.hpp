@@ -26,7 +26,7 @@ namespace PackageManager {
  */
 void install_package(
     const std::filesystem::path &_package,
-    const OakCompiler::Settings::CompileSettings &_csettings);
+    const Settings::CompileSettings &_csettings);
 
 /**
  * @brief Erases some package from the system

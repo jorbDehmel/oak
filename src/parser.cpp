@@ -35,7 +35,8 @@ void incr(std::list<Lexer::Token>::const_iterator &_it,
 
 // Parse a global scope
 void Parser::parse_global(
-    const std::list<Lexer::Token> &_file_contents) {
+    const std::list<Lexer::Token> &_file_contents,
+    Settings &_settings) {
   debug_print();
   // Iterate and delegate. No macros remain.
   auto pos = _file_contents.begin();
@@ -49,9 +50,28 @@ void Parser::parse_global(
         names.insert(*pos);
         incr(pos, end);
 
+        // Plural instantiation
         while (*pos == ",") {
           incr(pos, end);
           names.insert(*pos);
+          incr(pos, end);
+        }
+
+        // Generics
+        std::list<std::string> generics;
+        if (*pos == "<") {
+          // Zero or more comma-separated generics
+          do {
+            incr(pos, end);
+            generics.push_back(*pos);
+            incr(pos, end);
+          } while (*pos == ",");
+
+          if (*pos != ">") {
+            throw std::runtime_error(
+                "Malformed generic: Expected '>', but saw '" +
+                pos->text + "'");
+          }
           incr(pos, end);
         }
 
@@ -60,11 +80,25 @@ void Parser::parse_global(
           incr(pos, end);
           if (*pos == "struct") {
             incr(pos, end);
-            parse_struct(names, pos, end);
+
+            if (generics.empty()) {
+              parse_struct(names, pos, end, _settings);
+            } else {
+              throw std::runtime_error(
+                  "Generic structs are unimplemented");
+            }
+
             ++pos; // Don't use incr here
           } else if (*pos == "enum") {
             incr(pos, end);
-            parse_enum(names, pos, end);
+
+            if (generics.empty()) {
+              parse_enum(names, pos, end, _settings);
+            } else {
+              throw std::runtime_error(
+                  "Generic enums are unimplemented");
+            }
+
             ++pos; // Don't use incr here
           } else {
             throw std::runtime_error(
@@ -74,7 +108,13 @@ void Parser::parse_global(
           }
         } else if (*pos == "(") {
           // Function
-          parse_function(names, pos, end);
+          if (generics.empty()) {
+            parse_function(names, pos, end, _settings);
+          } else {
+            throw std::runtime_error(
+                "Generic functions are unimplemented");
+          }
+
           ++pos;
         } else {
           throw std::runtime_error(
@@ -84,7 +124,42 @@ void Parser::parse_global(
         }
       } else if (*pos == ";") {
         ++pos;
-      } else {
+      }
+
+      else if (*pos == "compile_time_error!") {
+        _settings.ostream << pos->file.string() << ":"
+                          << pos->line << "." << pos->col << ">"
+                          << pos->text
+                          << " Compile-time error:\n";
+
+        const auto args =
+            MacroManager::get_macro_args(pos, end);
+        std::string msg;
+        for (const auto &arg : args) {
+          msg += arg.text + " ";
+        }
+        _settings.ostream << msg << '\n';
+        throw std::runtime_error(msg);
+      } else if (*pos == "compile_time_warning!") {
+        _settings.ostream << pos->file.string() << ":"
+                          << pos->line << "." << pos->col << ">"
+                          << pos->text
+                          << " Compile-time warning:\n";
+
+        const auto args =
+            MacroManager::get_macro_args(pos, end);
+        std::string msg;
+        for (const auto &arg : args) {
+          msg += arg.text + " ";
+        }
+        _settings.ostream << msg << '\n';
+
+        while (*pos != ";") {
+          incr(pos, end);
+        }
+      }
+
+      else {
         throw std::runtime_error(
             "Global scope parse error: Unexpected token '" +
             pos->text + "'");
@@ -335,10 +410,11 @@ void Parser::dump(std::ostream &_where,
 void Parser::parse_function(
     const std::set<std::string> &_names,
     std::list<Lexer::Token>::const_iterator &_cur_pos,
-    const std::list<Lexer::Token>::const_iterator &_end) {
+    const std::list<Lexer::Token>::const_iterator &_end,
+    Settings &_settings) {
   debug_print();
   // Finish parsing type
-  Type t = parse_type(_cur_pos, _end);
+  Type t = parse_type(_cur_pos, _end, _settings);
   incr(_cur_pos, _end);
 
   // Either signature or implementation
@@ -367,7 +443,7 @@ void Parser::parse_function(
 
     locals.push_back(arg_map);
 
-    to_add.n = parse_statement(_cur_pos, _end);
+    to_add.n = parse_statement(_cur_pos, _end, _settings);
 
     // Pop stack frame
     locals.pop_back();
@@ -394,7 +470,8 @@ void Parser::parse_function(
 // Parses a struct/enum's guts
 std::list<std::pair<std::string, Type>> Parser::parse_members(
     std::list<Lexer::Token>::const_iterator &_cur_pos,
-    const std::list<Lexer::Token>::const_iterator &_end) {
+    const std::list<Lexer::Token>::const_iterator &_end,
+    Settings &_settings) {
   debug_print();
   // Where to write output
   std::list<std::pair<std::string, Type>> out;
@@ -428,7 +505,7 @@ std::list<std::pair<std::string, Type>> Parser::parse_members(
     incr(_cur_pos, _end);
 
     // Type
-    Type t = parse_type(_cur_pos, _end);
+    Type t = parse_type(_cur_pos, _end, _settings);
     incr(_cur_pos, _end);
 
     // Add these members
@@ -456,7 +533,8 @@ std::list<std::pair<std::string, Type>> Parser::parse_members(
 // Return the type spec at the specified location
 Type Parser::parse_type(
     std::list<Lexer::Token>::const_iterator &_cur_pos,
-    const std::list<Lexer::Token>::const_iterator &_end) {
+    const std::list<Lexer::Token>::const_iterator &_end,
+    Settings &_settings) {
   debug_print();
 
   // Special case: type! macro
@@ -469,7 +547,7 @@ Type Parser::parse_type(
     }
     incr(_cur_pos, _end);
 
-    auto tmp = parse_object(_cur_pos, _end);
+    auto tmp = parse_object(_cur_pos, _end, _settings);
 
     incr(_cur_pos, _end);
     if (*_cur_pos != ")") {
@@ -496,7 +574,8 @@ Type Parser::parse_type(
 void Parser::parse_struct(
     const std::set<std::string> &_names,
     std::list<Lexer::Token>::const_iterator &_cur_pos,
-    const std::list<Lexer::Token>::const_iterator &_end) {
+    const std::list<Lexer::Token>::const_iterator &_end,
+    Settings &_settings) {
   debug_print();
 
   // The struct info to populate
@@ -513,7 +592,8 @@ void Parser::parse_struct(
 
   // Declaration
   else if (*_cur_pos == "{") {
-    const auto members = parse_members(_cur_pos, _end);
+    const auto members =
+        parse_members(_cur_pos, _end, _settings);
 
     for (const auto &member : members) {
       to_add.member_order.push_back(member.first);
@@ -567,7 +647,8 @@ void Parser::parse_struct(
 void Parser::parse_enum(
     const std::set<std::string> &_names,
     std::list<Lexer::Token>::const_iterator &_cur_pos,
-    const std::list<Lexer::Token>::const_iterator &_end) {
+    const std::list<Lexer::Token>::const_iterator &_end,
+    Settings &_settings) {
   debug_print();
 
   // The enum info to populate
@@ -584,7 +665,8 @@ void Parser::parse_enum(
 
   // Declaration
   else if (*_cur_pos == "{") {
-    const auto members = parse_members(_cur_pos, _end);
+    const auto members =
+        parse_members(_cur_pos, _end, _settings);
 
     for (const auto &member : members) {
       to_add.option_order.push_back(member.first);
@@ -667,7 +749,8 @@ void Parser::parse_enum(
 // Assumes we are pointing to the first token in the statement
 Node Parser::parse_statement(
     std::list<Lexer::Token>::const_iterator &_cur_pos,
-    const std::list<Lexer::Token>::const_iterator &_end) {
+    const std::list<Lexer::Token>::const_iterator &_end,
+    Settings &_settings) {
   debug_print();
   // A statement can be a function call, a (possibly compound)
   // if statement, a match statement, nothing, a variable
@@ -724,7 +807,7 @@ Node Parser::parse_statement(
     incr(_cur_pos, _end);
 
     // Get type
-    Type t = parse_type(_cur_pos, _end);
+    Type t = parse_type(_cur_pos, _end, _settings);
     validate_type(t);
 
     Node out(Node::DECL);
@@ -751,7 +834,8 @@ Node Parser::parse_statement(
 
     incr(_cur_pos, _end);
     while (*_cur_pos != "}") {
-      out.children.push_back(parse_statement(_cur_pos, _end));
+      out.children.push_back(
+          parse_statement(_cur_pos, _end, _settings));
       incr(_cur_pos, _end);
     }
 
@@ -769,7 +853,7 @@ Node Parser::parse_statement(
     incr(_cur_pos, _end);
 
     // Condition is a single boolean object
-    Node condition = parse_object(_cur_pos, _end);
+    Node condition = parse_object(_cur_pos, _end, _settings);
     if (!condition.type.value().cast_match(Type({"bool"}))) {
       throw std::runtime_error("Statement condition type '" +
                                condition.type->oak_repr() +
@@ -785,7 +869,7 @@ Node Parser::parse_statement(
     incr(_cur_pos, _end);
 
     // Body
-    Node body = parse_statement(_cur_pos, _end);
+    Node body = parse_statement(_cur_pos, _end, _settings);
 
     Node out(Node::IF);
     out.children = {condition, body};
@@ -795,7 +879,8 @@ Node Parser::parse_statement(
     if (_cur_pos != _end && *_cur_pos == "else") {
       // Else clause
       incr(_cur_pos, _end);
-      out.children.push_back(parse_statement(_cur_pos, _end));
+      out.children.push_back(
+          parse_statement(_cur_pos, _end, _settings));
     } else {
       --_cur_pos;
     }
@@ -811,7 +896,7 @@ Node Parser::parse_statement(
     incr(_cur_pos, _end);
 
     // Condition is a single boolean object
-    Node condition = parse_object(_cur_pos, _end);
+    Node condition = parse_object(_cur_pos, _end, _settings);
     if (!condition.type.value().cast_match(Type({"bool"}))) {
       throw std::runtime_error("Statement condition type '" +
                                condition.type->oak_repr() +
@@ -827,7 +912,7 @@ Node Parser::parse_statement(
     incr(_cur_pos, _end);
 
     // Body
-    Node body = parse_statement(_cur_pos, _end);
+    Node body = parse_statement(_cur_pos, _end, _settings);
 
     Node out(Node::WHILE);
     out.children = {condition, body};
@@ -849,7 +934,7 @@ Node Parser::parse_statement(
     incr(_cur_pos, _end);
 
     // Target is an enum
-    Node target = parse_object(_cur_pos, _end);
+    Node target = parse_object(_cur_pos, _end, _settings);
     const auto enum_name = target.type.value().struct_name();
 
     if (!globals.contains(enum_name) ||
@@ -881,7 +966,8 @@ Node Parser::parse_statement(
     incr(_cur_pos, _end);
 
     while (*_cur_pos != "}") {
-      out.children.push_back(parse_case(info, _cur_pos, _end));
+      out.children.push_back(
+          parse_case(info, _cur_pos, _end, _settings));
       incr(_cur_pos, _end);
     }
 
@@ -891,11 +977,11 @@ Node Parser::parse_statement(
     Node out(Node::STMT);
     out.token = *_cur_pos;
     incr(_cur_pos, _end);
-    out.children = {parse_object(_cur_pos, _end)};
+    out.children = {parse_object(_cur_pos, _end, _settings)};
     return out;
   } else {
     // Function call
-    Node ret = parse_function_call(_cur_pos, _end);
+    Node ret = parse_function_call(_cur_pos, _end, _settings);
     incr(_cur_pos, _end);
     if (*_cur_pos != ";") {
       throw std::runtime_error(
@@ -910,7 +996,8 @@ Node Parser::parse_statement(
 Node Parser::parse_case(
     const EnumInfo &_enum_type,
     std::list<Lexer::Token>::const_iterator &_cur_pos,
-    const std::list<Lexer::Token>::const_iterator &_end) {
+    const std::list<Lexer::Token>::const_iterator &_end,
+    Settings &_settings) {
   debug_print();
   if (*_cur_pos == "case") {
     incr(_cur_pos, _end);
@@ -942,7 +1029,7 @@ Node Parser::parse_case(
     }
     incr(_cur_pos, _end);
 
-    Type passed_type = parse_type(_cur_pos, _end);
+    Type passed_type = parse_type(_cur_pos, _end, _settings);
 
     if (!passed_type.exact_match(
             _enum_type.options.at(case_name))) {
@@ -973,7 +1060,8 @@ Node Parser::parse_case(
     out.children = {first_child};
 
     // Statement
-    out.children.push_back(parse_statement(_cur_pos, _end));
+    out.children.push_back(
+        parse_statement(_cur_pos, _end, _settings));
 
     // Pop from locals stack
     locals.pop_back();
@@ -982,7 +1070,7 @@ Node Parser::parse_case(
     // Statement
     incr(_cur_pos, _end);
     Node out(Node::NONE);
-    out.children = {parse_statement(_cur_pos, _end)};
+    out.children = {parse_statement(_cur_pos, _end, _settings)};
     return out;
   } else {
     throw std::runtime_error(
@@ -995,7 +1083,8 @@ Node Parser::parse_case(
 /// Parse a function call
 Node Parser::parse_function_call(
     std::list<Lexer::Token>::const_iterator &_cur_pos,
-    const std::list<Lexer::Token>::const_iterator &_end) {
+    const std::list<Lexer::Token>::const_iterator &_end,
+    Settings &_settings) {
   debug_print();
 
   // Special case: size!
@@ -1012,7 +1101,8 @@ Node Parser::parse_function_call(
     Node out(Node::RAW_C_FMT);
     out.type = Type({"uint"});
     out.c_name =
-        "sizeof(" + parse_type(_cur_pos, _end).c_repr() + ")";
+        "sizeof(" +
+        parse_type(_cur_pos, _end, _settings).c_repr() + ")";
 
     incr(_cur_pos, _end);
     if (*_cur_pos != ")") {
@@ -1037,7 +1127,8 @@ Node Parser::parse_function_call(
   std::vector<Type> args;
   while (*_cur_pos != ")") {
     if (*_cur_pos != ",") {
-      out.children.push_back(parse_object(_cur_pos, _end));
+      out.children.push_back(
+          parse_object(_cur_pos, _end, _settings));
       args.push_back(out.children.back().type.value());
     }
     incr(_cur_pos, _end);
@@ -1141,8 +1232,8 @@ Node Parser::parse_function_call(
   // Return type only
   FnInfo f;
   std::vector<int> derefs;
-  out.type =
-      resolve_fn_call(out.token.value().text, args, f, derefs);
+  out.type = resolve_fn_call(out.token.value().text, args, f,
+                             derefs, _settings);
 
   // Build c-name
   out.c_name = f.t.mangle(out.token.value().text);
@@ -1190,7 +1281,8 @@ Type Parser::resolve_variable(const Lexer::Token &_name) {
 // token of the object. Non-global (inside statements)
 Node Parser::parse_object(
     std::list<Lexer::Token>::const_iterator &_cur_pos,
-    const std::list<Lexer::Token>::const_iterator &_end) {
+    const std::list<Lexer::Token>::const_iterator &_end,
+    Settings &_settings) {
   debug_print();
   /*
   object = name | function_call | object . name ;
@@ -1199,7 +1291,7 @@ Node Parser::parse_object(
   // Open parenthesis: Function call
   if (std::next(_cur_pos) != _end &&
       *std::next(_cur_pos) == "(") {
-    return parse_function_call(_cur_pos, _end);
+    return parse_function_call(_cur_pos, _end, _settings);
   }
 
   auto cur = *_cur_pos;
@@ -1366,7 +1458,8 @@ std::list<Lexer::Token> Parser::TemplateInfo::replace(
 /// on failure w/o error
 bool Parser::TemplateInfo::attempt_instantiation(
     Parser &_p,
-    const std::list<std::list<std::string>> &_substitutions) {
+    const std::list<std::list<std::string>> &_substitutions,
+    Settings &_settings) {
   debug_print();
   // Check for existing instances
   if (existing_instances.contains(_substitutions)) {
@@ -1380,7 +1473,7 @@ bool Parser::TemplateInfo::attempt_instantiation(
   // Run validation block
   Parser backup = _p;
   try {
-    _p.parse_global(replaced_validation_block);
+    _p.parse_global(replaced_validation_block, _settings);
   } catch (...) {
     _p = backup;
     return false;
@@ -1391,7 +1484,7 @@ bool Parser::TemplateInfo::attempt_instantiation(
       replace(instantiate, generics, _substitutions);
 
   // Run instantiation block
-  _p.parse_global(replaced_instantiation_block);
+  _p.parse_global(replaced_instantiation_block, _settings);
 
   // Log any success
   existing_instances.insert(_substitutions);
@@ -1427,7 +1520,8 @@ std::string fn_call_str(const std::string &_name,
 Type Parser::resolve_fn_call(const std::string &_name,
                              const std::vector<Type> &_args,
                              FnInfo &_into,
-                             std::vector<int> &_derefs) {
+                             std::vector<int> &_derefs,
+                             Settings &_settings) {
   debug_print();
 
   // Do any templates
@@ -1437,7 +1531,8 @@ Type Parser::resolve_fn_call(const std::string &_name,
         candidates;
     find_substitutions(_name, _args, candidates);
     for (const auto &t : candidates) {
-      t.second->attempt_instantiation(*this, t.first);
+      t.second->attempt_instantiation(*this, t.first,
+                                      _settings);
     }
   } catch (std::runtime_error &_e) {
     throw std::runtime_error("Error during template checking "

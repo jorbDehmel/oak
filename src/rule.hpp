@@ -59,10 +59,11 @@ public:
   void add_entry_point(const std::string &_name);
 
   /// Remove all entry points
-  void purge_entry_points();
+  std::list<std::string> purge_entry_points();
 
-  /// Iteratively run our rules
-  void process_text(std::list<Lexer::Token> &_what);
+  /// Iteratively run our rules. Returns whether or not the
+  /// token stream has changed
+  bool process_text(std::list<Lexer::Token> &_what);
 
 protected:
   /// Collapse some list of entry points from a dependency graph

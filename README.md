@@ -2,6 +2,8 @@
 # The `Oak` Programming Language and `acorn` Compiler
 J Dehmel, Colorado Mesa University
 
+![The `Oak` logo: A pixelated tree](logo.png)
+
 ## Overview
 
 The `Oak` programming language. `Oak` translates to `C`, and

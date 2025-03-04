@@ -1,0 +1,17 @@
+/*
+A basic test of templates in oak
+*/
+
+include!("std/std.oak");
+
+let println < t > (what: t) -> void {
+  print(t);
+  endl();
+}
+
+let main() -> i32 {
+  println(123i32);
+  println(2.0f64);
+
+  return 0i32;
+}

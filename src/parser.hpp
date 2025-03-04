@@ -9,13 +9,11 @@
 #pragma once
 
 #include "lexer.hpp"
+#include "settings.hpp"
 #include "type.hpp"
-#include <cstdint>
-#include <filesystem>
 #include <list>
 #include <optional>
 #include <set>
-#include <stdexcept>
 #include <variant>
 #include <vector>
 
@@ -143,14 +141,16 @@ public:
     /// without error. Returns true on full success, false
     /// on failure w/o error
     bool attempt_instantiation(
-        Parser &_p, const std::list<std::list<std::string>>
-                        &_substitutions);
+        Parser &_p,
+        const std::list<std::list<std::string>> &_substitutions,
+        Settings &_settings);
   };
 
   /// Parse a global scope. NOTE: All includes should have been
   /// handled already!
   void
-  parse_global(const std::list<Lexer::Token> &_file_contents);
+  parse_global(const std::list<Lexer::Token> &_file_contents,
+               Settings &_settings);
 
   /// Resolve the given variable
   Type resolve_variable(const Lexer::Token &_name);
@@ -179,7 +179,8 @@ protected:
   void parse_function(
       const std::set<std::string> &_names,
       std::list<Lexer::Token>::const_iterator &_cur_pos,
-      const std::list<Lexer::Token>::const_iterator &_end);
+      const std::list<Lexer::Token>::const_iterator &_end,
+      Settings &_settings);
 
   /// Parse a single struct declaration
   /// Assumes we have just seen "let NAME : struct" and are
@@ -187,7 +188,8 @@ protected:
   void parse_struct(
       const std::set<std::string> &_names,
       std::list<Lexer::Token>::const_iterator &_cur_pos,
-      const std::list<Lexer::Token>::const_iterator &_end);
+      const std::list<Lexer::Token>::const_iterator &_end,
+      Settings &_settings);
 
   /// Parse a single enum declaration
   /// Assumes we have just seen "let NAME : enum" and are
@@ -195,50 +197,57 @@ protected:
   void parse_enum(
       const std::set<std::string> &_names,
       std::list<Lexer::Token>::const_iterator &_cur_pos,
-      const std::list<Lexer::Token>::const_iterator &_end);
+      const std::list<Lexer::Token>::const_iterator &_end,
+      Settings &_settings);
 
   /// Parses a struct/enum's guts
   std::list<std::pair<std::string, Type>> parse_members(
       std::list<Lexer::Token>::const_iterator &_cur_pos,
-      const std::list<Lexer::Token>::const_iterator &_end);
+      const std::list<Lexer::Token>::const_iterator &_end,
+      Settings &_settings);
 
   /// Assumes we are pointing to the first token in the
   /// statement Non-global (inside functions)
   Node parse_statement(
       std::list<Lexer::Token>::const_iterator &_cur_pos,
-      const std::list<Lexer::Token>::const_iterator &_end);
+      const std::list<Lexer::Token>::const_iterator &_end,
+      Settings &_settings);
 
   /// Assumes we are pointing to "case" or "else"
   /// Non-global (inside match statement)
   Node parse_case(
       const EnumInfo &_enum_type,
       std::list<Lexer::Token>::const_iterator &_cur_pos,
-      const std::list<Lexer::Token>::const_iterator &_end);
+      const std::list<Lexer::Token>::const_iterator &_end,
+      Settings &_settings);
 
   /// Return the type spec at the specified location
   Type parse_type(
       std::list<Lexer::Token>::const_iterator &_cur_pos,
-      const std::list<Lexer::Token>::const_iterator &_end);
+      const std::list<Lexer::Token>::const_iterator &_end,
+      Settings &_settings);
 
   /// Parses a single function call
   Node parse_function_call(
       std::list<Lexer::Token>::const_iterator &_cur_pos,
-      const std::list<Lexer::Token>::const_iterator &_end);
+      const std::list<Lexer::Token>::const_iterator &_end,
+      Settings &_settings);
 
   /// Parses a single object (resolvable variable or function
   /// call return value). Assumes we are pointing ot the first
   /// token of the object. Non-global (inside statements)
   Node parse_object(
       std::list<Lexer::Token>::const_iterator &_cur_pos,
-      const std::list<Lexer::Token>::const_iterator &_end);
+      const std::list<Lexer::Token>::const_iterator &_end,
+      Settings &_settings);
 
   /// Resolves a function call through any means necessary. If
   /// it cannot be resolved, an error is thrown. Returns the
   /// ENTIRE FN TYPE, not just the return type!
   Type resolve_fn_call(const std::string &_name,
                        const std::vector<Type> &_args,
-                       FnInfo &_into,
-                       std::vector<int> &_derefs);
+                       FnInfo &_into, std::vector<int> &_derefs,
+                       Settings &_settings);
 
   /// Throws an error on invalid type (EG undefined struct name)
   void validate_type(const Type &_t) const;

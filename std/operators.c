@@ -1323,3 +1323,27 @@ bool New_FN_PTR_bool_MAPS_bool(bool *self) {
   *self = false;
   return *self;
 }
+
+// Decr(self: ^uint) -> uint
+uint Decr_FN_PTR_uint_MAPS_uint(uint *self) {
+  --*self;
+  return *self;
+}
+
+// Incr(self: ^uint) -> uint
+uint Incr_FN_PTR_uint_MAPS_uint(uint *self) {
+  ++*self;
+  return *self;
+}
+
+// Decr(self: ^int) -> int
+int Decr_FN_PTR_int_MAPS_int(int *self) {
+  --*self;
+  return *self;
+}
+
+// Incr(self: ^int) -> int
+int Incr_FN_PTR_int_MAPS_int(int *self) {
+  ++*self;
+  return *self;
+}

@@ -36,11 +36,17 @@ public:
           const std::list<Lexer::Token>::iterator &_end) const;
 
   /// Erases AND STRIPS QUOTES OFF OF a macro occurrence's
-  /// argss. Then returns those args.
+  /// args. Then returns those args.
   static std::list<Lexer::Token>
   get_macro_args(std::list<Lexer::Token> &_whole,
                  std::list<Lexer::Token>::iterator &_it,
                  const std::list<Lexer::Token>::iterator &_end);
+
+  /// STRIPS QUOTES OFF OF a macro occurrence's
+  /// args. Then returns those args WITHOUT ERASURE.
+  static std::list<Lexer::Token> get_macro_args(
+      const std::list<Lexer::Token>::const_iterator &_beg,
+      const std::list<Lexer::Token>::const_iterator &_end);
 
   /**
    * @brief Strips string literal delinators off a string
@@ -81,7 +87,7 @@ protected:
    */
   struct Compiled {
     /// The path to the compiled macro
-    std::optional<std::filesystem::path> executable;
+    std::filesystem::path executable;
   };
 
   /// Maps macro names to their data

@@ -26,12 +26,12 @@ void print_FN_PTR_void_MAPS_void(void *_to_print) {
 
 // print(_: i8) -> void
 void print_FN_i8_MAPS_void(i8 _to_print) {
-  printf("%hhi", _to_print);
+  printf("%c", _to_print);
 }
 
 // print(_: u8) -> void
 void print_FN_u8_MAPS_void(u8 _to_print) {
-  printf("%hhu", _to_print);
+  printf("%c", _to_print);
 }
 
 // print(_: i16) -> void
@@ -97,4 +97,9 @@ void print_FN_int_MAPS_void(int _to_print) {
 // print(_: uint) -> void
 void print_FN_uint_MAPS_void(uint _to_print) {
   printf("%u", _to_print);
+}
+
+// let getch() -> i8
+i8 getch_FN_MAPS_i8() {
+  return getchar();
 }
