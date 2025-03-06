@@ -139,13 +139,15 @@ let foo! = the contents go here;
 foo!;
 ```
 
-There are several built-in inline macros (namely, `LINE!` and
-`FILE!`). Functional macros, on the other hand, are unrestricted
-Oak programs which are available to run at compile-time. These
+There are several built-in inline macros (namely, `LINE!` for
+the current file line as an int, `SYSTEM!` for the current OS
+as a string, and `FILE!` for the current file as a string).
+Functional macros, on the other hand, are unrestricted Oak
+programs which are available to run at compile-time. These
 programs are run with the arguments provided at
-replacement-time, and their `cout` is lexed and inserted in
-their stead. They essentially compose a nested translation unit
-which can be used elsewhere.
+replacement-time, and their `stdout` is lexed and inserted in
+their stead. They are essentially nested translation units that
+can be used elsewhere.
 
 ```rust
 // They take the same form as `main`
@@ -206,8 +208,7 @@ translating code.
 
 1. Load entry point file
 2. Lex / tokenize
-3. Syntax check
-4. Preprocess: Repeat until no changes are made or some max
+3. Preprocess: Repeat until no changes are made or some max
     number of passes is exceeded
     1. Macro definitions: Compile any that are functional
     2. Fetch and recurse on all `include!`-ed files
@@ -215,7 +216,9 @@ translating code.
         rules, rule removals, rule bundles, compile-time system
         commands, errors, warning
     4. Resolve inline and functional macro calls
-    5. Apply ruleset once
+    5. Turn math into overloadable operator calls
+    6. Apply ruleset once
+4. Syntax check
 5. Parse into AST
 6. (Optional) Translate to `C`
 7. (Optional) Call `gcc` from `C` to object file

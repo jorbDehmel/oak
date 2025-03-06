@@ -5,5 +5,15 @@ Tests std/str.oak
 include!("std/std.oak", "std/str.oak");
 
 let main() -> i32 {
+  let s: str;
+  s = "Hello, ";
+
+  print(s);
+  endl();
+
+  s = s + "world!";
+  print(s);
+  endl();
+
   return 0i32;
 }

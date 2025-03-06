@@ -1,0 +1,24 @@
+/*
+Defines the `assert!` macro
+*/
+
+include!("std/io.oak");
+
+let assert!(c: i32, v: [][]i8) -> i32 {
+  include!("std/printf.oak");
+
+  printf!(
+    "if (Not(%)) {\n"
+    "  print(\"Failed assertion at \");\n"
+    "  print(FILE!);\n"
+    "  print(\":\");\n"
+    "  print(LINE!);\n"
+    "  print(\"> %\\\\n\");\n"
+    "  panic();\n"
+    "}\n",
+    Get(v, 1uint),
+    Get(v, 1uint)
+  );
+
+  return 0i32;
+}

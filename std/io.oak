@@ -33,3 +33,6 @@ let endl() -> void {
 }
 
 let getch() -> i8;
+
+let get_i32() -> i32;
+let get_f64() -> f64;

@@ -6,12 +6,12 @@ include!("std/std.oak");
 
 let main() -> i32 {
   let counter: i32;
-  Copy(counter, 0i32);
+  counter = 0i32;
 
-  while (Less(counter, 128i32)) {
+  while (counter < 128i32) {
     print(counter);
     endl();
-    Incr(counter);
+    ++counter;
   }
 
   return 0i32;

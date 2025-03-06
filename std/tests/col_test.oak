@@ -5,7 +5,7 @@ Tests syntax check for col width
 pragma!("compile_should_fail");
 include!("std/std.oak");
 
-let fizz() -> void { print("Hello there! This is padding.  \n"); }
+let fizz() -> void { print("Hello there! This is padding.\n "); }
 
 let main() -> i32 {
   return 0i32;

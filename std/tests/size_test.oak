@@ -6,7 +6,7 @@ include!("std/std.oak");
 
 let main() -> i32 {
   let a: uint;
-  Copy(a, size!(uint));
+  a = size!(uint);
   print(a);
   endl();
   return 0i32;

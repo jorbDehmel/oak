@@ -3,6 +3,8 @@ Tests "namespaces" in oak (by which I just mean the :: -> _
 substitution)
 */
 
+include!("std/operators.oak");
+
 let fizz::buzz() -> void;
 
 let main() -> i32 {

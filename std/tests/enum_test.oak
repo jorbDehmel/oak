@@ -7,6 +7,10 @@ let test: enum {
   d: i8
 }
 
+let New(self: ^test) -> void {
+  wrap_a(self, 0i32);
+}
+
 let main() -> i32 {
   let inst: test;
 

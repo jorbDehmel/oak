@@ -1,0 +1,18 @@
+/*
+*/
+
+include!("std/std.oak");
+
+let main() -> i32 {
+  print(SYSTEM!);
+  endl();
+
+  // Runtime comparison
+  if (SYSTEM! == "UNIX") {
+    print("Hello from UNIX!\n");
+  } else {
+    print("Switch to UNIX...\n");
+  }
+
+  return 0i32;
+}

@@ -14,6 +14,7 @@
 #include <fstream>
 #include <iterator>
 #include <set>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <variant>
@@ -60,7 +61,20 @@ std::string MacroManager::strip_string_literal(
   std::string out = _str_lit;
   while (out.front() == out.back() &&
          str_chars.contains(out.front())) {
-    out = out.substr(1, out.size() - 2);
+    char removed = out.front();
+    std::string tmp;
+
+    // Strip \" and the likes from within
+    for (uint i = 1; i + 1 < out.size(); ++i) {
+      if (i + 2 < out.size() && out[i] == '\\' &&
+          out[i + 1] == removed) {
+        ++i;
+      } else {
+        tmp.push_back(out[i]);
+      }
+    }
+
+    out = tmp;
   }
   return out;
 }
@@ -88,6 +102,18 @@ void MacroManager::replace(
   } else if (name == "oak_VERSION!") {
     _it->type = "STRING";
     _it->text = '"' + ACORN_VERSION + '"';
+    return;
+  } else if (name == "SYSTEM!") {
+    _it->type = "STRING";
+#if (defined(WIN32) || defined(WINNT))
+    _it->text = "\"WINDOWS\"";
+#elif (defined(unix) || defined(__unix__))
+    _it->text = "\"UNIX\"";
+#elif (defined(__APPLE__) || defined(__MACH__))
+    _it->text = "\"OSX\"";
+#else
+    _it->text = "\"OTHER\"";
+#endif
     return;
   }
 
@@ -125,12 +151,13 @@ void MacroManager::replace(
     for (const auto &arg : args) {
       command += " \"";
       for (const auto &c : arg.text) {
+        if (c == '"') {
+          command += '\\';
+        }
         command += c;
       }
       command += "\"";
     }
-
-    std::cout << "Command: '" << command << "'\n";
 
     // Run call and get replacement
     const auto replacement = get_cmd_output(command);
@@ -352,7 +379,8 @@ void MacroManager::process_definition(
     f.close();
 
     // Compile to executable
-    OakCompiler oc;
+    std::stringstream macro_compilation_log;
+    OakCompiler oc(macro_compilation_log);
     oc.settings.compile_settings().do_syntax_check = false;
     oc.settings.compile_settings().mode =
         Settings::CompileSettings::TRANSLATE_COMPILE_AND_LINK;
@@ -362,9 +390,13 @@ void MacroManager::process_definition(
     try {
       oc();
     } catch (std::runtime_error &e) {
+      std::cerr << "From macro compiler:\n"
+                << macro_compilation_log.str() << '\n';
       throw std::runtime_error("During compilation of macro '" +
                                name + "':\n" + e.what());
     } catch (...) {
+      std::cerr << "From macro compiler:\n"
+                << macro_compilation_log.str() << '\n';
       throw std::runtime_error("Unknown error occurred during "
                                "compilation of macro '" +
                                name + "'");

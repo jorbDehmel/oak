@@ -3,6 +3,7 @@ Defines the printf! macro in Oak
 */
 
 pragma!("no_dialect");
+include!("std/io.oak");
 
 let printf!(c: i32, v: [][]i8) -> i32 {
   include!("std/io.oak", "std/operators.oak", "std/c_str.oak");
@@ -13,37 +14,33 @@ let printf!(c: i32, v: [][]i8) -> i32 {
   let fstring_len, cur_obj, cur_fpos: uint;
   let in_print: bool;
 
-  Copy(fstring_len, strlen(Get(v, 1uint)));
-  Copy(cur_obj, 2uint);
-  Copy(cur_fpos, 0uint);
-  Copy(in_print, false);
+  fstring_len = strlen(Get(v, 1uint));
+  cur_obj = 2uint;
+  cur_fpos = 0uint;
+  in_print = false;
 
   while (Less(cur_fpos, fstring_len)) {
-    if (Eq(Get(Get(v, 1uint), cur_fpos), Get("%", 0uint))) {
+    if (Get(Get(v, 1uint), cur_fpos) == Get("%", 0uint)) {
       // Print an obj
       if (in_print) {
         print("\");\n");
-        Copy(in_print, false);
+        in_print = false;
       }
       print("print(");
       print(Get(v, cur_obj));
-      Incr(cur_obj);
+      ++cur_obj;
       print(");\n");
     } else {
       // Char
-      if (Not(in_print)) {
+      if (!in_print) {
         print("print(\"");
-        Copy(in_print, true);
-      }
-
-      if (Eq(Get(Get(v, 1uint), cur_fpos), Get("\"", 0uint))) {
-        print("\\");
+        in_print = true;
       }
 
       print(Get(Get(v, 1uint), cur_fpos));
     }
 
-    Incr(cur_fpos);
+    ++cur_fpos;
   }
 
   if (in_print) {

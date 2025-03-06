@@ -5,10 +5,15 @@ let bundle: struct {
   b: bool,
 }
 
+let New(self: ^bundle) -> void {
+  self.a = 0i32;
+  self.b = false;
+}
+
 let main() -> i32 {
   let foo: bundle;
-  Copy(foo.a, 0i32);
-  Copy(foo.b, true);
+  foo.a = 0i32;
+  foo.b = true;
 
   print(foo.a);
   endl();

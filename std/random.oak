@@ -5,5 +5,11 @@ Standard C pseudo-random number generator oak binding
 pragma!("no_dialect");
 link!("std/random.o");
 
+// Seeds w/ current UNIX time
+let srand() -> void;
+
+// Seeds pRNG w/ some number
 let srand(seed: uint) -> void;
+
+// Get the next pRNG number
 let rand() -> int;

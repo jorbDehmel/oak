@@ -34,26 +34,26 @@ let print(what: str) -> void;
 // Implementations
 
 let New(self: ^str) -> str {
-  Copy(self.size, 0uint);
+  self.size = 0uint;
 }
 
 let Del(self: ^str) -> void {
-  if (Neq(self.size, 0uint)) {
+  if (self.size != 0uint) {
     free!(self.c_str);
-    Copy(self.size, 0uint);
+    self.size = 0uint;
   }
 }
 
 let Copy(self: ^str, other: str) -> str {
   Del(self);
-  Copy(self.size, other.size);
+  self.size = other.size;
   strcpy(self.c_str, other.c_str);
   return ^self;
 }
 
 let Copy(self: ^str, other: []i8) -> str {
   Del(self);
-  Copy(self.size, strlen(other));
+  self.size = strlen(other);
   strcpy(self.c_str, other);
   return ^self;
 }
@@ -67,7 +67,7 @@ let Mult(lhs: str, rhs: uint) -> str {
 }
 
 let reserve(self: ^str, size: uint) -> void {
-  Copy(self.size, size);
+  self.size = size;
   alloc!(self.c_str, self.size);
 }
 

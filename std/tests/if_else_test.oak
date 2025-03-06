@@ -6,7 +6,7 @@ include!("std/std.oak");
 
 let main() -> i32 {
   let condition: bool;
-  Copy(condition, true);
+  condition = true;
 
   if (condition) {
     print("Condition was true\n");

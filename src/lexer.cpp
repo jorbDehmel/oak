@@ -14,8 +14,8 @@ Lexer::lex(const std::string &_text,
   // Statics
   const static std::set<char> whitespace = {' ', '\t', '\n'};
   const static std::set<char> operators = {
-      '~', '@', '#', '$', '%', '^', '&', '*', '-', '+',
-      '=', '|', ';', ':', ',', '<', '.', '>', '/', '?'};
+      '~', '@', '#', '$', '%', '^', '&', '*', '-', '+', '=',
+      '|', ';', ':', ',', '<', '.', '>', '/', '?', '!'};
   const static std::set<char> singleton_operators = {
       '[', ']', '{', '}', '(', ')'};
   const auto next_line = [&]() {
@@ -206,7 +206,8 @@ Lexer::lex(const std::string &_text,
           Lexer::Token("", _path, _line, _col);
       while (pos + 1 < _text.size() &&
              !whitespace.contains(_text.at(pos + 1)) &&
-             !operators.contains(_text.at(pos + 1)) &&
+             (!operators.contains(_text.at(pos + 1)) ||
+              _text.at(pos + 1) == '!') &&
              !singleton_operators.contains(_text.at(pos + 1)) &&
              _text.at(pos + 1) != '\'' &&
              _text.at(pos + 1) != '"' &&

@@ -1,0 +1,15 @@
+/*
+Bindings for output files
+*/
+
+pragma!("no_dialect");
+link!("std/ofile.o");
+
+let ofile: struct {
+  _: ^void
+}
+
+let New(self: ^ofile) -> ofile;
+let Del(self: ^ofile) -> void;
+let Copy(self: ^ofile, path: []i8) -> ofile;
+let write(self: ^ofile, what: []i8) -> void;

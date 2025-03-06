@@ -28,6 +28,10 @@ install: check
 	@echo "Installing default Oak libraries..."
 	acorn -yS ./std
 
+	@echo "Chowning /usr/include/oak..."
+	sudo mkdir -p /usr/include/oak
+	sudo chmod 777 /usr/include/oak
+
 .PHONY:	install-debug
 install-debug: check
 	@echo "Compiling and installing acorn in debug mode..."
@@ -75,3 +79,24 @@ clean:
 		-or -iname "*.so" -or -iname "*.oak.c" \) \
 		-exec rm -f "{}" \;
 	acorn --clean --quit
+
+################################################################
+# Container launching stuff
+################################################################
+
+# For absolute path usage later
+cwd := $(shell pwd)
+
+.PHONY: docker
+docker:
+	docker build --tag 'oak' .
+	docker run \
+		--mount type=bind,source="${cwd}",target="/host" \
+		-i -t oak:latest
+
+.PHONY: podman
+podman:
+	podman build --tag 'oak' .
+	podman run \
+		--mount type=bind,source="${cwd}",target="/host" \
+		-i -t oak:latest

@@ -73,7 +73,16 @@ let main() -> i32 {
 
 ## Installation
 
-To check your system for requirements:
+To launch into a development container in the current directory:
+
+```sh
+make docker
+# Or
+make podman
+```
+
+Note that this does not set up Oak, it just launches a
+container. To check your system for requirements:
 
 ```sh
 make check

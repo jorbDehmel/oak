@@ -320,7 +320,14 @@ void Parser::reconstruct(std::ostream &_where) const noexcept {
       break;
     }
     case Node::DECL:
-      _where << stmt.type->c_repr(stmt.token->text) << "\n";
+      _where << stmt.type->c_repr(stmt.token->text) << ";\n";
+
+      // `New` calls
+      for (const auto &child : stmt.children) {
+        reconstruct_node(child);
+        _where << ";\n";
+      }
+
       break;
     case Node::STMT:
       if (stmt.token.has_value() && *stmt.token == "return") {
@@ -822,6 +829,35 @@ Node Parser::parse_statement(
       out.token.value().text += name;
 
       locals.back()[name] = t;
+
+      if (t.nodes.front().type == Type::TypeNode::POINTER ||
+          t.nodes.front().type ==
+              Type::TypeNode::UNSIZED_ARRAY) {
+        // Pointer or unsized array `New` call
+        Node out(Node::RAW_C_FMT);
+        out.c_name = name + " = 0;";
+        out.children.push_back(out);
+      } else if (t.nodes.front().type ==
+                 Type::TypeNode::SIZED_ARRAY) {
+        // Sized array `New` call
+        throw std::runtime_error(
+            "Sized array initialization is unimplemented");
+      } else {
+        // Literal `New` call
+        const auto tok = *_cur_pos;
+        const std::list<Lexer::Token> new_call = {
+            Lexer::Token("New", tok.file, tok.line, tok.col,
+                         "ID"),
+            Lexer::Token("(", tok.file, tok.line, tok.col,
+                         "OPERATOR"),
+            Lexer::Token(name, tok.file, tok.line, tok.col,
+                         "ID"),
+            Lexer::Token(")", tok.file, tok.line, tok.col,
+                         "OPERATOR")};
+        auto it = new_call.begin();
+        out.children.push_back(
+            parse_function_call(it, new_call.end(), _settings));
+      }
     }
 
     return out;

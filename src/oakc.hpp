@@ -90,6 +90,11 @@ protected:
   void do_compilation();
 
   /**
+   * @brief Parse and turn all math into operator calls
+   */
+  void fix_math(std::list<Lexer::Token> &_token_stream);
+
+  /**
    * @brief Load the given file, following any includes found
    * within and doing any preprocessor rules as expected. This
    * is called by do_compilation, and should not be called
@@ -104,10 +109,10 @@ protected:
   void do_testing();
 
   /**
-   * @brief Tests the input token stream for validity
+   * @brief Tests the input file contents for validity
    */
-  void syntax_check(
-      const std::list<Lexer::Token> &_token_stream) const;
+  void syntax_check(const std::filesystem::path &_fp,
+                    const std::string &_text) const;
 
   /**
    * @brief Preprocess until a fixed point is reached

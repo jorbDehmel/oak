@@ -103,3 +103,17 @@ void print_FN_uint_MAPS_void(uint _to_print) {
 i8 getch_FN_MAPS_i8() {
   return getchar();
 }
+
+// get_i32() -> i32
+i32 get_i32_FN_MAPS_i32() {
+  i32 out = 0;
+  scanf("%d", &out);
+  return out;
+}
+
+// get_f64() -> f64
+f64 get_f64_FN_MAPS_f64() {
+  f64 out = 0.0;
+  scanf("%lf", &out);
+  return out;
+}

@@ -1,0 +1,31 @@
+/*
+Number guessing game in Oak
+*/
+
+include!("std/std.oak", "std/printf.oak");
+
+let main() -> i32 {
+  srand();
+  let secret_number, tries_left: int;
+  let guess: i32;
+  tries_left = 5int;
+  secret_number = rand() % 10int;
+
+  while (tries_left > 0int) {
+    print("Guess a number between 0 and 9: ");
+    guess = get_i32();
+
+    if (guess == to_i32(secret_number)) {
+      print("You guessed it!\n");
+      return 0i32;
+    } else if (guess < to_i32(secret_number)) {
+      print("Too low...\n");
+    } else {
+      print("Too high...\n");
+    }
+
+    --tries_left;
+  }
+
+  return 0i32;
+}

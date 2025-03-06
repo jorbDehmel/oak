@@ -14,7 +14,7 @@ rule::use!("test_rule");
 
 let main() -> i32 {
   let buzz: i32;
-  Copy(buzz, 0i32);
+  buzz = 0i32;
   print(fizz); // Shouldn't be defined unless rule works
   return 0i32;
 }

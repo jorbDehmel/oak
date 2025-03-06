@@ -5,28 +5,28 @@ Fizz buzz
 include!("std/std.oak");
 
 let is_divisible_by(what: i32, by: i32) -> bool {
-  return Eq(Mod(what, by), 0i32);
+  return what % by == 0i32;
 }
 
 let main() -> i32 {
   let counter: i32;
-  Copy(counter, 0i32);
-  while (Less(counter, 20i32)) {
+  counter = 0i32;
+  while (counter < 20i32) {
     let flag: bool;
-    Copy(flag, false);
+    flag = false;
     if (is_divisible_by(counter, 3i32)) {
-      Copy(flag, true);
+      flag = true;
       print("Fizz");
     }
     if (is_divisible_by(counter, 5i32)) {
-      Copy(flag, true);
+      flag = true;
       print("Buzz");
     }
-    if (Not(flag)) {
+    if (!flag) {
       print(counter);
     }
     endl();
-    Incr(counter);
+    ++counter;
   }
   return 0i32;
 }

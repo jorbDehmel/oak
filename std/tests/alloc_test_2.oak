@@ -1,0 +1,15 @@
+/*
+Tests alloc! macro by asserting that we cannot allocate an array
+into a pointer variable
+*/
+
+pragma!("compile_should_fail");
+
+let main() -> i32 {
+  let ptr: ^i32;
+
+  alloc!(ptr, 16uint);
+  free!(ptr);
+
+  return 0i32;
+}

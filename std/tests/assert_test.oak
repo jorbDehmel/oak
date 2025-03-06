@@ -1,0 +1,13 @@
+/*
+Tests the assert! macro
+*/
+
+pragma!("run_should_fail");
+include!("std/std.oak", "std/assert.oak");
+
+let main() -> i32 {
+  assert!(true);
+  assert!(false);
+
+  return 0i32;
+}

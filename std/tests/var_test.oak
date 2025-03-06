@@ -1,4 +1,4 @@
-include!("std/io.oak");
+include!("std/io.oak", "std/operators.oak");
 let main() -> i32 {
   let foo: i32;
   print(foo);

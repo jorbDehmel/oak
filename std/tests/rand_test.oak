@@ -4,18 +4,18 @@ let main() -> i32 {
   srand(123uint);
 
   let counter: i32;
-  Copy(counter, 0i32);
+  counter = 0i32;
 
-  while (Less(counter, 10i32)) {
+  while (counter < 10i32) {
     let foo: int;
-    Copy(foo, rand());
+    foo = rand();
 
     print(counter);
     print("\t|\t");
     print(foo);
     endl();
 
-    Incr(counter);
+    ++counter;
   }
 
   return 0i32;

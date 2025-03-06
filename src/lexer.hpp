@@ -43,8 +43,10 @@ public:
     /// Construct with all parameters specified
     Token(const std::string &_text,
           const std::filesystem::path &_file,
-          const uint64_t &_line, const uint64_t &_col)
-        : text(_text), file(_file), line(_line), col(_col) {
+          const uint64_t &_line, const uint64_t &_col,
+          const std::string &_type = "ID")
+        : text(_text), type(_type), file(_file), line(_line),
+          col(_col) {
     }
 
     /// Construct with the other as a 'template', but with some

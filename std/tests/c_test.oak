@@ -6,7 +6,7 @@ include!("std/std.oak");
 
 let main() -> i32 {
   let a: i32;
-  Copy(a, 0i32);
+  a = 0i32;
 
   c!(
     "a = 123;"

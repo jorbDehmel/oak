@@ -9,7 +9,7 @@ Jordan Dehmel, jdehmel@outlook.com
 
 - **Code before now will almost certainly not work**
 - 100% rewrite from ground up under MIT license (rather than
-    GPL)
+    GPL), enforcing best practice
 
 ----------------------------------------------------------------
 ## Everything below is pre-rewrite (and GPL'ed)

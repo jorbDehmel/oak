@@ -1,0 +1,39 @@
+include!("std/std.oak");
+
+let fizz: struct {
+  member: u64
+}
+
+let New(self: ^i32) -> void {
+  c!("*self = 0;");
+}
+let New(self: ^fizz) -> void {
+  self.member = 0u64;
+}
+
+let main() -> i32 {
+  print(1i32 + 2i32);
+  endl();
+
+  print(2i32 / 3i32 / 5i32);
+  endl();
+
+  print(2i32 / 3i32 / Add(1i32, 2i32));
+  endl();
+
+  print(2i32 / 3i32 + 5i32);
+  endl();
+
+  print(5i32 + 2i32 / 3i32);
+  endl();
+
+  let a: i32;
+  a = 1i32 + 2i32 + 3i32;
+
+  let b: fizz;
+  b.member = 100u64;
+  print(b.member * b.member);
+  endl();
+
+  return 0i32;
+}

@@ -535,8 +535,11 @@ void OakCompiler::do_compilation() {
 
   // If requested, execute
   if (csettings.mode >=
-      Settings::CompileSettings::
-          TRANSLATE_COMPILE_LINK_AND_EXECUTE) {
+          Settings::CompileSettings::
+              TRANSLATE_COMPILE_LINK_AND_EXECUTE &&
+      !settings.compile_settings()
+           .pragmas[settings.compile_settings().entry_point]
+           .contains("no_run")) {
     bool should_succeed =
         !settings.compile_settings()
              .pragmas[settings.compile_settings().entry_point]
@@ -581,6 +584,8 @@ void OakCompiler::do_testing() {
   std::list<std::filesystem::path> compile_problems,
       run_problems;
 
+  settings.ostream << "Running test cases...\n";
+
   // Collect locations to test
   if (std::filesystem::exists(std::filesystem::current_path() /
                               "tests") &&
@@ -619,13 +624,17 @@ void OakCompiler::do_testing() {
     uint64_t tried_to_compile = 0, tried_to_run = 0,
              compiled_successfully = 0, ran_successfully = 0;
 
+    std::set<std::filesystem::directory_entry> cases;
     for (const auto &test_file :
          std::filesystem::directory_iterator(test_path)) {
+      cases.insert(test_file);
+    }
+
+    for (const auto &test_file : cases) {
       if (std::filesystem::is_regular_file(test_file) &&
           test_file.path().string().ends_with(".oak") &&
           !test_file.path().string().ends_with(".macro.oak")) {
         test_log << "Testing file " << test_file << "\n\n";
-        std::cout << test_file.path().string() << "\t";
 
         ++tried_to_compile;
         ++compiled_successfully;
@@ -641,6 +650,7 @@ void OakCompiler::do_testing() {
             test_file;
         comp.settings.compile_settings().target = target;
         bool compilation_succeeded = true;
+        int run_result = 0;
 
         try {
           comp();
@@ -648,8 +658,6 @@ void OakCompiler::do_testing() {
           compilation_succeeded = false;
           compile_problems.push_back(test_file);
           --compiled_successfully;
-
-          std::cout << "(COMPILE FAILURE) ";
 
           if (tsettings.halt_on_compiler_failure) {
             throw std::runtime_error(
@@ -664,12 +672,10 @@ void OakCompiler::do_testing() {
           ++tried_to_run;
           ++ran_successfully;
 
-          int res = system(target.root_path().c_str());
-          if (res != 0) {
+          run_result = system(target.root_path().c_str());
+          if (run_result != 0) {
             run_problems.push_back(test_file);
             --ran_successfully;
-
-            std::cout << "(RUNTIME FAILURE) ";
 
             if (tsettings.mode != Settings::TestSettings::
                                       EXECUTE_IGNORE_FAILURE) {
@@ -683,12 +689,23 @@ void OakCompiler::do_testing() {
         std::chrono::high_resolution_clock::time_point stop =
             std::chrono::high_resolution_clock::now();
 
-        std::cout << (std::chrono::duration_cast<
+        std::cout << '[';
+
+        if (compilation_succeeded) {
+          std::cout << run_result;
+        } else {
+          std::cout << 'F';
+        }
+
+        std::cout << "]" << std::fixed << std::setprecision(3)
+                  << std::right << std::setw(10)
+                  << (std::chrono::duration_cast<
                           std::chrono::microseconds>(stop -
                                                      start)
                           .count() /
                       1'000.0)
-                  << " ms\n";
+                  << " ms | " << test_file.path().string()
+                  << "\n";
       }
     }
 
@@ -746,20 +763,23 @@ void OakCompiler::do_testing() {
       << total_runs_tried << " ("
       << 100.0 * (double)total_runs_succeeded /
              (total_runs_tried ? total_runs_tried : 1)
-      << "%)\n";
-
-  for (const auto &i : compile_problems) {
-    settings.ostream << "compile-time error: " << i << "\n";
-  }
-  for (const auto &i : run_problems) {
-    settings.ostream << "run-time error:     " << i << "\n";
-  }
+      << "%)\n\n";
 
   db_assert(total_runs_tried <= total_compiles_succeeded);
 
   if (!compile_problems.empty() || !run_problems.empty()) {
-    throw std::runtime_error(
-        "One or more errors occurred; Test failed.");
+    settings.ostream << "Errors:\n";
+
+    for (const auto &i : compile_problems) {
+      settings.ostream << "C | " << i.string() << "\n";
+    }
+    for (const auto &i : run_problems) {
+      settings.ostream << "R | " << i.string() << "\n";
+    }
+    settings.ostream << '\n';
+
+    throw std::runtime_error("One or more errors occurred; "
+                             "Testing mode failed.");
   } else {
     settings.ostream << "All tests passed!\n";
   }
@@ -768,105 +788,350 @@ void OakCompiler::do_testing() {
 /**
  * @brief
  */
-void OakCompiler::syntax_check(
-    const std::list<Lexer::Token> &_token_stream) const {
+void OakCompiler::syntax_check(const std::filesystem::path &_fp,
+                               const std::string &_text) const {
   debug_print();
-  // All detected errors: Maps
-  // positions to messages
-  std::list<std::pair<std::list<Lexer::Token>::const_iterator,
-                      std::string>>
-      errors;
+  // All detected errors: line, col, message
+  std::list<std::tuple<uint64_t, uint64_t, std::string>> errors;
 
   // Scan for syntax errors here
 
-  uint64_t paren_count = 0, square_bracket_count = 0,
-           curly_bracket_count = 0;
-  for (auto t = _token_stream.begin(); t != _token_stream.end();
-       ++t) {
-    if (*t == "{") {
-      ++curly_bracket_count;
-    } else if (*t == "}") {
-      if (curly_bracket_count == 0) {
-        errors.push_back({t, "Too many ending curly brackets"});
-        break;
+  uint64_t line = 1, col = 0;
+  std::stack<char> enclosure;
+
+  for (size_t i = 0; i < _text.size(); ++i, ++col) {
+    // Comments
+    if (_text.at(i) == '/' && i + 1 < _text.size() &&
+        _text.at(i + 1) == '/') {
+      while (i + 1 < _text.size() && _text.at(i + 1) != '\n') {
+        ++i, ++col;
       }
-      --curly_bracket_count;
+      if (_text.at(i) == '\n') {
+        ++line, col = 0;
+      }
+    } else if (_text.at(i) == '/' && i + 1 < _text.size() &&
+               _text.at(i + 1) == '*') {
+      while (i + 1 < _text.size() &&
+             !(_text.at(i) == '*' && _text.at(i + 1) == '/')) {
+        if (_text.at(i) == '\n') {
+          ++line, col = 0;
+        }
+        ++i, ++col;
+      }
+      ++i, ++col;
     }
 
-    else if (*t == "(") {
-      ++paren_count;
-    } else if (*t == ")") {
-      if (paren_count == 0) {
-        errors.push_back({t, "Too many ending parentheses"});
-        break;
+    // Strings
+    if (_text.at(i) == '\'') {
+      bool skip = false;
+      ++i, ++col;
+      while (i < _text.size()) {
+        if (skip) {
+          skip = false;
+        } else if (_text.at(i) == '\\') {
+          skip = true;
+          ++i, ++col;
+          continue;
+        } else if (_text.at(i) == '\'') {
+          break;
+        } else if (_text.at(i) == '\n') {
+          ++line, col = 0;
+          break;
+        }
+        ++i, ++col;
       }
-      --paren_count;
+    } else if (_text.at(i) == '"') {
+      bool skip = false;
+      ++i, ++col;
+      while (i < _text.size()) {
+        if (skip) {
+          skip = false;
+        } else if (_text.at(i) == '\\') {
+          skip = true;
+          ++i, ++col;
+          continue;
+        } else if (_text.at(i) == '"') {
+          break;
+        } else if (_text.at(i) == '\n') {
+          ++line, col = 0;
+          break;
+        }
+        ++i, ++col;
+      }
+    } else if (_text.at(i) == '`') {
+      bool skip = false;
+      ++i, ++col;
+      while (i < _text.size()) {
+        if (skip) {
+          skip = false;
+        } else if (_text.at(i) == '\\') {
+          skip = true;
+          ++i, ++col;
+          continue;
+        } else if (_text.at(i) == '`') {
+          break;
+        } else if (_text.at(i) == '\n') {
+          ++line, col = 0;
+          break;
+        }
+        ++i, ++col;
+      }
     }
 
-    else if (*t == "[") {
-      ++square_bracket_count;
-    } else if (*t == "]") {
-      if (square_bracket_count == 0) {
-        errors.push_back(
-            {t, "Too many ending square brackets"});
+    else {
+      // Everything else
+      switch (_text.at(i)) {
+      case '\n':
+        ++line, col = 0;
+        break;
+      case '[':
+      case '(':
+      case '{':
+        enclosure.push(_text.at(i));
+        break;
+      case ']':
+        if (enclosure.empty()) {
+          errors.push_back({line, col, "Too many ']'"});
+        } else if (enclosure.top() != '[') {
+          errors.push_back({line, col,
+                            std::string("Tried to end '") +
+                                enclosure.top() +
+                                "' with ']'"});
+        } else {
+          enclosure.pop();
+        }
+        break;
+      case ')':
+        if (enclosure.empty()) {
+          errors.push_back({line, col, "Too many ')'"});
+        } else if (enclosure.top() != '(') {
+          errors.push_back({line, col,
+                            std::string("Tried to end '") +
+                                enclosure.top() +
+                                "' with ')'"});
+        } else {
+          enclosure.pop();
+        }
+        break;
+      case '}':
+        if (enclosure.empty()) {
+          errors.push_back({line, col, "Too many '}'"});
+        } else if (enclosure.top() != '{') {
+          errors.push_back({line, col,
+                            std::string("Tried to end '") +
+                                enclosure.top() +
+                                "' with '}'"});
+        } else {
+          enclosure.pop();
+        }
         break;
       }
-      --square_bracket_count;
-    }
 
-    else if (t->col - 1 + t->text.size() > 64) {
-      errors.push_back(
-          {t, "Line goes over 64 characters (" +
-                  std::to_string(t->col - 1 + t->text.size()) +
-                  ")"});
+      if (col == 65) {
+        errors.push_back({line, col, "Line too long!"});
+      }
     }
   }
-
-  // End scanning
 
   // If errors were found, throw them
   if (!errors.empty()) {
     for (const auto &p : errors) {
-      std::cerr << p.first->file.string() << ":"
-                << p.first->line << "." << p.first->col
-                << "> `";
-
-      // Calculate region
-      auto begin_region = p.first,
-           end_region = std::next(p.first);
-      for (uint i = 0; i < 20; ++i) {
-        if (begin_region == _token_stream.begin()) {
-          break;
-        } else {
-          begin_region = std::prev(begin_region);
-        }
-      }
-      for (uint i = 0; i < 20; ++i) {
-        if (std::next(end_region) == _token_stream.end()) {
-          break;
-        } else {
-          begin_region = std::next(begin_region);
-        }
-      }
-
-      // Print region
-      for (auto it = begin_region; it != end_region; ++it) {
-        std::cerr << it->text;
-        if (std::next(it) != end_region) {
-          std::cerr << ' ';
-        }
-      }
-      std::cerr << "`: '" << p.second << "'\n";
+      settings.ostream << _fp.string() << ":" << std::get<0>(p)
+                       << "." << std::get<1>(p) << "> '"
+                       << std::get<2>(p) << "'\n";
     }
 
     throw std::runtime_error(std::to_string(errors.size()) +
-                             " syntax error occurred.");
+                             " syntax error(s) occurred.");
   }
 }
 
-/**
- * @brief
- */
+void OakCompiler::fix_math(
+    std::list<Lexer::Token> &_token_stream) {
+  // Iterate through the token stream, replace all instances of
+  // the given operator with the given op fn call name (EG '+'
+  // -> 'Add'). Precedence is embedded in the order in which you
+  // call this lambda
+  const auto resolve_binary_operator =
+      [&](const std::string &_operator,
+          const std::string &_op_name) {
+        // Scan strm
+        for (auto it = _token_stream.begin();
+             it != _token_stream.end(); ++it) {
+          // On match
+          if (it->type == "OPERATOR" && it->text == _operator) {
+            std::list<Lexer::Token>::iterator
+                first_of_lhs,         // First tok in lhs
+                first_after_lhs = it, // The single-token op
+                first_after_rhs;      // First tok after rhs
+
+            // Find lhs
+            first_of_lhs = std::prev(it);
+            if (it == _token_stream.begin() ||
+                *first_of_lhs == "(") {
+              throw std::runtime_error(
+                  "At " + it->file.string() + ":" +
+                  std::to_string(it->line) + "." +
+                  std::to_string(it->col) +
+                  "> Malformed operator LHS");
+            } else if (*first_of_lhs == ")") {
+              int depth = 0;
+              do {
+                if (*first_of_lhs == "(") {
+                  ++depth;
+                } else if (*first_of_lhs == ")") {
+                  --depth;
+                }
+                --first_of_lhs;
+              } while (depth != 0);
+              if (first_of_lhs->type != "ID") {
+                ++first_of_lhs;
+              }
+            }
+            while (std::prev(first_of_lhs)->text == ".") {
+              first_of_lhs = std::prev(first_of_lhs, 2);
+            }
+
+            // Find rhs
+            first_after_rhs = std::next(it);
+            if (it == _token_stream.begin() ||
+                *first_after_rhs == ")") {
+              throw std::runtime_error(
+                  "Malformed operator LHS");
+            } else if (std::next(first_after_rhs)->text ==
+                       "(") {
+              int depth = 0;
+              do {
+                ++first_after_rhs;
+                if (*first_after_rhs == "(") {
+                  ++depth;
+                } else if (*first_after_rhs == ")") {
+                  --depth;
+
+                  if (depth == 0) {
+                    ++first_after_rhs;
+                  }
+                }
+              } while (depth != 0);
+            } else {
+              ++first_after_rhs;
+            }
+
+            while (first_after_rhs->text == ".") {
+              first_after_rhs = std::next(first_after_rhs, 2);
+            }
+
+            // Operate
+            // "lhs _operator rhs" -> "_op_name ( lhs , rhs )"
+            // Beginning of call: "Name ("
+            _token_stream.insert(
+                first_of_lhs,
+                Lexer::Token(_op_name, it->file, it->line,
+                             it->col, "ID"));
+            _token_stream.insert(first_of_lhs,
+                                 Lexer::Token("(", it->file,
+                                              it->line, it->col,
+                                              "OPERATOR"));
+
+            // Separating comma
+            first_after_lhs->text = ",";
+            first_after_lhs->type = "OPERATOR";
+
+            // End parenthesis
+            _token_stream.insert(first_after_rhs,
+                                 Lexer::Token(")", it->file,
+                                              it->line, it->col,
+                                              "OPERATOR"));
+          }
+        }
+      };
+
+  // Same, but for prefix unary operators
+  // Note: There are no suffix unary operators in oak
+  const auto resolve_unary_operator =
+      [&](const std::string &_operator,
+          const std::string &_op_name) {
+        // Scan strm
+        for (auto it = _token_stream.begin();
+             it != _token_stream.end(); ++it) {
+          // On match
+          if (it->type == "OPERATOR" && it->text == _operator) {
+            std::list<Lexer::Token>::iterator
+                first_after_lhs = it, // The single-token op
+                first_after_rhs;      // First tok after rhs
+
+            // Find rhs
+            first_after_rhs = std::next(it);
+            if (it == _token_stream.begin() ||
+                *first_after_rhs == ")") {
+              throw std::runtime_error(
+                  "Malformed operator LHS");
+            } else if (std::next(first_after_rhs)->text ==
+                       "(") {
+              int depth = 0;
+              do {
+                ++first_after_rhs;
+                if (*first_after_rhs == "(") {
+                  ++depth;
+                } else if (*first_after_rhs == ")") {
+                  --depth;
+
+                  if (depth == 0) {
+                    ++first_after_rhs;
+                  }
+                }
+              } while (depth != 0);
+            } else {
+              ++first_after_rhs;
+            }
+
+            while (first_after_rhs->text == ".") {
+              first_after_rhs = std::next(first_after_rhs, 2);
+            }
+
+            // Operate
+            // "_operator rhs" -> "_op_name ( rhs )"
+            // Beginning of call: "Name ("
+            _token_stream.insert(
+                first_after_lhs,
+                Lexer::Token(_op_name, it->file, it->line,
+                             it->col, "ID"));
+            first_after_lhs->text = "(";
+            first_after_lhs->type = "OPERATOR";
+
+            // End parenthesis
+            _token_stream.insert(first_after_rhs,
+                                 Lexer::Token(")", it->file,
+                                              it->line, it->col,
+                                              "OPERATOR"));
+          }
+        }
+      };
+
+  // Unary operator precedence
+  const std::list<std::pair<std::string, std::string>>
+      unary_precedence = {
+          {"!", "Not"}, {"++", "Incr"}, {"--", "Decr"}};
+
+  // Binary operator precedence
+  const std::list<std::pair<std::string, std::string>>
+      binary_precedence = {
+          {"*", "Mult"}, {"/", "Div"},  {"%", "Mod"},
+          {"+", "Add"},  {"-", "Sub"},  {"&&", "Andd"},
+          {"||", "Orr"}, {"=", "Copy"}, {"==", "Eq"},
+          {"!=", "Neq"}, {"<", "Less"}, {">", "Great"},
+          {"<=", "Leq"}, {">", "Greq"},
+      };
+
+  for (const auto &i : unary_precedence) {
+    resolve_unary_operator(i.first, i.second);
+  }
+
+  for (const auto &i : binary_precedence) {
+    resolve_binary_operator(i.first, i.second);
+  }
+}
+
 uint64_t
 OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
                         Settings::CompileSettings &_csettings) {
@@ -1045,7 +1310,8 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
 
           if (args.size() < 3) {
             throw std::runtime_error(
-                "Malformed rule::new! call: Arguments must be "
+                "Malformed rule::new! call: Arguments must "
+                "be "
                 "rule_name, input_rule, output_rule, "
                 "[engine_name], [prerequisites...]");
           }
@@ -1201,6 +1467,9 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
       }
     }
 
+    // Fix math
+    fix_math(_token_stream);
+
     // Apply ruleset
     did_change |= rules.process_text(_token_stream);
 
@@ -1307,13 +1576,13 @@ void OakCompiler::do_file(const std::filesystem::path &_path,
         _path.string() + "");
   }
 
-  // If requested, syntax check
-  if (csettings.do_syntax_check) {
-    syntax_check(token_stream);
-  }
-
   // Preprocess (including includes)
   preprocess(token_stream, csettings);
+
+  // If requested, syntax check
+  if (csettings.do_syntax_check) {
+    syntax_check(_path, text);
+  }
 
   // Do actual parsing here
   debug_print();
