@@ -1,5 +1,5 @@
 /**
- * @file test_parser.cpp
+ * @file
  * @brief Tests the Oak parser
  */
 
@@ -17,17 +17,18 @@ int main() {
   { // Test 1: Functions
     Parser p;
     Lexer l;
-    uint64_t line, col;
+    uint64_t line = __LINE__, col = 0;
     const std::string file = "foo.oak";
 
     const std::string text =
-        "let main() -> i32 { let var, var2: int; } "
+        "let New(_: ^int) -> void; let main() -> i32 { "
+        "let var, var2: int; } "
         "let a(b: i32, c: []^bool) -> void;";
 
     const auto lexed = l.lex(text, file, line, col);
 
     p.parse_global(lexed, settings);
-    p.reconstruct(std::cout);
+    p.reconstruct(std::cout, settings.compile_settings());
 
     assert(!p.fetch_symbol("var").has_value());
     assert(!p.fetch_symbol("var2").has_value());
@@ -89,17 +90,18 @@ int main() {
   { // Test 2: Structs
     Parser p;
     Lexer l;
-    uint64_t line, col;
+    uint64_t line = __LINE__, col = 0;
     const std::string file = "fizz.oak";
 
     const std::string text =
-        "let foo:struct{a:int,b,c:bool,}let main()->i32{let "
+        "let foo:struct{a:int,b,c:bool,}let New(_: ^foo) -> "
+        "void; let main()->i32{let "
         "a:foo;}";
 
     const auto lexed = l.lex(text, file, line, col);
 
     p.parse_global(lexed, settings);
-    p.reconstruct(std::cout);
+    p.reconstruct(std::cout, settings.compile_settings());
   }
 
   std::cout << "Running test #" << ++test_num << "...\n"
@@ -107,17 +109,18 @@ int main() {
   { // Test 3: Enums
     Parser p;
     Lexer l;
-    uint64_t line, col;
+    uint64_t line = __LINE__, col;
     const std::string file = "fizz.oak";
 
     const std::string text =
-        "let fizz:enum{a:int,b,c:bool,}let main()->i32{let "
+        "let fizz:enum{a:int,b,c:bool,}let New(_: ^fizz) -> "
+        "void; let main()->i32{let "
         "a:fizz;}";
 
     const auto lexed = l.lex(text, file, line, col);
 
     p.parse_global(lexed, settings);
-    p.reconstruct(std::cout);
+    p.reconstruct(std::cout, settings.compile_settings());
   }
 
   std::cout << "Running test #" << ++test_num << "...\n"
@@ -125,7 +128,7 @@ int main() {
   { // Test 4: Nonexistant structs
     Parser p;
     Lexer l;
-    uint64_t line, col;
+    uint64_t line = __LINE__, col;
     const std::string file = "fizz.oak";
 
     const std::string text = "let main()->i32{let a:foo;}";
@@ -146,14 +149,13 @@ int main() {
   { // Test 5: No-arg function calls
     Parser p;
     Lexer l;
-    uint64_t line, col;
+    uint64_t line = __LINE__, col;
     const std::string file = "fizz.oak";
 
     const std::string text =
         // clang-format off
         "let fizz() -> i32 {}\n"
-        "let main() -> i32\n"
-        "{\n"
+        "let main() -> i32 {\n"
         "  fizz();\n"
         "}\n";
     // clang-format on
@@ -161,7 +163,7 @@ int main() {
     const auto lexed = l.lex(text, file, line, col);
 
     p.parse_global(lexed, settings);
-    p.reconstruct(std::cout);
+    p.reconstruct(std::cout, settings.compile_settings());
   }
 
   std::cout << "Running test #" << ++test_num << "...\n"
@@ -169,12 +171,13 @@ int main() {
   { // Test 6: Arg function calls
     Parser p;
     Lexer l;
-    uint64_t line, col;
+    uint64_t line = __LINE__, col;
     const std::string file = "fizz.oak";
 
     const std::string text =
         // clang-format off
         "let fizz(a: i32, b: []i32) -> void {}\n"
+        "let New(_: ^i32) -> void;\n"
         "let main() -> i32\n"
         "{\n"
         "  let c: i32;\n"
@@ -186,7 +189,7 @@ int main() {
     const auto lexed = l.lex(text, file, line, col);
 
     p.parse_global(lexed, settings);
-    p.reconstruct(std::cout);
+    p.reconstruct(std::cout, settings.compile_settings());
   }
 
   std::cout << "Running test #" << ++test_num << "...\n"
@@ -194,15 +197,16 @@ int main() {
   { // Test 7: Overloaded function calls
     Parser p;
     Lexer l;
-    uint64_t line, col;
+    uint64_t line = __LINE__, col;
     const std::string file = "fizz.oak";
 
     const std::string text =
         // clang-format off
         "let fizz(a: i32) -> i32 {}\n"
         "let fizz(a: i64) -> i64 {}\n"
-        "let main() -> i32\n"
-        "{\n"
+        "let New(_: ^i32) -> void {}\n"
+        "let New(_: ^i64) -> void {}\n"
+        "let main() -> i32 {\n"
         "  let b: i32;\n"
         "  let c: i64;\n"
         "  fizz(b);\n"
@@ -213,7 +217,7 @@ int main() {
     const auto lexed = l.lex(text, file, line, col);
 
     p.parse_global(lexed, settings);
-    p.reconstruct(std::cout);
+    p.reconstruct(std::cout, settings.compile_settings());
   }
 
   // std::cout << "Running test #" << ++test_num << "...\n"

@@ -1,5 +1,5 @@
 /**
- * @file settings.hpp
+ * @file
  * @brief Defines settings structures for Oak compilation
  */
 

@@ -1,5 +1,5 @@
 /**
- * @file package.hpp
+ * @file
  * @brief Resources for resolving packages in Oak
  */
 

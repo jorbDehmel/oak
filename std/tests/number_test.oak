@@ -1,0 +1,47 @@
+/*
+Tests edge cases of number literals
+*/
+
+include!("std/std.oak");
+
+let main() -> i32 {
+
+  // Weird spacing
+  print(
+    123 456
+    i64
+  );
+  endl();
+
+  // Negatives
+  print(
+    -12i32
+  );
+  endl();
+
+  // Float weird spacing
+  print(
+    1.23 45 67 89 f64
+  );
+  endl();
+
+  // Float leading dot
+  print(
+    .14159265f64
+  );
+  endl();
+
+  // Binary literal
+  print(
+    0b1111 1111 0000 0000 u16
+  );
+  endl();
+
+  // Hexadecimal literal
+  print(
+    0xFF 00 u16
+  );
+  endl();
+
+  return 0i32;
+}

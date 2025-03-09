@@ -1,5 +1,5 @@
 /**
- * @file oakc.hpp
+ * @file
  * @brief Defines the OakCompiler class
  */
 
@@ -129,5 +129,7 @@ protected:
    * @brief Write the parsed information to the given stream in
    * C format.
    */
-  void translate(std::ostream &_into) const;
+  void
+  translate(std::ostream &_into,
+            const Settings::CompileSettings &_csettings) const;
 };

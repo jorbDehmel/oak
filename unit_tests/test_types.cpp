@@ -1,5 +1,5 @@
 /**
- * @file test_types.cpp
+ * @file
  * @brief Tests the Oak typing system
  */
 
@@ -54,7 +54,7 @@ int main() {
 
   { // Test C representation
     test_repr("foo", "i32* foo", {"^", "i32"});
-    test_repr("foo", "i32 foo[]", {"[", "]", "i32"});
+    test_repr("foo", "i32* foo", {"[", "]", "i32"});
     test_repr("foo", "bool* foo[64]",
               {"^", "[", "64", "]", "bool"});
 

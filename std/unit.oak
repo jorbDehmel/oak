@@ -4,6 +4,6 @@ Defines the unit struct
 
 pragma!("no_dialect");
 
-let unit: struct {
+let Unit: struct {
   _: u8,
 }

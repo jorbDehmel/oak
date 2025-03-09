@@ -1,5 +1,5 @@
 /**
- * @file macro.hpp
+ * @file
  * @brief Resources for managing macros
  * @author Jordan Dehmel
  */

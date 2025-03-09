@@ -1,5 +1,5 @@
 /**
- * @file macro.hpp
+ * @file
  * @brief Resources for managing macros
  * @author Jordan Dehmel
  */
@@ -9,6 +9,7 @@
 #include "lexer.hpp"
 #include "oakc.hpp"
 #include "settings.hpp"
+#include <cctype>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
@@ -28,6 +29,12 @@ const std::set<std::string> MacroManager::reserved_macro_names =
      "compile_time_error!",
      "compile_time_warning!"};
 
+/**
+ * @brief Runs a command, asserts it succeeded, and captures its
+ * stdout.
+ * @param _cmd The command to run
+ * @returns The string output of the command
+ */
 std::string get_cmd_output(const std::string &_cmd) {
   char buffer[128];
   std::string result;
@@ -85,7 +92,11 @@ void MacroManager::replace(
     const std::list<Lexer::Token>::iterator &_end) const {
   debug_print();
 
-  const auto name = *_it;
+  const auto name_tok = *_it;
+  const std::string name =
+      _it->text.substr(0, _it->text.find('!') + 1);
+  const std::string nonexistence_replacement =
+      _it->text.substr(_it->text.find('!') + 1);
 
   if (name == "LINE!") {
     _it->type = "NUMBER";
@@ -117,9 +128,30 @@ void MacroManager::replace(
     return;
   }
 
-  if (!macros.contains(name.text)) {
-    throw std::runtime_error("Macro '" + name.text +
-                             "' has no definition");
+  if (!macros.contains(name)) {
+    if (!nonexistence_replacement.empty()) {
+      if (std::string("'\"`").find(
+              nonexistence_replacement.front()) !=
+          std::string::npos) {
+        _it->type = "STRING";
+      } else if (std::string("~@#$%^&*-+=|;:,<>,/?![]{}()")
+                     .find(nonexistence_replacement.front()) !=
+                 std::string::npos) {
+        _it->type = "OPERATOR";
+      } else if (std::isalnum(
+                     nonexistence_replacement.front())) {
+        if (std::isalpha(nonexistence_replacement.front())) {
+          _it->type = "ID";
+        } else {
+          _it->type = "NUMBER";
+        }
+      }
+      _it->text = nonexistence_replacement;
+      return;
+    } else {
+      throw std::runtime_error("Macro '" + name +
+                               "' has no definition");
+    }
   }
 
   if (std::holds_alternative<Alias>(macros.at(name))) {
@@ -127,7 +159,7 @@ void MacroManager::replace(
     const auto to_remove = _it;
     for (const auto &item :
          std::get<Alias>(macros.at(name)).contents) {
-      _whole.insert(to_remove, Lexer::Token(name, item));
+      _whole.insert(to_remove, Lexer::Token(name_tok, item));
     }
     _it = std::prev(to_remove);
     _whole.erase(to_remove);
@@ -166,14 +198,14 @@ void MacroManager::replace(
     Lexer l;
     uint64_t junk_line = 0, junk_col = 0;
     const auto lexed_replacement =
-        l.lex(replacement, name.file, junk_line, junk_col);
+        l.lex(replacement, name_tok.file, junk_line, junk_col);
 
     // Do replacement
     for (const auto &t : lexed_replacement) {
       Lexer::Token to_insert = t;
-      to_insert.file = name.file;
-      to_insert.line = name.line;
-      to_insert.col = name.col;
+      to_insert.file = name_tok.file;
+      to_insert.line = name_tok.line;
+      to_insert.col = name_tok.col;
       _whole.insert(_it, to_insert);
     }
 
@@ -182,7 +214,7 @@ void MacroManager::replace(
   } else {
     // Error
     throw std::runtime_error(
-        "Compiled macro '" + name.text +
+        "Compiled macro '" + name +
         "' must be invoked as a function call.");
   }
 }

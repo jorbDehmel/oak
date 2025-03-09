@@ -1,5 +1,5 @@
 /**
- * @file parser.hpp
+ * @file
  * @brief Outlines the Parser class used by the Oak compiler.
  * This operates on ALREADY preprocessed symbols. It is
  * responsible for loading the symbol table and collating that
@@ -105,7 +105,10 @@ public:
     /// The things to replace
     std::list<std::string> generics;
 
-    /// "Sample" of body used for auto-instantiation
+    /// "Sample" of body used for auto-instantiation.
+    /// "let Node : enum ;"
+    /// "let Fizz : struct ;"
+    /// "let buzz ( whatever: T ) -> G ;"
     std::list<Lexer::Token> provides;
 
     /// Run beforehand: If fail, no error
@@ -157,11 +160,14 @@ public:
 
   /// Constructs the equivalent C program in the given
   /// stringstream
-  void reconstruct(std::ostream &_where) const noexcept;
+  void reconstruct(std::ostream &_where,
+                   const Settings::CompileSettings &_csettings)
+      const noexcept;
 
   /// Dump to the given stream
   void dump(std::ostream &_where,
-            const std::list<Lexer::Token> &_file_contents)
+            const std::list<Lexer::Token> &_file_contents,
+            const Settings::CompileSettings &_csettings)
       const noexcept;
 
   /// Fetch a symbol
@@ -205,6 +211,13 @@ protected:
       std::list<Lexer::Token>::const_iterator &_cur_pos,
       const std::list<Lexer::Token>::const_iterator &_end,
       Settings &_settings);
+
+  /// Parses the (pre, post) regions of a template if they
+  /// exist. This should be called after any generic body
+  std::pair<std::list<Lexer::Token>, std::list<Lexer::Token>>
+  parse_template_pre_post(
+      std::list<Lexer::Token>::const_iterator &_cur_pos,
+      const std::list<Lexer::Token>::const_iterator &_end);
 
   /// Assumes we are pointing to the first token in the
   /// statement Non-global (inside functions)

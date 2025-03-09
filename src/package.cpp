@@ -16,7 +16,7 @@ load_package_spec(const std::filesystem::path &_path) {
 
   // Not all of them, but the ones we need right now
   const static std::set<std::string> expected_key_suffixes = {
-      "INSTALL!"};
+      "INSTALL!", "VERSION!"};
 
   const auto spec_file = _path / "spec.oak";
   std::map<std::string, std::string> out;
@@ -37,11 +37,14 @@ load_package_spec(const std::filesystem::path &_path) {
 
     Lexer::Token t("", _path, 1, 0);
     for (const auto &suffix : expected_key_suffixes) {
-      std::list<Lexer::Token> junk;
+      std::list<Lexer::Token> junk, prev;
       junk.push_back(
           Lexer::Token(t, package_name + "_" + suffix));
       auto it = junk.begin();
-      c.macros.replace(junk, it, junk.end());
+      do {
+        prev = junk;
+        c.macros.replace(junk, it, junk.end());
+      } while (junk != prev);
 
       if (junk.size() > 0) {
         std::string contents = junk.front();
@@ -108,6 +111,39 @@ void PackageManager::install_package(
           "Unknown error while building package " +
           spec.at("name"));
     }
+  }
+
+  if (spec.contains("VERSION!")) {
+    // Validate version string
+    /*
+    0.0.0.0 = 0.0.0 = 0.0 = 0
+    1.0 > 1 = 0.1
+    1.0.0 > 1.0 = 0.1.0 > 1 = 0.0.1
+    Arbitrarily many segments, but usually three
+    patch, minor, major, super-major, super-super-major, etc
+    */
+    char prev = '\0';
+    for (const char &c : spec.at("VERSION!")) {
+      if (c == '.') {
+        if (prev == '.') {
+          throw std::runtime_error("Invalid package version '" +
+                                   spec.at("VERSION!") + "'");
+        }
+      } else if (c < '0' || '9' < c) {
+        throw std::runtime_error("Illegal character '" +
+                                 std::string({c}) +
+                                 "' in package version '" +
+                                 spec.at("VERSION!") + "'");
+      }
+      prev = c;
+    }
+    if (prev == '.') {
+      throw std::runtime_error("Invalid package version '" +
+                               spec.at("VERSION!") + "'");
+    }
+  } else {
+    throw std::runtime_error("Package '" + spec.at("name") +
+                             "' has no version!");
   }
 
   // Copy to path

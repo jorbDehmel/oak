@@ -14,10 +14,10 @@ Lexer::lex(const std::string &_text,
   // Statics
   const static std::set<char> whitespace = {' ', '\t', '\n'};
   const static std::set<char> operators = {
-      '~', '@', '#', '$', '%', '^', '&', '*', '-', '+', '=',
-      '|', ';', ':', ',', '<', '.', '>', '/', '?', '!'};
+      '~', '@', '$', '%', '^', '&', '*', '-', '+',
+      '=', '|', ':', '<', '.', '>', '/', '?', '!'};
   const static std::set<char> singleton_operators = {
-      '[', ']', '{', '}', '(', ')'};
+      '[', ']', '{', '}', '(', ')', ',', ';'};
   const auto next_line = [&]() {
     ++_line;
     _col = 0;
@@ -33,8 +33,10 @@ Lexer::lex(const std::string &_text,
         next_line();
       }
       continue;
-    } else if (_text.at(pos) == '/' && pos + 1 < _text.size() &&
-               _text.at(pos + 1) == '/') {
+    } else if (_text.at(pos) == '#' ||
+               (_text.at(pos) == '/' &&
+                pos + 1 < _text.size() &&
+                _text.at(pos + 1) == '/')) {
       // Single-line comment
       while (pos + 1 < _text.size() &&
              _text.at(pos + 1) != '\n') {
@@ -58,7 +60,11 @@ Lexer::lex(const std::string &_text,
     }
 
     // Multi-character non-IDs
-    else if (operators.contains(_text.at(pos))) {
+    else if (operators.contains(_text.at(pos)) &&
+             !(_text.at(pos) == '-' && pos + 1 < _text.size() &&
+               '0' <= _text.at(pos + 1) &&
+               _text.at(pos + 1) <= '9')) {
+
       // Regular operators
       Lexer::Token to_append =
           Lexer::Token("", _path, _line, _col);
@@ -112,7 +118,6 @@ Lexer::lex(const std::string &_text,
       }
       to_append.text = '"' + to_append.text + '"';
       out.push_back(to_append);
-
     } else if (_text.at(pos) == '"') {
       // Double string literal
       Token to_append = Token("", _path, _line, _col);
@@ -146,7 +151,6 @@ Lexer::lex(const std::string &_text,
       }
       to_append.text = '"' + to_append.text + '"';
       out.push_back(to_append);
-
     } else if (_text.at(pos) == '`') {
       // Backtick string: Can be single or triple
       if (pos + 2 < _text.size() && _text.at(pos + 1) == '`' &&
@@ -217,8 +221,12 @@ Lexer::lex(const std::string &_text,
       }
       to_append.text.push_back(_text.at(pos));
 
-      if ('0' <= to_append.text.front() &&
-          to_append.text.front() <= '9') {
+      if (('0' <= to_append.text.front() &&
+           to_append.text.front() <= '9') ||
+          (to_append.text.size() > 1 &&
+           to_append.text.front() == '-' &&
+           '0' <= to_append.text[1] &&
+           to_append.text[1] <= '9')) {
         to_append.type = "NUMBER";
       } else if (Type::float_literals.contains(
                      to_append.text) ||
@@ -280,6 +288,24 @@ Lexer::lex(const std::string &_text,
       it->text += "_" + std::next(it, 2)->text;
       out.erase(std::next(it));
       out.erase(std::next(it));
+    }
+  }
+
+  // Distinguish between less-than/greater-than and templates
+  for (auto it = out.begin(); it != out.end(); ++it) {
+    if (it->text == "<") {
+      // Look ahead: If ">" occurs before ";", ")", "]", "}", it
+      // is templating.
+      for (auto t = std::next(it); t != out.end(); ++t) {
+        if (*t == ">") {
+          // Templating
+          t->type = it->type = "TEMPLATE";
+        } else if (*t == ";" || *t == ")" || *t == "]" ||
+                   *t == "}") {
+          // Not templating
+          break;
+        }
+      }
     }
   }
 

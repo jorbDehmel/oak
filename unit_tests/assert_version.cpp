@@ -1,5 +1,5 @@
 /**
- * @file assert_version.cpp
+ * @file
  * @brief Asserts that the compiler has support for some
  * standard and does nothing else. This is to be used in
  * automated system checking.

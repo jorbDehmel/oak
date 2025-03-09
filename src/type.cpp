@@ -1,9 +1,10 @@
 /**
- * @file type.cpp
+ * @file
  * @brief Implements the `Type` class.
  */
 
 #include "type.hpp"
+#include "debug.hpp"
 #include <cwctype>
 #include <iostream>
 #include <map>
@@ -26,6 +27,7 @@ const std::map<std::string, uint> Type::float_literals = {
 
 /// Process one token. This should be treated as consumptive.
 void Type::process_next(const std::string &_symbol) {
+  debug_print();
   if (_symbol == "^") {
     append_ptr();
   } else if (_symbol == ",") {

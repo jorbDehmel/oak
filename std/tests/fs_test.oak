@@ -7,7 +7,7 @@ include!("std/panic.oak");
 include!("std/fs.oak");
 
 let main() -> i32 {
-  if (Not(fs::exists(FILE!))) {
+  if (!fs::exists(FILE!)) {
     panic();
   } else {
     print(FILE!);

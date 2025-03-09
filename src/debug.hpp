@@ -1,5 +1,5 @@
 /**
- * @file debug.hpp
+ * @file
  * @brief Defines the debug_print() macro. This has no runtime
  * cost if DEBUG is not defined and prints the file and line if
  * it is defined. Use `-D DEBUG` at compile-time if you want it

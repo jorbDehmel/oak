@@ -21,6 +21,7 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <variant>
 
 /// Print the version of Acorn
 void OakCompiler::print_version() noexcept {
@@ -451,7 +452,7 @@ void OakCompiler::do_compilation() {
       Settings::CompileSettings::TRANSLATE_ONLY) {
     // Translate Oak token stream to C directly to file
     std::ofstream target_file(translated_file);
-    translate(target_file);
+    translate(target_file, settings.compile_settings());
   }
 
   // If requested, call compiler
@@ -494,6 +495,27 @@ void OakCompiler::do_compilation() {
   // If requested, call linker
   if (csettings.mode >=
       Settings::CompileSettings::TRANSLATE_COMPILE_AND_LINK) {
+
+    bool saw_main = false;
+    const auto res = p.fetch_symbol("main");
+    if (res.has_value() &&
+        std::holds_alternative<std::list<Parser::FnInfo>>(
+            res.value())) {
+      for (const auto &def :
+           std::get<std::list<Parser::FnInfo>>(res.value())) {
+        if (!def.tags.contains("casual") &&
+            def.tags.at("file") == csettings.entry_point) {
+          saw_main = true;
+          break;
+        }
+      }
+    }
+
+    if (!saw_main) {
+      throw std::runtime_error(
+          "Cannot link translation unit: No main function in "
+          "entry point");
+    }
 
     // Prepare command
     std::string command;
@@ -583,6 +605,8 @@ void OakCompiler::do_testing() {
       dirs;
   std::list<std::filesystem::path> compile_problems,
       run_problems;
+  double total_ms = 0.0;
+  double total_failed_ms = 0.0;
 
   settings.ostream << "Running test cases...\n";
 
@@ -649,7 +673,7 @@ void OakCompiler::do_testing() {
         comp.settings.compile_settings().entry_point =
             test_file;
         comp.settings.compile_settings().target = target;
-        bool compilation_succeeded = true;
+        bool compilation_succeeded = true, run_succeeded = true;
         int run_result = 0;
 
         try {
@@ -676,6 +700,7 @@ void OakCompiler::do_testing() {
           if (run_result != 0) {
             run_problems.push_back(test_file);
             --ran_successfully;
+            run_succeeded = false;
 
             if (tsettings.mode != Settings::TestSettings::
                                       EXECUTE_IGNORE_FAILURE) {
@@ -688,6 +713,14 @@ void OakCompiler::do_testing() {
 
         std::chrono::high_resolution_clock::time_point stop =
             std::chrono::high_resolution_clock::now();
+        double ms = std::chrono::duration_cast<
+                        std::chrono::microseconds>(stop - start)
+                        .count() /
+                    1'000.0;
+        total_ms += ms;
+        if (!compilation_succeeded || !run_succeeded) {
+          total_failed_ms += ms;
+        }
 
         std::cout << '[';
 
@@ -698,12 +731,7 @@ void OakCompiler::do_testing() {
         }
 
         std::cout << "]" << std::fixed << std::setprecision(3)
-                  << std::right << std::setw(10)
-                  << (std::chrono::duration_cast<
-                          std::chrono::microseconds>(stop -
-                                                     start)
-                          .count() /
-                      1'000.0)
+                  << std::right << std::setw(10) << ms
                   << " ms | " << test_file.path().string()
                   << "\n";
       }
@@ -764,6 +792,33 @@ void OakCompiler::do_testing() {
       << 100.0 * (double)total_runs_succeeded /
              (total_runs_tried ? total_runs_tried : 1)
       << "%)\n\n";
+
+  settings.ostream << "Total ms:        " << std::fixed
+                   << std::setprecision(3) << std::right
+                   << std::setw(10) << total_ms << '\n'
+                   << "Mean ms:         " << std::fixed
+                   << std::setprecision(3) << std::right
+                   << std::setw(10)
+                   << total_ms / total_compiles_tried << '\n';
+
+  if (total_compiles_succeeded != 0) {
+    settings.ostream << "Mean success ms: " << std::fixed
+                     << std::setprecision(3) << std::right
+                     << std::setw(10)
+                     << (total_ms - total_failed_ms) /
+                            total_compiles_succeeded
+                     << '\n';
+  }
+  if (total_compiles_tried - total_compiles_succeeded != 0) {
+    settings.ostream << "Mean failure ms: " << std::fixed
+                     << std::setprecision(3) << std::right
+                     << std::setw(10)
+                     << total_failed_ms /
+                            (total_compiles_tried -
+                             total_compiles_succeeded)
+                     << '\n';
+  }
+  settings.ostream << '\n';
 
   db_assert(total_runs_tried <= total_compiles_succeeded);
 
@@ -973,7 +1028,8 @@ void OakCompiler::fix_math(
                   "At " + it->file.string() + ":" +
                   std::to_string(it->line) + "." +
                   std::to_string(it->col) +
-                  "> Malformed operator LHS");
+                  "> Malformed operator '" + _operator +
+                  "' LHS");
             } else if (*first_of_lhs == ")") {
               int depth = 0;
               do {
@@ -1064,8 +1120,8 @@ void OakCompiler::fix_math(
             first_after_rhs = std::next(it);
             if (it == _token_stream.begin() ||
                 *first_after_rhs == ")") {
-              throw std::runtime_error(
-                  "Malformed operator LHS");
+              throw std::runtime_error("Malformed operator '" +
+                                       _operator + "' LHS");
             } else if (std::next(first_after_rhs)->text ==
                        "(") {
               int depth = 0;
@@ -1110,17 +1166,23 @@ void OakCompiler::fix_math(
 
   // Unary operator precedence
   const std::list<std::pair<std::string, std::string>>
-      unary_precedence = {
-          {"!", "Not"}, {"++", "Incr"}, {"--", "Decr"}};
+      unary_precedence = {{"!", "Not"},
+                          {"++", "Incr"},
+                          {"--", "Decr"},
+                          {"~", "Flip"}};
 
   // Binary operator precedence
   const std::list<std::pair<std::string, std::string>>
       binary_precedence = {
-          {"*", "Mult"}, {"/", "Div"},  {"%", "Mod"},
-          {"+", "Add"},  {"-", "Sub"},  {"&&", "Andd"},
-          {"||", "Orr"}, {"=", "Copy"}, {"==", "Eq"},
-          {"!=", "Neq"}, {"<", "Less"}, {">", "Great"},
-          {"<=", "Leq"}, {">", "Greq"},
+          {"&", "And"},     {"|", "Or"},       {"*", "Mult"},
+          {"/", "Div"},     {"%", "Mod"},      {"+", "Add"},
+          {"-", "Sub"},     {"==", "Eq"},      {"!=", "Neq"},
+          {"<", "Less"},    {">", "Great"},    {"<=", "Leq"},
+          {">=", "Greq"},   {"&&", "Andd"},    {"||", "Orr"},
+          {"=", "Copy"},    {"&=", "AndEq"},   {"|=", "OrEq"},
+          {"<<=", "LBSEq"}, {">>=", "RBSEq"},  {"*=", "MultEq"},
+          {"/=", "DivEq"},  {"%=", "ModEq"},   {"+=", "AddEq"},
+          {"-=", "SubEq"},  {"&&=", "AnddEq"}, {"||=", "OrrEq"},
       };
 
   for (const auto &i : unary_precedence) {
@@ -1156,7 +1218,8 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
         prev_path = tok.file;
       }
       if (tok.line != prev_line) {
-        **log << "\n" << tok.line << "\t|";
+        **log << "\n"
+              << std::right << std::setw(8) << tok.line << " |";
         prev_line = tok.line;
       }
       **log << ' ' << tok.text;
@@ -1505,9 +1568,11 @@ void OakCompiler::load_dialect_file(
 /**
  * @brief
  */
-void OakCompiler::translate(std::ostream &_into) const {
+void OakCompiler::translate(
+    std::ostream &_into,
+    const Settings::CompileSettings &_csettings) const {
   debug_print();
-  p.reconstruct(_into);
+  p.reconstruct(_into, _csettings);
 }
 
 /**
@@ -1558,7 +1623,8 @@ void OakCompiler::do_file(const std::filesystem::path &_path,
   } catch (std::runtime_error &e) {
     // If requested, dump
     if (csettings.dump_file.has_value()) {
-      p.dump(*csettings.dump_file.value(), token_stream);
+      p.dump(*csettings.dump_file.value(), token_stream,
+             _settings.compile_settings());
     }
 
     throw std::runtime_error("Error occurred while lexing " +
@@ -1568,7 +1634,8 @@ void OakCompiler::do_file(const std::filesystem::path &_path,
   catch (...) {
     // If requested, dump
     if (csettings.dump_file.has_value()) {
-      p.dump(*csettings.dump_file.value(), token_stream);
+      p.dump(*csettings.dump_file.value(), token_stream,
+             _settings.compile_settings());
     }
 
     throw std::runtime_error(
@@ -1590,6 +1657,7 @@ void OakCompiler::do_file(const std::filesystem::path &_path,
 
   // If requested, dump
   if (csettings.dump_file.has_value()) {
-    p.dump(*csettings.dump_file.value(), token_stream);
+    p.dump(*csettings.dump_file.value(), token_stream,
+           _settings.compile_settings());
   }
 }

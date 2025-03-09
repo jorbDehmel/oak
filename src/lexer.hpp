@@ -1,5 +1,5 @@
 /**
- * @file lexer.hpp
+ * @file
  * @brief Defines the Lexer class, which strings into token
  * streams
  */

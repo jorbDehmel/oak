@@ -4,6 +4,8 @@ Tests inline and functional macros
 
 include!("std/io.oak");
 
+// let blimbo! = true;
+
 let foo!(c: i32, v: [][]i8) -> i32 {
   include!("std/io.oak");
   print(
@@ -17,6 +19,15 @@ let main() -> i32 {
   endl();
 
   foo!();
+
+  // Macro nonexistence replacement
+  // If you do it at compile-time, this becomes preprocessor
+  // conditional compilation
+  if (blimbo!false) {
+    print("'blimbo!' exists!\n");
+  } else {
+    print("'blimbo!' does not exist (sad)...\n");
+  }
 
   return 0i32;
 }

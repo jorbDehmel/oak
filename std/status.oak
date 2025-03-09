@@ -1,0 +1,14 @@
+/*
+Defines the `Status` enum in Oak
+*/
+
+include!("std/unit.oak");
+
+let Status: enum {
+  good: Unit,
+  bad: Unit
+}
+
+let New(self: ^Status) -> Status {
+  wrap_good(self);
+}

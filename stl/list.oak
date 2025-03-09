@@ -1,0 +1,51 @@
+/*
+Doubly linked list in Oak. Part of stl.
+*/
+
+pragma!("no_dialect");
+
+////////////////////////////////////////////////////////////////
+// Structs
+
+let stl::List::Node<T> : struct {
+  data: T,
+  prev: ^stl::List::Node<T>,
+  next: ^stl::List::Node<T>
+}
+
+let stl::List<T> : struct {
+  __head: ^stl::List::Node<T>,
+  __tail: ^stl::List::Node<T>
+} post {
+  let New<T>(_: ^stl::List::Node<T>) -> void;
+  let Copy<T>(_: ^stl::List::Node<T>, _: T
+    ) -> stl::List::Node<T>;
+  let Del<T>(_: ^stl::List::Node<T>) -> void;
+}
+
+////////////////////////////////////////////////////////////////
+// Methods
+
+let New<T>(self: ^stl::List::Node<T>) -> void {
+  New(self.data);
+  self.prev = 0u64;
+  self.next = 0u64;
+}
+
+let Copy<T>(self: ^stl::List::Node<T>, data: T
+  ) -> stl::List::Node<T> {
+  self.data = data;
+}
+
+let Del<T>(self: ^stl::List::Node<T>) -> void {
+  if (self.next == 0u64) {
+    Del(self.next);
+    free!(self.next);
+  }
+  Del(self.data);
+}
+
+let push_front() -> void;
+let push_back() -> void;
+let pop_front() -> void;
+let pop_back() -> void;

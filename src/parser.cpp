@@ -1,13 +1,15 @@
 /**
- * @file parser.cpp
+ * @file
  */
 
 #include "parser.hpp"
 #include "debug.hpp"
 #include "lexer.hpp"
 #include "macro.hpp"
+#include "settings.hpp"
 #include "type.hpp"
 #include <cassert>
+#include <cctype>
 #include <functional>
 #include <linux/limits.h>
 #include <stdexcept>
@@ -79,13 +81,60 @@ void Parser::parse_global(
           // Struct, enum, or invalid global definition
           incr(pos, end);
           if (*pos == "struct") {
-            incr(pos, end);
+            incr(pos, end); // Now pointing at body
 
             if (generics.empty()) {
               parse_struct(names, pos, end, _settings);
-            } else {
+            } else if (*pos == ";") {
               throw std::runtime_error(
-                  "Generic structs are unimplemented");
+                  "Generic struct signatures are illegal");
+            } else {
+              // Add definition for generic struct(s)
+              TemplateInfo info;
+              info.generics = generics;
+
+              // Grab body here
+              int count = 0;
+              do {
+                if (pos == end) {
+                  throw std::runtime_error("");
+                } else if (*pos == "{") {
+                  ++count;
+                } else if (*pos == "}") {
+                  --count;
+                }
+                info.instantiate.push_back(*pos);
+                ++pos; // Don't use incr
+              } while (count != 0);
+              --pos;
+
+              const auto p = parse_template_pre_post(pos, end);
+              for (const auto &item : p.second) {
+                info.instantiate.push_back(item);
+              }
+              info.validate = p.first;
+
+              for (const auto &name : names) {
+                TemplateInfo specific_info = info;
+                specific_info.provides = {
+                    Lexer::Token("let", pos->file, pos->line,
+                                 pos->col, "ID"),
+                    Lexer::Token(name, pos->file, pos->line,
+                                 pos->col, "ID"),
+                    Lexer::Token(":", pos->file, pos->line,
+                                 pos->col, "OPERATOR"),
+                    Lexer::Token("struct", pos->file, pos->line,
+                                 pos->col, "ID"),
+                    Lexer::Token(";", pos->file, pos->line,
+                                 pos->col, "OPERATOR")};
+                for (auto it = std::next(
+                         specific_info.provides.rbegin());
+                     it != specific_info.provides.rend();
+                     ++it) {
+                  specific_info.instantiate.push_front(*it);
+                }
+                templates.push_back(specific_info);
+              }
             }
 
             ++pos; // Don't use incr here
@@ -111,8 +160,60 @@ void Parser::parse_global(
           if (generics.empty()) {
             parse_function(names, pos, end, _settings);
           } else {
-            throw std::runtime_error(
-                "Generic functions are unimplemented");
+            // Grab rest of signature
+            TemplateInfo info;
+            info.generics = generics;
+
+            // Finish parsing type
+            while (pos != end && *pos != "{") {
+              info.provides.push_back(*pos);
+              info.instantiate.push_back(*pos);
+
+              incr(pos, end);
+              if (*pos == ";") {
+                throw std::runtime_error(
+                    "Generic function signatures are illegal");
+              }
+            }
+
+            // Grab body
+            int count = 0;
+            do {
+              if (pos == end) {
+                throw std::runtime_error("");
+              } else if (*pos == "{") {
+                ++count;
+              } else if (*pos == "}") {
+                --count;
+              }
+              info.instantiate.push_back(*pos);
+              ++pos; // Don't use incr
+            } while (count != 0);
+            --pos;
+
+            // Parse pre and post blocks
+            const auto p = parse_template_pre_post(pos, end);
+            info.validate = p.first;
+            for (const auto &item : p.second) {
+              info.instantiate.push_back(item);
+            }
+
+            // Add to template table
+            for (const auto &name : names) {
+              TemplateInfo instance_info = info;
+
+              instance_info.provides.push_front(Lexer::Token(
+                  instance_info.provides.front(), name));
+              instance_info.provides.push_front(Lexer::Token(
+                  instance_info.provides.front(), "let"));
+
+              instance_info.instantiate.push_front(Lexer::Token(
+                  instance_info.instantiate.front(), name));
+              instance_info.instantiate.push_front(Lexer::Token(
+                  instance_info.instantiate.front(), "let"));
+
+              templates.push_back(instance_info);
+            }
           }
 
           ++pos;
@@ -187,7 +288,9 @@ void Parser::parse_global(
 }
 
 // Constructs the equivalent C program at the given path
-void Parser::reconstruct(std::ostream &_where) const noexcept {
+void Parser::reconstruct(std::ostream &_where,
+                         const Settings::CompileSettings
+                             &_csettings) const noexcept {
   debug_print();
 
   // Include std header
@@ -202,7 +305,13 @@ void Parser::reconstruct(std::ostream &_where) const noexcept {
   for (const auto &p : functions) {
     const auto name = p.first;
     for (const auto &info : p.second) {
-      _where << info.t.c_repr(name, name == "main") << ";\n";
+      if (name == "main") {
+        if (info.tags.at("file") == _csettings.entry_point) {
+          _where << info.t.c_repr(name, true) << ";\n";
+        }
+      } else {
+        _where << info.t.c_repr(name, false) << ";\n";
+      }
     }
   }
 
@@ -383,7 +492,8 @@ void Parser::reconstruct(std::ostream &_where) const noexcept {
 
 /// Dump to the given stream
 void Parser::dump(std::ostream &_where,
-                  const std::list<Lexer::Token> &_file_contents)
+                  const std::list<Lexer::Token> &_file_contents,
+                  const Settings::CompileSettings &_csettings)
     const noexcept {
   debug_print();
 
@@ -403,7 +513,7 @@ void Parser::dump(std::ostream &_where,
   _where << "\n// Attempted reconstruction\n";
 
   try {
-    reconstruct(_where);
+    reconstruct(_where, _csettings);
   } catch (std::runtime_error &e) {
     _where << "// FAILURE: " << e.what() << '\n';
   } catch (...) {
@@ -427,6 +537,10 @@ void Parser::parse_function(
   // Either signature or implementation
   FnInfo to_add;
   to_add.t = t;
+
+  to_add.tags["file"] = _cur_pos->file;
+  to_add.tags["line"] = _cur_pos->line;
+  to_add.tags["col"] = _cur_pos->col;
 
   if (*_cur_pos == ";") {
     // Signature
@@ -537,6 +651,54 @@ std::list<std::pair<std::string, Type>> Parser::parse_members(
   return out;
 }
 
+/// Parses the (pre, post) regions of a template if they
+/// exist. This should be called after any generic body
+std::pair<std::list<Lexer::Token>, std::list<Lexer::Token>>
+Parser::parse_template_pre_post(
+    std::list<Lexer::Token>::const_iterator &_cur_pos,
+    const std::list<Lexer::Token>::const_iterator &_end) {
+  std::pair<std::list<Lexer::Token>, std::list<Lexer::Token>>
+      out;
+
+  while (std::next(_cur_pos) != _end &&
+         (*std::next(_cur_pos) == "pre" ||
+          *std::next(_cur_pos) == "post")) {
+    incr(_cur_pos, _end); // Now pointing to block identifier
+    bool is_pre = (*_cur_pos == "pre");
+    incr(_cur_pos, _end); // Now pointing to "{"
+    if (*_cur_pos != "{") {
+      throw std::runtime_error(
+          "Malformed " + std::string(is_pre ? "pre" : "post") +
+          " block: Expected '{', but saw '" + _cur_pos->text +
+          "'");
+    }
+
+    int count = 0;
+    do {
+      if (_cur_pos == _end) {
+        throw std::runtime_error("Reached EOF before '}'");
+      } else if (*_cur_pos == "{") {
+        ++count;
+      } else if (*_cur_pos == "}") {
+        --count;
+        if (count == 0) {
+          break;
+        }
+      }
+
+      if (is_pre) {
+        out.first.push_back(*_cur_pos);
+      } else {
+        out.second.push_back(*_cur_pos);
+      }
+
+      ++_cur_pos; // Don't use incr here
+    } while (count != 0);
+  }
+
+  return out;
+}
+
 // Return the type spec at the specified location
 Type Parser::parse_type(
     std::list<Lexer::Token>::const_iterator &_cur_pos,
@@ -567,11 +729,82 @@ Type Parser::parse_type(
   }
 
   Type out;
-  out.process_next(*_cur_pos);
-  while (!out.valid()) {
-    incr(_cur_pos, _end);
+  bool first = true;
+
+  do {
+    if (first) {
+      first = false;
+    } else {
+      incr(_cur_pos, _end);
+    }
+
     out.process_next(*_cur_pos);
-  }
+
+    if (std::next(_cur_pos) != _end &&
+        std::next(_cur_pos)->type == "TEMPLATE" &&
+        std::next(_cur_pos)->text == "<") {
+      if (out.nodes.empty() ||
+          out.nodes.back().type != Type::TypeNode::LITERAL) {
+        throw std::runtime_error(
+            "Cannot append templating onto non-literal-ending "
+            "type '" +
+            out.oak_repr() + "'");
+      }
+      incr(_cur_pos, _end); // Now pointing to '<'
+
+      // Leave pointing to closing angle bracket
+      std::list<std::list<std::string>> replacements;
+      std::list<std::string> cur;
+      int count = 0;
+      do {
+        if (*_cur_pos == "<") {
+          ++count;
+        } else if (*_cur_pos == ">") {
+          --count;
+        }
+
+        if (count == 1 && *_cur_pos == ",") {
+          replacements.push_back(cur);
+          cur.clear();
+        } else {
+          cur.push_back(*_cur_pos);
+        }
+
+        ++_cur_pos;
+      } while (count != 0);
+      replacements.push_back(cur);
+      --_cur_pos;
+
+      replacements.front().pop_front();
+      replacements.back().pop_back();
+
+      if (!replacements.empty()) {
+        out.nodes.back().literal_name += "_GEN_";
+        bool first = true;
+        for (const auto &repl : replacements) {
+          if (first) {
+            first = false;
+          } else {
+            out.nodes.back().literal_name += "JOIN_";
+          }
+          for (const auto &tok : repl) {
+            out.nodes.back().literal_name += tok + "_";
+          }
+        }
+        out.nodes.back().literal_name += "ENDGEN";
+      }
+
+      if (!globals.contains(out.nodes.back().literal_name)) {
+        // Attempt template instantiation
+        for (auto &t : templates) {
+          if (t.attempt_instantiation(*this, replacements,
+                                      _settings)) {
+            break;
+          }
+        }
+      }
+    }
+  } while (!out.valid());
   return out;
 }
 
@@ -1567,6 +1800,7 @@ Type Parser::resolve_fn_call(const std::string &_name,
         candidates;
     find_substitutions(_name, _args, candidates);
     for (const auto &t : candidates) {
+      throw;
       t.second->attempt_instantiation(*this, t.first,
                                       _settings);
     }

@@ -1,0 +1,25 @@
+/*
+Tests tuple copy
+*/
+
+include!("std/std.oak");
+
+let Pair: struct {
+  first: i32,
+  second: u64
+}
+
+let New(self: ^Pair) -> void {}
+
+let Copy(self: ^Pair, first: i32, second: u64) -> Pair {
+  self.first = first;
+  self.second = second;
+  return ^self;
+}
+
+let main() -> i32 {
+  let p: Pair;
+  p = (1i32, 2u64);
+
+  return 0i32;
+}

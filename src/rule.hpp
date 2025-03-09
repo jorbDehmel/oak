@@ -1,5 +1,5 @@
 /**
- * @file rule.hpp
+ * @file
  * @brief Non-length-preserving Iterated uniform finite-state
  * transducers operating with the set of all valid Tokens as the
  * alphabet. These are FSTs such that replacement text is

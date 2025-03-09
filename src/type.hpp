@@ -1,5 +1,5 @@
 /**
- * @file type.hpp
+ * @file
  * @brief Defines the `Type` class.
  */
 

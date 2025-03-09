@@ -19,7 +19,7 @@ let printf!(c: i32, v: [][]i8) -> i32 {
   cur_fpos = 0uint;
   in_print = false;
 
-  while (Less(cur_fpos, fstring_len)) {
+  while (cur_fpos < fstring_len) {
     if (Get(Get(v, 1uint), cur_fpos) == Get("%", 0uint)) {
       // Print an obj
       if (in_print) {

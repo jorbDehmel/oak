@@ -1,5 +1,5 @@
 /**
- * @file test_lexer.cpp
+ * @file
  * @brief Tests the Oak lexer
  */
 

@@ -1,0 +1,38 @@
+/*
+Tests gross numbers
+*/
+
+include!("std/std.oak");
+
+let main() -> i32 {
+
+  print(
+    0b 1111 0000 u8
+  );
+  endl();
+
+  print(
+    0b11110000u8
+  );
+  endl();
+
+  print(
+    0x00 12FFFF u32
+  );
+  endl();
+
+  print(
+    .123 456 789f32
+  );
+  endl();
+
+  print(
+    3.
+    1 4
+    1 5 9
+    2 6 5 f64
+  );
+  endl();
+
+  return 0i32;
+}

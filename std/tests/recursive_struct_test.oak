@@ -1,0 +1,19 @@
+/*
+*/
+
+include!("std/std.oak");
+
+let Node: struct {
+  data: i32,
+  next: ^Node,
+}
+
+let New(self: ^Node) -> void {
+  self.data = 0i32;
+}
+
+let main() -> i32 {
+  let a: Node;
+
+  return 0i32;
+}
