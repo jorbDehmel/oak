@@ -33,6 +33,15 @@ public:
   /// any precision in our casts. These are EG f32, f64, float
   const static std::map<std::string, uint> float_literals;
 
+  /// Returns true iff the given type is atomic (EG i32, bool).
+  /// If the type is an array or pointer, this is always false.
+  static bool is_built_in_type(const Type &_what) noexcept;
+
+  /// Returns true iff the given type is atomic (EG i32, bool).
+  /// If the type is an array or pointer, this is always false.
+  static bool
+  is_built_in_type(const std::string &_what) noexcept;
+
   /// Default constructor
   Type() = default;
 

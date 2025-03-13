@@ -1,14 +1,7 @@
 include!("std/std.oak");
 
-let fizz: struct {
+let Fizz: struct {
   member: u64
-}
-
-let New(self: ^i32) -> void {
-  c!("*self = 0;");
-}
-let New(self: ^fizz) -> void {
-  self.member = 0u64;
 }
 
 let main() -> i32 {
@@ -30,7 +23,7 @@ let main() -> i32 {
   let a: i32;
   a = 1i32 + 2i32 + 3i32;
 
-  let b: fizz;
+  let b: Fizz;
   b.member = 100u64;
   print(b.member * b.member);
   endl();

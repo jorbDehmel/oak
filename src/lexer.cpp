@@ -322,6 +322,7 @@ Lexer::lex(const std::string &_text,
 const static bool replace_suffix(std::string &_what,
                                  const std::string &_suffix,
                                  const std::string &_with) {
+  debug_print();
   if (_what.size() < _suffix.size()) {
     return false;
   }

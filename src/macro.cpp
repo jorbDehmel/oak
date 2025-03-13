@@ -36,6 +36,7 @@ const std::set<std::string> MacroManager::reserved_macro_names =
  * @returns The string output of the command
  */
 std::string get_cmd_output(const std::string &_cmd) {
+  debug_print();
   char buffer[128];
   std::string result;
   FILE *pipe = popen(_cmd.c_str(), "r");
@@ -63,6 +64,7 @@ std::string get_cmd_output(const std::string &_cmd) {
 
 std::string MacroManager::strip_string_literal(
     const std::string &_str_lit) {
+  debug_print();
   const static std::set<char> str_chars = {'\'', '"', '`'};
 
   std::string out = _str_lit;
@@ -429,6 +431,7 @@ void MacroManager::process_definition(
     } catch (...) {
       std::cerr << "From macro compiler:\n"
                 << macro_compilation_log.str() << '\n';
+      db_rethrow();
       throw std::runtime_error("Unknown error occurred during "
                                "compilation of macro '" +
                                name + "'");

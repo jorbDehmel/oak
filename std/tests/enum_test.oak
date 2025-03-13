@@ -1,18 +1,18 @@
 include!("std/std.oak");
 
-let test: enum {
+let Test: enum {
   a: i32,
   b: bool,
   c: f64,
   d: i8
 }
 
-let New(self: ^test) -> void {
+let New(self: ^Test) -> void {
   wrap_a(self, 0i32);
 }
 
 let main() -> i32 {
-  let inst: test;
+  let inst: Test;
 
   wrap_a(inst, 0i32);
   match (inst) {

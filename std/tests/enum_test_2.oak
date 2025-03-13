@@ -1,0 +1,40 @@
+/**
+ * @brief Tests enum destructors and enum option mutability
+ */
+
+include!("std/std.oak");
+
+let Test: enum {
+  a: i32,
+  b: bool
+}
+
+let New(self: ^Test) -> void {
+  wrap_b(self, false);
+}
+
+let main() -> i32 {
+  let flag: bool;
+  let inst: Test;
+
+  flag = true;
+  wrap_a(inst, 32i32);
+
+  while (flag) {
+    match (inst) {
+      case a(data: i32) {
+        print(data);
+        endl();
+        --data;
+
+        if (data == 0i32) {
+          wrap_b(inst, true);
+        }
+      } case b(_: bool) {
+        flag = false;
+      }
+    }
+  }
+
+  return 0i32;
+}

@@ -1,0 +1,35 @@
+/**
+ * @brief Ensures that destructors are called when an object
+ * falls out of scope.
+ */
+
+include!("std/std.oak");
+
+let Wrapper: struct {
+  data: ^i32
+}
+
+let Copy(self: ^Wrapper, data: ^i32) -> void {
+  self.data = data;
+  return;
+}
+
+let Del(self: Wrapper) -> void {
+  self.data = 0i32;
+  return;
+}
+
+let main() -> i32 {
+  let data: i32;
+  data = 123i32;
+
+  // Dummy scope
+  {
+    let w: Wrapper;
+    w = data;
+
+    // Destructor called here
+  }
+
+  return data;
+}

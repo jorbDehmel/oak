@@ -14,7 +14,8 @@ include!(
 
 let str: struct {
   c_str: []i8,
-  size: uint
+  size: u64,
+  max_size: u64
 }
 
 ////////////////////////////////////////////////////////////////
@@ -34,13 +35,14 @@ let print(what: str) -> void;
 // Implementations
 
 let New(self: ^str) -> str {
-  self.size = 0uint;
+  self.size = 0u64;
+  self.max_size = 0u64;
 }
 
 let Del(self: ^str) -> void {
-  if (self.size != 0uint) {
+  if (self.size != 0u64) {
     free!(self.c_str);
-    self.size = 0uint;
+    self.size = 0u64;
   }
 }
 
@@ -53,7 +55,7 @@ let Copy(self: ^str, other: str) -> str {
 
 let Copy(self: ^str, other: []i8) -> str {
   Del(self);
-  self.size = strlen(other);
+  self.size = to_u64(strlen(other));
   strcpy(self.c_str, other);
   return ^self;
 }

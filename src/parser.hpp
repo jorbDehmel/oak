@@ -106,10 +106,10 @@ public:
     std::list<std::string> generics;
 
     /// "Sample" of body used for auto-instantiation.
-    /// "let Node : enum ;"
-    /// "let Fizz : struct ;"
-    /// "let buzz ( whatever: T ) -> G ;"
-    std::list<Lexer::Token> provides;
+    /// "enum"
+    /// "struct"
+    /// "( whatever : T )"
+    std::list<std::string> provides;
 
     /// Run beforehand: If fail, no error
     std::list<Lexer::Token> validate;
@@ -183,7 +183,7 @@ protected:
   /// Assumes we have just seen "let NAME (" and are pointing
   /// to the next token.
   void parse_function(
-      const std::set<std::string> &_names,
+      const std::list<std::string> &_names,
       std::list<Lexer::Token>::const_iterator &_cur_pos,
       const std::list<Lexer::Token>::const_iterator &_end,
       Settings &_settings);
@@ -192,7 +192,7 @@ protected:
   /// Assumes we have just seen "let NAME : struct" and are
   /// pointing to the next token.
   void parse_struct(
-      const std::set<std::string> &_names,
+      const std::list<std::string> &_names,
       std::list<Lexer::Token>::const_iterator &_cur_pos,
       const std::list<Lexer::Token>::const_iterator &_end,
       Settings &_settings);
@@ -201,7 +201,7 @@ protected:
   /// Assumes we have just seen "let NAME : enum" and are
   /// pointing to the next token.
   void parse_enum(
-      const std::set<std::string> &_names,
+      const std::list<std::string> &_names,
       std::list<Lexer::Token>::const_iterator &_cur_pos,
       const std::list<Lexer::Token>::const_iterator &_end,
       Settings &_settings);
@@ -260,19 +260,23 @@ protected:
   Type resolve_fn_call(const std::string &_name,
                        const std::vector<Type> &_args,
                        FnInfo &_into, std::vector<int> &_derefs,
-                       Settings &_settings);
+                       Settings &_settings,
+                       const bool &_allow_template = true);
 
   /// Throws an error on invalid type (EG undefined struct name)
   void validate_type(const Type &_t) const;
 
   /// Finds all possible template instantiations to match the
-  /// given function call information
-  void find_substitutions(
+  /// given FUNCTION signature
+  std::list<std::pair<std::list<std::list<std::string>>, uint>>
+  find_substitutions(
       const std::string &_name,
-      const std::vector<Type> &_arg_types,
-      std::list<std::pair<std::list<std::list<std::string>>,
-                          std::list<TemplateInfo>::iterator>>
-          &_candidates) const;
+      const std::list<std::string> &_signature) const;
+
+  /// Pops a `locals` frame and calls destructors. Returns a new
+  /// scope node based on the old node followed by all
+  /// destructor calls.
+  Node pop_frame(const Node &_old_node, Settings &_settings);
 
   /// Global compiler definitions (EG structs, enums, fns)
   std::map<std::string, std::variant<StructInfo, EnumInfo>>
@@ -285,5 +289,5 @@ protected:
   std::list<std::map<std::string, Type>> locals;
 
   /// All known templates
-  std::list<TemplateInfo> templates;
+  std::map<std::string, std::vector<TemplateInfo>> templates;
 };

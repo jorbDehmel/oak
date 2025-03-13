@@ -1,0 +1,19 @@
+/*
+Tests implicit generation of `New` and `Del`
+*/
+
+include!("std/std.oak");
+
+let ExampleStruct: struct {
+  data: i32,
+}
+
+let Del(self: ^ExampleStruct) -> void {
+  print("Hello from destructor\n");
+}
+
+let main() -> i32 {
+  let instance: ExampleStruct;
+
+  return 0i32;
+}

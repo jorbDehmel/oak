@@ -31,6 +31,13 @@
  */
 #define db_assert assert
 
+/**
+ * @macro db_rethrow
+ * @brief If debug mode is enabled, rethrow the dangling
+ * exception
+ */
+#define db_rethrow() throw
+
 #else
 
 /**
@@ -43,5 +50,12 @@
  * @brief If debug mode is enabled, do some assertion.
  */
 #define db_assert(...) ;
+
+/**
+ * @macro db_rethrow
+ * @brief If debug mode is enabled, rethrow the dangling
+ * exception
+ */
+#define db_rethrow() ;
 
 #endif

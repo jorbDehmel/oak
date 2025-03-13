@@ -1,83 +1,72 @@
 /*
-Standard operators for Oak
+Standard operators for Oak: Oak binding
 */
 
 pragma!("no_dialect");
 link!("std/operators.o");
 
-let Add, Sub, Mult, Div, Mod(lhs: i8, rhs: i8) -> i8;
-let Add, Sub, Mult, Div, Mod(lhs: i16, rhs: i16) -> i16;
-let Add, Sub, Mult, Div, Mod(lhs: i32, rhs: i32) -> i32;
-let Add, Sub, Mult, Div, Mod(lhs: i64, rhs: i64) -> i64;
-let Add, Sub, Mult, Div, Mod(lhs: int, rhs: int) -> int;
-let Add, Sub, Mult, Div, Mod(lhs: u8, rhs: u8) -> u8;
-let Add, Sub, Mult, Div, Mod(lhs: u16, rhs: u16) -> u16;
-let Add, Sub, Mult, Div, Mod(lhs: u32, rhs: u32) -> u32;
-let Add, Sub, Mult, Div, Mod(lhs: u64, rhs: u64) -> u64;
-let Add, Sub, Mult, Div, Mod(lhs: uint, rhs: uint) -> uint;
-let Add, Sub, Mult, Div(lhs: f32, rhs: f32) -> f32;
-let Add, Sub, Mult, Div(lhs: f64, rhs: f64) -> f64;
-let Eq, Neq, Less, Leq, Great, Greq(lhs: i8, rhs: i8) -> bool;
-let Eq, Neq, Less, Leq, Great, Greq(lhs: i16, rhs: i16) -> bool;
-let Eq, Neq, Less, Leq, Great, Greq(lhs: i32, rhs: i32) -> bool;
-let Eq, Neq, Less, Leq, Great, Greq(lhs: i64, rhs: i64) -> bool;
-let Eq, Neq, Less, Leq, Great, Greq(lhs: u8, rhs: u8) -> bool;
-let Eq, Neq, Less, Leq, Great, Greq(lhs: u16, rhs: u16) -> bool;
-let Eq, Neq, Less, Leq, Great, Greq(lhs: u32, rhs: u32) -> bool;
-let Eq, Neq, Less, Leq, Great, Greq(lhs: u64, rhs: u64) -> bool;
-let Eq, Neq, Less, Leq, Great, Greq(lhs: f32, rhs: f32) -> bool;
-let Eq, Neq, Less, Leq, Great, Greq(lhs: f64, rhs: f64) -> bool;
-let Eq, Neq, Less, Leq, Great, Greq(lhs: int, rhs: int) -> bool;
+let Add, Sub, Mult, Div, Mod(l: i8, r: i8) -> i8;
+let Add, Sub, Mult, Div, Mod(l: u8, r: u8) -> u8;
+let Add, Sub, Mult, Div, Mod(l: i16, r: i16) -> i16;
+let Add, Sub, Mult, Div, Mod(l: u16, r: u16) -> u16;
+let Add, Sub, Mult, Div, Mod(l: i32, r: i32) -> i32;
+let Add, Sub, Mult, Div, Mod(l: u32, r: u32) -> u32;
+let Add, Sub, Mult, Div, Mod(l: i64, r: i64) -> i64;
+let Add, Sub, Mult, Div, Mod(l: u64, r: u64) -> u64;
+let Add, Sub, Mult, Div, Mod(l: int, r: int) -> int;
+let Add, Sub, Mult, Div, Mod(l: uint, r: uint) -> uint;
+let Add, Sub, Mult, Div(l: f32, r: f32) -> f32;
+let Add, Sub, Mult, Div(l: f64, r: f64) -> f64;
+let Add, Sub, Mult, Div, Mod(l: bool, r: bool) -> bool;
+let Eq, Neq, Less, Leq, Great, Greq(l: i8, r: i8) -> bool;
+let Eq, Neq, Less, Leq, Great, Greq(l: u8, r: u8) -> bool;
+let Eq, Neq, Less, Leq, Great, Greq(l: i16, r: i16) -> bool;
+let Eq, Neq, Less, Leq, Great, Greq(l: u16, r: u16) -> bool;
+let Eq, Neq, Less, Leq, Great, Greq(l: i32, r: i32) -> bool;
+let Eq, Neq, Less, Leq, Great, Greq(l: u32, r: u32) -> bool;
+let Eq, Neq, Less, Leq, Great, Greq(l: i64, r: i64) -> bool;
+let Eq, Neq, Less, Leq, Great, Greq(l: u64, r: u64) -> bool;
+let Eq, Neq, Less, Leq, Great, Greq(l: int, r: int) -> bool;
 let Eq, Neq, Less, Leq, Great, Greq(l: uint, r: uint) -> bool;
-let Eq, Neq(lhs: []i8, rhs: []i8) -> bool;
-let Eq, Neq(lhs: bool, rhs: bool) -> bool;
-let Orr, Andd(lhs: bool, rhs: bool) -> bool;
-let Copy, AnddEq, OrrEq(self: ^bool, other: bool) -> bool;
-let Not(x: bool) -> bool;
-let New(self: ^i8) -> i8;
-let New(self: ^i16) -> i16;
-let New(self: ^i32) -> i32;
-let New(self: ^i64) -> i64;
-let New(self: ^int) -> int;
-let New(self: ^u8) -> u8;
-let New(self: ^u16) -> u16;
-let New(self: ^u32) -> u32;
-let New(self: ^u64) -> u64;
-let New(self: ^uint) -> uint;
-let New(self: ^f32) -> f32;
-let New(self: ^f64) -> f64;
-let New(self: ^bool) -> bool;
+let Eq, Neq, Less, Leq, Great, Greq(l: f32, r: f32) -> bool;
+let Eq, Neq, Less, Leq, Great, Greq(l: f64, r: f64) -> bool;
+let Eq, Neq(l: bool, r: bool) -> bool;
+let Copy, AddEq, SubEq, MultEq, DivEq, ModEq
+  (self: ^i8, what: i8) -> i8;
+let Copy, AddEq, SubEq, MultEq, DivEq, ModEq
+  (self: ^u8, what: u8) -> u8;
+let Copy, AddEq, SubEq, MultEq, DivEq, ModEq
+  (self: ^i16, what: i16) -> i16;
+let Copy, AddEq, SubEq, MultEq, DivEq, ModEq
+  (self: ^u16, what: u16) -> u16;
+let Copy, AddEq, SubEq, MultEq, DivEq, ModEq
+  (self: ^i32, what: i32) -> i32;
+let Copy, AddEq, SubEq, MultEq, DivEq, ModEq
+  (self: ^u32, what: u32) -> u32;
+let Copy, AddEq, SubEq, MultEq, DivEq, ModEq
+  (self: ^i64, what: i64) -> i64;
+let Copy, AddEq, SubEq, MultEq, DivEq, ModEq
+  (self: ^u64, what: u64) -> u64;
+let Copy, AddEq, SubEq, MultEq, DivEq, ModEq
+  (self: ^int, what: int) -> int;
+let Copy, AddEq, SubEq, MultEq, DivEq, ModEq
+  (self: ^uint, what: uint) -> uint;
+let Copy, AddEq, SubEq, MultEq, DivEq
+  (self: ^f32, what: f32) -> f32;
+let Copy, AddEq, SubEq, MultEq, DivEq
+  (self: ^f64, what: f64) -> f64;
+let Copy(self: ^bool, what: bool) -> bool;
 let Incr, Decr(self: ^i8) -> i8;
-let Incr, Decr(self: ^i16) -> i16;
-let Incr, Decr(self: ^i32) -> i32;
-let Incr, Decr(self: ^i64) -> i64;
 let Incr, Decr(self: ^u8) -> u8;
+let Incr, Decr(self: ^i16) -> i16;
 let Incr, Decr(self: ^u16) -> u16;
+let Incr, Decr(self: ^i32) -> i32;
 let Incr, Decr(self: ^u32) -> u32;
+let Incr, Decr(self: ^i64) -> i64;
 let Incr, Decr(self: ^u64) -> u64;
-let Incr, Decr(self: ^uint) -> uint;
 let Incr, Decr(self: ^int) -> int;
-let Copy, AddEq, SubEq, MultEq, DivEq, ModEq(self: ^i8,
-  other: i8) -> i8;
-let Copy, AddEq, SubEq, MultEq, DivEq, ModEq(self: ^i16,
-  other: i16) -> i16;
-let Copy, AddEq, SubEq, MultEq, DivEq, ModEq(self: ^i32,
-  other: i32) -> i32;
-let Copy, AddEq, SubEq, MultEq, DivEq, ModEq(self: ^i64,
-  other: i64) -> i64;
-let Copy, AddEq, SubEq, MultEq, DivEq, ModEq(self: ^u8,
-  other: u8) -> u8;
-let Copy, AddEq, SubEq, MultEq, DivEq, ModEq(self: ^u16,
-  other: u16) -> u16;
-let Copy, AddEq, SubEq, MultEq, DivEq, ModEq(self: ^u32,
-  other: u32) -> u32;
-let Copy, AddEq, SubEq, MultEq, DivEq, ModEq(self: ^u64,
-  other: u64) -> u64;
-let Copy, AddEq, SubEq, MultEq, DivEq, ModEq(self: ^int,
-  other: int) -> int;
-let Copy, AddEq, SubEq, MultEq, DivEq, ModEq(self: ^uint,
-  other: uint) -> uint;
-let Copy, AddEq, SubEq, MultEq, DivEq, ModEq(self: ^f32,
-  other: f32) -> f32;
-let Copy, AddEq, SubEq, MultEq, DivEq, ModEq(self: ^f64,
-  other: f64) -> f64;
+let Incr, Decr(self: ^uint) -> uint;
+let Eq, Neq(l: []i8, r: []i8) -> bool;
+let Orr, Andd(l: bool, r: bool) -> bool;
+let AnddEq, OrrEq(self: ^bool, other: bool) -> bool;
+let Not(x: bool) -> bool;

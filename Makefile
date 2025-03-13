@@ -78,6 +78,7 @@ clean:
 		\( -iname "*.o" -or -iname "*.out" \
 		-or -iname "*.so" -or -iname "*.oak.c" \) \
 		-exec rm -f "{}" \;
+	rm -rf html latex *.pdf
 	acorn --clean --quit
 
 ################################################################

@@ -9,7 +9,7 @@ TARGET = /usr/bin
 %.out:	%.o $(OBJECTS)
 	$(CPP) -o $@ $^
 
-%-debug.out:	%.o $(OBJECTS:%.o=%-debug.o)
+%-debug.out:	%-debug.o $(OBJECTS:%.o=%-debug.o)
 	$(CPP) -g -o $@ $^
 
 %.o:	%.cpp $(HEADERS)

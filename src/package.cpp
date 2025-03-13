@@ -1,4 +1,5 @@
 #include "package.hpp"
+#include "debug.hpp"
 #include "lexer.hpp"
 #include "oakc.hpp"
 #include <filesystem>
@@ -12,6 +13,7 @@
  */
 std::map<std::string, std::string>
 load_package_spec(const std::filesystem::path &_path) {
+  debug_print();
   const static std::set<char> str_chars = {'\'', '"', '`'};
 
   // Not all of them, but the ones we need right now
@@ -71,6 +73,7 @@ load_package_spec(const std::filesystem::path &_path) {
 void PackageManager::install_package(
     const std::filesystem::path &_package,
     const Settings::CompileSettings &_csettings) {
+  debug_print();
   if (!std::filesystem::exists(_package)) {
     throw std::runtime_error(_package.string() +
                              " does not exist.");
@@ -107,6 +110,7 @@ void PackageManager::install_package(
                                spec.at("name") + ":\n" +
                                e.what());
     } catch (...) {
+      db_rethrow();
       throw std::runtime_error(
           "Unknown error while building package " +
           spec.at("name"));
@@ -159,6 +163,7 @@ void PackageManager::install_package(
 void PackageManager::uninstall_package(
     const std::string &_name,
     const std::filesystem::path &_oak_include) {
+  debug_print();
   if (std::filesystem::exists(_oak_include / _name)) {
     std::filesystem::remove(_oak_include / _name);
   }

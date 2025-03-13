@@ -25,12 +25,14 @@
 
 /// Print the version of Acorn
 void OakCompiler::print_version() noexcept {
+  debug_print();
   std::cout << "Acorn version " << ACORN_VERSION << "\n"
             << "MIT Licensed\n";
 }
 
 /// Print the help text for Acorn
 void OakCompiler::print_help_text() noexcept {
+  debug_print();
   // clang-format off
   std::cout
       << "Acorn\n"
@@ -139,6 +141,7 @@ void OakCompiler::print_help_text() noexcept {
 
 /// Print the total disk usage of Acorn
 void OakCompiler::print_size() noexcept {
+  debug_print();
   const static std::list<std::filesystem::path> files_to_check =
       {"/usr/bin/acorn", "/usr/bin/acorn-debug",
        "/usr/bin/oak2c", "/usr/bin/oak2c-debug",
@@ -209,6 +212,7 @@ void OakCompiler::print_size() noexcept {
 }
 
 void internal_uninstall() {
+  debug_print();
   char choice = 'n';
 
   std::cout
@@ -244,11 +248,13 @@ void internal_uninstall() {
 /// Register some uninstallation lambda to run after this
 /// process has ceased
 void OakCompiler::uninstall_acorn() noexcept {
+  debug_print();
   std::atexit(internal_uninstall);
 }
 
 /// Purge all temporary files
 void OakCompiler::clean() {
+  debug_print();
   std::list<std::filesystem::path> to_erase;
   for (const auto &path :
        std::filesystem::recursive_directory_iterator(
@@ -257,7 +263,8 @@ void OakCompiler::clean() {
       const std::string filename =
           path.path().filename().string();
       if (filename.find(".oak.") != std::string::npos ||
-          filename == "acorn_test.log") {
+          filename == "acorn_test.log" ||
+          filename == "acorn_rules.log") {
         to_erase.push_back(path.path());
         std::cout << path.path() << '\n';
       }
@@ -281,17 +288,20 @@ void OakCompiler::clean() {
 /// Install some package globally
 /// To be called from the command line, so IO is acceptable
 void OakCompiler::install_package(const std::string &_name) {
+  debug_print();
   PackageManager::install_package(_name,
                                   settings.compile_settings());
 }
 
 /// Remove some globally-install package
 void OakCompiler::uninstall_package(const std::string &_name) {
+  debug_print();
   assert(false);
 }
 
 /// Create a new template package with the given name
 void OakCompiler::new_package(const std::string &_name) {
+  debug_print();
   const std::filesystem::path path(_name);
 
   // Package dir
@@ -426,6 +436,7 @@ void OakCompiler::do_compilation() {
     }
 
     catch (...) {
+      db_rethrow();
       throw std::runtime_error(
           "An unknown error occurred while loading dialect "
           "file '" +
@@ -439,9 +450,8 @@ void OakCompiler::do_compilation() {
     throw std::runtime_error(
         "Error occurred while loading entry point " +
         csettings.entry_point.string() + ":\n" + e.what());
-  }
-
-  catch (...) {
+  } catch (...) {
+    db_rethrow();
     throw std::runtime_error(
         "An unknown error occurred while loading entry point " +
         csettings.entry_point.string());
@@ -1003,6 +1013,7 @@ void OakCompiler::syntax_check(const std::filesystem::path &_fp,
 
 void OakCompiler::fix_math(
     std::list<Lexer::Token> &_token_stream) {
+  debug_print();
   // Iterate through the token stream, replace all instances of
   // the given operator with the given op fn call name (EG '+'
   // -> 'Add'). Precedence is embedded in the order in which you
@@ -1258,6 +1269,7 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
       }
 
       catch (...) {
+        db_rethrow();
         if (it == _token_stream.end()) {
           throw;
         }
@@ -1312,6 +1324,7 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
           }
 
           catch (...) {
+            db_rethrow();
             throw std::runtime_error(
                 "In file included from " + it->file.string() +
                 ":" + std::to_string(it->line) + "." +
@@ -1487,6 +1500,7 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
       }
 
       catch (...) {
+        db_rethrow();
         if (it == _token_stream.end()) {
           throw;
         }
@@ -1520,6 +1534,7 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
       }
 
       catch (...) {
+        db_rethrow();
         if (it == _token_stream.end()) {
           throw;
         }
@@ -1638,6 +1653,7 @@ void OakCompiler::do_file(const std::filesystem::path &_path,
              _settings.compile_settings());
     }
 
+    db_rethrow();
     throw std::runtime_error(
         "An unknown error occurred while lexing " +
         _path.string() + "");

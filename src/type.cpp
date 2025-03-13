@@ -10,6 +10,7 @@
 #include <map>
 #include <set>
 #include <stdexcept>
+#include <sys/types.h>
 
 // A higher number is more precise. The goal is not to lose
 // any precision in our casts.
@@ -24,6 +25,27 @@ const std::map<std::string, uint> Type::float_literals = {
     {"f64", 8},
     {"f128", 16},
     {"float", sizeof(double)}};
+
+/// Returns true iff the given type is atomic (EG i32, bool).
+/// If the type is an array or pointer, this is always false.
+bool Type::is_built_in_type(const Type &_what) noexcept {
+  debug_print();
+  if (_what.nodes.front().type != TypeNode::LITERAL) {
+    return false;
+  } else {
+    return is_built_in_type(_what.nodes.front().literal_name);
+  }
+}
+
+/// Returns true iff the given type is atomic (EG i32, bool).
+/// If the type is an array or pointer, this is always false.
+bool Type::is_built_in_type(const std::string &_what) noexcept {
+  debug_print();
+  return int_literals.contains(_what) ||
+         uint_literals.contains(_what) ||
+         float_literals.contains(_what) || _what == "bool" ||
+         _what == "void";
+}
 
 /// Process one token. This should be treated as consumptive.
 void Type::process_next(const std::string &_symbol) {
@@ -103,12 +125,14 @@ void Type::process_next(const std::string &_symbol) {
 
 /// Returns true iff the first node is of type FUNCTION
 bool Type::is_fn() const noexcept {
+  debug_print();
   return (nodes.size() >= 1 &&
           nodes.front().type == TypeNode::FUNCTION);
 }
 
 /// Appends the entire other type (EG fn arg)
 void Type::append_type(const Type &_other) {
+  debug_print();
   for (const auto &node : _other.nodes) {
     nodes.push_back(node);
   }
@@ -117,6 +141,7 @@ void Type::append_type(const Type &_other) {
 /// Gets the arguments, given that this is a function
 std::vector<std::pair<std::string, Type>>
 Type::fn_args() const {
+  debug_print();
   if (!is_fn()) {
     throw std::runtime_error(
         "Cannot get arguments of non-function type '" +
@@ -174,6 +199,7 @@ Type::fn_args() const {
 
 /// Gets the fn return type, given that this is a function
 Type Type::fn_return_type() const {
+  debug_print();
   if (!is_fn()) {
     throw std::runtime_error(
         "Cannot get return type of non-function type '" +
@@ -199,6 +225,7 @@ Type Type::fn_return_type() const {
 
 /// Return this type in Oak notation
 std::string Type::oak_repr(const std::string &_var_name) const {
+  debug_print();
   std::string out;
 
   if (!_var_name.empty()) {
@@ -244,6 +271,7 @@ std::string Type::oak_repr(const std::string &_var_name) const {
 /// (not function pointers though)
 std::string Type::c_repr(const std::string &_var_name,
                          const bool &_no_mangle) const {
+  debug_print();
   // Dispatch based on type: Function pointers get one method,
   // regular types get another.
   std::string repr;
@@ -321,6 +349,8 @@ std::string Type::c_repr(const std::string &_var_name,
 /// If this is a function, mangle it.
 /// O(n)
 std::string Type::mangle(const std::string &_var_name) const {
+  debug_print();
+
   std::string name = _var_name;
   for (const auto &node : nodes) {
     switch (node.type) {
@@ -350,6 +380,7 @@ std::string Type::mangle(const std::string &_var_name) const {
 
 /// Returns true iff the other matches this at every node
 bool Type::exact_match(const Type &_other) const {
+  debug_print();
   if (nodes.size() != _other.nodes.size()) {
     return false;
   }
@@ -373,6 +404,7 @@ bool Type::exact_match(const Type &_other) const {
 
 /// Returns true iff this type can be cast to match the other
 bool Type::cast_match(const Type &_other) const {
+  debug_print();
   // Special case: Void pointer casting
   // NOTE: This may cause some issues on C-side
   if (_other.nodes.front().type == TypeNode::POINTER &&
@@ -437,6 +469,8 @@ bool Type::cast_match(const Type &_other) const {
 /// No casting is allowed here!
 bool Type::ref_match(const Type &_other,
                      int &_num_deref) const {
+  debug_print();
+
   Type me = *this;
   Type it = _other;
   uint num_me_derefs = 0;
@@ -457,18 +491,18 @@ bool Type::ref_match(const Type &_other,
   // Net number of derefs on this to get to other
   _num_deref = num_me_derefs - num_it_derefs;
 
-  // CCheck for legality
+  // Check for legality
   if (!me.exact_match(it)) {
     return false;
-  } else if (_num_deref < -1) {
-    return false;
-  } else {
-    return true;
   }
+
+  return (-1 <= _num_deref && _num_deref <= 0);
 }
 
 /// Returns whether or not this type is valid to instantiate
 bool Type::valid() const noexcept {
+  debug_print();
+
   if (nodes.empty()) {
     return false;
   } else if (nodes.back().type != TypeNode::LITERAL) {
@@ -492,16 +526,19 @@ bool Type::valid() const noexcept {
 
 /// Appends a pointer node to this type
 void Type::append_ptr() {
+  debug_print();
   nodes.push_back({TypeNode::POINTER});
 }
 
 /// Appends an unsized array node to this type
 void Type::append_arr() {
+  debug_print();
   nodes.push_back({TypeNode::UNSIZED_ARRAY});
 }
 
 /// Appends a size array node to this type
 void Type::append_sized_arr(const uint64_t &_size) {
+  debug_print();
   if (_size == 0) {
     throw std::runtime_error(
         "Sized array cannot be of size zero!");
@@ -512,11 +549,13 @@ void Type::append_sized_arr(const uint64_t &_size) {
 /// Appends a literal node ot this type WITHOUT checking its
 /// existence or size.
 void Type::append_literal(const std::string &_name) {
+  debug_print();
   nodes.push_back({TypeNode::LITERAL, _name});
 }
 
 /// Appends a function open node to this type
 void Type::append_fn() {
+  debug_print();
   enclosure.push("(");
 
   // Denote that the next two tokens should be ignored
@@ -529,6 +568,7 @@ void Type::append_fn() {
 
 /// Appends a join node to this type
 void Type::append_join() {
+  debug_print();
   while (!enclosure.empty() && enclosure.top() == "*") {
     enclosure.pop();
   }
@@ -548,6 +588,7 @@ void Type::append_join() {
 
 /// Appends a function close node ("maps") to this type
 void Type::append_maps() {
+  debug_print();
   if (nodes.back().type == TypeNode::JOIN) {
     nodes.pop_back();
   }
@@ -557,7 +598,8 @@ void Type::append_maps() {
 /// Returns a COPY of this type if it were to be dereferenced
 /// once
 Type Type::deref() const {
-  if (nodes.empty() ||
+  debug_print();
+  if (nodes.size() < 2 ||
       (nodes.front().type != TypeNode::POINTER &&
        nodes.front().type != TypeNode::UNSIZED_ARRAY &&
        nodes.front().type != TypeNode::SIZED_ARRAY)) {
@@ -573,6 +615,7 @@ Type Type::deref() const {
 /// Returns the struct name of this type for parse-time
 /// lookup. Errors if not a direct instance of a struct
 std::string Type::struct_name() const {
+  debug_print();
   if (nodes.empty() ||
       nodes.front().type != TypeNode::LITERAL) {
     std::cout << nodes.front().type << '\n';

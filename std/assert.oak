@@ -13,7 +13,7 @@ let assert!(c: i32, v: [][]i8) -> i32 {
     "  print(FILE!);\n"
     "  print(\":\");\n"
     "  print(LINE!);\n"
-    "  print(\\\"> %\\\\n\\\");\n"
+    "  print(\\\" %\\\\n\\\");\n"
     "  panic();\n"
     "}\n",
     Get(v, 1uint),

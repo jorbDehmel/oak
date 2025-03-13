@@ -363,6 +363,7 @@ int main(int _c, char *_v[]) {
   }
 
   catch (...) {
+    db_rethrow();
     std::cerr
         << "An unknown argument parsing error occurred.\n";
     return 1;
@@ -375,6 +376,7 @@ int main(int _c, char *_v[]) {
     std::cerr << "Compiler error:\n" << e.what() << '\n';
     return 2;
   } catch (...) {
+    db_rethrow();
     std::cerr << "An unknown compiler error occurred.\n";
     return 3;
   }

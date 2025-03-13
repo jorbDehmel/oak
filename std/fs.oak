@@ -1,6 +1,6 @@
-/*
-std::filesystem Oak-to-C++ interface
-*/
+/**
+ * @brief std::filesystem Oak-to-C++ interface
+ */
 
 pragma!("no_dialect");
 link!("std/fs.o");

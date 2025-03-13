@@ -1,0 +1,25 @@
+/*
+*/
+
+include!("std/std.oak");
+
+let Foo<T> : struct {
+  data: T,
+}
+
+let New(self: ^Foo<i32>) -> void {
+  self.data = 0i32;
+  print("Hi!\n");
+}
+
+let New(self: ^Foo<bool>) -> void {
+  self.data = false;
+  print("Hello!\n");
+}
+
+let main() -> i32 {
+  let inst_1: Foo<i32>;
+  let inst_2: Foo<bool>;
+
+  return 0i32;
+}

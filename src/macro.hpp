@@ -9,7 +9,6 @@
 #include "lexer.hpp"
 #include <filesystem>
 #include <map>
-#include <optional>
 #include <set>
 #include <variant>
 
