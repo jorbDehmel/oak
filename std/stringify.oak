@@ -1,0 +1,72 @@
+/*
+Macros for macros to use to standardize argument formatting.
+*/
+
+pragma!("no_dialect");
+
+/*
+Given some argument, make it so that its contents are surrounded
+by no quotes.
+
+alabama -> alabama
+"alaska" -> alaska
+"\"arizona\"" -> arizona
+"\"arkansas" -> \"arkansas
+"'california'" -> california
+*/
+let unstringify!(c: i32, v: [][]i8) -> i32 {
+  include!("std/io.oak", "std/c_str.oak");
+
+  let arg: []i8;
+  arg = Get(v, 1u32);
+
+  let start: uint; // First index not to ignore
+  let end: uint;   // First index to ignore again
+  start = 0uint;
+  end = strlen(arg);
+
+  let flag: bool;
+  flag = true;
+
+  while (flag) {
+    if (start >= end) {
+      flag = false;
+    } else if (Get(arg, start) != Get(arg, end - 1)) {
+      flag = false;
+    } else if (Get(arg, start) != "'" && Get(arg, start) != '"'
+      && Get(arg, start) != "`") {
+      flag = false;
+    } else {
+      ++start;
+      --end;
+    }
+  }
+
+  // NOTE: We haven't dealt with backslashes!!!!
+  while (start < end) {
+    print(Get(arg, start));
+    ++start;
+  }
+
+  return 0i32;
+}
+
+/*
+Given some argument, make it so that its contents are surrounded
+by exactly one set of double quotes.
+
+alabama -> "alabama"
+"alaska" -> "alaska"
+"\"arizona\"" -> "arizona"
+"\"arkansas" -> "\"arkansas"
+"'california'" -> "california"
+*/
+let stringify!(c: i32, v: [][]i8) -> i32 {
+  include!("std/io.oak", "std/stringify.oak");
+
+  print('"');
+  unstringify!(Get(v, 1u32));
+  print('"');
+
+  return 0i32;
+}

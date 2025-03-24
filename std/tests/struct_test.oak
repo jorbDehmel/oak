@@ -1,17 +1,17 @@
 include!("std/std.oak");
 
-let bundle: struct {
+let Bundle: struct {
   a: i32,
   b: bool,
 }
 
-let New(self: ^bundle) -> void {
+let New(self: ^Bundle) -> void {
   self.a = 0i32;
   self.b = false;
 }
 
 let main() -> i32 {
-  let foo: bundle;
+  let foo: Bundle;
   foo.a = 0i32;
   foo.b = true;
 

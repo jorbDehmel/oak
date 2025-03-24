@@ -146,6 +146,10 @@ protected:
   /// once
   Type deref() const;
 
+  /// Returns a COPY of this type if it were to be referenced
+  /// once
+  Type ref() const;
+
   /**
    * @struct TypeNode
    * @brief A single node in a type

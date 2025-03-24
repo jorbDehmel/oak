@@ -26,3 +26,8 @@ uint stou_FN_ARR_i8_MAPS_uint(i8 *what) {
 float stof_FN_ARR_i8_MAPS_float(i8 *what) {
   return atof((char *)what);
 }
+
+// strcmp(lhs: []i8, rhs: []i8) -> int
+int strcmp_FN_ARR_i8_JOIN_ARR_i8_MAPS_int(i8 *lhs, i8 *rhs) {
+  return strcmp((char *)lhs, (char *)rhs);
+}

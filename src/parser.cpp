@@ -38,6 +38,35 @@ void incr(std::list<Lexer::Token>::const_iterator &_it,
   }
 }
 
+/**
+ * @brief Determines if a name is valid for a struct/enum
+ * @param _name The name to analyze
+ * @returns True iff _name is a valid struct name
+ */
+static bool
+is_valid_struct_name(const std::string &_name) noexcept {
+  // The final chunk after any underscores/namespace operators
+  const auto pos = _name.find_last_of('_');
+  uint i = (pos == std::string::npos ? 0 : pos);
+
+  // Must be camelcase
+  for (; i < _name.size(); ++i) {
+    // A single uppercase
+    if (std::isupper(_name[i])) {
+      ++i;
+
+      // Followed by zero or more non-uppercase
+      while (i < _name.size() && !std::isupper(_name.at(i))) {
+        ++i;
+      }
+    } else {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 Node Parser::pop_frame(const Node &_old_node,
                        Settings &_settings) {
   debug_print();
@@ -46,7 +75,8 @@ Node Parser::pop_frame(const Node &_old_node,
     throw std::runtime_error("Cannot pop from empty context");
   }
 
-  Node out(Node::STMT);
+  Node out = _old_node;
+  out.node_type = Node::STMT;
   const auto old_frame = locals.back();
   Lexer lexer;
   uint64_t line = 0, col = 0;
@@ -432,10 +462,12 @@ void Parser::reconstruct(std::ostream &_where,
       break;
     case Node::MATCH:
       db_assert(stmt.children.size() > 0);
+      db_assert(stmt.c_name.has_value());
+
       // 0th is operand, rest are cases
-      _where << "switch (";
+      _where << "switch ((";
       reconstruct_node(stmt.children.at(0));
-      _where << ".__info){\n";
+      _where << ").__info){\n";
       for (uint i = 1; i < stmt.children.size(); ++i) {
         const auto child = stmt.children.at(i);
 
@@ -446,13 +478,18 @@ void Parser::reconstruct(std::ostream &_where,
           _where << "} break;\n";
         } else {
           // 'case'
+          db_assert(child.c_name.has_value());
+          db_assert(child.children.at(0).type.has_value());
+          db_assert(child.children.at(0).token.has_value());
+
           _where << "case " << stmt.c_name.value() << "_OPT_"
                  << child.c_name.value() << ": {\n"
                  << child.children.at(0).type->c_repr(
                         child.children.at(0).token.value())
-                 << " = ";
+                 << " = &(";
           reconstruct_node(stmt.children.at(0));
-          _where << ".__data." << child.c_name.value() << "; {";
+          _where << ").__data." << child.c_name.value()
+                 << "; {";
           reconstruct_node(child.children.at(1));
           _where << "}} break;\n";
         }
@@ -482,6 +519,7 @@ void Parser::reconstruct(std::ostream &_where,
     case Node::OBJECT:
       // Literal or variable
       db_assert(stmt.children.size() == 0);
+      db_assert(stmt.c_name.has_value());
       _where << stmt.c_name.value();
       break;
     case Node::CALL: {
@@ -499,6 +537,8 @@ void Parser::reconstruct(std::ostream &_where,
       break;
     }
     case Node::DECL:
+      db_assert(stmt.type.has_value());
+      db_assert(stmt.token.has_value());
       _where << stmt.type->c_repr(stmt.token->text) << ";\n";
 
       // `New` calls
@@ -615,6 +655,21 @@ void Parser::parse_function(
   if (*_cur_pos == ";") {
     // Signature
     to_add.tags = {{"casual", "true"}};
+
+    // Erase autogen
+    for (const auto &name : _names) {
+      if (functions.contains(name)) {
+        for (auto it = functions.at(name).begin();
+             it != functions.at(name).end(); ++it) {
+          if (it->tags.contains("autogen") &&
+              it->tags.at("autogen") == "true") {
+            auto to_delete = it;
+            --it;
+            functions.at(name).erase(to_delete);
+          }
+        }
+      }
+    }
   } else {
     // Implementation
 
@@ -980,7 +1035,11 @@ void Parser::parse_struct(
       throw std::runtime_error("Cannot replace " +
                                existing_type_str + " '" + name +
                                "' w/ struct of same name");
+    } else if (!is_valid_struct_name(name)) {
+      _settings.ostream << "Warning: Struct name \"" << name
+                        << "\" does not seem to be camelcase\n";
     }
+
     globals[name] = to_add;
 
     // Constructor and destructor autogen go here
@@ -1095,7 +1154,11 @@ void Parser::parse_enum(
       throw std::runtime_error("Cannot replace " +
                                existing_type_str + " '" + name +
                                "' w/ enum of same name");
+    } else if (!is_valid_struct_name(name)) {
+      _settings.ostream << "Warning: Enum name \"" << name
+                        << "\" does not seem to be camelcase\n";
     }
+
     globals[name] = to_add;
 
     // Wrappers
@@ -1137,6 +1200,65 @@ void Parser::parse_enum(
     }
 
     // Constructor, destructor here
+    uint64_t line = _cur_pos->line, col = _cur_pos->col;
+    Lexer lexer;
+
+    // Create a constructor to parse
+    std::list<Lexer::Token> to_parse =
+        lexer.lex("(self: ^" + name + ") -> void {",
+                  _cur_pos->file, line, col);
+
+    const std::string op = to_add.option_order.front();
+    for (const auto &s : lexer.lex(
+             "let __data: " + to_add.options.at(op).oak_repr() +
+                 "; wrap_" + op + "(self, __data);",
+             _cur_pos->file, line, col)) {
+      to_parse.push_back(s);
+    }
+    to_parse.push_back(Lexer::Token("}", _cur_pos->file, line,
+                                    col, "OPERATOR"));
+
+    // Parse and mark as autogen
+    std::list<Lexer::Token>::const_iterator it =
+        to_parse.begin();
+    parse_function({"New"}, it, to_parse.end(), _settings);
+    functions["New"].back().tags["autogen"] = "true";
+
+    // Create destructor
+    // NOTE: Enum destructors are not overridable
+    // clang-format off
+    std::string to_lex =
+      "(self: ^" + name + ") -> void {\n"
+      "match (self) {\n";
+    // clang-format on
+
+    for (const auto &option : to_add.option_order) {
+      to_lex +=
+          "case " + option + "(" +
+          to_add.options.at(option).ref().oak_repr("data") +
+          ") {\n"
+          "Del(data);\n"
+          "}\n";
+    }
+
+    to_lex.append("}\n}");
+
+    to_parse.clear();
+    line = _cur_pos->line;
+    col = _cur_pos->col;
+
+    debug_print();
+    // std::cout << "Lexing '" << to_lex << "'\n" << std::flush;
+    to_parse = lexer.lex(to_lex, _cur_pos->file, line, col);
+
+    // std::cout << "Lexed: [";
+    // for (const auto &item : to_parse) {
+    //   std::cout << item.text << ' ';
+    // }
+    // std::cout << "]\n" << std::flush;
+
+    it = to_parse.begin();
+    parse_function({"Del"}, it, to_parse.end(), _settings);
   }
 }
 
@@ -1343,7 +1465,15 @@ Node Parser::parse_statement(
 
     // Target is an enum
     Node target = parse_object(_cur_pos, _end, _settings);
-    const auto enum_name = target.type.value().struct_name();
+    Type target_type = target.type.value();
+
+    const bool is_mutable = (target_type.nodes.front().type ==
+                             Type::TypeNode::POINTER);
+    if (is_mutable) {
+      target_type = target_type.deref();
+    }
+
+    const auto enum_name = target_type.struct_name();
 
     if (!globals.contains(enum_name) ||
         !std::holds_alternative<EnumInfo>(
@@ -1374,8 +1504,8 @@ Node Parser::parse_statement(
     incr(_cur_pos, _end);
 
     while (*_cur_pos != "}") {
-      out.children.push_back(
-          parse_case(info, _cur_pos, _end, _settings));
+      out.children.push_back(parse_case(info, _cur_pos, _end,
+                                        _settings, is_mutable));
       incr(_cur_pos, _end);
     }
 
@@ -1407,7 +1537,7 @@ Node Parser::parse_case(
     const EnumInfo &_enum_type,
     std::list<Lexer::Token>::const_iterator &_cur_pos,
     const std::list<Lexer::Token>::const_iterator &_end,
-    Settings &_settings) {
+    Settings &_settings, const bool &_is_mutable) {
   debug_print();
   if (*_cur_pos == "case") {
     incr(_cur_pos, _end);
@@ -1441,13 +1571,29 @@ Node Parser::parse_case(
 
     Type passed_type = parse_type(_cur_pos, _end, _settings);
 
-    if (!passed_type.exact_match(
-            _enum_type.options.at(case_name))) {
-      throw std::runtime_error(
-          "Invalid type for case '" + case_name +
-          "': Expected '" +
-          _enum_type.options.at(case_name).oak_repr() +
-          "', but saw '" + passed_type.oak_repr() + "'");
+    if (_is_mutable) {
+      // Pointer or exact allowed
+      if (!passed_type.exact_match(
+              _enum_type.options.at(case_name)) &&
+          !passed_type.deref().exact_match(
+              _enum_type.options.at(case_name))) {
+        throw std::runtime_error(
+            "Invalid type for mutable case '" + case_name +
+            "': Expected '" +
+            _enum_type.options.at(case_name).oak_repr() +
+            "' (or a pointer to that), but saw '" +
+            passed_type.oak_repr() + "'");
+      }
+    } else {
+      // Only exact allowed
+      if (!passed_type.exact_match(
+              _enum_type.options.at(case_name))) {
+        throw std::runtime_error(
+            "Invalid type for immutable case '" + case_name +
+            "': Expected '" +
+            _enum_type.options.at(case_name).oak_repr() +
+            "', but saw '" + passed_type.oak_repr() + "'");
+      }
     }
 
     // End parenthesis
@@ -1467,6 +1613,7 @@ Node Parser::parse_case(
 
     Node out(Node::NONE);
     out.c_name = case_name;
+
     Node first_child(Node::NONE);
     first_child.token = passed_name;
     first_child.type = passed_type;
@@ -1687,6 +1834,7 @@ Node Parser::parse_function_call(
   else if (out.token.has_value() &&
            out.token.value() == "Del" &&
            out.children.size() == 1 &&
+           out.children.front().type.has_value() &&
            (out.children.front().type->nodes.front().type ==
                 Type::TypeNode::POINTER ||
             out.children.front().type->nodes.front().type ==

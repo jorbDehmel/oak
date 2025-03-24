@@ -5,8 +5,6 @@
 
 #pragma once
 
-static_assert(__cplusplus >= 2020'00ULL);
-
 #include "lexer.hpp"
 #include "macro.hpp"
 #include "parser.hpp"
@@ -15,6 +13,7 @@ static_assert(__cplusplus >= 2020'00ULL);
 #include <filesystem>
 #include <iostream>
 #include <list>
+#include <stdexcept>
 #include <string>
 
 const static std::string ACORN_VERSION = "0.8.0";
@@ -26,6 +25,20 @@ const static std::string ACORN_VERSION = "0.8.0";
  */
 class OakCompiler {
 public:
+  /**
+   * @class RunError
+   * @brief Thrown when we try and fail to run. If the caught
+   * exception is a std::runtime_error and not this, it can be
+   * assumed to be a compile-time error.
+   */
+  class RunError : public std::runtime_error {
+  public:
+    RunError(const std::string &_msg)
+        : std::runtime_error(_msg) {
+    }
+    int exit_code;
+  };
+
   /**
    * @brief Initialize a compiler instance
    * @param _strm The stream to use as cout

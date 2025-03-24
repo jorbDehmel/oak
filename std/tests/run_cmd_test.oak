@@ -1,0 +1,11 @@
+/*
+Tests pragma!("run_cmd", "...")
+This can be useful for automated memory leak checking
+*/
+
+pragma!("run_should_fail");
+pragma!("run_cmd", "./% ; exit 1");
+
+let main() -> i32 {
+  return 0i32;
+}

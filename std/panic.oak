@@ -1,8 +1,20 @@
 /*
-
+Defines interface for immediate kernel panics
 */
 
 pragma!("no_dialect");
 link!("std/panic.o");
+include!("std/io.oak");
 
+// Never returns!
 let panic() -> void;
+
+// Never returns! Prints the given message before failure.
+let panic(msg: []i8) -> void {
+  print("v~~~~~~~~~Kernel Panic~~~~~~~~~v\n");
+  print(msg);
+  print("\n^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^\n");
+
+  flush();
+  panic();
+}

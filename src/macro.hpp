@@ -1,7 +1,6 @@
 /**
  * @file
  * @brief Resources for managing macros
- * @author Jordan Dehmel
  */
 
 #pragma once
@@ -55,6 +54,14 @@ public:
    */
   static std::string
   strip_string_literal(const std::string &_str_lit);
+
+  /**
+   * @brief Inverse of strip_string_literal.
+   * @param _contents The contents to embed in double quotes
+   * @returns The string literal
+   */
+  static std::string
+  make_string_literal(const std::string &_contents);
 
   /**
    * @brief Process and remove a macro definition at the given

@@ -2,7 +2,8 @@ HEADERS := lexer.hpp oakc.hpp package.hpp rule.hpp type.hpp \
 	parser.hpp sapling.hpp debug.hpp macro.hpp settings.hpp
 OBJECTS := lexer.o oakc.o package.o rule.o type.o parser.o \
 	sapling.o macro.o
-CPP     := g++ -std=c++20 -pedantic -Wall -O3 -g
+CPP     := g++ -std=c++20 -pedantic -Wall -O3
+CPP-DB  := g++ -std=c++20 -pedantic -Wall -g -D DEBUG
 
 TARGET = /usr/bin
 
@@ -10,13 +11,13 @@ TARGET = /usr/bin
 	$(CPP) -o $@ $^
 
 %-debug.out:	%-debug.o $(OBJECTS:%.o=%-debug.o)
-	$(CPP) -g -o $@ $^
+	$(CPP-DB) -g -o $@ $^
 
 %.o:	%.cpp $(HEADERS)
 	$(CPP) -c -o $@ $<
 
 %-debug.o:	%.cpp $(HEADERS)
-	$(CPP) -D DEBUG -g -c -o $@ $<
+	$(CPP-DB) -c -o $@ $<
 
 .PHONY:	install
 install:	acorn.out oak2c.out

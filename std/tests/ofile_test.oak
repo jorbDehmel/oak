@@ -6,19 +6,19 @@ include!(
   "std/std.oak",
   "std/ofile.oak",
   "std/fs.oak",
-  "std/assert.oak");
+  "std/assert.oak"
+);
 
 let main() -> i32 {
   if (fs::exists("foo.txt")) {
     fs::remove("foo.txt");
   }
 
-  let f: ofile;
-  f = "foo.txt";
-
-  write(f, "hi there!");
-
-  Del(f);
+  { // For destructor purposes
+    let f: OFile;
+    open(f, "foo.txt");
+    write(f, "hi there!");
+  }
 
   assert!(fs::exists("foo.txt"));
   fs::remove("foo.txt");

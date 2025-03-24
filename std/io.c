@@ -117,3 +117,13 @@ f64 get_f64_FN_MAPS_f64() {
   scanf("%lf", &out);
   return out;
 }
+
+// flush() -> void
+void flush_FN_MAPS_void() {
+  fflush(stdout);
+}
+
+// err(_: []i8) -> void
+void err_FN_ARR_i8_MAPS_void(i8 *msg) {
+  fprintf(stderr, "%s", (char *)msg);
+}

@@ -7,37 +7,59 @@ Interfaces w/ oak output file
 #include <stdio.h>
 #include <string.h>
 
-// ofile: struct
-struct ofile {
+// OFile: struct
+struct OFile {
   void *file_ptr;
 };
 
-// New(self: ^ofile) -> ofile
-struct ofile New_FN_PTR_ofile_MAPS_ofile(struct ofile *self) {
+// New(self: ^OFile) -> OFile
+void New_FN_PTR_OFile_MAPS_void(struct OFile *self) {
   self->file_ptr = NULL;
-  return *self;
 }
 
-// Del(self: ^ofile) -> void
-void Del_FN_PTR_ofile_MAPS_void(struct ofile *self) {
+// Del(self: ^OFile) -> void
+void Del_FN_PTR_OFile_MAPS_void(struct OFile *self) {
   if (self->file_ptr != NULL) {
     fclose((FILE *)self->file_ptr);
     self->file_ptr = NULL;
   }
 }
 
-// Copy(self: ^ofile, path: []i8) -> ofile
-struct ofile
-Copy_FN_PTR_ofile_JOIN_ARR_i8_MAPS_ofile(struct ofile *self,
-                                         i8 *path) {
-  Del_FN_PTR_ofile_MAPS_void(self);
-  self->file_ptr = (void *)fopen((char *)path, "w");
-  return *self;
+// open(self: ^OFile, path: []i8) -> void
+void open_FN_PTR_OFile_JOIN_ARR_i8_MAPS_void(struct OFile *self,
+                                             i8 *path) {
+  // Open at beginning
+  Del_FN_PTR_OFile_MAPS_void(self);
+  self->file_ptr = fopen((char *)path, "w");
 }
 
-// write(self: ^ofile, what: []i8) -> void
-void write_FN_PTR_ofile_JOIN_ARR_i8_MAPS_void(
-    struct ofile *self, i8 *what) {
-  assert(self->file_ptr != NULL);
-  fwrite(what, strlen((char *)what), 1, (FILE *)self->file_ptr);
+// append(self: ^OFile, path: []i8) -> void
+void append_FN_PTR_OFile_JOIN_ARR_i8_MAPS_void(
+    struct OFile *self, i8 *path) {
+  // Open at end
+  Del_FN_PTR_OFile_MAPS_void(self);
+  self->file_ptr = fopen((char *)path, "a");
+}
+
+// is_open(self: ^OFile) -> bool
+bool is_open_FN_PTR_OFile_MAPS_bool(struct OFile *self) {
+  return self->file_ptr != NULL;
+}
+
+// write(self: ^OFile, what: []i8) -> void
+void write_FN_PTR_OFile_JOIN_ARR_i8_MAPS_void(
+    struct OFile *self, i8 *what) {
+  fwrite((char *)what, 1, strlen((char *)what),
+         (FILE *)self->file_ptr);
+}
+
+// tell(self: ^OFile) -> uint
+uint tell_FN_PTR_OFile_MAPS_uint(struct OFile *self) {
+  return ftell((FILE *)self->file_ptr);
+}
+
+// seek(self: ^OFile, where: uint) -> void
+void seek_FN_PTR_OFile_JOIN_uint_MAPS_void(struct OFile *self,
+                                           uint where) {
+  fseek((FILE *)self->file_ptr, where, 0);
 }

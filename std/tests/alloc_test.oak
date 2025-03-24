@@ -2,6 +2,11 @@
 Tests alloc! macro
 */
 
+pragma!(
+  "run_cmd",
+  "which valgrind && valgrind --error-exitcode=8 -- ./%"
+);
+
 let main() -> i32 {
   let ptr: ^i32;
   let arr: []i32;

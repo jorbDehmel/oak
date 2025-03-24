@@ -2,6 +2,7 @@
 Number guessing game in Oak
 */
 
+pragma!("no_run", "true");
 include!("std/std.oak", "std/printf.oak");
 
 let main() -> i32 {

@@ -339,7 +339,7 @@ std::string Type::c_repr(const std::string &_var_name,
     repr = prefix + " " + _var_name + suffix;
   }
 
-  while (std::isspace(repr.back())) {
+  while (!repr.empty() && std::isspace(repr.back())) {
     repr.pop_back();
   }
 
@@ -609,6 +609,14 @@ Type Type::deref() const {
 
   Type out = *this;
   out.nodes.pop_front();
+  return out;
+}
+
+/// Returns a COPY of this type if it were to be referenced
+/// once
+Type Type::ref() const {
+  Type out = *this;
+  out.nodes.push_front(Type::TypeNode(Type::TypeNode::POINTER));
   return out;
 }
 

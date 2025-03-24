@@ -28,7 +28,7 @@ int main() {
     const auto lexed = l.lex(text, file, line, col);
 
     p.parse_global(lexed, settings);
-    p.reconstruct(std::cout, settings.compile_settings());
+    // p.reconstruct(std::cout, settings.compile_settings());
 
     assert(!p.fetch_symbol("var").has_value());
     assert(!p.fetch_symbol("var2").has_value());
@@ -93,15 +93,14 @@ int main() {
     uint64_t line = __LINE__, col = 0;
     const std::string file = "fizz.oak";
 
-    const std::string text =
-        "let foo:struct{a:int,b,c:bool,}let New(_: ^foo) -> "
-        "void; let main()->i32{let "
-        "a:foo;}";
+    const std::string text = "let foo:struct{a:int,b,c:bool,}"
+                             "let main()->i32{let "
+                             "a:foo;}";
 
     const auto lexed = l.lex(text, file, line, col);
 
     p.parse_global(lexed, settings);
-    p.reconstruct(std::cout, settings.compile_settings());
+    // p.reconstruct(std::cout, settings.compile_settings());
   }
 
   std::cout << "Running test #" << ++test_num << "...\n"
@@ -112,15 +111,13 @@ int main() {
     uint64_t line = __LINE__, col;
     const std::string file = "fizz.oak";
 
-    const std::string text =
-        "let fizz:enum{a:int,b,c:bool,}let New(_: ^fizz) -> "
-        "void; let main()->i32{let "
-        "a:fizz;}";
+    const std::string text = "let fizz:enum{a:int,b,c:bool,}"
+                             "let main()->i32{let a: fizz;}";
 
     const auto lexed = l.lex(text, file, line, col);
 
     p.parse_global(lexed, settings);
-    p.reconstruct(std::cout, settings.compile_settings());
+    // p.reconstruct(std::cout, settings.compile_settings());
   }
 
   std::cout << "Running test #" << ++test_num << "...\n"
@@ -163,7 +160,7 @@ int main() {
     const auto lexed = l.lex(text, file, line, col);
 
     p.parse_global(lexed, settings);
-    p.reconstruct(std::cout, settings.compile_settings());
+    // p.reconstruct(std::cout, settings.compile_settings());
   }
 
   std::cout << "Running test #" << ++test_num << "...\n"
@@ -189,7 +186,7 @@ int main() {
     const auto lexed = l.lex(text, file, line, col);
 
     p.parse_global(lexed, settings);
-    p.reconstruct(std::cout, settings.compile_settings());
+    // p.reconstruct(std::cout, settings.compile_settings());
   }
 
   std::cout << "Running test #" << ++test_num << "...\n"
@@ -217,34 +214,8 @@ int main() {
     const auto lexed = l.lex(text, file, line, col);
 
     p.parse_global(lexed, settings);
-    p.reconstruct(std::cout, settings.compile_settings());
+    // p.reconstruct(std::cout, settings.compile_settings());
   }
-
-  // std::cout << "Running test #" << ++test_num << "...\n"
-  //           << std::flush;
-  // { // Test 8: Implicit template instantiation
-  //   Parser p;
-  //   Lexer l;
-  //   uint64_t line, col;
-  //   const std::string file = "fizz.oak";
-
-  //   const std::string text =
-  //       // clang-format off
-  //       "let fizz<t>(a: t) -> t {}\n"
-  //       "let main() -> i32\n"
-  //       "{\n"
-  //       "  let b: i32;\n"
-  //       "  let c: []^i32;\n"
-  //       "  fizz(b);\n"
-  //       "  fizz(c);\n"
-  //       "}\n";
-  //   // clang-format on
-
-  //   const auto lexed = l.lex(text, file, line, col);
-
-  //   p.parse_global(lexed);
-  //   p.reconstruct(std::cout);
-  // }
 
   std::cout << "All " << test_num
             << " parser unit tests passed!\n";

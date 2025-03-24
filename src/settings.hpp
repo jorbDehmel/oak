@@ -120,9 +120,9 @@ public:
     /// The testing mode: Allows compilation only or two modes
     /// of compilation+running
     enum {
-      COMPILE_ONLY,
-      REGULAR_EXECUTE,
-      EXECUTE_IGNORE_FAILURE,
+      COMPILE_ONLY,           // T
+      REGULAR_EXECUTE,        // TTE
+      EXECUTE_IGNORE_FAILURE, // TE
     } mode = REGULAR_EXECUTE;
   };
 

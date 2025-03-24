@@ -10,9 +10,11 @@
 #include "oakc.hpp"
 #include "settings.hpp"
 #include <cctype>
+#include <cstdint>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <iterator>
 #include <set>
 #include <sstream>
@@ -85,6 +87,26 @@ std::string MacroManager::strip_string_literal(
 
     out = tmp;
   }
+  return out;
+}
+
+/**
+ * @brief Inverse of strip_string_literal.
+ * @param _contents The contents to embed in double quotes
+ * @returns The string literal
+ */
+std::string MacroManager::make_string_literal(
+    const std::string &_contents) {
+  std::string out = "\"";
+
+  for (uint i = 0; i < _contents.size(); ++i) {
+    if (_contents[i] == '"' || _contents[i] == '\\') {
+      out += "\\";
+    }
+    out += _contents[i];
+  }
+
+  out += "\"";
   return out;
 }
 
@@ -183,14 +205,8 @@ void MacroManager::replace(
     // Prepare call
     std::string command = exe;
     for (const auto &arg : args) {
-      command += " \"";
-      for (const auto &c : arg.text) {
-        if (c == '"') {
-          command += '\\';
-        }
-        command += c;
-      }
-      command += "\"";
+      command +=
+          " " + MacroManager::make_string_literal(arg.text);
     }
 
     // Run call and get replacement
@@ -266,11 +282,6 @@ std::list<Lexer::Token> MacroManager::get_macro_args(
     out.push_back(cur);
   }
 
-  // Clean quotes
-  for (auto it = out.begin(); it != out.end(); ++it) {
-    it->text = MacroManager::strip_string_literal(it->text);
-  }
-
   return out;
 }
 
@@ -324,12 +335,6 @@ std::list<Lexer::Token> MacroManager::get_macro_args(
   // Delete everything related to macro call, leave pointing to
   // item after call
   _whole.erase(range_start, first_after_range);
-
-  // Clean quotes
-  for (auto it = out.begin(); it != out.end(); ++it) {
-    it->text = MacroManager::strip_string_literal(it->text);
-  }
-
   return out;
 }
 
@@ -407,8 +412,16 @@ void MacroManager::process_definition(
         source_path.string() + ".out";
 
     std::ofstream f(source_path);
+    uint64_t cur_line = 1;
+
     for (const auto &item : contents) {
-      f << item.text << ' ';
+      if (item.line != cur_line) {
+        f << '\n';
+        cur_line = item.line;
+      } else {
+        f << ' ';
+      }
+      f << item.text;
     }
     f.close();
 

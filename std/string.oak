@@ -1,0 +1,114 @@
+/*
+Defines the dynamically-allocated `String` class in Oak
+*/
+
+pragma!("no_dialect");
+include!(
+  "std/operators.oak",
+  "std/io.oak",
+  "std/panic.oak",
+  "std/c_str.oak"
+);
+
+////////////////////////////////////////////////////////////////
+// Struct definition
+
+let String: struct {
+  __c_str: []i8,
+  __size: uint,
+  __max_size: uint
+}
+
+////////////////////////////////////////////////////////////////
+// Signatures
+
+let New(self: ^String) -> void;
+let Del(self: ^String) -> void;
+let Copy(self: ^String, other: String) -> String;
+let Copy(self: ^String, other: []i8) -> String;
+let Get(self: ^String, i: uint) -> i8;
+let Add(lhs: String, rhs: String) -> String;
+let Eq(lhs: String, rhs: String) -> bool;
+let Neq(lhs: String, rhs: String) -> bool;
+
+let reserve(self: ^String, size: uint) -> void;
+let print(what: String) -> void;
+
+////////////////////////////////////////////////////////////////
+// Implementations
+
+let New(self: ^String) -> void {
+  self.__size = 0uint;
+  self.__max_size = 0uint;
+}
+
+let Del(self: ^String) -> void {
+  if (self.__max_size != 0uint) {
+    free!(self.__c_str);
+    self.__max_size = 0uint;
+    self.__size = 0uint;
+  }
+}
+
+let Copy(self: ^String, other: String) -> String {
+  reserve(self, other.__size);
+  strcpy(self.__c_str, other.__c_str);
+  return self;
+}
+
+let Copy(self: ^String, other: []i8) -> String {
+  reserve(self, strlen(other));
+  strcpy(self.__c_str, other);
+  return self;
+}
+
+let Copy(self: ^String, c: i8) -> String {
+  reserve(self, 1uint);
+  Get(self.__c_str, 0uint) = c;
+  return self;
+}
+
+let Get(self: ^String, i: uint) -> i8 {
+  if (i >= self.__size) {
+    panic("Out of range string index!");
+  }
+  return Get(self.__c_str, i);
+}
+
+let Add(lhs: String, rhs: String) -> String {
+  let out: String;
+  reserve(out, lhs.__size + rhs.__size);
+  out = lhs;
+
+  let offset: []i8;
+  c!(
+    "offset = out.__c_str + out.__size;"
+  );
+
+  strcpy(offset, rhs.__c_str);
+}
+
+let Eq(lhs: String, rhs: String) -> bool {
+  return strcmp(lhs.__c_str, rhs.__c_str) == 0int;
+}
+
+let Neq(lhs: String, rhs: String) -> bool {
+  return strcmp(lhs.__c_str, rhs.__c_str) != 0int;
+}
+
+let reserve(self: ^String, size: uint) -> void {
+  if (self.__max_size < size + 1uint) {
+    if (self.__max_size != 0uint) {
+      free!(self.__c_str);
+    }
+    self.__max_size = size + 1uint;
+    self.__size = 0uint;
+    alloc!(self.__c_str, self.__max_size);
+  }
+}
+
+let print(what: String) -> void {
+  if (what.__size >= 0uint) {
+    print(what.__c_str);
+  }
+}

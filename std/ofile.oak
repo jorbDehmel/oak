@@ -5,11 +5,31 @@ Bindings for output files
 pragma!("no_dialect");
 link!("std/ofile.o");
 
-let ofile: struct {
-  _: ^void
+// An output file
+let OFile: struct {
+  _: ^void // Internal C FILE pointer
 }
 
-let New(self: ^ofile) -> ofile;
-let Del(self: ^ofile) -> void;
-let Copy(self: ^ofile, path: []i8) -> ofile;
-let write(self: ^ofile, what: []i8) -> void;
+// Initialize an OFile WITHOUT opening a file
+let New(self: ^OFile) -> void;
+
+// Close the file if open
+let Del(self: ^OFile) -> void;
+
+// Open a file at the beginning
+let open(self: ^OFile, path: []i8) -> void;
+
+// Open a file at the end
+let append(self: ^OFile, path: []i8) -> void;
+
+// Return whether the file has been opened
+let is_open(self: ^OFile) -> bool;
+
+// Write some string to the current position
+let write(self: ^OFile, what: []i8) -> void;
+
+// Tell the current position
+let tell(self: ^OFile) -> uint;
+
+// Seek to some position
+let seek(self: ^OFile, pos: uint) -> void;

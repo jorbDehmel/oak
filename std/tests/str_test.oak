@@ -2,10 +2,10 @@
 Tests std/str.oak
 */
 
-include!("std/std.oak", "std/str.oak");
+include!("std/std.oak", "std/string.oak");
 
 let main() -> i32 {
-  let s: str;
+  let s: String;
   s = "Hello, ";
 
   print(s);

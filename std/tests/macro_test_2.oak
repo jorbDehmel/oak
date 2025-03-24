@@ -1,0 +1,50 @@
+/*
+Tests macro stringification
+*/
+
+include!("std/std.oak");
+include!("std/panic.oak");
+
+let foo!(c: i32, v: [][]i8) -> i32 {
+  include!("std/io.oak", "std/operators.oak");
+
+  if (Get(v, 1i32) != "foo") {
+    err(Get(v, 1i32));
+    err("\n");
+
+    print('panic("First argument failure");');
+  } else if (Get(v, 2i32) != "\"foo\"") {
+    err(Get(v, 2i32));
+    err("\n");
+
+    print('panic("Second argument failure");');
+  } else if (Get(v, 3i32) != "\"foo\"") {
+    err(Get(v, 3i32));
+    err("\n");
+
+    print('panic("Third argument failure");');
+  } else if (Get(v, 4i32) != "\"foo \\\"\\\" fizz\"") {
+    err(Get(v, 4i32));
+    err("\n");
+
+    print('panic("Fourth argument failure");');
+  } else if (Get(v, 5i32) != "fs_exists ( \"foo.txt\" )") {
+    err(Get(v, 5i32));
+    err("\n");
+
+    print('panic("Fifth argument failure");');
+  }
+
+  return 0i32;
+}
+
+let main() -> i32 {
+  foo!(
+    foo,
+    "foo",
+    'foo',
+    "foo \"\" fizz",
+    fs::exists("foo.txt")
+  );
+  return 0i32;
+}

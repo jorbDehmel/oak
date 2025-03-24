@@ -379,6 +379,8 @@ void OakCompiler::operator()() {
   if (settings.is_compile()) {
     try {
       do_compilation();
+    } catch (RunError) {
+      throw;
     } catch (...) {
       if (!settings.compile_settings()
                .pragmas[settings.compile_settings().entry_point]
@@ -577,18 +579,42 @@ void OakCompiler::do_compilation() {
              .pragmas[settings.compile_settings().entry_point]
              .contains("run_should_fail");
 
-    int execution_result = system(("." / linked_file).c_str());
+    std::string command = "." / linked_file;
+    if (settings.compile_settings()
+            .pragmas[settings.compile_settings().entry_point]
+            .contains("run_cmd")) {
+      const auto fmt =
+          settings.compile_settings()
+              .pragmas[settings.compile_settings().entry_point]
+              .at("run_cmd");
+      bool skip = false;
+      command = "";
+      for (const auto &c : fmt) {
+        if (skip) {
+          command += c;
+          skip = false;
+        } else if (c == '\\') {
+          skip = true;
+        } else if (c == '%') {
+          command += linked_file;
+        } else {
+          command += c;
+        }
+      }
+    }
+
+    int execution_result = system(command.c_str());
 
     if (should_succeed) {
       if (execution_result != 0) {
-        throw std::runtime_error(
-            "Execution of file '" + linked_file.string() +
-            "' failed with exit code " +
-            std::to_string(execution_result));
+        throw RunError("Execution of file '" +
+                       linked_file.string() +
+                       "' failed with exit code " +
+                       std::to_string(execution_result));
       }
     } else {
       if (execution_result == 0) {
-        throw std::runtime_error(
+        throw RunError(
             "Execution of file '" + linked_file.string() +
             "' should have failed, but ran successfully");
       }
@@ -683,41 +709,50 @@ void OakCompiler::do_testing() {
         comp.settings.compile_settings().entry_point =
             test_file;
         comp.settings.compile_settings().target = target;
+
+        switch (tsettings.mode) {
+        case Settings::TestSettings::COMPILE_ONLY:
+          comp.settings.compile_settings().mode = Settings::
+              CompileSettings::TRANSLATE_COMPILE_AND_LINK;
+          break;
+        default:
+          ++tried_to_run;
+          ++ran_successfully;
+          comp.settings.compile_settings().mode =
+              Settings::CompileSettings::
+                  TRANSLATE_COMPILE_LINK_AND_EXECUTE;
+          break;
+        }
+
         bool compilation_succeeded = true, run_succeeded = true;
         int run_result = 0;
 
         try {
           comp();
+        } catch (RunError) {
+          run_problems.push_back(test_file);
+          --ran_successfully;
+          run_succeeded = false;
+
+          if (tsettings.mode !=
+              Settings::TestSettings::EXECUTE_IGNORE_FAILURE) {
+            throw RunError("Run failed on file " +
+                           test_file.path().string());
+          }
         } catch (...) {
           compilation_succeeded = false;
           compile_problems.push_back(test_file);
           --compiled_successfully;
 
+          if (tsettings.mode !=
+              Settings::TestSettings::COMPILE_ONLY) {
+            --ran_successfully;
+          }
+
           if (tsettings.halt_on_compiler_failure) {
             throw std::runtime_error(
                 "Compilation failed on file " +
                 test_file.path().string());
-          }
-        }
-
-        if (compilation_succeeded &&
-            tsettings.mode !=
-                Settings::TestSettings::COMPILE_ONLY) {
-          ++tried_to_run;
-          ++ran_successfully;
-
-          run_result = system(target.root_path().c_str());
-          if (run_result != 0) {
-            run_problems.push_back(test_file);
-            --ran_successfully;
-            run_succeeded = false;
-
-            if (tsettings.mode != Settings::TestSettings::
-                                      EXECUTE_IGNORE_FAILURE) {
-              throw std::runtime_error(
-                  "Run failed on file " +
-                  test_file.path().string());
-            }
           }
         }
 
@@ -1287,8 +1322,11 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
       try {
 
         if (*it == "include!") {
-          const auto args = MacroManager::get_macro_args(
+          auto args = MacroManager::get_macro_args(
               _token_stream, it, _token_stream.end());
+          for (auto it = args.begin(); it != args.end(); ++it) {
+            it->text = MacroManager::strip_string_literal(*it);
+          }
 
           try {
             for (const auto &f : args) {
@@ -1332,10 +1370,13 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
           }
 
         } else if (*it == "link!") {
-          const auto args = MacroManager::get_macro_args(
+          auto args = MacroManager::get_macro_args(
               _token_stream, it, _token_stream.end());
-          for (const auto &f : args) {
+          for (auto it = args.begin(); it != args.end(); ++it) {
+            it->text = MacroManager::strip_string_literal(*it);
+          }
 
+          for (const auto &f : args) {
             std::filesystem::path p(f);
             if (std::filesystem::exists(
                     _csettings.include_path / p)) {
@@ -1351,10 +1392,13 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
             _csettings.objects.push_back(p);
           }
         } else if (*it == "flag!") {
-          const auto args = MacroManager::get_macro_args(
+          auto args = MacroManager::get_macro_args(
               _token_stream, it, _token_stream.end());
-          for (const auto &f : args) {
+          for (auto it = args.begin(); it != args.end(); ++it) {
+            it->text = MacroManager::strip_string_literal(*it);
+          }
 
+          for (const auto &f : args) {
             std::filesystem::path p(f);
             if (std::filesystem::exists(
                     _csettings.include_path / p)) {
@@ -1372,14 +1416,21 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
         } else if (*it == "pragma!") {
           auto args = MacroManager::get_macro_args(
               _token_stream, it, _token_stream.end());
+          for (auto it = args.begin(); it != args.end(); ++it) {
+            it->text = MacroManager::strip_string_literal(*it);
+          }
+
           if (args.size() == 1) {
             args.push_back(Lexer::Token(args.front(), ""));
           }
           _csettings.pragmas[it->file][args.front().text] =
               std::next(args.begin())->text;
         } else if (*it == "rule_new!") {
-          const auto args = MacroManager::get_macro_args(
+          auto args = MacroManager::get_macro_args(
               _token_stream, it, _token_stream.end());
+          for (auto it = args.begin(); it != args.end(); ++it) {
+            it->text = MacroManager::strip_string_literal(*it);
+          }
 
           Rule to_add;
           std::string name;
@@ -1416,13 +1467,15 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
           const auto args = MacroManager::get_macro_args(
               _token_stream, it, _token_stream.end());
           for (const auto &arg : args) {
-            rules.add_entry_point(arg);
+            rules.add_entry_point(
+                MacroManager::strip_string_literal(arg));
           }
         } else if (*it == "rule_remove!") {
           const auto args = MacroManager::get_macro_args(
               _token_stream, it, _token_stream.end());
           for (const auto &arg : args) {
-            rules.remove_entry_point(arg);
+            rules.remove_entry_point(
+                MacroManager::strip_string_literal(arg));
           }
         } else if (*it == "rule_bundle!") {
           const auto args = MacroManager::get_macro_args(
@@ -1431,10 +1484,13 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
           std::list<std::string> entails;
           for (auto it = std::next(args.begin());
                it != args.end(); ++it) {
-            entails.push_back(*it);
+            entails.push_back(
+                MacroManager::strip_string_literal(*it));
           }
 
-          rules.register_bundle(args.front(), entails);
+          rules.register_bundle(
+              MacroManager::strip_string_literal(args.front()),
+              entails);
         } else if (*it == "compile_time_system!") {
           settings.ostream
               << it->file.string() << ":" << it->line << "."
@@ -1442,8 +1498,12 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
               << "> compile_time::system! is running "
                  "system command `";
 
-          const auto args = MacroManager::get_macro_args(
+          auto args = MacroManager::get_macro_args(
               _token_stream, it, _token_stream.end());
+          for (auto it = args.begin(); it != args.end(); ++it) {
+            it->text = MacroManager::strip_string_literal(*it);
+          }
+
           std::string cmd;
           for (const auto &arg : args) {
             if (!cmd.empty()) {

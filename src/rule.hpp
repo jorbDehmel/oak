@@ -1,9 +1,5 @@
 /**
  * @file
- * @brief Non-length-preserving Iterated uniform finite-state
- * transducers operating with the set of all valid Tokens as the
- * alphabet. These are FSTs such that replacement text is
- * yielded only upon completion.
  */
 
 #pragma once
@@ -14,8 +10,6 @@
 #include <map>
 #include <string>
 #include <variant>
-
-static_assert(__cplusplus >= 2020'00ULL);
 
 /**
  * @struct Rule

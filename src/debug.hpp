@@ -15,7 +15,6 @@
 #include <iostream>
 
 /**
- * @macro debug_print
  * @brief If debug mode is enabled, print the current file and
  * line to cout, then flushing.
  */
@@ -26,13 +25,11 @@
   }
 
 /**
- * @macro db_assert
  * @brief If debug mode is enabled, do some assertion.
  */
 #define db_assert assert
 
 /**
- * @macro db_rethrow
  * @brief If debug mode is enabled, rethrow the dangling
  * exception
  */
@@ -52,7 +49,6 @@
 #define db_assert(...) ;
 
 /**
- * @macro db_rethrow
  * @brief If debug mode is enabled, rethrow the dangling
  * exception
  */

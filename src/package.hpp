@@ -5,9 +5,7 @@
 
 #pragma once
 
-#include "oakc.hpp"
-static_assert(__cplusplus >= 2020'00ULL);
-
+#include "settings.hpp"
 #include <filesystem>
 #include <string>
 

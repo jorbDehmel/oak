@@ -58,8 +58,7 @@ struct Node {
 
 /**
  * @brief Parses the text once it has been brought to Oak normal
- * form by the rules. Oak normal form is functional with if and
- * while statements.
+ * form by the rules.
  */
 class Parser {
 public:
@@ -232,7 +231,7 @@ protected:
       const EnumInfo &_enum_type,
       std::list<Lexer::Token>::const_iterator &_cur_pos,
       const std::list<Lexer::Token>::const_iterator &_end,
-      Settings &_settings);
+      Settings &_settings, const bool &_is_mutable);
 
   /// Return the type spec at the specified location
   Type parse_type(
