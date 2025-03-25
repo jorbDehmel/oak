@@ -483,7 +483,22 @@ precedence over compiled ones, this also works on the latter:
 `blimbo!false()` will become `false()` if `blimbo!` doesn't
 exist, and the output of `blimbo!()` if it does.
 
-## Rules and Dialects
+## Rules
+
+## Dialects
+
+An `Oak` dialect is a set of rules which is enforced from the
+command-line. These rules are always active (unless
+`pragma!("no_dialect")` is used) and are executed before
+anything else. Dialects are effectively command-line-enforced
+syntactic branches of the language. Since the rule system (as
+iterated transduction more powerful than FSTs) is
+Turing-complete, dialects can be any language: Indeed, they are
+intended to be treated as new languages and used for syntactic
+alterations and modeling thereof.
+
+A dialect is loaded from a *dialect file* via
+`acorn -D file.oak`.
 
 ## Packages
 

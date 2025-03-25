@@ -105,7 +105,7 @@ void Type::process_next(const std::string &_symbol) {
   }
 
   // Type or arg name
-  else if (_symbol != ";") {
+  else {
     if (!enclosure.empty() && enclosure.top() == "*") {
       if (!nodes.empty()) {
         if (nodes.back().following_arg_name == "") {

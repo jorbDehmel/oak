@@ -41,6 +41,10 @@ bool parse_args(const int _c, const char *const _v[],
 
       // CD somewhere
       else if (arg == "--cd") {
+        if (i + 1 >= _c) {
+          throw std::runtime_error(
+              "'" + arg + "' must be followed by an argument");
+        }
         std::filesystem::current_path(_v[++i]);
       }
 
@@ -51,6 +55,10 @@ bool parse_args(const int _c, const char *const _v[],
 
       // Use dialect file
       else if (arg == "--dialect") {
+        if (i + 1 >= _c) {
+          throw std::runtime_error(
+              "'" + arg + "' must be followed by an argument");
+        }
         _oakc.settings.dialect = _v[++i];
       }
 
@@ -91,6 +99,10 @@ bool parse_args(const int _c, const char *const _v[],
 
       // Set output
       else if (arg == "--output") {
+        if (i + 1 >= _c) {
+          throw std::runtime_error(
+              "'" + arg + "' must be followed by an argument");
+        }
         _oakc.settings.compile_settings().target = _v[++i];
       }
 
@@ -110,15 +122,30 @@ bool parse_args(const int _c, const char *const _v[],
         return false;
       }
 
+      // Rule logs
+      else if (arg == "--rule_logs") {
+        _oakc.settings.compile_settings().rule_logs =
+            !_oakc.settings.compile_settings().rule_logs;
+      }
+
       // Reinstall the given package
       else if (arg == "--reinstall") {
-        _oakc.uninstall_package(_v[++i]);
-        _oakc.install_package(_v[i]);
+        if (i + 1 >= _c) {
+          throw std::runtime_error(
+              "'" + arg + "' must be followed by an argument");
+        }
+        auto package = _v[++i];
+        _oakc.uninstall_package(package);
+        _oakc.install_package(package);
         out = false;
       }
 
       // Uninstall a package
       else if (arg == "--remove") {
+        if (i + 1 >= _c) {
+          throw std::runtime_error(
+              "'" + arg + "' must be followed by an argument");
+        }
         _oakc.uninstall_package(_v[++i]);
         out = false;
       }
@@ -131,6 +158,10 @@ bool parse_args(const int _c, const char *const _v[],
 
       // Install package
       else if (arg == "--install") {
+        if (i + 1 >= _c) {
+          throw std::runtime_error(
+              "'" + arg + "' must be followed by an argument");
+        }
         _oakc.install_package(_v[++i]);
         out = false;
       }
@@ -160,6 +191,12 @@ bool parse_args(const int _c, const char *const _v[],
         }
       }
 
+      // Uninstall acorn
+      else if (arg == "--uninstall") {
+        _oakc.uninstall_acorn();
+        return false;
+      }
+
       // Print Oak version
       else if (arg == "--version") {
         _oakc.print_version();
@@ -168,6 +205,10 @@ bool parse_args(const int _c, const char *const _v[],
 
       // Create new package
       else if (arg == "--new") {
+        if (i + 1 >= _c) {
+          throw std::runtime_error(
+              "'" + arg + "' must be followed by an argument");
+        }
         _oakc.new_package(_v[++i]);
       }
 
@@ -201,12 +242,22 @@ bool parse_args(const int _c, const char *const _v[],
               Settings::CompileSettings::TRANSLATE_AND_COMPILE;
           break;
         case 'C': // CD somewhere
+          if (i + 1 >= _c) {
+            throw std::runtime_error(
+                "'-" + std::string{flag} +
+                "' must be followed by an argument");
+          }
           std::filesystem::current_path(_v[++i]);
           break;
         case 'd': // Debug
           _oakc.settings.debug = !_oakc.settings.debug;
           break;
         case 'D': // Use dialect file
+          if (i + 1 >= _c) {
+            throw std::runtime_error(
+                "'-" + std::string{flag} +
+                "' must be followed by an argument");
+          }
           _oakc.settings.dialect = _v[++i];
           break;
         case 'e': // Clean
@@ -240,6 +291,11 @@ bool parse_args(const int _c, const char *const _v[],
               Settings::CompileSettings::NOTHING;
           break;
         case 'o': // Set output
+          if (i + 1 >= _c) {
+            throw std::runtime_error(
+                "'-" + std::string{flag} +
+                "' must be followed by an argument");
+          }
           _oakc.settings.compile_settings().target = _v[++i];
           break;
         case 'O': // Use -O3 optimization flag
@@ -252,12 +308,24 @@ bool parse_args(const int _c, const char *const _v[],
           break;
         case 'q': // Quit immediately
           return false;
-        case 'r': // Reinstall a package
-          _oakc.uninstall_package(_v[++i]);
-          _oakc.install_package(_v[++i]);
+        case 'r': { // Reinstall a package
+          if (i + 1 >= _c) {
+            throw std::runtime_error(
+                "'-" + std::string{flag} +
+                "' must be followed by an argument");
+          }
+          auto package = _v[++i];
+          _oakc.uninstall_package(package);
+          _oakc.install_package(package);
           out = false;
           break;
+        }
         case 'R': // Uninstall a package
+          if (i + 1 >= _c) {
+            throw std::runtime_error(
+                "'-" + std::string{flag} +
+                "' must be followed by an argument");
+          }
           _oakc.uninstall_package(_v[++i]);
           out = false;
           break;
@@ -301,6 +369,11 @@ bool parse_args(const int _c, const char *const _v[],
           _oakc.print_version();
           return false;
         case 'w': // Create a new package
+          if (i + 1 >= _c) {
+            throw std::runtime_error(
+                "'-" + std::string{flag} +
+                "' must be followed by an argument");
+          }
           _oakc.new_package(_v[++i]);
           break;
         case 'x': // Ignore syntax errors
@@ -315,6 +388,11 @@ bool parse_args(const int _c, const char *const _v[],
 
         case 'i': // Install package
         case 'S':
+          if (i + 1 >= _c) {
+            throw std::runtime_error(
+                "'-" + std::string{flag} +
+                "' must be followed by an argument");
+          }
           _oakc.install_package(_v[++i]);
           out = false;
           break;

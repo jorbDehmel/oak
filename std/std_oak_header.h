@@ -43,6 +43,8 @@ typedef unsigned long long u128;
 typedef long long i128;
 
 // Validity assertions
+static_assert(sizeof(i8) == sizeof(char),
+              "Invalid compile-time sizes!");
 static_assert(sizeof(u8) == 1, "Invalid compile-time sizes!");
 static_assert(sizeof(i8) == 1, "Invalid compile-time sizes!");
 static_assert(sizeof(u16) == 2, "Invalid compile-time sizes!");

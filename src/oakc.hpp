@@ -36,7 +36,6 @@ public:
     RunError(const std::string &_msg)
         : std::runtime_error(_msg) {
     }
-    int exit_code;
   };
 
   /**

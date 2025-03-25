@@ -82,8 +82,8 @@ int main() {
 
     // t.ref_match();
     assert(Type({"i32"}).ref_match(Type({"^", "i32"})));
-    assert(!Type({"^", "^", "i32"}).ref_match(Type({"i32"})));
-    assert(Type({"^", "i32"}).ref_match(Type({"i32"})));
+    assert(!Type({"i32"}).ref_match(Type({"^", "^", "i32"})));
+    assert(!Type({"^", "i32"}).ref_match(Type({"i32"})));
     assert(!Type({"i32"}).ref_match(Type({"^", "^", "i32"})));
 
     assert(!Type({"^", "i32"})

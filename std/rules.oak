@@ -4,4 +4,23 @@ Defines the std ruleset
 
 pragma!("no_dialect");
 
-rule::bundle!("std");
+rule::new!("methods",
+  "$~ $* $>a . $~ $* $>b (",
+  "$b ( $a ,"
+);
+
+rule::new!("decl_copy_1",
+  "let $~ $* $>a : $~ $* $>b = $~ $* $>c ;",
+  "let $a : $b ; $a = $c;"
+);
+
+rule::new!("decl_copy_2",
+  "let $~ $* $>a = $~ $* $>c ;",
+  "let $a : type! ( $c ) ; $a = $c;"
+);
+
+rule::bundle!("std",
+  "methods",
+  "decl_copy_1",
+  "decl_copy_2"
+);

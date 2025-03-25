@@ -33,6 +33,12 @@ void OakCompiler::print_version() noexcept {
 /// Print the help text for Acorn
 void OakCompiler::print_help_text() noexcept {
   debug_print();
+
+  /*
+  Used:   AcCdDeEghilnoOpqrRsStTuUvwxy
+  Unused: abBfFGHIjJkKLmMNPQVWXYzZ
+  */
+
   // clang-format off
   std::cout
       << "Acorn\n"
@@ -55,7 +61,7 @@ void OakCompiler::print_help_text() noexcept {
          "\n"
          "    | Verbose      |Arg| Description\n"
          "----|--------------|---|-------------------------------------\n"
-         " -A |              |   | Uninstall Acorn\n"
+         " -A | --uninstall  |   | Uninstall Acorn\n"
          " -c | --compile    |   | Translate and compile to object file\n"
          " -C | --cd         | 1 | Change to the given directory\n"
          " -d | --debug      |   | Toggle debug mode (default off)\n"
@@ -76,13 +82,13 @@ void OakCompiler::print_help_text() noexcept {
          " -s | --size       |   | Show Acorn/Oak disk usage\n"
          " -S | --install    | 1 | Install some package\n"
          " -t | --translate  |   | Translate to C\n"
-         " -T | --test       | * | Toggle testing mode\n"
+         " -T | --test       | * | Testing mode\n"
          " -u | --dump       |   | Save dump files\n"
-         " -U |              |   | Save rule log files\n"
+         " -U | --rule_logs  |   | Save rule log files\n"
          " -v | --version    |   | Show version and halt\n"
          " -w | --new        |   | Create a new package\n"
-         " -y | --no_confirm |   | Always allow compile_time::system!\n"
          " -x | --syntax     |   | Toggle syntax checks (default on)\n"
+         " -y | --no_confirm |   | Always allow compile_time::system!\n"
          "\n"
          "1.2. Compilation Examples\n"
          "\n"
@@ -379,7 +385,7 @@ void OakCompiler::operator()() {
   if (settings.is_compile()) {
     try {
       do_compilation();
-    } catch (RunError) {
+    } catch (RunError &) {
       throw;
     } catch (...) {
       if (!settings.compile_settings()
@@ -729,7 +735,7 @@ void OakCompiler::do_testing() {
 
         try {
           comp();
-        } catch (RunError) {
+        } catch (RunError &) {
           run_problems.push_back(test_file);
           --ran_successfully;
           run_succeeded = false;
@@ -1432,9 +1438,6 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
             it->text = MacroManager::strip_string_literal(*it);
           }
 
-          Rule to_add;
-          std::string name;
-
           if (args.size() < 3) {
             throw std::runtime_error(
                 "Malformed rule::new! call: Arguments must "
@@ -1444,22 +1447,24 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
           }
 
           // Name, input, output (using sapling engine)
-          name = args.front();
-          to_add.input_pattern = *std::next(args.begin());
-          to_add.output_pattern = *std::next(args.begin(), 2);
-          to_add.engine = "sapling";
-
+          std::string name = args.front();
+          std::string engine = "sapling";
+          std::list<std::string> prereqs;
           if (args.size() == 4) {
             // Name, input, output, engine
-            to_add.engine = *std::next(args.begin(), 3);
+            engine = *std::next(args.begin(), 3);
           } else if (args.size() > 4) {
             // Name, input, output, engine, prerequisites
-            to_add.engine = *std::next(args.begin(), 3);
+            engine = *std::next(args.begin(), 3);
             for (auto it = std::next(args.begin(), 4);
                  it != args.end(); ++it) {
-              to_add.prereqs.push_back(*it);
+              prereqs.push_back(*it);
             }
           }
+
+          Rule to_add(*std::next(args.begin()),
+                      *std::next(args.begin(), 2), prereqs,
+                      engine);
 
           rules.register_rule(name, to_add);
         } else if (*it == "rule_use!") {
@@ -1605,9 +1610,6 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
       }
     }
 
-    // Fix math
-    fix_math(_token_stream);
-
     // Apply ruleset
     did_change |= rules.process_text(_token_stream);
 
@@ -1630,6 +1632,27 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
     }
   } while (did_change &&
            passes < _csettings.preprocess_pass_limit);
+
+  // Fix math
+  fix_math(_token_stream);
+
+  if (log.has_value()) {
+    **log << "\nAfter operator substitution:\n";
+    uint64_t prev_line = 0;
+    std::filesystem::path prev_path;
+    for (const auto &tok : _token_stream) {
+      if (tok.file != prev_path) {
+        **log << '\n' << tok.file << ":\n";
+        prev_path = tok.file;
+      }
+      if (tok.line != prev_line) {
+        **log << "\n" << tok.line << "\t|";
+        prev_line = tok.line;
+      }
+      **log << ' ' << tok.text;
+    }
+    **log << '\n';
+  }
 
   return passes;
 }

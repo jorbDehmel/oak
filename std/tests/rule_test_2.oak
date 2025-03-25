@@ -1,13 +1,27 @@
 /*
-
+Tests std/rules.oak
 */
 
-include!("std/std.oak");
-include!("std/rules.oak");
+include!("std/std.oak", "std/rules.oak");
 rule::use!("std");
 
+let Foo: struct {
+  data: i32
+}
+
+let print(self: ^Foo) -> void {
+  print(self.data);
+}
+
 let main() -> i32 {
-  print(1i32 + 2i32);
+  // Decls
+  let a: i32 = 0i32;
+  let b = 1i32;
+
+  // Methods
+  let f: Foo;
+  f.data = 123i32;
+  f.print();
 
   return 0i32;
 }

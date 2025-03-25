@@ -1,11 +1,14 @@
 /**
  * @file
- * @brief The $apling2 rule engine definitions
+ * @brief The $apling2 rule engine definitions. Pass 1 is the
+ * match, pass 2 gathers match groups, and pass 3 constructs
+ * replacement text.
  */
 
 #include "sapling.hpp"
 #include "debug.hpp"
 #include "lexer.hpp"
+#include <cstdint>
 #include <set>
 #include <stdexcept>
 
@@ -15,246 +18,210 @@
  * the lexed versions of the input and output rules.
  */
 struct CompiledRule {
-  /// The broken-apart input rule
-  std::vector<std::string> lexed_inp;
+  /// Starting node
+  sapling::State q0;
 
-  /// The broken-apart output rule
+  /// Ending nodes
+  std::set<sapling::State> acceptance_states;
+
+  /// The thing that is actually traversed in pass 1
+  std::map<sapling::State,
+           std::list<std::pair<std::string, sapling::State>>>
+      delta;
+
+  /// The broken-apart input rule for pass 2: Maps states to
+  /// their instructions
+  std::map<sapling::State, std::list<std::string>> scripting;
+
+  /// The broken-apart output rule for pass 3
   std::vector<std::string> lexed_out;
 };
 
 /// Compiles a rule to store in the cache
 CompiledRule compile(const Rule &_from) {
   debug_print();
+
   CompiledRule out;
-  std::string cur;
 
-  // Lex input rule
-  for (const auto &c : _from.input_pattern) {
-    switch (c) {
-    case ' ':
-      if (!cur.empty()) {
-        out.lexed_inp.push_back(cur);
-        cur = "";
+  // Lex
+  const static auto split_on_spaces =
+      [](const std::string &_text) -> std::vector<std::string> {
+    std::string cur;
+    std::vector<std::string> out;
+    for (const char &c : _text) {
+      if (c == ' ') {
+        if (!cur.empty()) {
+          out.push_back(cur);
+          cur.clear();
+        }
+      } else {
+        cur.push_back(c);
       }
-      break;
-    default:
-      cur.push_back(c);
-      break;
     }
-  }
-  if (!cur.empty()) {
-    out.lexed_inp.push_back(cur);
-    cur = "";
-  }
+    if (!cur.empty()) {
+      out.push_back(cur);
+    }
+    return out;
+  };
+  const auto original_lexed_input =
+      split_on_spaces(_from.input_pattern);
+  out.lexed_out = split_on_spaces(_from.output_pattern);
+  out.q0 = 0;
 
-  // Lex output rule
-  for (const auto &c : _from.output_pattern) {
-    switch (c) {
-    case ' ':
-      if (!cur.empty()) {
-        out.lexed_out.push_back(cur);
-        cur = "";
-      }
-      break;
-    default:
-      cur.push_back(c);
-      break;
-    }
-  }
-  if (!cur.empty()) {
-    out.lexed_out.push_back(cur);
-  }
+  // Compile to DFA
+  throw std::runtime_error("UNIMPLEMENTED");
+
+  // Need to take care of these:
+  // out.delta;
+  // out.scripting;
+  // out.acceptance_states;
 
   return out;
 }
 
-/// Fetches from cache
+/// Fetches from cache, compiling as needed
 const CompiledRule &fetch(const Rule &_from) {
-  debug_print();
-  // Matches I/O rule pair to compiled version
-  static std::map<std::pair<std::string, std::string>,
-                  CompiledRule>
-      cache;
+  /// Maps rule UIDs to their compiled counterparts
+  static std::map<uintmax_t, CompiledRule> cache;
 
-  if (!cache.contains(
-          {_from.input_pattern, _from.output_pattern})) {
-    cache[{_from.input_pattern, _from.output_pattern}] =
-        compile(_from);
+  debug_print();
+  if (!cache.contains(_from.uid)) {
+    cache.insert_or_assign(_from.uid, compile(_from));
   }
-  return cache.at({_from.input_pattern, _from.output_pattern});
+  return cache.at(_from.uid);
 }
 
-/**
- * @brief Internal lambda-based transition function
- * @param _r The *compiled* version of the rule
- * @param _current_state The current state int
- * @param _current_input The token we are processing
- * @param _on_unknown_special_token When we see an unknown
- * special token (EG $~ $>a), we pass it to this lambda. If it
- * returns, we incr past the unknown token. If the token is
- * truly invalid, the lambda should throw an error.
- * @returns A 2-tuple of the new state and whether this was a
- * match
- */
-std::pair<uint, bool>
-__state_transition(const CompiledRule &_r,
-                   const uint &_current_state,
-                   const Lexer::Token &_current_input,
-                   std::function<void(const std::string &)>
-                       _on_unknown_special_token) {
+sapling::State sapling::start_rule(const Rule &_rule) {
   debug_print();
-  auto state = _current_state;
-
-  // Reach a valid state
-  const static std::set<std::string> skip_toks = {"$(", "$)"};
-  while (state < _r.lexed_inp.size() &&
-         skip_toks.contains(_r.lexed_inp.at(state))) {
-    ++state;
-  }
-
-  if (state >= _r.lexed_inp.size()) {
-    throw std::runtime_error(
-        "Invalid state reached in Sapling input rule!");
-  }
-
-  // Interpret one input step
-  const auto cur = _r.lexed_inp.at(state);
-  uint new_state = state;
-  if (cur.front() == '$') {
-    // Special cases
-    if (cur.starts_with("$$")) {
-      // Literal dollar sign prefix
-      if (_current_input == cur.substr(1)) {
-        ++new_state;
-      } else {
-        new_state = sapling::default_state;
-      }
-    } else if (cur == "$.") {
-      // Wildcard
-      ++new_state;
-    } else if (cur == "$*") {
-      // Dot-star
-
-      // Get next literal
-      uint i = new_state + 1;
-      while (i < _r.lexed_inp.size() &&
-             _r.lexed_inp.at(i).starts_with("$")) {
-        ++i;
-      }
-
-      if (i >= _r.lexed_inp.size()) {
-        throw std::runtime_error("Sapling '$*' must eventually "
-                                 "be followed by a literal");
-      }
-
-      if (_current_input == _r.lexed_inp.at(i)) {
-        ++new_state;
-      }
-    }
-
-    // Invalid special token
-    else {
-      _on_unknown_special_token(cur);
-      ++new_state;
-    }
-  } else {
-    // Literal
-    if (_current_input == cur) {
-      ++new_state;
-    } else {
-      new_state = sapling::default_state;
-    }
-  }
-
-  // Return the new determined state
-  // NOTE: Attempting to continue matching on an
-  // already-matched rule is intentionally undefined!
-  return {new_state, new_state == _r.lexed_inp.size()};
+  const CompiledRule &r = fetch(_rule);
+  return r.q0;
 }
 
-/**
- * @brief Transition function for Sapling FSTs
- * @param _rule_to_use The specs of the rule being used
- * @param _current_state The current FST state
- * @param _current_input The input token
- * @returns A 2-tuple containing the next state and the exit
- * status bool (true means to apply the transform function)
- */
-std::pair<uint, bool>
-sapling::state_transition(const Rule &_rule_to_use,
-                          const uint &_current_state,
+bool sapling::is_match(const Rule &_rule, const State &_state) {
+  debug_print();
+  const CompiledRule &r = fetch(_rule);
+  return r.acceptance_states.contains(_state);
+}
+
+sapling::State
+sapling::state_transition(const Rule &_rule,
+                          const sapling::State &_current_state,
                           const Lexer::Token &_current_input) {
   debug_print();
-  const CompiledRule &rule = fetch(_rule_to_use);
-  return __state_transition(
-      rule, _current_state, _current_input,
-      [](const std::string &_tok) {
-        if (_tok == "$~" || _tok.substr(0, 2) == "$>") {
-          return;
-        }
-        throw std::runtime_error(
-            "Invalid sapling special token '" + _tok + "'");
-      });
-}
+  const CompiledRule &r = fetch(_rule);
 
-/**
- * @brief Transforms a given text match according to a rule
- * @param _rule Which rule we are looking at
- * @param _match_state The last state returned by the
- * transition function
- * @param _match_text The matched text
- * @returns The text to replace the matched text with
- */
-std::list<Lexer::Token>
-sapling::on_match(const Rule &_rule, const uint &_match_state,
-                  const std::list<Lexer::Token> &_match_text) {
-  debug_print();
-  const auto &fst = fetch(_rule);
-  // Rerun the input rule in more detail, then interpret the
-  // output rule
-  // Variables are things like `$foo`
-  std::map<std::string, std::list<std::string>> vars;
-  std::list<std::string> memory;
-  uint state = sapling::default_state;
-
-  for (const auto &tok : _match_text) {
-    state = __state_transition(
-                fst, state, tok,
-                [&](const std::string &_tok) {
-                  if (_tok == "$~") {
-                    memory.clear();
-                    return;
-                  } else if (_tok.substr(0, 2) == "$>") {
-                    const std::string var_name =
-                        "$" + _tok.substr(2);
-                    for (const auto &item : memory) {
-                      vars[item].push_back(item);
-                    }
-                    return;
-                  }
-                  throw std::runtime_error(
-                      "Invalid sapling special token '" + _tok +
-                      "'");
-                })
-                .first;
-  }
-
-  // Run replacement
-  Lexer::Token template_token = _match_text.front();
-  std::list<Lexer::Token> replacement;
-  for (const auto &tok : fst.lexed_out) {
-    // Variable
-    if (vars.contains(tok)) {
-      for (const auto &item : vars.at(tok)) {
-        replacement.push_back(
-            Lexer::Token(template_token, item));
+  if (r.delta.contains(_current_state)) {
+    // Literal check
+    for (const auto &p : r.delta.at(_current_state)) {
+      if (_current_input == p.first) {
+        return p.second;
       }
-    } else {
-      // Literal
-      replacement.push_back(Lexer::Token(template_token, tok));
+    }
+
+    // Pattern checks
+    for (const auto &p : r.delta.at(_current_state)) {
+      if (p.first == "$/${ID}/" &&
+          _current_input.type == "ID") {
+        return p.second;
+      } else if (p.first == "$/${OPERATOR}/" &&
+                 _current_input.type == "OPERATOR") {
+        return p.second;
+      } else if (p.first == "$/${STRING}/" &&
+                 _current_input.type == "STRING") {
+        return p.second;
+      } else if (p.first == "$/${NUMBER}/" &&
+                 _current_input.type == "NUMBER") {
+        return p.second;
+      } else if (p.first.starts_with("$/")) {
+        throw std::runtime_error(
+            "RegEx Sapling cards are unimplemented");
+      }
     }
   }
 
-  // Output replacement
-  return replacement;
+  // Nothing matched
+  return r.q0;
+}
+
+std::list<Lexer::Token>
+sapling::on_match(const Rule &_rule,
+                  const std::list<Lexer::Token> &_match_text) {
+  debug_print();
+  const CompiledRule &r = fetch(_rule);
+
+  // Pass 2: Rerun match, gather captured data
+  std::map<std::string, std::list<std::string>> variables;
+  std::list<std::string> memory;
+  sapling::State state = r.q0;
+
+  for (const auto &tok : _match_text) {
+    // Process capture instructions
+    memory.push_back(tok);
+    for (const auto &instr : r.scripting.at(state)) {
+      if (instr == "$~") {
+        memory.clear();
+      } else if (instr.starts_with("$~")) {
+        const std::string var = "$" + instr.substr(2);
+        variables[var].clear();
+      } else if (instr.starts_with("$>")) {
+        const std::string var = "$" + instr.substr(2);
+        for (const auto &m : memory) {
+          variables[var].push_back(m);
+        }
+      }
+    }
+
+    // Go to next state
+    state = state_transition(_rule, state, tok);
+  }
+
+  // Pass 3: Reconstruct
+  std::list<std::string> to_lex;
+  bool merge = false;
+
+  for (const auto &t : r.lexed_out) {
+    if (variables.contains(t)) {
+      // Variable access
+      if (merge) {
+        if (to_lex.empty()) {
+          to_lex.push_back("");
+        }
+        for (const auto &v : variables.at(t)) {
+          to_lex.back().append(v);
+        }
+        merge = false;
+      } else {
+        for (const auto &v : variables.at(t)) {
+          to_lex.push_back(v);
+        }
+      }
+    } else if (t == "$<") {
+      // Merge tokens
+      merge = true;
+    } else {
+      if (merge) {
+        if (to_lex.empty()) {
+          to_lex.push_back(t);
+        } else {
+          to_lex.back().append(t);
+        }
+        merge = false;
+      } else {
+        to_lex.push_back(t);
+      }
+    }
+  }
+
+  // Lex
+  Lexer l;
+  uint64_t line = _match_text.front().line,
+           col = _match_text.front().col;
+  std::string text;
+  for (const auto &t : to_lex) {
+    if (!text.empty()) {
+      text.push_back(' ');
+    }
+    text.append(t);
+  }
+  return l.lex(text, _match_text.front().file, line, col);
 }
