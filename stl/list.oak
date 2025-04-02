@@ -9,8 +9,8 @@ pragma!("no_dialect");
 
 let stl::List::Node<T> : struct {
   data: T,
-  prev: ^stl::List::Node<T>,
-  next: ^stl::List::Node<T>
+  __prev: ^stl::List::Node<T>,
+  __next: ^stl::List::Node<T>
 }
 
 let stl::List<T> : struct {
@@ -28,24 +28,40 @@ let stl::List<T> : struct {
 
 let New<T>(self: ^stl::List::Node<T>) -> void {
   New(self.data);
-  self.prev = 0u64;
-  self.next = 0u64;
+  self.__prev = 0u64;
+  self.__next = 0u64;
 }
 
-let Copy<T>(self: ^stl::List::Node<T>, data: T
-  ) -> stl::List::Node<T> {
+let Copy<T>(self: ^stl::List::Node<T>,
+    data: T) -> stl::List::Node<T> {
   self.data = data;
 }
 
 let Del<T>(self: ^stl::List::Node<T>) -> void {
-  if (self.next == 0u64) {
+  if (self.next != 0u64) {
     Del(self.next);
     free!(self.next);
   }
   Del(self.data);
 }
 
-let push_front() -> void;
-let push_back() -> void;
-let pop_front() -> void;
-let pop_back() -> void;
+let push_front<T>(self: ^stl::List<T>, d: T) -> void {
+}
+
+let push_back<T>(self: ^stl::List<T>, d: T) -> void {
+}
+
+let front<T>(self: ^stl::List<T>) -> T {
+}
+
+let back<T>(self: ^stl::List<T>) -> T {
+}
+
+let empty<T>(self: ^stl::List<T>) -> bool {
+}
+
+let pop_front<T>(self: ^stl::List<T>) -> void {
+}
+
+let pop_back<T>(self: ^stl::List<T>) -> void {
+}

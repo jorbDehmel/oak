@@ -16,9 +16,11 @@
  * @brief An abstract rule, independent of engine
  */
 struct Rule {
+  /// Initialize some rule from basics
   Rule(const std::string &_i, const std::string &_o,
        const std::list<std::string> &_r, const std::string &_e);
 
+  /// Copy constructor
   Rule(const Rule &_o)
       : uid(_o.uid), input_pattern(_o.input_pattern),
         output_pattern(_o.output_pattern), prereqs(_o.prereqs),
@@ -78,6 +80,7 @@ public:
 
   /// All the things needed to run an arbitrary rule engine
   struct Engine {
+    /// Alias to int for finite-state machine states
     using State = uint16_t;
 
     /// Begin a rule

@@ -2,13 +2,13 @@
 #include "debug.hpp"
 #include "lexer.hpp"
 #include "macro.hpp"
-#include "package.hpp"
 #include "parser.hpp"
 #include "rule.hpp"
 #include "settings.hpp"
 #include <cassert>
 #include <chrono>
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -18,10 +18,46 @@
 #include <iterator>
 #include <map>
 #include <memory>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <utility>
 #include <variant>
+
+/**
+ * @brief Runs a command, writes its * output CHAR-BY-CHAR to
+ * the given output stream, and returns its exit code. This may
+ * be very inefficient!
+ * @param _cmd The command to run
+ * @param _to The stream to write output to
+ * @returns The exit code: 0 on success, -1 for popen error
+ */
+int strm_cmd_output(const std::string &_cmd,
+                    std::ostream &_to) noexcept {
+  debug_print();
+
+  auto cout_buffer = std::cout.rdbuf();
+  std::stringstream cout_sstream;
+  std::cerr.rdbuf(cout_sstream.rdbuf());
+
+  FILE *pipe = popen(_cmd.c_str(), "r");
+  if (!pipe) {
+    _to << cout_sstream.str();
+    std::cerr.rdbuf(cout_buffer);
+    return -1;
+  }
+  while (true) {
+    char c = fgetc(pipe);
+    if (c == EOF) {
+      break;
+    }
+    _to.put(c);
+  }
+
+  _to << cout_sstream.str();
+  std::cerr.rdbuf(cout_buffer);
+  return pclose(pipe);
+}
 
 /// Print the version of Acorn
 void OakCompiler::print_version() noexcept {
@@ -77,6 +113,7 @@ void OakCompiler::print_help_text() noexcept {
          " -O | --optimize   |   | Use optimization flag at compile-time\n"
          " -p | --prettify   |   | Use clang-format on the produced C\n"
          " -q | --quit       |   | Quit without error immediately\n"
+         " -Q | --query      |   | List all installed packages\n"
          " -r | --reinstall  | 1 | Reinstall some package\n"
          " -R | --remove     | 1 | Remove a package\n"
          " -s | --size       |   | Show Acorn/Oak disk usage\n"
@@ -102,40 +139,9 @@ void OakCompiler::print_help_text() noexcept {
          "\tOR `acorn -t -o foo.c foo.oak -x`\n"
          "\tOR `acorn -tox foo.c foo.oak`\n"
          "Compile and execute 'a.oak' using dialect './foo.oakd':\n"
-         "\t`acorn -E -D foo.oakd -o a.oak`"
+         "\t`acorn -E -D foo.oak -o a.oak`"
          "\tOR `acorn --execute --dialect foo.oakd --output a.oak`"
-         "\tOR `acorn -DoE foo.oakd a.oak`"
-         "\n"
-         "-------------------------------------------------------------\n"
-         "\n"
-         "2. Testing mode\n"
-         "\n"
-         "2.1. Overview\n"
-         "\n"
-         "Testing mode will run 'test suites', which are folders named\n"
-         "'tests' which contain zero or more '.oak' files. By default,\n"
-         "the cwd will be searched non-recursively for test suites.\n"
-         "However, if any non-flag arguments are provided in testing\n"
-         "mode, they will be treated as additional paths to search.\n"
-         "If a second test flag ('-T' or '--test') is provided after\n"
-         "the first, the compiler will halt after the first failure,\n"
-         "rather than proceeding to every test. The default testing\n"
-         "behaviour is compile-only, but if the execution flag ('-E'\n"
-         "or '--execute') is provided the compiled tests will also be\n"
-         "executed.\n"
-         "\n"
-         "2.2. Testing mode examples\n"
-         "\n"
-         "Compile, but do not run, the local test suite './tests/':\n"
-         "\t`acorn -T`\n"
-         "Compile and run the local test suite and './fizz/tests/':\n"
-         "\t`acorn -TE fizz\n"
-         "Compile and run the local, 'fizz', 'buzz', and 'foo' suites,\n"
-         "halting after the first failure:\n"
-         "\t`acorn -TTE fizz foo buzz`\n"
-         "\tOR `acorn --test --test --execute fizz foo buzz`\n"
-         "\tNOT `acorn fizz --test --test --execute foo buzz`\n"
-         "\t(suites must come AFTER entering test mode)\n"
+         "\tOR `acorn -DoE foo.oak a.oak`"
          "\n"
          "-------------------------------------------------------------\n"
          "\n"
@@ -277,6 +283,10 @@ void OakCompiler::clean() {
     }
   }
 
+  if (to_erase.empty()) {
+    return;
+  }
+
   std::cout << "\nThis will erase all the above files. Are you "
                "sure? [y/N] ";
   char choice = std::cin.get();
@@ -289,20 +299,6 @@ void OakCompiler::clean() {
       std::cout << "Failed to remove " << item << '\n';
     }
   }
-}
-
-/// Install some package globally
-/// To be called from the command line, so IO is acceptable
-void OakCompiler::install_package(const std::string &_name) {
-  debug_print();
-  PackageManager::install_package(_name,
-                                  settings.compile_settings());
-}
-
-/// Remove some globally-install package
-void OakCompiler::uninstall_package(const std::string &_name) {
-  debug_print();
-  assert(false);
 }
 
 /// Create a new template package with the given name
@@ -609,20 +605,23 @@ void OakCompiler::do_compilation() {
       }
     }
 
-    int execution_result = system(command.c_str());
+    int execution_result =
+        strm_cmd_output(command, settings.ostream);
 
     if (should_succeed) {
       if (execution_result != 0) {
         throw RunError("Execution of file '" +
-                       linked_file.string() +
-                       "' failed with exit code " +
-                       std::to_string(execution_result));
+                           linked_file.string() +
+                           "' failed with exit code " +
+                           std::to_string(execution_result),
+                       execution_result);
       }
     } else {
       if (execution_result == 0) {
         throw RunError(
             "Execution of file '" + linked_file.string() +
-            "' should have failed, but ran successfully");
+                "' should have failed, but ran successfully",
+            -1);
       }
     }
   }
@@ -716,18 +715,15 @@ void OakCompiler::do_testing() {
             test_file;
         comp.settings.compile_settings().target = target;
 
-        switch (tsettings.mode) {
-        case Settings::TestSettings::COMPILE_ONLY:
+        if (!tsettings.should_execute()) {
           comp.settings.compile_settings().mode = Settings::
               CompileSettings::TRANSLATE_COMPILE_AND_LINK;
-          break;
-        default:
+        } else {
           ++tried_to_run;
           ++ran_successfully;
           comp.settings.compile_settings().mode =
               Settings::CompileSettings::
                   TRANSLATE_COMPILE_LINK_AND_EXECUTE;
-          break;
         }
 
         bool compilation_succeeded = true, run_succeeded = true;
@@ -735,27 +731,26 @@ void OakCompiler::do_testing() {
 
         try {
           comp();
-        } catch (RunError &) {
+        } catch (RunError &e) {
           run_problems.push_back(test_file);
           --ran_successfully;
           run_succeeded = false;
+          run_result = e.exit_code;
 
-          if (tsettings.mode !=
-              Settings::TestSettings::EXECUTE_IGNORE_FAILURE) {
-            throw RunError("Run failed on file " +
-                           test_file.path().string());
+          if (tsettings.fail_with_execute()) {
+            throw std::runtime_error(e.what());
           }
         } catch (...) {
           compilation_succeeded = false;
           compile_problems.push_back(test_file);
           --compiled_successfully;
 
-          if (tsettings.mode !=
-              Settings::TestSettings::COMPILE_ONLY) {
+          if (tsettings.should_execute()) {
+            --tried_to_run;
             --ran_successfully;
           }
 
-          if (tsettings.halt_on_compiler_failure) {
+          if (tsettings.fail_with_compile()) {
             throw std::runtime_error(
                 "Compilation failed on file " +
                 test_file.path().string());
@@ -1102,10 +1097,14 @@ void OakCompiler::fix_math(
 
             // Find rhs
             first_after_rhs = std::next(it);
-            if (it == _token_stream.begin() ||
+            if (first_after_rhs == _token_stream.end() ||
                 *first_after_rhs == ")") {
               throw std::runtime_error(
-                  "Malformed operator LHS");
+                  "At " + it->file.string() + ":" +
+                  std::to_string(it->line) + "." +
+                  std::to_string(it->col) +
+                  "> Malformed operator '" + _operator +
+                  "' LHS");
             } else if (std::next(first_after_rhs)->text ==
                        "(") {
               int depth = 0;
@@ -1172,8 +1171,12 @@ void OakCompiler::fix_math(
             first_after_rhs = std::next(it);
             if (it == _token_stream.begin() ||
                 *first_after_rhs == ")") {
-              throw std::runtime_error("Malformed operator '" +
-                                       _operator + "' LHS");
+              throw std::runtime_error(
+                  "At " + it->file.string() + ":" +
+                  std::to_string(it->line) + "." +
+                  std::to_string(it->col) +
+                  "> Malformed operator '" + _operator +
+                  "' LHS");
             } else if (std::next(first_after_rhs)->text ==
                        "(") {
               int depth = 0;
@@ -1281,6 +1284,13 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
 
   do {
     ++passes;
+    if (passes >= _csettings.preprocess_pass_limit) {
+      throw std::runtime_error(
+          "Ruleset failed to converge in " +
+          std::to_string(_csettings.preprocess_pass_limit) +
+          " passes");
+    }
+
     did_change = false;
 
     // Macro definitions
@@ -1585,8 +1595,8 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
             !MacroManager::reserved_macro_names.contains(
                 it->text)) {
           did_change |= true;
-          macros.replace(_token_stream, it,
-                         _token_stream.end());
+          macros.replace(_token_stream, it, _token_stream.end(),
+                         settings);
         }
       } catch (std::runtime_error &e) {
         if (it == _token_stream.end()) {
@@ -1630,8 +1640,7 @@ OakCompiler::preprocess(std::list<Lexer::Token> &_token_stream,
       }
       **log << '\n';
     }
-  } while (did_change &&
-           passes < _csettings.preprocess_pass_limit);
+  } while (did_change);
 
   // Fix math
   fix_math(_token_stream);

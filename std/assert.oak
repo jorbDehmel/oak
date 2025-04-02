@@ -12,10 +12,9 @@ let assert!(c: i32, v: [][]i8) -> i32 {
     "print(FILE!);"
     "print(\":\");"
     "print(LINE!);"
-    "print(\" %\\n\");"
+    "endl();"
     "panic();"
     "}",
-    Get(v, 1uint),
     Get(v, 1uint)
   );
 

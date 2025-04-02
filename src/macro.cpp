@@ -113,7 +113,8 @@ std::string MacroManager::make_string_literal(
 void MacroManager::replace(
     std::list<Lexer::Token> &_whole,
     std::list<Lexer::Token>::iterator &_it,
-    const std::list<Lexer::Token>::iterator &_end) const {
+    const std::list<Lexer::Token>::iterator &_end,
+    const Settings &_csettings) const {
   debug_print();
 
   const auto name_tok = *_it;
@@ -154,23 +155,8 @@ void MacroManager::replace(
 
   if (!macros.contains(name)) {
     if (!nonexistence_replacement.empty()) {
-      if (std::string("'\"`").find(
-              nonexistence_replacement.front()) !=
-          std::string::npos) {
-        _it->type = "STRING";
-      } else if (std::string("~@#$%^&*-+=|;:,<>,/?![]{}()")
-                     .find(nonexistence_replacement.front()) !=
-                 std::string::npos) {
-        _it->type = "OPERATOR";
-      } else if (std::isalnum(
-                     nonexistence_replacement.front())) {
-        if (std::isalpha(nonexistence_replacement.front())) {
-          _it->type = "ID";
-        } else {
-          _it->type = "NUMBER";
-        }
-      }
       _it->text = nonexistence_replacement;
+      Lexer::classify_type(*_it);
       return;
     } else {
       throw std::runtime_error("Macro '" + name +
@@ -209,8 +195,18 @@ void MacroManager::replace(
           " " + MacroManager::make_string_literal(arg.text);
     }
 
+    if (_csettings.debug) {
+      _csettings.ostream << "Running macro call '" << command
+                         << "'\n";
+    }
+
     // Run call and get replacement
     const auto replacement = get_cmd_output(command);
+
+    if (_csettings.debug) {
+      _csettings.ostream << "Macro returned text:\n```oak\n"
+                         << replacement << "\n```\n";
+    }
 
     // Lex replacement
     Lexer l;
@@ -433,6 +429,12 @@ void MacroManager::process_definition(
         Settings::CompileSettings::TRANSLATE_COMPILE_AND_LINK;
     oc.settings.compile_settings().entry_point = source_path;
     oc.settings.compile_settings().target = executable_path;
+
+    if (oc.settings.debug) {
+      oc.settings.ostream << "Compiling macro '" << name
+                          << "' from " << source_path << " to "
+                          << executable_path << '\n';
+    }
 
     try {
       oc();

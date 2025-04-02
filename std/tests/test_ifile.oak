@@ -1,0 +1,61 @@
+/*
+Tests input files
+*/
+
+include!(
+  "std/std.oak",
+  "std/ofile.oak",
+  "std/ifile.oak",
+  "std/fs.oak",
+  "std/assert.oak"
+);
+
+let filepath! = "test_ifile_tmp.txt";
+
+let main() -> i32 {
+  { // Write file to read
+    let o: OFile;
+    open(o, filepath!);
+    assert!(is_open(o));
+
+    write(o, "Hi!");
+    write(o, "\n");
+    write(o, 123int);
+    write(o, "\n");
+    write(o, 321uint);
+    write(o, "\n");
+    write(o, 32123.0f64);
+    write(o, "\n");
+  }
+
+  { // Read file
+    let i: IFile;
+    open(i, filepath!);
+    assert!(is_open(i));
+
+    let buffer: [4uint]i8;
+    let i_buf: int;
+    let u_buf: uint;
+    let f_buf: f64;
+    Get(buffer, 3uint) = 0i8;
+
+    read(i, buffer, 3uint);
+    ignore(i, 1uint);
+    read(i, i_buf);
+    ignore(i, 1uint);
+    read(i, u_buf);
+    ignore(i, 1uint);
+    read(i, f_buf);
+    ignore(i, 1uint);
+
+    assert!(buffer == "Hi!");
+    assert!(i_buf == 123int);
+    assert!(u_buf == 321uint);
+    assert!(f_buf == 32123.0f64);
+  }
+
+  assert!(fs::exists(filepath!));
+  fs::remove(filepath!);
+
+  return 0i32;
+}

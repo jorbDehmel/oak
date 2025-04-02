@@ -27,6 +27,8 @@ let main() -> i32 {
         endl();
         --data;
 
+        wrap_a(inst, data);
+
         if (data == 0i32) {
           wrap_b(inst, true);
         }

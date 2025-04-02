@@ -3,6 +3,7 @@
  */
 
 #include "debug.hpp"
+#include "package.hpp"
 static_assert(__cplusplus >= 2020'00ULL);
 
 #include "oakc.hpp"
@@ -65,12 +66,18 @@ bool parse_args(const int _c, const char *const _v[],
       // Clean
       else if (arg == "--clean") {
         _oakc.clean();
+        out = false;
       }
 
       // Translate, compile, link, and execute
       else if (arg == "--execute") {
-        _oakc.settings.compile_settings().mode = Settings::
-            CompileSettings::TRANSLATE_COMPILE_LINK_AND_EXECUTE;
+        if (_oakc.settings.is_compile()) {
+          _oakc.settings.compile_settings().mode =
+              Settings::CompileSettings::
+                  TRANSLATE_COMPILE_LINK_AND_EXECUTE;
+        } else {
+          _oakc.settings.test_settings().process_mode_flag('E');
+        }
       }
 
       // Add -g debug flag
@@ -122,6 +129,14 @@ bool parse_args(const int _c, const char *const _v[],
         return false;
       }
 
+      // Query packages
+      else if (arg == "--query") {
+        PackageManager::list_packages(
+            _oakc.settings.ostream,
+            _oakc.settings.compile_settings().include_path);
+        out = false;
+      }
+
       // Rule logs
       else if (arg == "--rule_logs") {
         _oakc.settings.compile_settings().rule_logs =
@@ -135,8 +150,11 @@ bool parse_args(const int _c, const char *const _v[],
               "'" + arg + "' must be followed by an argument");
         }
         auto package = _v[++i];
-        _oakc.uninstall_package(package);
-        _oakc.install_package(package);
+        PackageManager::uninstall_package(
+            package,
+            _oakc.settings.compile_settings().include_path);
+        PackageManager::install_package(
+            package, _oakc.settings.compile_settings());
         out = false;
       }
 
@@ -146,7 +164,9 @@ bool parse_args(const int _c, const char *const _v[],
           throw std::runtime_error(
               "'" + arg + "' must be followed by an argument");
         }
-        _oakc.uninstall_package(_v[++i]);
+        PackageManager::uninstall_package(
+            _v[++i],
+            _oakc.settings.compile_settings().include_path);
         out = false;
       }
 
@@ -162,7 +182,8 @@ bool parse_args(const int _c, const char *const _v[],
           throw std::runtime_error(
               "'" + arg + "' must be followed by an argument");
         }
-        _oakc.install_package(_v[++i]);
+        PackageManager::install_package(
+            _v[++i], _oakc.settings.compile_settings());
         out = false;
       }
 
@@ -174,7 +195,11 @@ bool parse_args(const int _c, const char *const _v[],
 
       // Run test suite(s)
       else if (arg == "--test") {
-        _oakc.settings.test_settings();
+        if (_oakc.settings.is_compile()) {
+          _oakc.settings.test_settings();
+        } else {
+          _oakc.settings.test_settings().process_mode_flag('T');
+        }
       }
 
       // Save dump file
@@ -183,6 +208,11 @@ bool parse_args(const int _c, const char *const _v[],
                 .dump_file.has_value()) {
           _oakc.settings.compile_settings().dump_file.reset();
         } else {
+          std::cout << "Dumping to '"
+                    << _oakc.settings.compile_settings()
+                               .entry_point.string() +
+                           ".acorn_dump"
+                    << "'\n";
           _oakc.settings.compile_settings().dump_file =
               std::make_shared<std::ofstream>(
                   _oakc.settings.compile_settings()
@@ -262,6 +292,7 @@ bool parse_args(const int _c, const char *const _v[],
           break;
         case 'e': // Clean
           _oakc.clean();
+          out = false;
           break;
         case 'E': // Translate, compile, link, and execute
           if (_oakc.settings.is_compile()) {
@@ -269,8 +300,8 @@ bool parse_args(const int _c, const char *const _v[],
                 Settings::CompileSettings::
                     TRANSLATE_COMPILE_LINK_AND_EXECUTE;
           } else {
-            _oakc.settings.test_settings().mode =
-                Settings::TestSettings::REGULAR_EXECUTE;
+            _oakc.settings.test_settings().process_mode_flag(
+                'E');
           }
           break;
         case 'g': // Use -g debugging flag
@@ -308,6 +339,12 @@ bool parse_args(const int _c, const char *const _v[],
           break;
         case 'q': // Quit immediately
           return false;
+        case 'Q': // Query packages
+          PackageManager::list_packages(
+              _oakc.settings.ostream,
+              _oakc.settings.compile_settings().include_path);
+          out = false;
+          break;
         case 'r': { // Reinstall a package
           if (i + 1 >= _c) {
             throw std::runtime_error(
@@ -315,8 +352,11 @@ bool parse_args(const int _c, const char *const _v[],
                 "' must be followed by an argument");
           }
           auto package = _v[++i];
-          _oakc.uninstall_package(package);
-          _oakc.install_package(package);
+          PackageManager::uninstall_package(
+              package,
+              _oakc.settings.compile_settings().include_path);
+          PackageManager::install_package(
+              package, _oakc.settings.compile_settings());
           out = false;
           break;
         }
@@ -326,7 +366,9 @@ bool parse_args(const int _c, const char *const _v[],
                 "'-" + std::string{flag} +
                 "' must be followed by an argument");
           }
-          _oakc.uninstall_package(_v[++i]);
+          PackageManager::uninstall_package(
+              _v[++i],
+              _oakc.settings.compile_settings().include_path);
           out = false;
           break;
         case 's': // Show Oak disk usage
@@ -338,15 +380,10 @@ bool parse_args(const int _c, const char *const _v[],
           break;
         case 'T': // Test
           if (_oakc.settings.is_compile()) {
-            _oakc.settings.test_settings().mode =
-                Settings::TestSettings::COMPILE_ONLY;
-            _oakc.settings.test_settings()
-                .halt_on_compiler_failure = false;
+            _oakc.settings.test_settings();
           } else {
-            _oakc.settings.test_settings()
-                .halt_on_compiler_failure = true;
-            _oakc.settings.test_settings().mode =
-                Settings::TestSettings::EXECUTE_IGNORE_FAILURE;
+            _oakc.settings.test_settings().process_mode_flag(
+                'T');
           }
           break;
         case 'u': // Save dump file
@@ -393,7 +430,8 @@ bool parse_args(const int _c, const char *const _v[],
                 "'-" + std::string{flag} +
                 "' must be followed by an argument");
           }
-          _oakc.install_package(_v[++i]);
+          PackageManager::install_package(
+              _v[++i], _oakc.settings.compile_settings());
           out = false;
           break;
 

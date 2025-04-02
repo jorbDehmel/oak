@@ -2,10 +2,74 @@
 #include "debug.hpp"
 #include "lexer.hpp"
 #include "oakc.hpp"
+#include <compare>
 #include <filesystem>
 #include <map>
 #include <stdexcept>
 #include <string>
+
+std::string PackageManager::Version::package_suffix() const {
+  std::string out;
+  for (const auto &i : version) {
+    out += "." + std::to_string(i);
+  }
+  return out;
+}
+
+std::strong_ordering PackageManager::Version::operator<=>(
+    const Version &_other) const {
+  std::list<uintmax_t> lhs_version = version;
+  std::list<uintmax_t> rhs_version = _other.version;
+
+  // Make them the same size
+  while (lhs_version.size() < rhs_version.size()) {
+    lhs_version.push_back(0);
+  }
+  while (rhs_version.size() < lhs_version.size()) {
+    rhs_version.push_back(0);
+  }
+
+  for (auto l = lhs_version.begin(), r = rhs_version.begin();
+       l != lhs_version.end() && r != rhs_version.end();
+       ++l, ++r) {
+    if (*l < *r) {
+      return std::strong_ordering::less;
+    } else if (*l > *r) {
+      return std::strong_ordering::greater;
+    }
+  }
+
+  return std::strong_ordering::equal;
+}
+
+PackageManager::Version
+PackageManager::Version::from(const std::string &from) {
+  PackageManager::Version v;
+  for (unsigned long pos = 0, next = from.find(".", pos + 1);
+       pos != std::string::npos;
+       pos = next, next = from.find(".", pos + 1)) {
+    if (pos != 0) {
+      ++pos;
+    }
+    const auto segment = from.substr(pos, next - pos);
+
+    if (segment.empty()) {
+      throw std::runtime_error("In version '" + from +
+                               "': Invalid version segment '" +
+                               segment + "'");
+    }
+    for (const char &c : segment) {
+      if ('0' > c || c > '9') {
+        throw std::runtime_error(
+            "In version '" + from +
+            "': Invalid version segment '" + segment + "'");
+      }
+    }
+
+    v.version.push_back(std::stoull(segment));
+  }
+  return v;
+}
 
 /**
  * @brief
@@ -18,12 +82,12 @@ load_package_spec(const std::filesystem::path &_path) {
 
   // Not all of them, but the ones we need right now
   const static std::set<std::string> expected_key_suffixes = {
-      "INSTALL!", "VERSION!"};
+      "VERSION!"};
 
   const auto spec_file = _path / "spec.oak";
   std::map<std::string, std::string> out;
   const std::string package_name =
-      spec_file.parent_path().filename();
+      spec_file.parent_path().filename().stem();
 
   out["name"] = package_name;
 
@@ -45,7 +109,7 @@ load_package_spec(const std::filesystem::path &_path) {
       auto it = junk.begin();
       do {
         prev = junk;
-        c.macros.replace(junk, it, junk.end());
+        c.macros.replace(junk, it, junk.end(), c.settings);
       } while (junk != prev);
 
       if (junk.size() > 0) {
@@ -117,44 +181,70 @@ void PackageManager::install_package(
     }
   }
 
-  if (spec.contains("VERSION!")) {
-    // Validate version string
-    /*
-    0.0.0.0 = 0.0.0 = 0.0 = 0
-    1.0 > 1 = 0.1
-    1.0.0 > 1.0 = 0.1.0 > 1 = 0.0.1
-    Arbitrarily many segments, but usually three
-    patch, minor, major, super-major, super-super-major, etc
-    */
-    char prev = '\0';
-    for (const char &c : spec.at("VERSION!")) {
-      if (c == '.') {
-        if (prev == '.') {
-          throw std::runtime_error("Invalid package version '" +
-                                   spec.at("VERSION!") + "'");
-        }
-      } else if (c < '0' || '9' < c) {
-        throw std::runtime_error("Illegal character '" +
-                                 std::string({c}) +
-                                 "' in package version '" +
-                                 spec.at("VERSION!") + "'");
-      }
-      prev = c;
-    }
-    if (prev == '.') {
-      throw std::runtime_error("Invalid package version '" +
-                               spec.at("VERSION!") + "'");
-    }
-  } else {
+  if (!spec.contains("VERSION!")) {
     throw std::runtime_error("Package '" + spec.at("name") +
                              "' has no version!");
   }
 
+  // Validate version string
+  const auto raw = spec.at("VERSION!");
+  Version v = Version::from(raw);
+  const Version full_version = v;
+
   // Copy to path
+  const auto name = spec.at("name");
+  const auto real_path =
+      _csettings.include_path / (name + v.package_suffix());
   std::filesystem::copy(
-      _package, _csettings.include_path / spec.at("name"),
+      _package, real_path,
       std::filesystem::copy_options::update_existing |
           std::filesystem::copy_options::recursive);
+
+  // Symlinks
+  while (!v.version.empty()) {
+    v.version.pop_back();
+    const auto symlink =
+        _csettings.include_path / (name + v.package_suffix());
+    bool should_symlink = true;
+
+    if (std::filesystem::exists(symlink) &&
+        !std::filesystem::is_symlink(symlink)) {
+      continue;
+    }
+
+    for (const auto &d : std::filesystem::directory_iterator{
+             _csettings.include_path}) {
+      // If this file begins with the symlink
+      if (!d.path().string().starts_with(symlink.string())) {
+        continue;
+      }
+
+      // But is not the symlink
+      else if (d == symlink) {
+        continue;
+      }
+
+      const auto candidate_version =
+          Version::from(d.path().string().substr(
+              d.path().string().find(".") + 1));
+
+      // If it is larger than the symlink's target,
+      // don't symlink and break
+      if (candidate_version > full_version) {
+        should_symlink = false;
+        break;
+      }
+    }
+
+    if (should_symlink) {
+      if (std::filesystem::exists(symlink) &&
+          std::filesystem::is_symlink(symlink)) {
+        std::filesystem::remove(symlink);
+      }
+      std::filesystem::create_directory_symlink(real_path,
+                                                symlink);
+    }
+  }
 }
 
 /**
@@ -162,9 +252,31 @@ void PackageManager::install_package(
  */
 void PackageManager::uninstall_package(
     const std::string &_name,
-    const std::filesystem::path &_oak_include) {
+    const std::filesystem::path &_oak_include,
+    const Version &_version) {
   debug_print();
-  if (std::filesystem::exists(_oak_include / _name)) {
-    std::filesystem::remove(_oak_include / _name);
+  const auto path =
+      _oak_include / (_name + _version.package_suffix());
+
+  if (std::filesystem::exists(path)) {
+    std::filesystem::remove_all(path);
+  }
+}
+
+/**
+ * @brief List all installed packages
+ */
+void PackageManager::list_packages(
+    std::ostream &_to,
+    const std::filesystem::path &_oak_include) {
+  for (const auto &d :
+       std::filesystem::directory_iterator{_oak_include}) {
+    if (std::filesystem::is_directory(d)) {
+      _to << d.path().stem().string() << '\n';
+    } else if (std::filesystem::is_symlink(d)) {
+      _to << d.path().stem().string() << " -> "
+          << std::filesystem::read_symlink(d).stem().string()
+          << '\n';
+    }
   }
 }

@@ -3,7 +3,6 @@ Interfaces w/ oak output file
 */
 
 #include "oak/std/std_oak_header.h"
-#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -62,4 +61,28 @@ uint tell_FN_PTR_OFile_MAPS_uint(struct OFile *self) {
 void seek_FN_PTR_OFile_JOIN_uint_MAPS_void(struct OFile *self,
                                            uint where) {
   fseek((FILE *)self->file_ptr, where, 0);
+}
+
+// write(self: ^OFile, what: int) -> void
+void write_FN_PTR_OFile_JOIN_int_MAPS_void(struct OFile *self,
+                                           int what) {
+  fprintf((FILE *)self->file_ptr, "%i", what);
+}
+
+// write(self: ^OFile, what: uint) -> void
+void write_FN_PTR_OFile_JOIN_uint_MAPS_void(struct OFile *self,
+                                            uint what) {
+  fprintf((FILE *)self->file_ptr, "%u", what);
+}
+
+// write(self: ^OFile, what: f64) -> void
+void write_FN_PTR_OFile_JOIN_f64_MAPS_void(struct OFile *self,
+                                           f64 what) {
+  fprintf((FILE *)self->file_ptr, "%lf", what);
+}
+
+// write(self: ^OFile, ptr: ^void, n: uint) -> void
+void write_FN_PTR_OFile_JOIN_PTR_void_JOIN_uint_MAPS_void(
+    struct OFile *self, void *ptr, uint n) {
+  fwrite(ptr, 1, n, (FILE *)self->file_ptr);
 }

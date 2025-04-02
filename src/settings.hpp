@@ -113,17 +113,58 @@ public:
     /// A list of directories to look for tests in
     std::list<std::filesystem::path> dirs;
 
-    /// If true, compilation errors cause us to stop in our
-    /// tracks
-    bool halt_on_compiler_failure = true;
+    /// The testing mode: Distinguishes what constitutes an
+    /// error when running test suites
+    enum TestSettingsMode {
+      COMPILE_IGNORE_FAILURE = 0,                        // T
+      COMPILE = 1,                                       // TT
+      COMPILE_IGNORE_FAILURE_EXECUTE_IGNORE_FAILURE = 2, // TE
+      COMPILE_EXECUTE_IGNORE_FAILURE = 3,                // TTE
+      COMPILE_IGNORE_FAILURE_EXECUTE = 4,                // TEE
+      COMPILE_EXECUTE = 5,                               // TTEE
+    };
 
-    /// The testing mode: Allows compilation only or two modes
-    /// of compilation+running
-    enum {
-      COMPILE_ONLY,           // T
-      REGULAR_EXECUTE,        // TTE
-      EXECUTE_IGNORE_FAILURE, // TE
-    } mode = REGULAR_EXECUTE;
+    /// The current test mode: Default is T
+    TestSettingsMode mode = COMPILE_IGNORE_FAILURE;
+
+    /**
+     * @brief Given some command-line flag, toggle the mode
+     * @param _c The flag to process
+     */
+    inline void process_mode_flag(const char &_c) {
+      switch (_c) {
+      case 'T':
+        if (mode % 2 == 0) {
+          mode = static_cast<TestSettingsMode>(mode + 1);
+        } else {
+          mode = static_cast<TestSettingsMode>(mode - 1);
+        }
+        break;
+      case 'E':
+        mode = static_cast<TestSettingsMode>((mode + 2) % 6);
+        break;
+      default:
+        break;
+      }
+    }
+
+    /// Return whether or not tests should be executed after
+    /// compilation
+    inline bool should_execute() const {
+      return mode > COMPILE;
+    }
+
+    /// Return whether or not testing mode should fail if a
+    /// single compilation does
+    inline bool fail_with_compile() const {
+      return mode % 2 == 1;
+    }
+
+    /// Return whether or not testing mode should fail if a
+    /// single execution does
+    inline bool fail_with_execute() const {
+      return mode > COMPILE_EXECUTE_IGNORE_FAILURE;
+    }
   };
 
   /// Where to write information to (usually cout)

@@ -33,9 +33,14 @@ public:
    */
   class RunError : public std::runtime_error {
   public:
-    RunError(const std::string &_msg)
-        : std::runtime_error(_msg) {
+    /// Initialize given some message and (presumably nonzero)
+    /// runtime exit code
+    RunError(const std::string &_msg, const int &_exit_code)
+        : std::runtime_error(_msg), exit_code(_exit_code) {
     }
+
+    /// The exit code that caused the issues
+    const int exit_code;
   };
 
   /**
@@ -72,13 +77,6 @@ public:
 
   /// Purge all temporary files
   static void clean();
-
-  /// Install some package globally
-  /// To be called from the command line, so IO is acceptable
-  void install_package(const std::string &_name);
-
-  /// Remove some globally-install package
-  void uninstall_package(const std::string &_name);
 
   /// Create a new template package with the given name
   void new_package(const std::string &_name);

@@ -15,15 +15,12 @@ alabama -> alabama
 "'california'" -> california
 */
 let unstringify!(c: i32, v: [][]i8) -> i32 {
-  include!("std/io.oak", "std/c_str.oak");
-
-  let arg: []i8;
-  arg = Get(v, 1u32);
+  include!("std/io.oak", "std/c_str.oak", "std/operators.oak");
 
   let start: uint; // First index not to ignore
   let end: uint;   // First index to ignore again
   start = 0uint;
-  end = strlen(arg);
+  end = strlen(Get(v, 1u32));
 
   let flag: bool;
   flag = true;
@@ -31,10 +28,13 @@ let unstringify!(c: i32, v: [][]i8) -> i32 {
   while (flag) {
     if (start >= end) {
       flag = false;
-    } else if (Get(arg, start) != Get(arg, end - 1)) {
+    } else if (Get(Get(v, 1u32), start) !=
+      Get(Get(v, 1u32), end - 3uint)) {
       flag = false;
-    } else if (Get(arg, start) != "'" && Get(arg, start) != '"'
-      && Get(arg, start) != "`") {
+    } else if (
+      Get(Get(v, 1u32), start) != Get("'", 0u32) &&
+      Get(Get(v, 1u32), start) != Get('"', 0u32)
+      && Get(Get(v, 1u32), start) != Get("`", 0u32)) {
       flag = false;
     } else {
       ++start;
@@ -44,7 +44,7 @@ let unstringify!(c: i32, v: [][]i8) -> i32 {
 
   // NOTE: We haven't dealt with backslashes!!!!
   while (start < end) {
-    print(Get(arg, start));
+    print(Get(Get(v, 1u32), start));
     ++start;
   }
 
@@ -62,11 +62,9 @@ alabama -> "alabama"
 "'california'" -> "california"
 */
 let stringify!(c: i32, v: [][]i8) -> i32 {
-  include!("std/io.oak", "std/stringify.oak");
+  include!("std/io.oak");
 
-  print('"');
-  unstringify!(Get(v, 1u32));
-  print('"');
+  print("\"hi\"");
 
   return 0i32;
 }

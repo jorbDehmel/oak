@@ -1,9 +1,17 @@
 #include "lexer.hpp"
 #include "debug.hpp"
+#include <climits>
+#include <cstdint>
 #include <cstring>
 #include <optional>
-#include <set>
 #include <stdexcept>
+
+const std::set<char> Lexer::whitespace = {' ', '\t', '\n'};
+const std::set<char> Lexer::operators = {
+    '~', '@', '$', '%', '^', '&', '*', '-',
+    '+', '=', '|', ':', '.', '/', '?', '!'};
+const std::set<char> Lexer::singleton_operators = {
+    '[', ']', '{', '}', '(', ')', ',', ';', '<', '>'};
 
 std::list<Lexer::Token>
 Lexer::lex(const std::string &_text,
@@ -11,13 +19,6 @@ Lexer::lex(const std::string &_text,
            uint64_t &_col) {
   debug_print();
 
-  // Statics
-  const static std::set<char> whitespace = {' ', '\t', '\n'};
-  const static std::set<char> operators = {
-      '~', '@', '$', '%', '^', '&', '*', '-', '+',
-      '=', '|', ':', '<', '.', '>', '/', '?', '!'};
-  const static std::set<char> singleton_operators = {
-      '[', ']', '{', '}', '(', ')', ',', ';'};
   const auto next_line = [&]() {
     ++_line;
     _col = 0;
@@ -68,7 +69,6 @@ Lexer::lex(const std::string &_text,
       // Regular operators
       Lexer::Token to_append =
           Lexer::Token("", _path, _line, _col);
-      to_append.type = "OPERATOR";
       while (pos + 1 < _text.size() &&
              operators.contains(_text.at(pos + 1))) {
         if (pos + 2 < _text.size() &&
@@ -86,7 +86,6 @@ Lexer::lex(const std::string &_text,
     } else if (_text.at(pos) == '\'') {
       // Single string literal
       Token to_append = Token("", _path, _line, _col);
-      to_append.type = "STRING";
       bool skip = false;
       ++pos, ++_col;
       while (pos < _text.size()) {
@@ -121,7 +120,6 @@ Lexer::lex(const std::string &_text,
     } else if (_text.at(pos) == '"') {
       // Double string literal
       Token to_append = Token("", _path, _line, _col);
-      to_append.type = "STRING";
       bool skip = false;
       ++pos, ++_col;
       while (pos < _text.size()) {
@@ -163,7 +161,6 @@ Lexer::lex(const std::string &_text,
       } else {
         // Single backtick string
         Token to_append = Token("", _path, _line, _col);
-        to_append.type = "STRING";
         bool skip = false;
         ++pos, ++_col;
         while (pos < _text.size()) {
@@ -201,7 +198,6 @@ Lexer::lex(const std::string &_text,
     else if (singleton_operators.contains(_text.at(pos))) {
       out.push_back(
           Lexer::Token({_text.at(pos)}, _path, _line, _col));
-      out.back().type = "OPERATOR";
     }
 
     // Everything else: IDs and numbers
@@ -220,25 +216,28 @@ Lexer::lex(const std::string &_text,
         ++pos, ++_col;
       }
       to_append.text.push_back(_text.at(pos));
-
-      if (('0' <= to_append.text.front() &&
-           to_append.text.front() <= '9') ||
-          (to_append.text.size() > 1 &&
-           to_append.text.front() == '-' &&
-           '0' <= to_append.text[1] &&
-           to_append.text[1] <= '9')) {
-        to_append.type = "NUMBER";
-      } else if (Type::float_literals.contains(
-                     to_append.text) ||
-                 Type::int_literals.contains(to_append.text) ||
-                 Type::uint_literals.contains(to_append.text)) {
-        to_append.type = "NUMBER";
-      } else {
-        to_append.type = "ID";
-      }
-
       out.push_back(to_append);
     }
+  } // End main loop
+
+  // Merge <=, >=, and -> operators
+  for (auto it = out.begin(); std::next(it) != out.end();
+       ++it) {
+    if (it->text == "-" && std::next(it)->text == ">") {
+      it->text = "->";
+      out.erase(std::next(it));
+    } else if (it->text == "<" && std::next(it)->text == "=") {
+      it->text = "<=";
+      out.erase(std::next(it));
+    } else if (it->text == ">" && std::next(it)->text == "=") {
+      it->text = ">=";
+      out.erase(std::next(it));
+    }
+  }
+
+  // Classify types
+  for (auto it = out.begin(); it != out.end(); ++it) {
+    classify_type(*it);
   }
 
   // Merge '.'s in float literals
@@ -279,18 +278,6 @@ Lexer::lex(const std::string &_text,
     }
   }
 
-  // Replace '::'s with '_'s
-  for (auto it = out.begin(); it != out.end(); ++it) {
-    while (it->type == "ID" && std::next(it) != out.end() &&
-           std::next(it)->text == "::" &&
-           std::next(it, 2) != out.end() &&
-           std::next(it, 2)->type == "ID") {
-      it->text += "_" + std::next(it, 2)->text;
-      out.erase(std::next(it));
-      out.erase(std::next(it));
-    }
-  }
-
   // Distinguish between less-than/greater-than and templates
   for (auto it = out.begin(); it != out.end(); ++it) {
     if (it->text == "<") {
@@ -306,6 +293,18 @@ Lexer::lex(const std::string &_text,
           break;
         }
       }
+    }
+  }
+
+  // Replace '::'s with '_'s
+  for (auto it = out.begin(); it != out.end(); ++it) {
+    while (it->type == "ID" && std::next(it) != out.end() &&
+           std::next(it)->text == "::" &&
+           std::next(it, 2) != out.end() &&
+           std::next(it, 2)->type == "ID") {
+      it->text += "_" + std::next(it, 2)->text;
+      out.erase(std::next(it));
+      out.erase(std::next(it));
     }
   }
 
@@ -395,4 +394,40 @@ std::optional<Type> Lexer::get_literal_type(Token &_t) {
 
   // The empty option
   return {};
+}
+
+void Lexer::classify_type(Lexer::Token &_t) {
+  if (_t.text.front() == '"') {
+    _t.type = "STRING";
+  } else if (operators.contains(_t.text.at(0)) &&
+             !(_t.text.at(0) == '-' && 1 < _t.text.size() &&
+               '0' <= _t.text.at(1) && _t.text.at(1) <= '9')) {
+    _t.type = "OPERATOR";
+  } else if (singleton_operators.contains(_t.text.front())) {
+    _t.type = "OPERATOR";
+  } else if (('0' <= _t.text.front() &&
+              _t.text.front() <= '9') ||
+             (_t.text.size() > 1 && _t.text.front() == '-' &&
+              '0' <= _t.text[1] && _t.text[1] <= '9')) {
+    _t.type = "NUMBER";
+  } else if (Type::float_literals.contains(_t.text) ||
+             Type::int_literals.contains(_t.text) ||
+             Type::uint_literals.contains(_t.text)) {
+    _t.type = "NUMBER";
+  } else {
+    _t.type = "ID";
+  }
+}
+
+/// Transmute a series of strings to tokens
+std::list<Lexer::Token>
+Lexer::tokify(const std::list<std::string> &_what,
+              const std::filesystem::path &_where,
+              const uint64_t &_line, const uint64_t &_col) {
+  std::list<Lexer::Token> out;
+  for (const auto &item : _what) {
+    out.push_back(Lexer::Token(item, _where, _line, _col));
+    Lexer::classify_type(out.back());
+  }
+  return out;
 }

@@ -1,0 +1,27 @@
+/*
+Tests the stl::List<T> class
+*/
+
+include!(
+  "std/std.oak",
+  "std/rules.oak",
+  "std/printf.oak",
+  "stl/list.oak"
+);
+rule::use!("std");
+
+let main() -> i32 {
+  let l: List<u64>;
+
+  for (let i: u64 = 0u64; i < 128u64; ++i) {
+    l.push_front(i);
+  }
+
+  while (!l.empty()) {
+    printf!("% ", l.back());
+    l.pop_back();
+  }
+  endl();
+
+  return 0i32;
+}

@@ -1,0 +1,41 @@
+/*
+Bindings for input files
+*/
+
+pragma!("no_dialect");
+link!("std/ifile.o");
+
+// An input file
+let IFile: struct {
+  _: ^void // Internal C FILE pointer
+}
+
+// Initialize an IFile WITHOUT opening a file
+let New(self: ^IFile) -> void;
+
+// Close the file if open
+let Del(self: ^IFile) -> void;
+
+// Open a file at the beginning
+let open(self: ^IFile, path: []i8) -> void;
+
+// Return whether the file has been opened
+let is_open(self: ^IFile) -> bool;
+
+// Read something from the current position
+let read(self: ^IFile, into: []i8, n: uint) -> void;
+let read(self: ^IFile, into: ^int) -> void;
+let read(self: ^IFile, into: ^uint) -> void;
+let read(self: ^IFile, into: ^f64) -> void;
+
+// Read some raw series of bytes
+let read(self: ^IFile, into: ^void, n: uint) -> void;
+
+// Ignore n chars
+let ignore(self: ^IFile, n: uint) -> void;
+
+// Tell the current position
+let tell(self: ^IFile) -> uint;
+
+// Seek to some position
+let seek(self: ^IFile, pos: uint) -> void;

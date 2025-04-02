@@ -22,8 +22,6 @@ check:
 install: check
 	@echo "Compiling and installing acorn..."
 	$(MAKE) -C src $@
-	sudo mkdir -p /usr/include/oak/std
-	sudo cp std/std_oak_header.h /usr/include/oak/std/std_oak_header.h
 
 	@echo "Installing default Oak libraries..."
 	acorn -yS ./std

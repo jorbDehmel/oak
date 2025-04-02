@@ -49,8 +49,10 @@ is_valid_struct_name(const std::string &_name) noexcept {
   const auto pos = _name.find_last_of('_');
   uint i = (pos == std::string::npos ? 0 : pos);
 
+  const auto end = std::min(_name.find("_GEN"), _name.size());
+
   // Must be camelcase
-  for (; i < _name.size(); ++i) {
+  for (; i < end; ++i) {
     // A single uppercase
     if (std::isupper(_name[i])) {
       ++i;
@@ -139,16 +141,9 @@ void Parser::parse_global(
         std::list<std::string> generics;
         if (*pos == "<") {
           // Zero or more comma-separated generics
-          bool generics_are_resolvable = true;
           do {
             incr(pos, end);
             generics.push_back(*pos);
-
-            if (!globals.contains(*pos) &&
-                !Type::is_built_in_type(*pos)) {
-              generics_are_resolvable = false;
-            }
-
             incr(pos, end);
           } while (*pos == ",");
 
@@ -158,18 +153,6 @@ void Parser::parse_global(
                 pos->text + "'");
           }
           incr(pos, end);
-
-          if (generics_are_resolvable) {
-            for (auto name = names.begin(); name != names.end();
-                 ++name) {
-              *name += "_GEN_";
-              for (const auto &gen : generics) {
-                *name += gen + "_";
-              }
-              *name += "ENDGEN";
-            }
-            generics.clear();
-          }
         }
 
         if (*pos == ":") {
@@ -185,7 +168,7 @@ void Parser::parse_global(
                   "Generic struct signatures are illegal");
             } else {
               // Add definition for generic struct(s)
-              TemplateInfo info;
+              TemplateInfo info(pos->file, pos->line, pos->col);
               info.generics = generics;
 
               // Grab body here
@@ -212,27 +195,10 @@ void Parser::parse_global(
               for (const auto &name : names) {
                 TemplateInfo specific_info = info;
                 specific_info.provides = {"struct"};
-
-                specific_info.instantiate.push_front(
-                    Lexer::Token(*pos, "struct"));
-                specific_info.instantiate.push_front(
-                    Lexer::Token(*pos, ":"));
-                specific_info.instantiate.push_front(
-                    Lexer::Token(*pos, ">"));
-
-                for (auto it = generics.rbegin();
-                     it != generics.rend(); ++it) {
-                  specific_info.instantiate.push_front(
-                      Lexer::Token(*pos, *it));
-                }
-
-                specific_info.instantiate.push_front(
-                    Lexer::Token(*pos, "<"));
-                specific_info.instantiate.push_front(
-                    Lexer::Token(*pos, name));
-                specific_info.instantiate.push_front(
-                    Lexer::Token(*pos, "let"));
-
+                specific_info.instantiate.push_front("struct");
+                specific_info.instantiate.push_front(":");
+                specific_info.instantiate.push_front(name);
+                specific_info.instantiate.push_front("let");
                 templates[name].push_back(specific_info);
               }
             }
@@ -261,7 +227,7 @@ void Parser::parse_global(
             parse_function(names, pos, end, _settings);
           } else {
             // Grab rest of signature
-            TemplateInfo info;
+            TemplateInfo info(pos->file, pos->line, pos->col);
             info.generics = generics;
 
             // Finish parsing type
@@ -305,10 +271,8 @@ void Parser::parse_global(
               instance_info.provides.push_front(name);
               instance_info.provides.push_front("let");
 
-              instance_info.instantiate.push_front(Lexer::Token(
-                  instance_info.instantiate.front(), name));
-              instance_info.instantiate.push_front(Lexer::Token(
-                  instance_info.instantiate.front(), "let"));
+              instance_info.instantiate.push_front(name);
+              instance_info.instantiate.push_front("let");
 
               templates[name].push_back(instance_info);
             }
@@ -486,7 +450,8 @@ void Parser::reconstruct(std::ostream &_where,
                  << child.c_name.value() << ": {\n"
                  << child.children.at(0).type->c_repr(
                         child.children.at(0).token.value())
-                 << " = &(";
+                 << " = " << (stmt.is_mutable_match ? "&" : "")
+                 << "(";
           reconstruct_node(stmt.children.at(0));
           _where << ").__data." << child.c_name.value()
                  << "; {";
@@ -628,6 +593,52 @@ void Parser::dump(std::ostream &_where,
     _where << "// FAILURE: " << e.what() << '\n';
   } catch (...) {
     _where << "// UNKNOWN FAILURE\n";
+  }
+
+  _where << "// Structs and enums:\n";
+  for (const auto &item : globals) {
+    _where << item.first << " [";
+    if (std::holds_alternative<StructInfo>(item.second)) {
+      const auto info = std::get<StructInfo>(item.second);
+      for (auto it = info.tags.begin(); it != info.tags.end();
+           ++it) {
+        if (it != info.tags.begin()) {
+          _where << ", ";
+        }
+        _where << "{\"" << it->first << "\": \"" << it->second
+               << "\"}";
+      }
+      _where << "]\n";
+      for (const auto &member : info.member_order) {
+        _where << "\t"
+               << info.members.at(member).oak_repr(member)
+               << '\n';
+      }
+    } else {
+      const auto info = std::get<EnumInfo>(item.second);
+      for (auto it = info.tags.begin(); it != info.tags.end();
+           ++it) {
+        if (it != info.tags.begin()) {
+          _where << ", ";
+        }
+        _where << "{\"" << it->first << "\": \"" << it->second
+               << "\"}";
+      }
+      _where << "]\n";
+      for (const auto &member : info.option_order) {
+        _where << "\t"
+               << info.options.at(member).oak_repr(member)
+               << '\n';
+      }
+    }
+  }
+
+  _where << "// Function signatures:\n";
+  for (const auto &p : functions) {
+    _where << p.first << ":\n";
+    for (const auto &item : p.second) {
+      _where << "\t" << item.t.oak_repr(p.first) << '\n';
+    }
   }
 }
 
@@ -785,12 +796,11 @@ std::list<std::pair<std::string, Type>> Parser::parse_members(
 
 /// Parses the (pre, post) regions of a template if they
 /// exist. This should be called after any generic body
-std::pair<std::list<Lexer::Token>, std::list<Lexer::Token>>
+std::pair<std::list<std::string>, std::list<std::string>>
 Parser::parse_template_pre_post(
     std::list<Lexer::Token>::const_iterator &_cur_pos,
     const std::list<Lexer::Token>::const_iterator &_end) {
-  std::pair<std::list<Lexer::Token>, std::list<Lexer::Token>>
-      out;
+  std::pair<std::list<std::string>, std::list<std::string>> out;
 
   while (std::next(_cur_pos) != _end &&
          (*std::next(_cur_pos) == "pre" ||
@@ -1248,14 +1258,7 @@ void Parser::parse_enum(
     col = _cur_pos->col;
 
     debug_print();
-    // std::cout << "Lexing '" << to_lex << "'\n" << std::flush;
     to_parse = lexer.lex(to_lex, _cur_pos->file, line, col);
-
-    // std::cout << "Lexed: [";
-    // for (const auto &item : to_parse) {
-    //   std::cout << item.text << ' ';
-    // }
-    // std::cout << "]\n" << std::flush;
 
     it = to_parse.begin();
     parse_function({"Del"}, it, to_parse.end(), _settings);
@@ -1495,7 +1498,15 @@ Node Parser::parse_statement(
     // 0th child is operand, rest are cases
     Node out(Node::MATCH);
     out.c_name = enum_name;
+
+    if (is_mutable) {
+      Node new_target(Node::NodeType::RAW_C_FMT);
+      new_target.c_name = "(*%)";
+      new_target.children = {target};
+      target = new_target;
+    }
     out.children = {target};
+    out.is_mutable_match = is_mutable;
 
     if (*_cur_pos != "{") {
       throw std::runtime_error(
@@ -1839,9 +1850,7 @@ Node Parser::parse_function_call(
                 Type::TypeNode::POINTER ||
             out.children.front().type->nodes.front().type ==
                 Type::TypeNode::UNSIZED_ARRAY)) {
-    out.node_type = Node::RAW_C_FMT;
-    out.type = Type({"void"});
-    out.c_name = "% = 0;";
+    out.node_type = Node::NONE;
     return out;
   }
 
@@ -1851,8 +1860,24 @@ Node Parser::parse_function_call(
            out.children.size() == 1 &&
            out.children.front().type->nodes.front().type ==
                Type::TypeNode::SIZED_ARRAY) {
-    throw std::runtime_error(
-        "New on sized arrays in unimplemented");
+    Node new_out(Node::STMT);
+    Lexer l;
+    uint64_t line, col;
+    for (uint i = 0; i < out.children.front()
+                             .type->nodes.front()
+                             .sized_array_size;
+         ++i) {
+      line = out.token->line;
+      col = out.token->col;
+      auto lexed = l.lex(
+          "New(Get(" + out.children.front().c_name.value() +
+              ", " + std::to_string(i) + "uint));",
+          out.token->file, line, col);
+      auto it = lexed.cbegin();
+      new_out.children.push_back(
+          parse_function_call(it, lexed.end(), _settings));
+      return new_out;
+    }
   }
 
   // Del on sized array
@@ -1861,8 +1886,38 @@ Node Parser::parse_function_call(
            out.children.size() == 1 &&
            out.children.front().type->nodes.front().type ==
                Type::TypeNode::SIZED_ARRAY) {
-    throw std::runtime_error(
-        "Del on sized arrays in unimplemented");
+    Node new_out(Node::STMT);
+    Lexer l;
+    uint64_t line, col;
+    for (uint i = 0; i < out.children.front()
+                             .type->nodes.front()
+                             .sized_array_size;
+         ++i) {
+      line = out.token->line;
+      col = out.token->col;
+      auto lexed = l.lex(
+          "Del(Get(" + out.children.front().c_name.value() +
+              ", " + std::to_string(i) + "uint));",
+          out.token->file, line, col);
+      auto it = lexed.cbegin();
+      new_out.children.push_back(
+          parse_function_call(it, lexed.end(), _settings));
+      return new_out;
+    }
+  }
+
+  // Pointer copy
+  else if (out.token.has_value() &&
+           out.token.value() == "Copy" &&
+           out.children.size() == 2 &&
+           out.children.back().type->nodes.front().type ==
+               Type::TypeNode::POINTER &&
+           out.children.front().type->cast_match(
+               *out.children.back().type)) {
+    out.node_type = Node::RAW_C_FMT;
+    out.type = Type({"void"});
+    out.c_name = "% = %;";
+    return out;
   }
 
   // End special cases
@@ -1921,10 +1976,35 @@ Type Parser::resolve_variable(const Lexer::Token &_name) {
                            "' does not exist.");
 }
 
+/// Handles parenthesization
+Node Parser::parse_object(
+    std::list<Lexer::Token>::const_iterator &_cur_pos,
+    const std::list<Lexer::Token>::const_iterator &_end,
+    Settings &_settings) {
+  uint depth = 0;
+  while (*_cur_pos == "(") {
+    ++depth;
+    ++_cur_pos;
+  }
+  auto out =
+      parse_object_without_paren(_cur_pos, _end, _settings);
+  while (depth > 0) {
+    ++_cur_pos;
+    if (_cur_pos->text != ")") {
+      throw std::runtime_error("Expected ')', but saw '" +
+                               _cur_pos->text + "'");
+    }
+
+    --depth;
+  }
+
+  return out;
+}
+
 // Parses a single object (resolvable variable or function
 // call return value). Assumes we are pointing ot the first
 // token of the object. Non-global (inside statements)
-Node Parser::parse_object(
+Node Parser::parse_object_without_paren(
     std::list<Lexer::Token>::const_iterator &_cur_pos,
     const std::list<Lexer::Token>::const_iterator &_end,
     Settings &_settings) {
@@ -2036,9 +2116,9 @@ bool Parser::TemplateInfo::does_provide(
     const std::list<std::string> &_desired) const {
   debug_print();
 
-  std::list<Lexer::Token> tokenized;
+  std::list<std::string> tokenized;
   for (const auto &i : provides) {
-    tokenized.push_back(Lexer::Token(i, "NULL", 0, 0, "NULL"));
+    tokenized.push_back(i);
   }
 
   const auto will_provide =
@@ -2061,8 +2141,8 @@ bool Parser::TemplateInfo::does_provide(
 /// Returns a list of tokens based on _to_augment wherein
 /// all occurrences of generics are replaced with their
 /// corresponding replacements
-std::list<Lexer::Token> Parser::TemplateInfo::replace(
-    const std::list<Lexer::Token> &_to_augment,
+std::list<std::string> Parser::TemplateInfo::replace(
+    const std::list<std::string> &_to_augment,
     const std::list<std::string> &_generics,
     const std::list<std::list<std::string>> &_replacements) {
   debug_print();
@@ -2087,11 +2167,11 @@ std::list<Lexer::Token> Parser::TemplateInfo::replace(
   }
 
   // Replace
-  std::list<Lexer::Token> out;
+  std::list<std::string> out;
   for (const auto &t : _to_augment) {
     if (substitution_map.contains(t)) {
       for (const auto &replacement : substitution_map.at(t)) {
-        out.push_back({t, replacement});
+        out.push_back(replacement);
       }
     } else {
       out.push_back(t);
@@ -2120,7 +2200,8 @@ bool Parser::TemplateInfo::attempt_instantiation(
 
   // Build validation block
   const auto replaced_validation_block =
-      replace(validate, generics, _substitutions);
+      Lexer::tokify(replace(validate, generics, _substitutions),
+                    path, line, col);
 
   // Run validation block
   Parser backup = _p;
@@ -2132,8 +2213,43 @@ bool Parser::TemplateInfo::attempt_instantiation(
   }
 
   // Replace the instantiation block
-  const auto replaced_instantiation_block =
-      replace(instantiate, generics, _substitutions);
+  auto replaced_instantiation_block = Lexer::tokify(
+      replace(instantiate, generics, _substitutions), path,
+      line, col);
+
+  // Struct name fix
+  if (provides.size() == 1 && provides.front() == "struct") {
+    auto it = std::next(replaced_instantiation_block.begin());
+    const auto repl =
+        replace(generics, generics, _substitutions);
+
+    it->text += "_GEN_";
+    bool first = true;
+    for (const auto &gen : repl) {
+      if (first) {
+        first = false;
+      } else {
+        it->text += "JOIN_";
+      }
+      it->text += gen + "_";
+    }
+    it->text += "ENDGEN";
+  }
+
+  if (_settings.debug) {
+    _settings.ostream << "Parsing template block:\n```oak\n";
+    uint counter = 0;
+    for (const auto &tok : replaced_instantiation_block) {
+      _settings.ostream << tok.text << ' ';
+
+      counter += tok.text.size() + 1;
+      if (counter >= 32) {
+        _settings.ostream << '\n';
+        counter = 0;
+      }
+    }
+    _settings.ostream << "\n```\n";
+  }
 
   // Run instantiation block
   try {
@@ -2310,8 +2426,8 @@ Type Parser::resolve_fn_call(const std::string &_name,
     try {
       // Find signature
       // TODO: Make this suck less
-      // Note: This is immediately converted to std::string, so
-      // the file, line, and col don't matter
+      // Note: This is immediately converted to std::string,
+      // so the file, line, and col don't matter
       Lexer l;
       uint64_t junk_line = 0, junk_col = 0;
       std::list<std::string> signature = {"("};

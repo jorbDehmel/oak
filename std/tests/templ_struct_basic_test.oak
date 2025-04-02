@@ -1,0 +1,38 @@
+/*
+Basic templated struct testing
+*/
+
+include!("std/std.oak", "std/printf.oak");
+
+let Node<T>: struct {
+  data: T
+}
+
+let Pair<F, S>: struct {
+  first: F,
+  second: S
+}
+
+let main() -> i32 {
+  let n1: Node<i32>;
+  let n2: Node<bool>;
+
+  print(n1.data);
+  endl();
+
+  n1.data = 123i32;
+  print(n1.data);
+  endl();
+
+  let p: Pair<i32, bool>;
+  p.first = n1.data;
+  p.second = n2.data;
+
+  printf!("(%, %)\n", p.first, p.second);
+
+  let n3: Node<Node<i32>>;
+  print(n3.data.data);
+  endl();
+
+  return 0i32;
+}

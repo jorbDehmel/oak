@@ -5,7 +5,7 @@ Tests the stringify and unstringify macros
 include!("std/std.oak", "std/stringify.oak");
 
 let main() -> i32 {
-  print(stringify!(Hello!););
+  print(stringify!(Hello));
   endl();
 
   return 0i32;

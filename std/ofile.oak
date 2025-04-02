@@ -25,8 +25,14 @@ let append(self: ^OFile, path: []i8) -> void;
 // Return whether the file has been opened
 let is_open(self: ^OFile) -> bool;
 
-// Write some string to the current position
+// Write something to the current position
 let write(self: ^OFile, what: []i8) -> void;
+let write(self: ^OFile, what: int) -> void;
+let write(self: ^OFile, what: uint) -> void;
+let write(self: ^OFile, what: f64) -> void;
+
+// Write some raw series of bytes
+let write(self: ^OFile, ptr: ^void, n: uint) -> void;
 
 // Tell the current position
 let tell(self: ^OFile) -> uint;

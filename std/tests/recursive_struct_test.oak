@@ -5,11 +5,19 @@ include!("std/std.oak");
 
 let Node: struct {
   data: i32,
+  has_next: bool,
   next: ^Node,
 }
 
 let New(self: ^Node) -> void {
   self.data = 0i32;
+  self.has_next = false;
+}
+
+let Del(self: ^Node) -> void {
+  if (self.has_next) {
+    Del(self.next);
+  }
 }
 
 let main() -> i32 {

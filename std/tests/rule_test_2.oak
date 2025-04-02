@@ -22,6 +22,10 @@ let main() -> i32 {
   let f: Foo;
   f.data = 123i32;
   f.print();
+  endl();
+
+  print(a.Add(2i32));
+  endl();
 
   return 0i32;
 }

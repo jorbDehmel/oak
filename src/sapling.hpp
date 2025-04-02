@@ -11,6 +11,8 @@
 
 namespace sapling {
 
+/// Alias for unsigned short. A single rule in a state
+/// transition function.
 using State = RuleRunner::Engine::State;
 
 /**

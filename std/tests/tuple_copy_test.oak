@@ -18,6 +18,9 @@ let Copy(self: ^Pair, first: i32, second: u64) -> Pair {
 }
 
 let main() -> i32 {
+  print((1int + 2int) * 3int);
+  endl();
+
   let p: Pair;
   p = (1i32, 2u64);
 

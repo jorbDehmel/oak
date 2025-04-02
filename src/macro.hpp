@@ -6,6 +6,7 @@
 #pragma once
 
 #include "lexer.hpp"
+#include "settings.hpp"
 #include <filesystem>
 #include <map>
 #include <set>
@@ -27,11 +28,12 @@ public:
    * @param _whole The iterand itself
    * @param _it The current position in the iterand
    * @param _end The end of the iterand
+   * @param _csettings Settings for debugging
    */
-  void
-  replace(std::list<Lexer::Token> &_whole,
-          std::list<Lexer::Token>::iterator &_it,
-          const std::list<Lexer::Token>::iterator &_end) const;
+  void replace(std::list<Lexer::Token> &_whole,
+               std::list<Lexer::Token>::iterator &_it,
+               const std::list<Lexer::Token>::iterator &_end,
+               const Settings &_csettings) const;
 
   /// Erases AND STRIPS QUOTES OFF OF a macro occurrence's
   /// args. Then returns those args.

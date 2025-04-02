@@ -17,8 +17,8 @@ and maintenance details, see part 2.
 ## What and Why is `Oak`?
 
 `Oak` is a modern extension of `C`. It has static typing, modern
-macros, generics, traits, packages, compile-time inflection, and
-compile-time modifiable syntax.
+macros, generics, traits, packages, integrated build,
+compile-time inflection, and compile-time modifiable syntax.
 
 ## `Hello, World!`
 
@@ -515,20 +515,67 @@ let std::ABOUT!   = "Oak standard Package";
 let std::AUTHOR!  = "Jordan Dehmel";
 let std::EMAIL!   = "jdehmel@outlook.com";
 
-// The most important entry! This is the file that is *parsed*
-// when `acorn -S NAME` is called. This can contain compile-time
-// system calls that prepare your package in-place for
-// installation.
+// The most important entry: This is required for every package
+let std::VERSION! = "0.0.1";
+
+// The second most important entry! This is the file that is
+// *parsed* (but not compiled or run) when `acorn -S NAME` is
+// called. This can contain compile-time system calls that
+// prepare your package in-place for installation.
 let std::INSTALL! = "std/install.oak";
 
 let std::LICENSE! = "MIT";
 let std::SOURCE!  = "github.com/jorbDehmel";
-let std::VERSION! = oak::VERSION!;
 let std::YEAR!    = "2025";
 ```
 
 Once installed, packages live in `/usr/include/oak/`, which is
 marked with permissions `777` so that macros can compile.
+Packages are symlinked according to their version (just like
+`C` library files). The package name `foo.1.2.3` is to be read
+`foo` version `1.2.3`: Indeed, any characters after the first
+`.` are ignored when parsing a package name.
+
+If we had `foo.1.2.3` and `foo.2.0.1` installed, the following
+would all be valid include paths.
+
+```
+foo.1.2.3 (directory)
+foo.2.0.1 (directory)
+foo.1.2   -> foo.1.2.3
+foo.1     -> foo.1.2.3
+foo.2.0   -> foo.2.0.1
+foo.2     -> foo.2.0.1
+foo       -> foo
+```
+
+So `include!("foo/foo.oak");` would refer to
+`/usr/include/oak/foo.2.0.1/foo.oak`, whereas
+`include!("foo.1.2/foo.oak");` would refer to
+`/usr/include/oak/foo.1.2.3/foo.oak`. This allows some
+integrated dependency version control.
+
+## Test Suites
+
+An `Oak` test suite is any directory called `tests` containing
+zero or more `*.oak` files. These files will be compiled and
+optionally run by `acorn` when in testing mode. The following
+table highlights the different options for testing mode.
+
+ Flag(s) | Meaning
+---------|------------------------------------------------------
+ `-T`    | Compile all tests, even if some fail
+ `-TT`   | Compile tests until one fails
+ `-TE`   | Compile and run all tests, even if some fail
+ `-TTE`  | Compile and run tests until a compilation fails
+ `-TEE`  | Compile and run tests until an execution fails
+ `-TTEE` | Compile and run tests until any failure occurs
+
+When in testing mode, any non-flag command line inputs will be
+treated as folders to search for `tests` directories in. For
+instance, `acorn -TTE foo fizz buzz` will compile and run all
+tests from `./foo/tests/`, `./fizz/tests/`, and `./buzz/tests/`
+until a compilation fails (ignoring runtime failures).
 
 # Part 2: Maintainer Manual
 

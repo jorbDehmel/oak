@@ -24,8 +24,8 @@ let String: struct {
 
 let New(self: ^String) -> void;
 let Del(self: ^String) -> void;
-let Copy(self: ^String, other: String) -> String;
-let Copy(self: ^String, other: []i8) -> String;
+let Copy(self: ^String, other: String) -> ^String;
+let Copy(self: ^String, other: []i8) -> ^String;
 let Get(self: ^String, i: uint) -> i8;
 let Add(lhs: String, rhs: String) -> String;
 let Eq(lhs: String, rhs: String) -> bool;
@@ -50,21 +50,26 @@ let Del(self: ^String) -> void {
   }
 }
 
-let Copy(self: ^String, other: String) -> String {
+let Copy(self: ^String, other: String) -> ^String {
   reserve(self, other.__size);
   strcpy(self.__c_str, other.__c_str);
+  self.__size = other.__size;
+  Get(self.__c_str, self.__size) = 0i8;
   return self;
 }
 
-let Copy(self: ^String, other: []i8) -> String {
-  reserve(self, strlen(other));
+let Copy(self: ^String, other: []i8) -> ^String {
+  self.__size = strlen(other);
+  reserve(self, self.__size);
   strcpy(self.__c_str, other);
+  Get(self.__c_str, self.__size) = 0i8;
   return self;
 }
 
-let Copy(self: ^String, c: i8) -> String {
+let Copy(self: ^String, c: i8) -> ^String {
   reserve(self, 1uint);
   Get(self.__c_str, 0uint) = c;
+  Get(self.__c_str, self.__size) = 0i8;
   return self;
 }
 
@@ -78,14 +83,23 @@ let Get(self: ^String, i: uint) -> i8 {
 let Add(lhs: String, rhs: String) -> String {
   let out: String;
   reserve(out, lhs.__size + rhs.__size);
-  out = lhs;
+  let i: uint;
+  i = 0uint;
 
-  let offset: []i8;
-  c!(
-    "offset = out.__c_str + out.__size;"
-  );
+  while (i < lhs.__size) {
+    Get(out.__c_str, out.__size) = Get(lhs.__c_str, i);
+    ++out.__size;
+    ++i;
+  }
 
-  strcpy(offset, rhs.__c_str);
+  i = 0uint;
+  while (i < rhs.__size) {
+    Get(out.__c_str, out.__size) = Get(rhs.__c_str, i);
+    ++out.__size;
+    ++i;
+  }
+
+  return out;
 }
 
 let Eq(lhs: String, rhs: String) -> bool {
@@ -108,7 +122,7 @@ let reserve(self: ^String, size: uint) -> void {
 }
 
 let print(what: String) -> void {
-  if (what.__size >= 0uint) {
+  if (what.__size > 0uint) {
     print(what.__c_str);
   }
 }

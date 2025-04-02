@@ -1,7 +1,7 @@
 /**
  * @file
- * @brief Defines the Lexer class, which strings into token
- * streams
+ * @brief Defines the Lexer class, which breaks strings into
+ * token streams
  */
 
 #pragma once
@@ -11,6 +11,7 @@
 #include <filesystem>
 #include <list>
 #include <optional>
+#include <set>
 #include <string>
 
 /**
@@ -18,6 +19,19 @@
  */
 class Lexer {
 public:
+  /// Statics for lexing
+
+  /// Whitespace characters for lexing
+  const static std::set<char> whitespace;
+
+  /// Conjoinable operator characters for lexing
+  const static std::set<char> operators;
+
+  /// Operator characters which are always alone (or at least
+  /// have to be handled by an addition pass, e.g. >>) for
+  /// lexing
+  const static std::set<char> singleton_operators;
+
   /**
    * @struct Lexer::Token
    * @brief A single token in a token stream
@@ -93,4 +107,17 @@ public:
    * @param _t The possible literal to examine.
    */
   static std::optional<Type> get_literal_type(Token &_t);
+
+  /**
+   * @brief Set `_t.type` according to its contents. If it
+   * already has a type, overwrites it.
+   * @param _t The type to reclassify
+   */
+  static void classify_type(Token &_t);
+
+  /// Transmute a series of strings to tokens
+  static std::list<Lexer::Token>
+  tokify(const std::list<std::string> &_what,
+         const std::filesystem::path &_where,
+         const uint64_t &_line, const uint64_t &_col);
 };

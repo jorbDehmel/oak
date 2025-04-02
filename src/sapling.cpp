@@ -9,29 +9,21 @@
 #include "debug.hpp"
 #include "lexer.hpp"
 #include <cstdint>
-#include <set>
+// #include <iostream>
 #include <stdexcept>
 
 /**
  * @struct CompiledRule
- * @brief The processed version of a Sapling rule. This contains
- * the lexed versions of the input and output rules.
+ * @brief The processed version of a Sapling rule. This
+ * contains the lexed versions of the input and output
+ * rules.
  */
 struct CompiledRule {
-  /// Starting node
-  sapling::State q0;
-
-  /// Ending nodes
-  std::set<sapling::State> acceptance_states;
-
-  /// The thing that is actually traversed in pass 1
-  std::map<sapling::State,
-           std::list<std::pair<std::string, sapling::State>>>
-      delta;
-
-  /// The broken-apart input rule for pass 2: Maps states to
-  /// their instructions
-  std::map<sapling::State, std::list<std::string>> scripting;
+  /// The broken-apart input rule for pass 1/2. The first entry
+  /// is the rule token, while the second item is a list of
+  /// pass 2 instructions to parse when ENTERING this node.
+  std::vector<std::pair<std::string, std::list<std::string>>>
+      lexed_in;
 
   /// The broken-apart output rule for pass 3
   std::vector<std::string> lexed_out;
@@ -43,39 +35,60 @@ CompiledRule compile(const Rule &_from) {
 
   CompiledRule out;
 
-  // Lex
+  // Break a string along spaces
   const static auto split_on_spaces =
-      [](const std::string &_text) -> std::vector<std::string> {
-    std::string cur;
-    std::vector<std::string> out;
-    for (const char &c : _text) {
-      if (c == ' ') {
+      [](const std::string &_text) {
+        std::string cur;
+        std::vector<std::string> out;
+        for (const char &c : _text) {
+          if (c == ' ') {
+            if (!cur.empty()) {
+              out.push_back(cur);
+              cur.clear();
+            }
+          } else {
+            cur.push_back(c);
+          }
+        }
         if (!cur.empty()) {
           out.push_back(cur);
-          cur.clear();
         }
-      } else {
-        cur.push_back(c);
-      }
-    }
-    if (!cur.empty()) {
-      out.push_back(cur);
-    }
-    return out;
-  };
-  const auto original_lexed_input =
-      split_on_spaces(_from.input_pattern);
+        return out;
+      };
+
+  // Parse a space-broken stream into input pattern
+  const static auto break_input_pattern =
+      [](const std::vector<std::string> &_in) {
+        std::vector<
+            std::pair<std::string, std::list<std::string>>>
+            out;
+
+        for (auto it = _in.begin(); it != _in.end(); ++it) {
+          std::list<std::string> instrs;
+          while (it->starts_with("$~") ||
+                 it->starts_with("$>")) {
+            instrs.push_back(*it);
+            ++it;
+          }
+
+          out.push_back({*it, instrs});
+        }
+
+        return out;
+      };
+
+  out.lexed_in =
+      break_input_pattern(split_on_spaces(_from.input_pattern));
+
+  // for (const auto &p : out.lexed_in) {
+  //   std::cout << p.first << '\t';
+  //   for (const auto &i : p.second) {
+  //     std::cout << i << ' ';
+  //   }
+  //   std::cout << '\n';
+  // }
+
   out.lexed_out = split_on_spaces(_from.output_pattern);
-  out.q0 = 0;
-
-  // Compile to DFA
-  throw std::runtime_error("UNIMPLEMENTED");
-
-  // Need to take care of these:
-  // out.delta;
-  // out.scripting;
-  // out.acceptance_states;
-
   return out;
 }
 
@@ -93,14 +106,13 @@ const CompiledRule &fetch(const Rule &_from) {
 
 sapling::State sapling::start_rule(const Rule &_rule) {
   debug_print();
-  const CompiledRule &r = fetch(_rule);
-  return r.q0;
+  return 0;
 }
 
 bool sapling::is_match(const Rule &_rule, const State &_state) {
   debug_print();
   const CompiledRule &r = fetch(_rule);
-  return r.acceptance_states.contains(_state);
+  return _state >= r.lexed_in.size();
 }
 
 sapling::State
@@ -109,38 +121,23 @@ sapling::state_transition(const Rule &_rule,
                           const Lexer::Token &_current_input) {
   debug_print();
   const CompiledRule &r = fetch(_rule);
+  const auto thing_to_match =
+      r.lexed_in.at(_current_state).first;
 
-  if (r.delta.contains(_current_state)) {
-    // Literal check
-    for (const auto &p : r.delta.at(_current_state)) {
-      if (_current_input == p.first) {
-        return p.second;
-      }
+  if (thing_to_match.starts_with('$')) {
+    if (thing_to_match == "$.") {
+      // Single wildcard: Unconditionally advance
+      return _current_state + 1;
     }
 
-    // Pattern checks
-    for (const auto &p : r.delta.at(_current_state)) {
-      if (p.first == "$/${ID}/" &&
-          _current_input.type == "ID") {
-        return p.second;
-      } else if (p.first == "$/${OPERATOR}/" &&
-                 _current_input.type == "OPERATOR") {
-        return p.second;
-      } else if (p.first == "$/${STRING}/" &&
-                 _current_input.type == "STRING") {
-        return p.second;
-      } else if (p.first == "$/${NUMBER}/" &&
-                 _current_input.type == "NUMBER") {
-        return p.second;
-      } else if (p.first.starts_with("$/")) {
-        throw std::runtime_error(
-            "RegEx Sapling cards are unimplemented");
-      }
-    }
+    throw std::runtime_error(__FUNCTION__ + thing_to_match);
+  } else if (_current_input == thing_to_match) {
+    // Literal
+    return _current_state + 1;
   }
 
   // Nothing matched
-  return r.q0;
+  return 0;
 }
 
 std::list<Lexer::Token>
@@ -152,12 +149,12 @@ sapling::on_match(const Rule &_rule,
   // Pass 2: Rerun match, gather captured data
   std::map<std::string, std::list<std::string>> variables;
   std::list<std::string> memory;
-  sapling::State state = r.q0;
+  sapling::State state = 0;
 
-  for (const auto &tok : _match_text) {
+  for (auto it = _match_text.begin(); it != _match_text.end();
+       ++it) {
     // Process capture instructions
-    memory.push_back(tok);
-    for (const auto &instr : r.scripting.at(state)) {
+    for (const auto &instr : r.lexed_in.at(state).second) {
       if (instr == "$~") {
         memory.clear();
       } else if (instr.starts_with("$~")) {
@@ -168,11 +165,15 @@ sapling::on_match(const Rule &_rule,
         for (const auto &m : memory) {
           variables[var].push_back(m);
         }
+      } else {
+        throw std::runtime_error(
+            "Unknown input rule instruction '" + instr + "'");
       }
     }
 
     // Go to next state
-    state = state_transition(_rule, state, tok);
+    memory.push_back(*it);
+    state = state_transition(_rule, state, *it);
   }
 
   // Pass 3: Reconstruct
@@ -198,6 +199,9 @@ sapling::on_match(const Rule &_rule,
     } else if (t == "$<") {
       // Merge tokens
       merge = true;
+    } else if (t.front() == '$') {
+      throw std::runtime_error("Output rule variable '" + t +
+                               "' does not exist.");
     } else {
       if (merge) {
         if (to_lex.empty()) {

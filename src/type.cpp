@@ -388,11 +388,17 @@ bool Type::exact_match(const Type &_other) const {
   auto theirs = _other.nodes.begin();
   while (mine != nodes.end() && theirs != _other.nodes.end()) {
     if (mine->type != theirs->type) {
-      return false;
+      if (!(mine->type == TypeNode::SIZED_ARRAY &&
+            theirs->type == TypeNode::UNSIZED_ARRAY) &&
+          !(mine->type == TypeNode::UNSIZED_ARRAY &&
+            theirs->type == TypeNode::SIZED_ARRAY)) {
+        return false;
+      }
     } else if (mine->type == TypeNode::LITERAL &&
                mine->literal_name != theirs->literal_name) {
       return false;
     } else if (mine->type == TypeNode::SIZED_ARRAY &&
+               theirs->type == TypeNode::SIZED_ARRAY &&
                mine->sized_array_size !=
                    theirs->sized_array_size) {
       return false;
@@ -422,7 +428,12 @@ bool Type::cast_match(const Type &_other) const {
   auto theirs = _other.nodes.begin();
   while (mine != nodes.end() && theirs != _other.nodes.end()) {
     if (mine->type != theirs->type) {
-      return false;
+      if (!(mine->type == TypeNode::SIZED_ARRAY &&
+            theirs->type == TypeNode::UNSIZED_ARRAY) &&
+          !(mine->type == TypeNode::UNSIZED_ARRAY &&
+            theirs->type == TypeNode::SIZED_ARRAY)) {
+        return false;
+      }
     } else if (mine->type == TypeNode::LITERAL &&
                mine->literal_name != theirs->literal_name) {
 
@@ -452,6 +463,7 @@ bool Type::cast_match(const Type &_other) const {
         return false;
       }
     } else if (mine->type == TypeNode::SIZED_ARRAY &&
+               theirs->type == TypeNode::SIZED_ARRAY &&
                mine->sized_array_size !=
                    theirs->sized_array_size) {
       return false;
