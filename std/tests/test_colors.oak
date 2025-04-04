@@ -1,0 +1,23 @@
+/*
+Tests ANSI escape coloring
+*/
+
+include!("std/io.oak", "std/colors.oak");
+
+let main() -> i32 {
+  print(colors::fg_red!);
+  print("Hello, world!\n");
+  print(colors::fg_yellow!);
+  print("Hello, world!\n");
+  print(colors::fg_green!);
+  print("Hello, world!\n");
+  print(colors::fg_blue!);
+  print("Hello, world!\n");
+  print(colors::fg_magenta!);
+  print("Hello, world!\n");
+  print(colors::fg_cyan!);
+  print("Hello, world!\n");
+  print(colors::reset!);
+
+  return 0i32;
+}

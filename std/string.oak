@@ -7,8 +7,10 @@ include!(
   "std/operators.oak",
   "std/io.oak",
   "std/panic.oak",
-  "std/c_str.oak"
+  "std/c_str.oak",
+  "std/rules.oak"
 );
+rule::use!("std");
 
 ////////////////////////////////////////////////////////////////
 // Struct definition

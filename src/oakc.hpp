@@ -16,7 +16,7 @@
 #include <stdexcept>
 #include <string>
 
-const static std::string ACORN_VERSION = "0.8.0";
+const static std::string ACORN_VERSION = "1.0.0";
 
 /**
  * @class OakCompiler
@@ -25,6 +25,19 @@ const static std::string ACORN_VERSION = "0.8.0";
  */
 class OakCompiler {
 public:
+  /**
+   * @brief Given a requested path, return the actual path to
+   * (possibly) visit
+   * @param _requested The raw path: EG "std/io.oak"
+   * @param _cur_file The file which is requesting to resolve
+   * the path. This is where all local paths will be from
+   * @returns The canonical (fully qualified and standardized)
+   * path to visit: Might be local, might be global.
+   */
+  std::filesystem::path
+  resolve_path(const std::string &_requested,
+               const std::filesystem::path &_cur_file);
+
   /**
    * @class RunError
    * @brief Thrown when we try and fail to run. If the caught
@@ -91,6 +104,11 @@ public:
    */
   void operator()();
 
+  /**
+   * @brief Preprocess until a fixed point is reached
+   */
+  uint64_t preprocess(std::list<Lexer::Token> &_token_stream);
+
 protected:
   /**
    * @brief Do an entire translation unit according to the
@@ -110,8 +128,8 @@ protected:
    * is called by do_compilation, and should not be called
    * outside of it!
    */
-  void do_file(const std::filesystem::path &_path,
-               Settings &_settings);
+  void do_file(const std::string &_path,
+               const std::filesystem::path &_cur_file);
 
   /**
    * @brief Runs in testing mode
@@ -125,12 +143,6 @@ protected:
                     const std::string &_text) const;
 
   /**
-   * @brief Preprocess until a fixed point is reached
-   */
-  uint64_t preprocess(std::list<Lexer::Token> &_token_stream,
-                      Settings::CompileSettings &_csettings);
-
-  /**
    * @brief Load a given dialect file and apply it
    */
   void load_dialect_file(const std::filesystem::path &_file);
@@ -139,7 +151,5 @@ protected:
    * @brief Write the parsed information to the given stream in
    * C format.
    */
-  void
-  translate(std::ostream &_into,
-            const Settings::CompileSettings &_csettings) const;
+  void translate(std::ostream &_into);
 };

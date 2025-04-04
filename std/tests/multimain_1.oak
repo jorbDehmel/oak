@@ -1,0 +1,18 @@
+/*
+Multiple main fns, part 1
+*/
+
+include!("std/std.oak");
+include!("multimain_2.oak");
+
+let b() -> void;
+let a() -> void {
+  print("Hello from a\n");
+}
+
+let main() -> i32 {
+  a();
+  b();
+
+  return 0i32;
+}

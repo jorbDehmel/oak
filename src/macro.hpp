@@ -12,6 +12,9 @@
 #include <set>
 #include <variant>
 
+/// Forward definition to avoid loop inclusion
+class OakCompiler;
+
 /**
  * @class MacroManager
  * @brief Manages the registration and substitution of macros
@@ -29,21 +32,25 @@ public:
    * @param _it The current position in the iterand
    * @param _end The end of the iterand
    * @param _csettings Settings for debugging
+   * @param _oakc The compiler to be used for recursive
+   * preprocessing
    */
   void replace(std::list<Lexer::Token> &_whole,
                std::list<Lexer::Token>::iterator &_it,
                const std::list<Lexer::Token>::iterator &_end,
-               const Settings &_csettings) const;
+               const Settings &_csettings,
+               OakCompiler &_oakc) const;
 
-  /// Erases AND STRIPS QUOTES OFF OF a macro occurrence's
-  /// args. Then returns those args.
-  static std::list<Lexer::Token>
+  /// Erases and returns a macro occurrence's args.
+  static std::list<std::list<Lexer::Token>>
   get_macro_args(std::list<Lexer::Token> &_whole,
                  std::list<Lexer::Token>::iterator &_it,
                  const std::list<Lexer::Token>::iterator &_end);
 
   /// STRIPS QUOTES OFF OF a macro occurrence's
-  /// args. Then returns those args WITHOUT ERASURE.
+  /// args. Then returns those args WITHOUT ERASURE and WITHOUT
+  /// recursion! This should only be used after all
+  /// preprocessing!
   static std::list<Lexer::Token> get_macro_args(
       const std::list<Lexer::Token>::const_iterator &_beg,
       const std::list<Lexer::Token>::const_iterator &_end);
@@ -77,7 +84,6 @@ public:
       std::list<Lexer::Token>::iterator &_it,
       const std::list<Lexer::Token>::iterator &_end);
 
-protected:
   /**
    * @struct MacroManager::Alias
    * @brief Holds information pertaining to inline/alias macros

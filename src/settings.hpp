@@ -5,12 +5,14 @@
 
 #pragma once
 
+#include "type.hpp"
 #include <filesystem>
 #include <list>
 #include <map>
 #include <optional>
 #include <ostream>
 #include <set>
+#include <stdexcept>
 #include <variant>
 
 /**
@@ -43,6 +45,10 @@ public:
     /// The max number of preprocessor passes to apply before
     /// erroring
     uint preprocess_pass_limit = 0x10'00;
+
+    /// The current return type (default void) for fn-parsing
+    /// type checking. Must be an exact match.
+    Type cur_return_type = Type({"void"});
 
     /// If true, allows unmonitored use of the
     /// compile_time::system! macro
@@ -202,6 +208,32 @@ public:
   inline bool is_compile() const noexcept {
     return std::holds_alternative<CompileSettings>(internal);
   }
+
+  /// How to handle warnings
+  enum {
+    NO_WARNINGS,     // Silence all warnings
+    NORMAL_WARNINGS, // Print all warnings
+    ERROR_WARNINGS,  // Warnings as errors
+  } warning_mode = NORMAL_WARNINGS;
+
+  /// Raise a warning according to our warning mode. The text
+  /// under normal circumstances will be "Warning: _msg"
+  inline void warn(const std::string &_msg) const {
+    switch (warning_mode) {
+    case NO_WARNINGS:
+      break;
+    case NORMAL_WARNINGS:
+      ostream << "Warning: " << _msg << '\n';
+      break;
+    case ERROR_WARNINGS:
+      throw std::runtime_error("Warning: " + _msg +
+                               " (treated as error)\n");
+      break;
+    }
+  }
+
+  /// If true, time whatever procedure is done
+  bool do_time = false;
 
 protected:
   /// The underlying variant of the settings

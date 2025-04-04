@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <functional>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <variant>
@@ -55,10 +56,9 @@ is_valid_struct_name(const std::string &_name) noexcept {
   for (; i < end; ++i) {
     // A single uppercase
     if (std::isupper(_name[i])) {
-      ++i;
-
       // Followed by zero or more non-uppercase
-      while (i < _name.size() && !std::isupper(_name.at(i))) {
+      while (i + 1 < _name.size() &&
+             !std::isupper(_name[i + 1])) {
         ++i;
       }
     } else {
@@ -143,6 +143,14 @@ void Parser::parse_global(
           // Zero or more comma-separated generics
           do {
             incr(pos, end);
+            if (!is_valid_struct_name(*pos)) {
+              _settings.warn(
+                  "Generic '" + pos->text + "' at " +
+                  pos->file.string() + ":" +
+                  std::to_string(pos->line) + "." +
+                  std::to_string(pos->col) +
+                  " does not appear to be camelcase");
+            }
             generics.push_back(*pos);
             incr(pos, end);
           } while (*pos == ",");
@@ -295,6 +303,7 @@ void Parser::parse_global(
                           << pos->text
                           << " Compile-time error:\n";
 
+        // Note: This is after all preprocessing
         const auto args =
             MacroManager::get_macro_args(pos, end);
         std::string msg;
@@ -304,11 +313,30 @@ void Parser::parse_global(
         _settings.ostream << msg << '\n';
         throw std::runtime_error(msg);
       } else if (*pos == "compile_time_warning!") {
+        std::stringstream msg_strm;
+        msg_strm << pos->file.string() << ":" << pos->line
+                 << "." << pos->col << ">" << pos->text
+                 << " Compile-time warning:\n";
+
+        // Note: This is after all preprocessing
+        const auto args =
+            MacroManager::get_macro_args(pos, end);
+        for (const auto &arg : args) {
+          msg_strm << arg.text << " ";
+        }
+        msg_strm << '\n';
+        _settings.warn(msg_strm.str());
+
+        while (*pos != ";") {
+          incr(pos, end);
+        }
+      } else if (*pos == "compile_time_print!") {
         _settings.ostream << pos->file.string() << ":"
                           << pos->line << "." << pos->col << ">"
                           << pos->text
-                          << " Compile-time warning:\n";
+                          << " Compile-time print:\n";
 
+        // Note: This is after all preprocessing
         const auto args =
             MacroManager::get_macro_args(pos, end);
         std::string msg;
@@ -552,15 +580,24 @@ void Parser::reconstruct(std::ostream &_where,
       if (info.tags.contains("casual") &&
           info.tags.at("casual") == "true") {
         continue;
-      } else if (info.n.node_type == Node::STMT &&
-                 info.n.children.empty()) {
-        continue;
       } else if (info.tags.contains("autogen") &&
                  info.tags.at("autogen") == "true") {
         _where << "// autogen\n";
       }
-      _where << info.t.c_repr(name, name == "main");
-      reconstruct_node(info.n);
+
+      if (name == "main") {
+        if (info.tags.at("file") == _csettings.entry_point) {
+          _where << info.t.c_repr(name, true);
+          _where << "{";
+          reconstruct_node(info.n);
+          _where << ";}\n";
+        }
+      } else {
+        _where << info.t.c_repr(name, false);
+        _where << "{";
+        reconstruct_node(info.n);
+        _where << ";}\n";
+      }
     }
   }
 }
@@ -700,7 +737,14 @@ void Parser::parse_function(
 
     locals.push_back(arg_map);
 
+    const auto backup =
+        _settings.compile_settings().cur_return_type;
+    _settings.compile_settings().cur_return_type =
+        t.fn_return_type();
+
     to_add.n = parse_statement(_cur_pos, _end, _settings);
+
+    _settings.compile_settings().cur_return_type = backup;
 
     // Pop stack frame WITHOUT CALLING ARGUMENT DESTRUCTORS
     locals.pop_back();
@@ -1046,8 +1090,8 @@ void Parser::parse_struct(
                                existing_type_str + " '" + name +
                                "' w/ struct of same name");
     } else if (!is_valid_struct_name(name)) {
-      _settings.ostream << "Warning: Struct name \"" << name
-                        << "\" does not seem to be camelcase\n";
+      _settings.warn("Struct name \"" + name +
+                     "\" does not seem to be camelcase");
     }
 
     globals[name] = to_add;
@@ -1165,8 +1209,8 @@ void Parser::parse_enum(
                                existing_type_str + " '" + name +
                                "' w/ enum of same name");
     } else if (!is_valid_struct_name(name)) {
-      _settings.ostream << "Warning: Enum name \"" << name
-                        << "\" does not seem to be camelcase\n";
+      _settings.warn("Enum name \"" + name +
+                     "\" does not seem to be camelcase");
     }
 
     globals[name] = to_add;
@@ -1236,11 +1280,9 @@ void Parser::parse_enum(
 
     // Create destructor
     // NOTE: Enum destructors are not overridable
-    // clang-format off
-    std::string to_lex =
-      "(self: ^" + name + ") -> void {\n"
-      "match (self) {\n";
-    // clang-format on
+    std::string to_lex = "(self: ^" + name +
+                         ") -> void {\n"
+                         "match (self) {\n";
 
     for (const auto &option : to_add.option_order) {
       to_lex +=
@@ -1269,7 +1311,7 @@ void Parser::parse_enum(
 Node Parser::parse_statement(
     std::list<Lexer::Token>::const_iterator &_cur_pos,
     const std::list<Lexer::Token>::const_iterator &_end,
-    Settings &_settings) {
+    Settings &_settings, const Type &_return_type) {
   debug_print();
   // A statement can be a function call, a (possibly compound)
   // if statement, a match statement, nothing, a variable
@@ -1528,6 +1570,26 @@ Node Parser::parse_statement(
     incr(_cur_pos, _end);
     if (*_cur_pos != ";") {
       out.children = {parse_object(_cur_pos, _end, _settings)};
+
+      if (!_settings.compile_settings()
+               .cur_return_type.exact_match(
+                   out.children.front().type.value())) {
+        throw std::runtime_error(
+            "Invalid return type '" +
+            out.children.front().type.value().oak_repr() +
+            "' for fn w/ return "
+            "type '" +
+            _settings.compile_settings()
+                .cur_return_type.oak_repr() +
+            "'");
+      }
+    } else if (!_settings.compile_settings()
+                    .cur_return_type.exact_match({"void"})) {
+      throw std::runtime_error(
+          "Invalid return type 'void' for fn w/ return type '" +
+          _settings.compile_settings()
+              .cur_return_type.oak_repr() +
+          "'");
     }
     return out;
   } else {

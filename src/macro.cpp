@@ -29,7 +29,10 @@ const std::set<std::string> MacroManager::reserved_macro_names =
      "alloc!",
      "free!",
      "compile_time_error!",
-     "compile_time_warning!"};
+     "compile_time_warning!",
+     "compile_time_print!",
+     "str!",
+     "unstr!"};
 
 /**
  * @brief Runs a command, asserts it succeeded, and captures its
@@ -114,7 +117,7 @@ void MacroManager::replace(
     std::list<Lexer::Token> &_whole,
     std::list<Lexer::Token>::iterator &_it,
     const std::list<Lexer::Token>::iterator &_end,
-    const Settings &_csettings) const {
+    const Settings &_csettings, OakCompiler &_oakc) const {
   debug_print();
 
   const auto name_tok = *_it;
@@ -190,9 +193,17 @@ void MacroManager::replace(
 
     // Prepare call
     std::string command = exe;
-    for (const auto &arg : args) {
+    for (auto &arg : args) {
+      _oakc.preprocess(arg);
+      std::string arg_text;
+      for (const auto &tok : arg) {
+        if (!arg_text.empty()) {
+          arg_text.push_back(' ');
+        }
+        arg_text += tok;
+      }
       command +=
-          " " + MacroManager::make_string_literal(arg.text);
+          " " + MacroManager::make_string_literal(arg_text);
     }
 
     if (_csettings.debug) {
@@ -234,7 +245,7 @@ void MacroManager::replace(
 }
 
 /// STRIPS QUOTES OFF OF a macro occurrence's
-/// args. Then returns those args WITHOUT ERASURE.
+/// args. Then returns those args WITHOUT ERASURE. NO RECURSE
 std::list<Lexer::Token> MacroManager::get_macro_args(
     const std::list<Lexer::Token>::const_iterator &_beg,
     const std::list<Lexer::Token>::const_iterator &_end) {
@@ -281,7 +292,7 @@ std::list<Lexer::Token> MacroManager::get_macro_args(
   return out;
 }
 
-std::list<Lexer::Token> MacroManager::get_macro_args(
+std::list<std::list<Lexer::Token>> MacroManager::get_macro_args(
     std::list<Lexer::Token> &_whole,
     std::list<Lexer::Token>::iterator &_it,
     const std::list<Lexer::Token>::iterator &_end) {
@@ -290,9 +301,9 @@ std::list<Lexer::Token> MacroManager::get_macro_args(
   // Points to name
   const auto range_start = _it;
   uint depth = 0;
-  std::list<Lexer::Token> out;
-  Lexer::Token cur(*_it, "");
-  cur.text.clear();
+
+  std::list<std::list<Lexer::Token>> out;
+  std::list<Lexer::Token> cur;
 
   do {
     ++_it;
@@ -310,18 +321,15 @@ std::list<Lexer::Token> MacroManager::get_macro_args(
     }
 
     if (depth == 1 && *_it == ",") {
-      if (!cur.text.empty()) {
+      if (!cur.empty()) {
         out.push_back(cur);
-        cur = Lexer::Token(*_it, "");
+        cur.clear();
       }
     } else {
-      if (!cur.text.empty()) {
-        cur.text.push_back(' ');
-      }
-      cur.text += _it->text;
+      cur.push_back(*_it);
     }
   } while (_it != _end);
-  if (!cur.text.empty()) {
+  if (!cur.empty()) {
     out.push_back(cur);
   }
 
@@ -403,53 +411,71 @@ void MacroManager::process_definition(
 
     // Write to file
     const std::filesystem::path source_path =
-        _it->file.string() + "." + name + ".macro.oak";
+        _it->file.string() + "." +
+        name.substr(0, name.size() - 1) + ".macro.oak";
     const std::filesystem::path executable_path =
         source_path.string() + ".out";
 
-    std::ofstream f(source_path);
-    uint64_t cur_line = 1;
+    // Skip compilation if possible
+    bool do_compile = true;
+    if (std::filesystem::exists(executable_path)) {
+      const auto src_last_write =
+          std::filesystem::last_write_time(_it->file);
+      const auto exe_last_write =
+          std::filesystem::last_write_time(executable_path);
 
-    for (const auto &item : contents) {
-      if (item.line != cur_line) {
-        f << '\n';
-        cur_line = item.line;
-      } else {
-        f << ' ';
+      if (src_last_write < exe_last_write) {
+        do_compile = false;
       }
-      f << item.text;
-    }
-    f.close();
-
-    // Compile to executable
-    std::stringstream macro_compilation_log;
-    OakCompiler oc(macro_compilation_log);
-    oc.settings.compile_settings().do_syntax_check = false;
-    oc.settings.compile_settings().mode =
-        Settings::CompileSettings::TRANSLATE_COMPILE_AND_LINK;
-    oc.settings.compile_settings().entry_point = source_path;
-    oc.settings.compile_settings().target = executable_path;
-
-    if (oc.settings.debug) {
-      oc.settings.ostream << "Compiling macro '" << name
-                          << "' from " << source_path << " to "
-                          << executable_path << '\n';
     }
 
-    try {
-      oc();
-    } catch (std::runtime_error &e) {
-      std::cerr << "From macro compiler:\n"
-                << macro_compilation_log.str() << '\n';
-      throw std::runtime_error("During compilation of macro '" +
-                               name + "':\n" + e.what());
-    } catch (...) {
-      std::cerr << "From macro compiler:\n"
-                << macro_compilation_log.str() << '\n';
-      db_rethrow();
-      throw std::runtime_error("Unknown error occurred during "
-                               "compilation of macro '" +
-                               name + "'");
+    if (do_compile) {
+      std::ofstream f(source_path);
+      uint64_t cur_line = 1;
+
+      for (const auto &item : contents) {
+        if (item.line != cur_line) {
+          f << '\n';
+          cur_line = item.line;
+        } else {
+          f << ' ';
+        }
+        f << item.text;
+      }
+      f.close();
+
+      // Compile to executable
+      std::stringstream macro_compilation_log;
+      OakCompiler oc(macro_compilation_log);
+      oc.settings.compile_settings().do_syntax_check = false;
+      oc.settings.compile_settings().mode =
+          Settings::CompileSettings::TRANSLATE_COMPILE_AND_LINK;
+      oc.settings.compile_settings().entry_point = source_path;
+      oc.settings.compile_settings().target = executable_path;
+
+      if (oc.settings.debug) {
+        oc.settings.ostream
+            << "Compiling macro '" << name << "' from "
+            << source_path << " to " << executable_path << '\n';
+      }
+
+      try {
+        oc();
+      } catch (std::runtime_error &e) {
+        std::cerr << "From macro compiler:\n"
+                  << macro_compilation_log.str() << '\n';
+        throw std::runtime_error(
+            "During compilation of macro '" + name + "':\n" +
+            e.what());
+      } catch (...) {
+        std::cerr << "From macro compiler:\n"
+                  << macro_compilation_log.str() << '\n';
+        db_rethrow();
+        throw std::runtime_error(
+            "Unknown error occurred during "
+            "compilation of macro '" +
+            name + "'");
+      }
     }
 
     // Save executable

@@ -19,3 +19,18 @@ let tan(rad: f64) -> f64;
 let sinh(x: f64) -> f64;
 let cosh(x: f64) -> f64;
 let tanh(x: f64) -> f64;
+
+let log(x: f64) -> f64;
+let log2(x: f64) -> f64;
+let log10(x: f64) -> f64;
+let cbrt(x: f64) -> f64;
+let hypot(a: f64, b: f64) -> f64;
+
+let ceil(x: f64) -> f64;
+let floor(x: f64) -> f64;
+let round(x: f64) -> f64;
+let round(x: f64, decimal_places: uint) -> f64;
+
+let min(l: f64, r: f64) -> f64;
+let max(l: f64, r: f64) -> f64;
+let abs(x: f64) -> f64;

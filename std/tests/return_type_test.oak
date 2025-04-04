@@ -1,0 +1,9 @@
+/*
+Ensure we don't allow invalid return types
+*/
+
+pragma!("compile_should_fail", "true");
+pragma!("no_run");
+include!("std/std.oak");
+
+let main() -> i32 return 2.34f64;

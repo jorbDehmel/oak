@@ -23,12 +23,12 @@ install: check
 	@echo "Compiling and installing acorn..."
 	$(MAKE) -C src $@
 
-	@echo "Installing default Oak libraries..."
-	acorn -yS ./std
-
 	@echo "Chowning /usr/include/oak..."
 	sudo mkdir -p /usr/include/oak
 	sudo chmod 777 /usr/include/oak
+
+	@echo "Installing default Oak libraries..."
+	acorn -yS ./std
 
 .PHONY:	install-debug
 install-debug: check

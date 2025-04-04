@@ -4,8 +4,8 @@ A basic test of templates in oak
 
 include!("std/std.oak");
 
-let println<t>(what: t) -> void {
-  print(t);
+let println<T>(what: T) -> void {
+  print(what);
   endl();
 }
 

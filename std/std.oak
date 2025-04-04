@@ -12,5 +12,6 @@ include!(
   "std/random.oak",
   "std/system.oak",
   "std/operators.oak",
-  "std/casts.oak"
+  "std/casts.oak",
+  "std/rules.oak"
 );

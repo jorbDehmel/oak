@@ -1,0 +1,11 @@
+/*
+Tests str! and unstr!
+*/
+
+include!("std/std.oak");
+
+let main() -> i32 {
+  unstr!("print(\"Hello, world!\");");
+
+  return 0i32;
+}

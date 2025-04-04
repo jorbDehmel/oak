@@ -3,14 +3,15 @@
  */
 
 #include "debug.hpp"
-#include "package.hpp"
-static_assert(__cplusplus >= 2020'00ULL);
-
 #include "oakc.hpp"
+#include "package.hpp"
+#include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
+
+static_assert(__cplusplus >= 2020'00ULL);
 
 /**
  * @brief Parses CLI args into usable settings
@@ -90,6 +91,11 @@ bool parse_args(const int _c, const char *const _v[],
       else if (arg == "--help") {
         _oakc.print_help_text();
         return false;
+      }
+
+      // Ignore errors
+      else if (arg == "--no_warn") {
+        _oakc.settings.warning_mode = Settings::NO_WARNINGS;
       }
 
       // Translate, compile, and link
@@ -202,6 +208,11 @@ bool parse_args(const int _c, const char *const _v[],
         }
       }
 
+      // Toggle timer
+      else if (arg == "--time") {
+        _oakc.settings.do_time = !_oakc.settings.do_time;
+      }
+
       // Save dump file
       else if (arg == "--dump") {
         if (_oakc.settings.compile_settings()
@@ -240,6 +251,11 @@ bool parse_args(const int _c, const char *const _v[],
               "'" + arg + "' must be followed by an argument");
         }
         _oakc.new_package(_v[++i]);
+      }
+
+      // Warnings to errors
+      else if (arg == "--werror") {
+        _oakc.settings.warning_mode = Settings::ERROR_WARNINGS;
       }
 
       // Toggle syntax checking
@@ -311,11 +327,15 @@ bool parse_args(const int _c, const char *const _v[],
         case 'h': // Help
           _oakc.print_help_text();
           return false;
+        case 'I': // Ignore warnings
+          _oakc.settings.warning_mode = Settings::NO_WARNINGS;
+          break;
         case 'l': // Translate, compile, and link
           _oakc.settings.compile_settings().mode = Settings::
               CompileSettings::TRANSLATE_COMPILE_AND_LINK;
           break;
-        case 'M': // Used for macro compilation
+        case 'm': // Timer
+          _oakc.settings.do_time = !_oakc.settings.do_time;
           break;
         case 'n': // Produce nothing: Just error checking
           _oakc.settings.compile_settings().mode =
@@ -413,6 +433,10 @@ bool parse_args(const int _c, const char *const _v[],
           }
           _oakc.new_package(_v[++i]);
           break;
+        case 'W': // Warnings to errors
+          _oakc.settings.warning_mode =
+              Settings::ERROR_WARNINGS;
+          break;
         case 'x': // Ignore syntax errors
           _oakc.settings.compile_settings().do_syntax_check =
               !_oakc.settings.compile_settings()
@@ -438,7 +462,7 @@ bool parse_args(const int _c, const char *const _v[],
         default:
           throw std::runtime_error(
               "Unknown abbreviated flag '" +
-              std::to_string(flag) + "'");
+              std::string({flag}) + "'");
           break;
         }
       }
@@ -486,16 +510,32 @@ int main(int _c, char *_v[]) {
   }
 
   // Compile with collected settings
+  int exit_code = 0;
+  std::chrono::high_resolution_clock::time_point a, b;
+  if (oakc.settings.do_time) {
+    a = std::chrono::high_resolution_clock::now();
+  }
+
   try {
     oakc();
   } catch (std::runtime_error &e) {
     std::cerr << "Compiler error:\n" << e.what() << '\n';
-    return 2;
+    exit_code = 2;
   } catch (...) {
     db_rethrow();
     std::cerr << "An unknown compiler error occurred.\n";
-    return 3;
+    exit_code = 3;
   }
 
-  return 0;
+  if (oakc.settings.do_time) {
+    b = std::chrono::high_resolution_clock::now();
+    uint elapsed_us =
+        std::chrono::duration_cast<std::chrono::microseconds>(
+            b - a)
+            .count();
+
+    std::cout << "Took " << elapsed_us / 1'000.0 << "ms\n";
+  }
+
+  return exit_code;
 }

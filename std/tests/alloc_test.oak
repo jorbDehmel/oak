@@ -4,7 +4,7 @@ Tests alloc! macro
 
 pragma!(
   "run_cmd",
-  "which valgrind && valgrind --error-exitcode=8 -- ./%"
+  "which valgrind && valgrind --error-exitcode=8 -- %"
 );
 
 let main() -> i32 {

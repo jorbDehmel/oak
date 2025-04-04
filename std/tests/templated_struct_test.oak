@@ -2,15 +2,15 @@
 Tests templated structs
 */
 
-let Node<t> : struct {
-  data: []t
+let Node<T> : struct {
+  data: []T
 } pre {
   // Intentionally fail
   compile_time::error!("This one won't work...");
 }
 
-let Node<t> : struct {
-  data: t
+let Node<T> : struct {
+  data: T
 } pre {
   // Validation code goes here
   // It's ok if this block fails
@@ -18,10 +18,10 @@ let Node<t> : struct {
 } post {
   // Instantiation calls go here
   // It's NOT ok if this block fails!
-  let foo<t>() -> void;
+  let foo<T>() -> void;
 }
 
-let foo<t>() -> void {}
+let foo<T>() -> void {}
 
 let main() -> i32 {
   // Should resolve to the second definition

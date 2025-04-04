@@ -97,6 +97,7 @@ Lexer::lex(const std::string &_text,
           case 'b':
           case 't':
           case 'n':
+          case '0':
             to_append.text.push_back('\\');
             break;
           default:
@@ -131,6 +132,7 @@ Lexer::lex(const std::string &_text,
           case 'b':
           case 't':
           case 'n':
+          case '0':
             to_append.text.push_back('\\');
             break;
           default:
@@ -171,6 +173,7 @@ Lexer::lex(const std::string &_text,
             case 'b':
             case 't':
             case 'n':
+            case '0':
               to_append.text.push_back('\\');
               break;
             default:

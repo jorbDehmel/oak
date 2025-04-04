@@ -244,7 +244,7 @@ protected:
   Node parse_statement(
       std::list<Lexer::Token>::const_iterator &_cur_pos,
       const std::list<Lexer::Token>::const_iterator &_end,
-      Settings &_settings);
+      Settings &_settings, const Type &_return_type = {});
 
   /// Assumes we are pointing to "case" or "else"
   /// Non-global (inside match statement)

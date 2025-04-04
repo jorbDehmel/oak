@@ -1,8 +1,27 @@
-/*
-Interfaces with the std `c` system call
-*/
+/**
+ * @brief Interfaces with the std `C` system call and other
+ * POSIX functions.
+ */
 
 pragma!("no_dialect");
 link!("std/system.o");
 
+// Execute a command and get its exit code
 let system(cmd: []i8) -> i32;
+
+// Get the process ID
+let get_pid() -> int;
+
+/**
+ * @brief POSIX fork: Split into two processes distinguishable
+ * by the return value.
+ * @returns 0 to child, child's PID (nonzero) to parent. < 0 on
+ * error.
+ */
+let fork() -> int;
+
+// Get the user ID
+let get_uid() -> int;
+
+// Get the effective user ID
+let get_euid() -> int;

@@ -3,16 +3,30 @@
 
 Jordan Dehmel, jdehmel@outlook.com
 
-[Oak on GitHub](github.com/jorbDehmel/oak)
+[Oak on GitHub](https://github.com/jorbDehmel/oak)
 
 ## 0.8.0 (2/26/25)
 
 - **Code before now will almost certainly not work**
 - 100% rewrite from ground up under MIT license (rather than
-    GPL), enforcing best practice
+    GPL), enforcing best `C++` practice
 
 ----------------------------------------------------------------
 ## Everything below is pre-rewrite (and GPL'ed)
+
+Before rewrite for compile-only:
+```
+Total:          80
+ms:             22681
+min:            3
+max:            830
+mean test ms:   283.512
+```
+
+After rewrite for compile-only (on different test files):
+```
+```
+
 ----------------------------------------------------------------
 
 ## 0.7.0 (7/10/24)

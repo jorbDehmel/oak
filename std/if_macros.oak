@@ -1,0 +1,56 @@
+/**
+ * @file
+ * @brief Preprocessor conditional macros
+ */
+
+/**
+ * @brief Takes 3 or 4 arguments: string A, string B, "then"
+ * code, and optionally "else" code. Outputs "then" code
+ * verbatim iff A == B as string literals. Else if "else" was
+ * provided, outputs that verbatim.
+ * @param c Argument count
+ * @param v Arguments
+ */
+let if_eq!(c: int, v: [][]i8) -> i32 {
+  include!("std/std.oak");
+
+  if (c > 5int || c < 4int) {
+    err(
+      "'if_eq!' must take 3 or 4 arguments: 2 strings and 1 or "
+      "2 code blocks.\n"
+    );
+    return 1i32;
+  } else if (Get(v, 1int) == Get(v, 2int)) {
+    print(Get(v, 3int));
+  } else if (c == 5int) {
+    print(Get(v, 4int));
+  }
+
+  return 0i32;
+}
+
+/**
+ * @brief Takes 3 or 4 arguments: string A, string B, "then"
+ * code, and optionally "else" code. Outputs "then" code
+ * verbatim iff A != B as string literals. Else if "else" was
+ * provided, outputs that verbatim.
+ * @param c Argument count
+ * @param v Arguments
+ */
+let if_neq!(c: int, v: [][]i8) -> i32 {
+  include!("std/std.oak");
+
+  if (c > 5int || c < 4int) {
+    err(
+      "'if_eq!' must take 3 or 4 arguments: 2 strings and 1 or "
+      "2 code blocks.\n"
+    );
+    return 1i32;
+  } else if (Get(v, 1int) != Get(v, 2int)) {
+    print(Get(v, 3int));
+  } else if (c == 5int) {
+    print(Get(v, 4int));
+  }
+
+  return 0i32;
+}

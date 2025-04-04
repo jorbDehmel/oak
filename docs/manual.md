@@ -5,6 +5,10 @@ J Dehmel, MIT License
 
 ![The `Oak` logo: A pixelated tree](../logo.png)
 
+[Oak on GitHub](https://github.com/jorbDehmel/oak)
+
+[Oak VSCode Syntax Highlighting](https://github.com/jorbDehmel/oak-syntax-highlighting)
+
 This document outlines the `Oak` programming language and the
 `acorn` translator. Part 1 details the programmer usage, while
 part 2 details maintainer usage.
@@ -18,7 +22,11 @@ and maintenance details, see part 2.
 
 `Oak` is a modern extension of `C`. It has static typing, modern
 macros, generics, traits, packages, integrated build,
-compile-time inflection, and compile-time modifiable syntax.
+compile-time inflection, and compile-time modifiable syntax. It
+can be used as compile-time "glue", much as `python` can be used
+at runtime. `Oak` aims to be easy to interface and extend, and
+offers tools for the construction of syntactically diverse
+"dialects".
 
 ## `Hello, World!`
 
@@ -33,6 +41,102 @@ let main() -> i32 {
 
     // Exit without error
     return 0i32;
+}
+```
+
+## Basic Syntax Demo
+
+```rust
+include!(
+  "std/std.oak",  // The std package
+  "std/rules.oak" // Rule definitions for std
+);
+
+// If we want methods, inline declarations, etc, we must use the
+// std ruleset
+rule::use!("std");
+
+let a_fn(x: f64) -> f64 {
+  if (x < 123.45f64) {
+    return x * x * x * x;
+  } else if (x > 0.0f64)
+    return x; // If no curly braces, only applies to one stmt
+  else
+    return 0.0f64;
+}
+
+// Aforementioned curly brace rules apply to fns too
+let another_fn() -> void
+  return;
+
+// All values are held at once
+let S: struct {
+  a: i32,
+  b: f64,
+  c: bool
+}
+
+// Only one option is held at once
+let E: enum {
+  a: f64,
+  b, c: bool
+}
+
+// Main fn is necessary
+// Array specifier goes before the type
+let main(c: i32, v: [][]i8) -> i32 {
+  // This is how we must do it without the std ruleset
+  let a: i32;
+  a = 0i32;
+
+  // These are legal only because we are using the std ruleset
+  let b: i32 = 0i32;
+  let c = 0i32;
+
+  if (a == b) {
+    print("Hi from line ");
+    print(LINE!);
+    endl();
+  }
+
+  // All number literals must be typed
+  let i = 128i32;
+
+  // "for" loops don't exist in canonical oak: Need a ruleset!
+  while (i > 64i32) {
+    print(i);
+    endl();
+
+    // All unary operators are prefix only
+    --i;
+  }
+
+  // No built-in subscript operator
+  print(Get(v, 0uint));
+  print('\n'); // Single quote strings are the same as double
+
+  // Instance of enum type
+  let e: E;
+
+  // Built-in for enums that allows initialization of options
+  // Without std ruleset, it would be `wrap_c(e, false);`
+  e.wrap_c(false);
+
+  match (e) {
+    case a(data: f64) {
+      // data captures the option value
+      print(data);
+      endl();
+    } case b(data: bool) {
+      print(data);
+      endl();
+    } else {
+      // "default" block for unhandled cases
+      // Cannot capture any value
+    }
+  }
+
+  return 0i32;
 }
 ```
 
@@ -62,7 +166,6 @@ The following are built-in types in `Oak`.
  `u128`  | (EXPERIMENTAL)
  `f32`   | Single-precision floating-point
  `f64`   | Double-precision floating-point
- `float` | Native floating-point representation (unsized)
  `f128`  | (EXPERIMENTAL)
  `bool`  | Boolean value (true/false) (unsized)
  `^void` | Typeless pointer (`C`'s `void *`) (unsized)
@@ -83,7 +186,7 @@ let SomeEnum: enum {
   first: bool,
   second: ^i8,
   third: SomeStruct, // Composition
-  fourth: [][]bool, // Optional trailing comma on last entry
+  fourth: [][]bool,  // Optional trailing comma on last entry
 }
 ```
 
@@ -91,7 +194,8 @@ Structs have *members*, each of which has an independent value
 at a given time. Under the hood, these are identical to `C`
 structs. Enums, on the other hand, have *options*, only **one**
 of which holds a value at a given time. This value is only
-accessible within `match` statements.
+accessible within `match` statements, and is a cross between `C`
+unions and enums.
 
 ### Referencing and dereferencing
 
@@ -128,9 +232,10 @@ let main() -> void {
 ### Plural function definition
 
 Just as `int a, b, c;` would be valid `C`, `let a, b, c: i32;`
-is valid `Oak`. However, unlike `C`, `Oak` has a version of
-plural instantiation for functions. The following declares a
-series of functions that all take in two and return one `i8`.
+is valid `Oak`. `Oak` also has a version of plural instantiation
+for functions. The following declares a series of functions that
+all take in two and return one `i8`. Note that, unlike `C`, the
+function argument block applies to *all* the declared symbols.
 
 ```rust
 // Defines 5 fn signatures in one line
@@ -142,7 +247,71 @@ let Add, Sub, Mult, Div, Mod (lhs: i8, rhs: i8) -> i8 {
 }
 ```
 
+Equivalent `C` code would be:
+
+```c
+// let Add, Sub, Mult, Div, Mod (lhs: i8, rhs: i8) -> i8;
+i8 Add(i8, i8), Sub(i8, i8), Mult(i8, i8), Div(i8, i8),
+  Mod(i8, i8);
+```
+
 This makes the implementation of large interfacial files easier.
+
+### Functions and Statements
+
+Much like in `C` `if (true) printf("hi");` is legal, in `Oak`
+`if (true) printf!("hi");` is legal. This is because clauses
+like `if`, `while`, `else`, and `case` operate on the first
+statement to follow them and scopes count as a single statement.
+However, unlike `C`, `Oak` extends this princible to function
+bodies.
+
+```rust
+include!("std/io.oak");
+
+let main() -> i32
+  if (true)
+    print("hi\n");
+
+```
+
+### Conditional Macros
+
+Conditional compilation in `Oak` can be done via the `if_eq!`
+and `if_neq!` macros provided by `std/if_macros.oak`.
+
+```rust
+include!("std/std.oak", "std/if_macros.oak");
+
+let target! = "fizz";
+
+if_eq!(target!"DNE", "fizz",
+  let foo() -> void {
+    print("Hi from line 11!\n");
+  },
+  let foo() -> void {
+    print("Hi from line 14!\n");
+  }
+);
+
+if_eq!(target!"DNE", "buzz",
+  let fuzz() -> void {
+    print("Hi from line 20!\n");
+  }
+);
+
+if_neq!(SYSTEM!, "UNIX",
+  compile_time::warning!("Use Linux!!!");,
+  compile_time::print!("Good job using Linux.");
+);
+```
+
+These macros compare their first two arguments as string
+literals (after expansion), then conditionally execute a code
+block based on their values. If three arguments are provided,
+the third is the "then" block (with no else block). If four
+arguments are provided, the third will be the "then" and the
+fourth will be the "else".
 
 ### Types
 
@@ -203,18 +372,22 @@ let main() -> i32 {
 ### "Methods"
 
 `Oak` does not actually have methods: `a.b()` is just shorthand
-for `b(a)` (and so on). Thus, the first argument of a so-called
-"method" is usually called `self` and is made to be mutable. In
-this way, you can add methods to any type at any time.
+for `b(a)` (and so on) enabled by the `std` ruleset. Thus, the
+first argument of a so-called "method" is usually called `self`
+and is made to be mutable. In this way, you can add methods to
+any type at any time.
 
 ```rust
+include!("std/std.oak", "std/rules.oak");
+rule::use!("std");
+
 let flimbify(self: i32) -> void {
   // Some absurd code here
 }
 
 let main() -> i32 {
-  // Note: LHS is temp, so cannot call mutable methods on it
-  123i32.flimbify();
+  let a = 123i32;
+  a.flimbify();
 
   return 0i32;
 }
@@ -764,7 +937,7 @@ This is the bulk of the `Oak` language.
 
 `Oak` is not defined via EBNF: However, it is a useful tool for
 visualizing parsing. Therefore, this section attempts to detail
-the **post-preprocessing** (no* macros, includes, or rules)
+the **post-preprocessing** (no macros, includes, or rules)
 parsing process via EBNF / `bison` notation.
 
 ```yacc

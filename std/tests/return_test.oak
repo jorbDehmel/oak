@@ -1,0 +1,16 @@
+/*
+Tests empty returns
+*/
+
+let foo() -> void {
+  return;
+}
+
+let main() -> i32 {
+  foo();
+  if (true) {
+    return 0i32;
+  }
+
+  return 10i32;
+}

@@ -1,12 +1,71 @@
 #include "package.hpp"
 #include "debug.hpp"
 #include "lexer.hpp"
+#include "macro.hpp"
 #include "oakc.hpp"
 #include <compare>
 #include <filesystem>
 #include <map>
 #include <stdexcept>
 #include <string>
+#include <variant>
+
+/**
+ * @brief Given some package information, add internal
+ * versioning symlinks
+ */
+void add_symlinks(const std::string &_name,
+                  const PackageManager::Version &_full_version,
+                  const std::filesystem::path &_real_path,
+                  const std::filesystem::path &_include_path) {
+  PackageManager::Version v = _full_version;
+
+  while (!v.version.empty()) {
+    v.version.pop_back();
+    const auto symlink =
+        _include_path / (_name + v.package_suffix());
+    bool should_symlink = true;
+
+    if (std::filesystem::exists(symlink) &&
+        !std::filesystem::is_symlink(symlink)) {
+      continue;
+    }
+
+    for (const auto &d :
+         std::filesystem::directory_iterator{_include_path}) {
+      // If this file begins with the symlink
+      if (!d.path().string().starts_with(symlink.string())) {
+        continue;
+      }
+
+      // But is not the symlink
+      else if (d == symlink) {
+        continue;
+      }
+
+      const auto candidate_version =
+          PackageManager::Version::from(
+              d.path().string().substr(
+                  d.path().string().find(".") + 1));
+
+      // If it is larger than the symlink's target,
+      // don't symlink and break
+      if (candidate_version > _full_version) {
+        should_symlink = false;
+        break;
+      }
+    }
+
+    if (should_symlink) {
+      if (std::filesystem::exists(symlink) &&
+          std::filesystem::is_symlink(symlink)) {
+        std::filesystem::remove(symlink);
+      }
+      std::filesystem::create_directory_symlink(_real_path,
+                                                symlink);
+    }
+  }
+}
 
 std::string PackageManager::Version::package_suffix() const {
   std::string out;
@@ -78,57 +137,50 @@ PackageManager::Version::from(const std::string &from) {
 std::map<std::string, std::string>
 load_package_spec(const std::filesystem::path &_path) {
   debug_print();
-  const static std::set<char> str_chars = {'\'', '"', '`'};
 
-  // Not all of them, but the ones we need right now
-  const static std::set<std::string> expected_key_suffixes = {
-      "VERSION!"};
+  std::map<std::string, std::string> out;
 
   const auto spec_file = _path / "spec.oak";
-  std::map<std::string, std::string> out;
-  const std::string package_name =
-      spec_file.parent_path().filename().stem();
+  if (!std::filesystem::exists(spec_file)) {
+    throw std::runtime_error("Missing spec file " +
+                             spec_file.string());
+  }
+
+  std::string package_name = spec_file.parent_path().filename();
+  if (package_name.find('.') != std::string::npos) {
+    package_name =
+        package_name.substr(0, package_name.find('.'));
+  }
 
   out["name"] = package_name;
 
-  if (std::filesystem::exists(spec_file)) {
-    OakCompiler c;
-    Settings::CompileSettings &settings =
-        c.settings.compile_settings();
+  OakCompiler c;
+  Settings::CompileSettings &settings =
+      c.settings.compile_settings();
 
-    settings.mode = Settings::CompileSettings::NOTHING;
-    settings.entry_point = _path / "spec.oak";
+  settings.mode = Settings::CompileSettings::NOTHING;
+  settings.entry_point = _path / "spec.oak";
 
-    c();
+  c();
 
-    Lexer::Token t("", _path, 1, 0);
-    for (const auto &suffix : expected_key_suffixes) {
-      std::list<Lexer::Token> junk, prev;
-      junk.push_back(
-          Lexer::Token(t, package_name + "_" + suffix));
-      auto it = junk.begin();
-      do {
-        prev = junk;
-        c.macros.replace(junk, it, junk.end(), c.settings);
-      } while (junk != prev);
+  for (const auto &p : c.macros.macros) {
+    if (p.first.starts_with(package_name + "_") &&
+        std::holds_alternative<MacroManager::Alias>(p.second)) {
+      auto contents =
+          std::get<MacroManager::Alias>(p.second).contents;
+      c.preprocess(contents);
 
-      if (junk.size() > 0) {
-        std::string contents = junk.front();
-
-        while (!contents.empty() &&
-               contents.front() == contents.back() &&
-               str_chars.contains(contents.front())) {
-          contents = contents.substr(1, contents.size() - 2);
+      std::string to_add;
+      for (const auto &tok : contents) {
+        if (!to_add.empty()) {
+          to_add.push_back(' ');
         }
-
-        if (!contents.empty()) {
-          out[suffix] = contents;
-        }
+        to_add += tok.text;
       }
+
+      out[p.first.substr(package_name.size() + 1)] =
+          MacroManager::strip_string_literal(to_add);
     }
-  } else {
-    throw std::runtime_error("Missing spec file " +
-                             spec_file.string());
   }
 
   return out;
@@ -186,65 +238,19 @@ void PackageManager::install_package(
                              "' has no version!");
   }
 
-  // Validate version string
   const auto raw = spec.at("VERSION!");
-  Version v = Version::from(raw);
-  const Version full_version = v;
-
-  // Copy to path
+  const Version full_version = Version::from(raw);
   const auto name = spec.at("name");
-  const auto real_path =
-      _csettings.include_path / (name + v.package_suffix());
+  const auto real_path = _csettings.include_path /
+                         (name + full_version.package_suffix());
+
   std::filesystem::copy(
       _package, real_path,
       std::filesystem::copy_options::update_existing |
           std::filesystem::copy_options::recursive);
 
-  // Symlinks
-  while (!v.version.empty()) {
-    v.version.pop_back();
-    const auto symlink =
-        _csettings.include_path / (name + v.package_suffix());
-    bool should_symlink = true;
-
-    if (std::filesystem::exists(symlink) &&
-        !std::filesystem::is_symlink(symlink)) {
-      continue;
-    }
-
-    for (const auto &d : std::filesystem::directory_iterator{
-             _csettings.include_path}) {
-      // If this file begins with the symlink
-      if (!d.path().string().starts_with(symlink.string())) {
-        continue;
-      }
-
-      // But is not the symlink
-      else if (d == symlink) {
-        continue;
-      }
-
-      const auto candidate_version =
-          Version::from(d.path().string().substr(
-              d.path().string().find(".") + 1));
-
-      // If it is larger than the symlink's target,
-      // don't symlink and break
-      if (candidate_version > full_version) {
-        should_symlink = false;
-        break;
-      }
-    }
-
-    if (should_symlink) {
-      if (std::filesystem::exists(symlink) &&
-          std::filesystem::is_symlink(symlink)) {
-        std::filesystem::remove(symlink);
-      }
-      std::filesystem::create_directory_symlink(real_path,
-                                                symlink);
-    }
-  }
+  add_symlinks(name, full_version, real_path,
+               _csettings.include_path);
 }
 
 /**
@@ -258,8 +264,32 @@ void PackageManager::uninstall_package(
   const auto path =
       _oak_include / (_name + _version.package_suffix());
 
-  if (std::filesystem::exists(path)) {
-    std::filesystem::remove_all(path);
+  // Erase all symlinks
+  for (const auto &f :
+       std::filesystem::directory_iterator{_oak_include}) {
+    if (std::filesystem::is_symlink(f)) {
+      std::filesystem::remove(f);
+    } else if (f.path().string().starts_with(path.string())) {
+      std::filesystem::remove_all(f);
+    }
+  }
+
+  // Rebuild all symlinks
+  for (const auto &f :
+       std::filesystem::directory_iterator{_oak_include}) {
+    if (std::filesystem::is_directory(f)) {
+      const auto spec = load_package_spec(f);
+      if (!spec.contains("VERSION!")) {
+        throw std::runtime_error("Package '" + spec.at("name") +
+                                 "' has no version!");
+      }
+      const Version full_version =
+          Version::from(spec.at("VERSION!"));
+      const auto name = spec.at("name");
+      const auto real_path =
+          _oak_include / (name + full_version.package_suffix());
+      add_symlinks(name, full_version, real_path, _oak_include);
+    }
   }
 }
 
@@ -271,12 +301,11 @@ void PackageManager::list_packages(
     const std::filesystem::path &_oak_include) {
   for (const auto &d :
        std::filesystem::directory_iterator{_oak_include}) {
-    if (std::filesystem::is_directory(d)) {
-      _to << d.path().stem().string() << '\n';
-    } else if (std::filesystem::is_symlink(d)) {
-      _to << d.path().stem().string() << " -> "
-          << std::filesystem::read_symlink(d).stem().string()
-          << '\n';
+    if (std::filesystem::is_symlink(d)) {
+      _to << d.path().string() << " -> "
+          << std::filesystem::read_symlink(d).string() << '\n';
+    } else if (std::filesystem::is_directory(d)) {
+      _to << d.path().string() << '\n';
     }
   }
 }

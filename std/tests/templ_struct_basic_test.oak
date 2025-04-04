@@ -30,9 +30,5 @@ let main() -> i32 {
 
   printf!("(%, %)\n", p.first, p.second);
 
-  let n3: Node<Node<i32>>;
-  print(n3.data.data);
-  endl();
-
   return 0i32;
 }
