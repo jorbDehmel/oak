@@ -431,6 +431,12 @@ void MacroManager::process_definition(
 
     if (do_compile) {
       std::ofstream f(source_path);
+      if (!f.is_open()) {
+        throw std::runtime_error(
+            "Failed to write macro source file '" +
+            source_path.string() + "'");
+      }
+
       uint64_t cur_line = 1;
 
       for (const auto &item : contents) {

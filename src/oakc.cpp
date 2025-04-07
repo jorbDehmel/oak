@@ -439,6 +439,11 @@ void OakCompiler::do_compilation() {
   std::filesystem::path linked_file = "N/A";
 
   // Standardize
+  if (!std::filesystem::exists(csettings.entry_point)) {
+    throw std::runtime_error("Entry point '" +
+                             csettings.entry_point.string() +
+                             "' does not exist");
+  }
   csettings.entry_point =
       std::filesystem::canonical(csettings.entry_point);
 

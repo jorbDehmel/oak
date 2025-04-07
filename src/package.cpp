@@ -248,6 +248,8 @@ void PackageManager::install_package(
       _package, real_path,
       std::filesystem::copy_options::update_existing |
           std::filesystem::copy_options::recursive);
+  std::filesystem::permissions(real_path,
+                               std::filesystem::perms::all);
 
   add_symlinks(name, full_version, real_path,
                _csettings.include_path);

@@ -2583,7 +2583,21 @@ Parser::find_substitutions(
 
   if (templates.contains(_name)) {
     for (uint i = 0; i < templates.at(_name).size(); ++i) {
+      // Check instance
+
+      // For as long as we haven't finished the template
+      // If literal on both sides that matches, advance
+      // Else if template has generic, log what that template
+      // needs to be
+
+      // bool do_add = true;
+      // for () {
       throw std::runtime_error(__FUNCTION__);
+      // }
+
+      // if (do_add) {
+      //   out.push_back();
+      // }
     }
   }
 
