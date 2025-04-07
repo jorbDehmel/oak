@@ -16,7 +16,7 @@
 #include <stdexcept>
 #include <string>
 
-const static std::string ACORN_VERSION = "1.0.0";
+const static std::string ACORN_VERSION = "0.8.0";
 
 /**
  * @class OakCompiler

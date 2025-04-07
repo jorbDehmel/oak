@@ -71,7 +71,7 @@ int strm_cmd_output(const std::string &_cmd,
     return -1;
   }
   while (true) {
-    char c = fgetc(pipe);
+    int c = fgetc(pipe);
     if (c == EOF) {
       break;
     }
