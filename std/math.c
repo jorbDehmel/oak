@@ -2,7 +2,7 @@
 C interfacial file
 */
 
-#include "oak/std/std_oak_header.h"
+#include "std_oak_header.h"
 #include <math.h>
 
 // pow(base: f64, exp: f64) -> f64

@@ -6,7 +6,7 @@
  * @license MIT
  */
 
-#include "oak/std/std_oak_header.h"
+#include "std_oak_header.h"
 #include <stdio.h>
 
 // print(_: []i8) -> void

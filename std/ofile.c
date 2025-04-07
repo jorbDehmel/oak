@@ -2,7 +2,7 @@
 Interfaces w/ oak output file
 */
 
-#include "oak/std/std_oak_header.h"
+#include "std_oak_header.h"
 #include <stdio.h>
 #include <string.h>
 

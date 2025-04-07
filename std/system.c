@@ -2,7 +2,7 @@
 Interfaces with the std `c` system call
 */
 
-#include "oak/std/std_oak_header.h"
+#include "std_oak_header.h"
 #include <stdlib.h>
 #include <unistd.h>
 

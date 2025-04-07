@@ -2,7 +2,7 @@
 Standard operators for Oak: C binding
 */
 
-#include "oak/std/std_oak_header.h"
+#include "std_oak_header.h"
 #include <string.h>
 
 // Add(l: i8, r: i8) -> i8

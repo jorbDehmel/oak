@@ -2,7 +2,7 @@
 Kernel panic interface for Oak
 */
 
-#include "oak/std/std_oak_header.h"
+#include "std_oak_header.h"
 #include <stdlib.h>
 
 // panic() -> void

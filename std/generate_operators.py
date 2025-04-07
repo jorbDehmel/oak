@@ -111,7 +111,7 @@ def main() -> int:
             '/*\n'
             'Standard operators for Oak: C binding\n'
             '*/\n\n'
-            '#include "oak/std/std_oak_header.h"\n'
+            '#include "std_oak_header.h"\n'
             '#include <string.h>\n\n'
         )
 
