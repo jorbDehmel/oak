@@ -1,9 +1,10 @@
 /*
+Tests templated structs
 */
 
 include!("std/std.oak");
 
-let Foo<T> : struct {
+let Foo<T>: struct {
   data: T,
 }
 

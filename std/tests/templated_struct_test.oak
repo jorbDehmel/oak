@@ -11,10 +11,6 @@ let Node<T> : struct {
 
 let Node<T> : struct {
   data: T
-} pre {
-  // Validation code goes here
-  // It's ok if this block fails
-  compile_time::warning!("This one will!");
 } post {
   // Instantiation calls go here
   // It's NOT ok if this block fails!

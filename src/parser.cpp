@@ -245,6 +245,7 @@ void Parser::parse_global(
 
               incr(pos, end);
               if (*pos == ";") {
+                // Generic signature
                 throw std::runtime_error(
                     "Generic function signatures are illegal");
               }
@@ -865,6 +866,11 @@ Parser::parse_template_pre_post(
         throw std::runtime_error("Reached EOF before '}'");
       } else if (*_cur_pos == "{") {
         ++count;
+
+        if (count == 1) {
+          ++_cur_pos; // Don't use incr here
+          continue;
+        }
       } else if (*_cur_pos == "}") {
         --count;
         if (count == 0) {

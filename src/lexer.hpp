@@ -94,6 +94,16 @@ public:
 
   /**
    * @brief Breaks some input file text into a token stream
+   * without merging or removing comments. Still does type
+   * classification.
+   */
+  std::list<Token> raw_lex(const std::string &_text,
+                           const std::filesystem::path &_path,
+                           uint64_t &_line, uint64_t &_col);
+
+  /**
+   * @brief Breaks some input file text
+   * into a token stream
    */
   std::list<Token> lex(const std::string &_text,
                        const std::filesystem::path &_path,

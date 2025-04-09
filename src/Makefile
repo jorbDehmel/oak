@@ -27,16 +27,18 @@ TARGET = /usr/bin
 	$(CPP-DB) -c -o $@ $< $(EXTRA_FLAGS)
 
 .PHONY:	install
-install:	acorn.out oak2c.out
+install:	acorn.out oak2c.out oak-format.out
 	@echo "Installing regular binaries..."
 	@cp acorn.out $(TARGET)/acorn
 	@cp oak2c.out $(TARGET)/oak2c
+	@cp oak-format.out $(TARGET)/oak-format
 
 .PHONY:	install-debug
-install-debug:	acorn-debug.out oak2c-debug.out
+install-debug:	acorn-debug.out oak2c-debug.out oak-format-debug.out
 	@echo "Installing debug binaries..."
 	@cp acorn-debug.out $(TARGET)/acorn-debug
 	@cp oak2c-debug.out $(TARGET)/oak2c-debug
+	@cp oak-format-debug.out $(TARGET)/oak-format-debug
 
 .PHONY:	uninstall
 uninstall:

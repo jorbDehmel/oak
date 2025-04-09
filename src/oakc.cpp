@@ -1142,6 +1142,7 @@ void OakCompiler::fix_math(
                   "' LHS");
             } else if (std::next(first_after_rhs)->text ==
                        "(") {
+              auto start_pos = first_after_rhs;
               int depth = 0;
               do {
                 ++first_after_rhs;
@@ -1155,6 +1156,15 @@ void OakCompiler::fix_math(
                   }
                 }
               } while (depth != 0);
+
+              // Erase matched parenthesis
+              while (start_pos->text == "(" &&
+                     std::prev(first_after_rhs)->text == ")") {
+                std::cout << __FILE__ << ":" << __LINE__ << '\n'
+                          << std::flush;
+                start_pos = _token_stream.erase(start_pos);
+                _token_stream.erase(std::prev(first_after_rhs));
+              }
             } else {
               ++first_after_rhs;
             }
@@ -1165,7 +1175,7 @@ void OakCompiler::fix_math(
 
             // Operate
             // "lhs _operator rhs" -> "_op_name ( lhs , rhs )"
-            // Beginning of call: "Name ("
+            // "lhs _operator (...)" -> "_op_name ( lhs , ... )"
             _token_stream.insert(
                 first_of_lhs,
                 Lexer::Token(_op_name, it->file, it->line,

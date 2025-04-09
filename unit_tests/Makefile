@@ -1,5 +1,5 @@
 TESTS := test_lexer.out test_types.out test_parser.out \
-	test_rule_order.out
+	test_rule_order.out test_math.out
 
 CPP := g++ -pedantic -Wall -std=c++20 -O3 -g
 OBJECT_NAMES := lexer.o macro.o oakc.o package.o parser.o \

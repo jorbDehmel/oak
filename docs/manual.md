@@ -531,6 +531,10 @@ and shuts down this branch of compilation.
 
 When parsed, this macro prints its string argument as a warning.
 
+### `compile_time::print!`
+
+When parsed, this macro prints its string argument.
+
 ### `c!`
 
 A unique ability due to `Oak`'s status as a translated language

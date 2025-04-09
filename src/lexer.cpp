@@ -5,6 +5,7 @@
 #include <cstring>
 #include <optional>
 #include <stdexcept>
+#include <vector>
 
 const std::set<char> Lexer::whitespace = {' ', '\t', '\n'};
 const std::set<char> Lexer::operators = {
@@ -14,9 +15,9 @@ const std::set<char> Lexer::singleton_operators = {
     '[', ']', '{', '}', '(', ')', ',', ';', '<', '>'};
 
 std::list<Lexer::Token>
-Lexer::lex(const std::string &_text,
-           const std::filesystem::path &_path, uint64_t &_line,
-           uint64_t &_col) {
+Lexer::raw_lex(const std::string &_text,
+               const std::filesystem::path &_path,
+               uint64_t &_line, uint64_t &_col) {
   debug_print();
 
   const auto next_line = [&]() {
@@ -39,25 +40,37 @@ Lexer::lex(const std::string &_text,
                 pos + 1 < _text.size() &&
                 _text.at(pos + 1) == '/')) {
       // Single-line comment
+      auto start_pos = pos;
       while (pos + 1 < _text.size() &&
              _text.at(pos + 1) != '\n') {
         ++pos, ++_col;
       }
+      out.push_back(
+          Token(_text.substr(start_pos, pos - start_pos + 1),
+                _path, _line, _col, "COMMENT"));
       if (_text.at(pos) == '\n') {
         next_line();
       }
     } else if (_text.at(pos) == '/' && pos + 1 < _text.size() &&
                _text.at(pos + 1) == '*') {
       // Multi-line comment
+      auto start_pos = pos;
       while (
           pos + 1 < _text.size() &&
           !(_text.at(pos) == '*' && _text.at(pos + 1) == '/')) {
         if (_text.at(pos) == '\n') {
+          out.push_back(
+              Token(_text.substr(start_pos, pos - start_pos),
+                    _path, _line, _col, "COMMENT"));
+          start_pos = pos + 1;
           next_line();
         }
         ++pos, ++_col;
       }
       ++pos, ++_col;
+      out.push_back(
+          Token(_text.substr(start_pos, pos - start_pos + 1),
+                _path, _line, _col, "COMMENT"));
     }
 
     // Multi-character non-IDs
@@ -266,21 +279,6 @@ Lexer::lex(const std::string &_text,
     }
   }
 
-  // Merge successive literals
-  for (auto it = out.begin(); it != out.end(); ++it) {
-    if (it->type == "NUMBER" || it->type == "STRING") {
-      while (std::next(it) != out.end() &&
-             std::next(it)->type == it->type) {
-        if (it->type == "STRING") {
-          it->text.pop_back();
-          std::next(it)->text = std::next(it)->text.substr(1);
-        }
-        it->text += std::next(it)->text;
-        out.erase(std::next(it));
-      }
-    }
-  }
-
   // Distinguish between less-than/greater-than and templates
   for (auto it = out.begin(); it != out.end(); ++it) {
     if (it->text == "<") {
@@ -298,6 +296,35 @@ Lexer::lex(const std::string &_text,
       }
     }
   }
+
+  return out;
+}
+
+std::list<Lexer::Token>
+Lexer::lex(const std::string &_text,
+           const std::filesystem::path &_path, uint64_t &_line,
+           uint64_t &_col) {
+  auto out = raw_lex(_text, _path, _line, _col);
+
+  // Merge successive literals
+  for (auto it = out.begin(); it != out.end(); ++it) {
+    if (it->type == "NUMBER" || it->type == "STRING") {
+      while (std::next(it) != out.end() &&
+             std::next(it)->type == it->type) {
+        if (it->type == "STRING") {
+          it->text.pop_back();
+          std::next(it)->text = std::next(it)->text.substr(1);
+        }
+        it->text += std::next(it)->text;
+        out.erase(std::next(it));
+      }
+    }
+  }
+
+  // Remove comments
+  std::erase_if(out, [](const Lexer::Token tok) -> bool {
+    return tok.type == "COMMENT";
+  });
 
   // Replace '::'s with '_'s
   for (auto it = out.begin(); it != out.end(); ++it) {
@@ -400,7 +427,13 @@ std::optional<Type> Lexer::get_literal_type(Token &_t) {
 }
 
 void Lexer::classify_type(Lexer::Token &_t) {
-  if (_t.text.front() == '"') {
+  if (_t.type == "COMMENT") {
+    return;
+  } else if (_t.text.starts_with("//") ||
+             _t.text.starts_with("/*") ||
+             _t.text.starts_with("#")) {
+    _t.type = "COMMENT";
+  } else if (_t.text.front() == '"') {
     _t.type = "STRING";
   } else if (operators.contains(_t.text.at(0)) &&
              !(_t.text.at(0) == '-' && 1 < _t.text.size() &&
