@@ -1,0 +1,25 @@
+/**
+ * @brief Function pointers in Oak
+ */
+
+include!("std/std.oak");
+
+let fn_a() -> void {
+  print("Hello from a!\n");
+}
+
+let fn_b() -> void {
+  print("Hello from b!\n");
+}
+
+let main() -> i32 {
+  let fn: ^() -> void;
+
+  fn = fn_a;
+  fn();
+
+  fn = fn_b;
+  fn();
+
+  return 0i32;
+}

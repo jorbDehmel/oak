@@ -472,7 +472,8 @@ bool Type::cast_match(const Type &_other) const {
     }
     ++mine, ++theirs;
   }
-  return true;
+
+  return mine == nodes.end() && theirs == _other.nodes.end();
 }
 
 /// Returns true iff the other matches this after only legal
@@ -508,7 +509,7 @@ bool Type::ref_match(const Type &_other,
     return false;
   }
 
-  return (-1 <= _num_deref && _num_deref <= 0);
+  return (-1 == _num_deref || _num_deref == 0);
 }
 
 /// Returns whether or not this type is valid to instantiate
@@ -644,4 +645,14 @@ std::string Type::struct_name() const {
         oak_repr() + "'");
   }
   return nodes.front().literal_name;
+}
+
+/// Returns true iff the first node is of type POINTER and the
+/// second node is of type FUNCTION
+/// O(1)
+bool Type::is_fn_ptr() const noexcept {
+  debug_print();
+  return (nodes.size() >= 2 &&
+          nodes.front().type == TypeNode::POINTER &&
+          std::next(nodes.begin())->type == TypeNode::FUNCTION);
 }

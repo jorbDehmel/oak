@@ -14,7 +14,8 @@ let main() -> i32 {
     fs::remove("foo.txt");
   }
 
-  { // For destructor purposes
+  {
+    // For destructor purposes
     let f: OFile;
     open(f, "foo.txt");
     write(f, "hi there!");

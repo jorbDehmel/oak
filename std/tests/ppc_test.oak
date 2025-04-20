@@ -9,7 +9,8 @@ let target! = "fizz";
 if_eq!(target!"DNE", "fizz",
   let foo() -> void {
     print("Hi from line 11!\n");
-  },
+  }
+  ,
   let foo() -> void {
     print("Hi from line 14!\n");
   }
@@ -18,14 +19,16 @@ if_eq!(target!"DNE", "fizz",
 if_eq!(target!"DNE", "buzz",
   let fuzz() -> void {
     print("Hi from line 20!\n");
-  },
+  }
+  ,
   let fuzz() -> void {
     print("Hi from line 23!\n");
   }
 );
 
 if_neq!(SYSTEM!, "UNIX",
-  compile_time::warning!("Use Linux!!!");,
+  compile_time::warning!("Use Linux!!!");
+  ,
   compile_time::print!("Good job using Linux.");
 );
 

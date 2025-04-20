@@ -8,13 +8,16 @@ Many valid Oak files -> 1 token stream
 
 #include "lexer.hpp"
 #include "oakc.hpp"
+#include "settings.hpp"
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <iterator>
 #include <sstream>
+#include <stdexcept>
 
 ////////////////////////////////////////////////////////////////
 
@@ -32,14 +35,7 @@ void canonicalize(std::ostream &_into,
   for (auto it = _lexed.cbegin(); it != _lexed.cend(); ++it) {
     std::string tok = it->text;
 
-    if (tok == "}") {
-      --tab_depth;
-      if (std::next(it) != _lexed.cend() &&
-          (std::next(it)->text == "else" ||
-           std::next(it)->text == "case")) {
-        tok += " ";
-      }
-    } else if (tok == ")") {
+    if (tok == "}" || tok == ")") {
       --tab_depth;
     }
 
@@ -97,7 +93,8 @@ void canonicalize(std::ostream &_into,
       ++tab_depth;
     } else if (it->type == "OPERATOR" && tok != ")" &&
                tok != "::" && tok != "." && tok != "^" &&
-               tok != "[" && tok != "]") {
+               tok != "[" && tok != "]" && tok != "!" &&
+               tok != "++" && tok != "--") {
       if (col != 2 * tab_depth) {
         tok = " " + tok;
       }
@@ -126,11 +123,16 @@ void print_help() {
     "\n"
     "    | Verbose   | Function\n"
     "----|-----------|----------------------------------------\n"
+    " -a | --analyze | Analyze code via acorn before formatting\n"
     " -h | --help    | Print help text (this)\n"
     " -i | --inplace | Toggle output to input file (default off)\n"
     " -v | --verify  | Verify token stream maintanance\n"
     "\n"
-    "Takes 1 input file and zero or more command-line flags.\n";
+    "Takes 1 input file and zero or more command-line flags. If\n"
+    "analysis is enabled, the parser will be run first, with a\n"
+    "JSON encoding of any halt-causing error being outputted.\n"
+    "\n"
+    "Packaged as part of:\n";
   // clang-format on
   OakCompiler::print_version();
 }
@@ -172,10 +174,15 @@ int main(int c, char *v[]) {
   // the same token stream as the input text
   bool verify = true;
 
+  // If true, analyzes before doing anything else
+  bool analyze = false;
+
   // Parse command-line arguments
   for (int i = 1; i < c; ++i) {
     if (strncmp(v[i], "--", 2) == 0) {
-      if (strcmp(v[i], "--inplace") == 0) {
+      if (strcmp(v[i], "--analyze") == 0) {
+        analyze = !analyze;
+      } else if (strcmp(v[i], "--inplace") == 0) {
         inplace = !inplace;
       } else if (strcmp(v[i], "--verify") == 0) {
         verify = !verify;
@@ -194,6 +201,9 @@ int main(int c, char *v[]) {
       const uint n = strlen(v[i]);
       for (uint j = 1; j < n; ++j) {
         switch (v[i][j]) {
+        case 'a':
+          analyze = !analyze;
+          break;
         case 'i':
           inplace = !inplace;
           break;
@@ -220,6 +230,53 @@ int main(int c, char *v[]) {
     print_help();
     std::cerr << "Please enter an Oak file!\n";
     return 6;
+  }
+
+  // If analysis is requested, do that
+  if (analyze) {
+    try {
+      OakCompiler oakc;
+      oakc.settings.compile_settings().mode =
+          Settings::CompileSettings::NOTHING;
+      oakc.settings.compile_settings().entry_point = file;
+      oakc();
+    } catch (std::runtime_error &_e) {
+      const std::string to_break = _e.what();
+
+      // Find the first region starting with "At "
+      const auto start_loc = to_break.find("At ") + 3;
+      const auto end_loc = to_break.find("\n", start_loc);
+      const std::string loc =
+          to_break.substr(start_loc, end_loc - start_loc);
+      const auto start_col_num = loc.find_last_of(".") + 1;
+      const auto start_line_num =
+          loc.find_last_of(":", start_col_num) + 1;
+
+      const std::string filepath =
+          loc.substr(0, start_line_num - 1);
+      const uint64_t line_number = std::stoull(loc.substr(
+          start_line_num, start_col_num - start_line_num));
+      const uint64_t col_number =
+          std::stoull(loc.substr(start_col_num));
+
+      std::cout << "{\n  \"filepath\": \"" << filepath
+                << "\",\n  \"line\": " << line_number
+                << ",\n  \"col\": " << col_number
+                << ",\n  \"message\": \"";
+      for (const char &c : to_break) {
+        if (c == '\n') {
+          std::cout << "\\n";
+        } else if (c == '"') {
+          std::cout << '\\';
+          std::cout << c;
+        } else {
+          std::cout << c;
+        }
+      }
+      std::cout << "\"\n}\n";
+
+      return 8;
+    }
   }
 
   // Open and lex file

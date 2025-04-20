@@ -1,0 +1,12 @@
+/**
+ * @brief
+ */
+
+compile_time::error!("Lambdas are unimplemented!");
+
+let Lambda::Capture<>: struct {}
+
+let Lambda<FnType, CaptureType>: struct {
+  __fn: FnType,
+  __captures: CaptureType
+}

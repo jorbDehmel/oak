@@ -5,7 +5,10 @@ Tests str! and unstr!
 include!("std/std.oak");
 
 let main() -> i32 {
-  unstr!("print(\"Hello, world!\");");
+  print(str!(Hello + world!));
+  endl();
+
+  unstr!("print(\"Hello, world!\\\n\");");
 
   return 0i32;
 }

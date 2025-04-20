@@ -1,4 +1,5 @@
 /**
+ * @file
  * @brief Interfaces with the std `C` system call and other
  * POSIX functions.
  */
@@ -6,10 +7,16 @@
 pragma!("no_dialect");
 link!("std/system.o");
 
-// Execute a command and get its exit code
+/**
+ * @brief Execute a system call and return the exit code. This
+ * interfaces directly with C's `system` function: Therefore,
+ * behavior is OS-specific!
+ * @param cmd The command to execute
+ * @returns 0 on success, nonzero on failure
+ */
 let system(cmd: []i8) -> i32;
 
-// Get the process ID
+/// Get the process ID
 let get_pid() -> int;
 
 /**
@@ -20,8 +27,8 @@ let get_pid() -> int;
  */
 let fork() -> int;
 
-// Get the user ID
+/// Get the user ID
 let get_uid() -> int;
 
-// Get the effective user ID
+/// Get the effective user ID
 let get_euid() -> int;

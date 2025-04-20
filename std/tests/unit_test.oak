@@ -1,0 +1,15 @@
+/*
+Testing the unit class in Oak
+*/
+
+include!("std/std.oak", "std/unit.oak");
+
+let main() -> i32 {
+  let a: Unit;
+  let b: Unit;
+
+  // This is not defined:
+  // a = b;
+
+  return 0i32;
+}

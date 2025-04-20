@@ -1,0 +1,33 @@
+/*
+Status struct test
+*/
+
+include!("std/std.oak", "std/status.oak", "std/random.oak");
+rule::use!("std");
+
+let fn() -> Status {
+  let out: Status;
+  wrap_good(out);
+
+  if (rand() % 2int == 0int) {
+    out.wrap_bad();
+  }
+
+  return out;
+}
+
+let main() -> i32 {
+  srand();
+
+  let status: Status;
+  status = fn();
+  match (status) {
+    case good(_: Unit) {
+      print("Rand caused \"good\"\n");
+    } case bad(_: Unit) {
+      print("Rand caused \"bad\"\n");
+    }
+  }
+
+  return 0i32;
+}

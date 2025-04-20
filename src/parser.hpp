@@ -306,9 +306,12 @@ protected:
   /// destructor calls.
   Node pop_frame(const Node &_old_node, Settings &_settings);
 
-  /// Global compiler definitions (EG structs, enums, fns)
+  /// Global compiler definitions (EG structs, enums)
   std::map<std::string, std::variant<StructInfo, EnumInfo>>
       globals;
+
+  /// Globals order: Necessary to avoid incomplete types in C
+  std::list<std::string> globals_order;
 
   /// Functions
   std::map<std::string, std::list<FnInfo>> functions;

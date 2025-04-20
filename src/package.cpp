@@ -226,7 +226,6 @@ void PackageManager::install_package(
                                spec.at("name") + ":\n" +
                                e.what());
     } catch (...) {
-      db_rethrow();
       throw std::runtime_error(
           "Unknown error while building package " +
           spec.at("name"));

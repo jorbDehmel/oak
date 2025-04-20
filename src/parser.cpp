@@ -367,7 +367,6 @@ void Parser::parse_global(
     }
 
     catch (...) {
-      db_rethrow();
       if (pos == _file_contents.end()) {
         throw;
       }
@@ -390,8 +389,8 @@ void Parser::reconstruct(std::ostream &_where,
   _where << "#include \"oak/std/std_oak_header.h\"\n";
 
   // Struct and enum signatures
-  for (const auto &g : globals) {
-    _where << "struct " << g.first << ";\n";
+  for (const auto &g : globals_order) {
+    _where << "struct " << g << ";\n";
   }
 
   // Function signatures
@@ -409,19 +408,20 @@ void Parser::reconstruct(std::ostream &_where,
   }
 
   // Struct and enum definitions
-  for (const auto &g : globals) {
-    if (std::holds_alternative<StructInfo>(g.second)) {
-      const auto info = std::get<StructInfo>(g.second);
-      _where << "struct " << g.first << " {\n";
+  for (const auto &name : globals_order) {
+    auto data = globals.at(name);
+    if (std::holds_alternative<StructInfo>(data)) {
+      const auto info = std::get<StructInfo>(data);
+      _where << "struct " << name << " {\n";
       for (const auto &item : info.member_order) {
         _where << info.members.at(item).c_repr(item) << ";\n";
       }
       _where << "};\n";
     } else {
-      const EnumInfo info = std::get<EnumInfo>(g.second);
-      _where << "struct " << g.first << "{enum{\n";
+      const EnumInfo info = std::get<EnumInfo>(data);
+      _where << "struct " << name << "{enum{\n";
       for (const auto &item : info.option_order) {
-        _where << g.first << "_OPT_" << item << ",";
+        _where << name << "_OPT_" << item << ",";
       }
       _where << "}__info;union{\n";
       for (const auto &item : info.option_order) {
@@ -634,10 +634,11 @@ void Parser::dump(std::ostream &_where,
   }
 
   _where << "// Structs and enums:\n";
-  for (const auto &item : globals) {
-    _where << item.first << " [";
-    if (std::holds_alternative<StructInfo>(item.second)) {
-      const auto info = std::get<StructInfo>(item.second);
+  for (const auto &name : globals_order) {
+    _where << name << " [";
+    auto data = globals.at(name);
+    if (std::holds_alternative<StructInfo>(data)) {
+      const auto info = std::get<StructInfo>(data);
       for (auto it = info.tags.begin(); it != info.tags.end();
            ++it) {
         if (it != info.tags.begin()) {
@@ -653,7 +654,7 @@ void Parser::dump(std::ostream &_where,
                << '\n';
       }
     } else {
-      const auto info = std::get<EnumInfo>(item.second);
+      const auto info = std::get<EnumInfo>(data);
       for (auto it = info.tags.begin(); it != info.tags.end();
            ++it) {
         if (it != info.tags.begin()) {
@@ -1100,6 +1101,7 @@ void Parser::parse_struct(
                      "\" does not seem to be camelcase");
     }
 
+    globals_order.push_back(name);
     globals[name] = to_add;
 
     // Constructor and destructor autogen go here
@@ -1219,6 +1221,7 @@ void Parser::parse_enum(
                      "\" does not seem to be camelcase");
     }
 
+    globals_order.push_back(name);
     globals[name] = to_add;
 
     // Wrappers
@@ -1758,6 +1761,26 @@ Node Parser::parse_function_call(
     return out;
   }
 
+  // Special case: Local objects
+  if (!locals.empty()) {
+    for (auto frame = locals.rbegin(); frame != locals.rend();
+         ++frame) {
+      if (frame->contains(*_cur_pos)) {
+        const Type local_var_type = frame->at(*_cur_pos);
+        if (local_var_type.is_fn_ptr()) {
+          // Fn pointer call (STILL NEED TO TYPE CHECK)
+          throw std::runtime_error(
+              "Function pointers are unimplemented!");
+        } else {
+          throw std::runtime_error(
+              "Cannot call variable with non-function-pointer "
+              "type '" +
+              local_var_type.oak_repr(*_cur_pos) + "'");
+        }
+      }
+    }
+  }
+
   // Function call
   Node out(Node::CALL);
   out.token = *_cur_pos;
@@ -2038,6 +2061,17 @@ Type Parser::resolve_variable(const Lexer::Token &_name) {
         return frame->at(_name);
       }
     }
+  }
+
+  // Fn ptrs
+  if (functions.contains(_name.text)) {
+    if (functions.at(_name.text).size() != 1) {
+      throw std::runtime_error(
+          "Cannot make pointer to overridden function '" +
+          _name.text + "'.");
+    }
+
+    return functions.at(_name.text).front().t.ref();
   }
 
   throw std::runtime_error("Variable '" + _name.text +
@@ -2384,196 +2418,199 @@ Type Parser::resolve_fn_call(const std::string &_name,
                              std::vector<int> &_derefs,
                              Settings &_settings,
                              const bool &_allow_template) {
-  debug_print();
-
-  _derefs.clear();
-  for (const auto &_ : _args) {
-    _derefs.push_back(0);
-  }
-
-  // Attempt existing instances
   std::vector<FnInfo> candidates;
-  candidates.assign(functions[_name].begin(),
-                    functions[_name].end());
   std::list<uint> exact_matches, cast_matches, ref_matches;
   std::list<std::vector<int>> ref_match_deref_counts;
-  for (uint i = 0; i < candidates.size(); ++i) {
-    bool exact = true, ref = true, cast = true;
-    const auto instance_args = candidates.at(i).t.fn_args();
 
-    if (instance_args.size() != _args.size()) {
-      continue;
+  debug_print();
+  try {
+    _derefs.clear();
+    for (const auto &_ : _args) {
+      _derefs.push_back(0);
     }
 
-    std::vector<int> num_derefs;
-    num_derefs.reserve(instance_args.size());
-    for (uint i = 0; i < instance_args.size(); ++i) {
-      if (exact &&
-          !_args[i].exact_match(instance_args[i].second)) {
-        exact = false;
+    // Attempt existing instances
+    candidates.assign(functions[_name].begin(),
+                      functions[_name].end());
+    for (uint i = 0; i < candidates.size(); ++i) {
+      bool exact = true, ref = true, cast = true;
+      const auto instance_args = candidates.at(i).t.fn_args();
+
+      if (instance_args.size() != _args.size()) {
+        continue;
       }
 
-      int num_arg_derefs = 0;
-      if (ref && !_args[i].ref_match(instance_args[i].second,
-                                     num_arg_derefs)) {
-        ref = false;
-      }
-      num_derefs.push_back(num_arg_derefs);
+      std::vector<int> num_derefs;
+      num_derefs.reserve(instance_args.size());
+      for (uint i = 0; i < instance_args.size(); ++i) {
+        if (exact &&
+            !_args[i].exact_match(instance_args[i].second)) {
+          exact = false;
+        }
 
-      if (cast &&
-          !_args[i].cast_match(instance_args[i].second)) {
-        cast = false;
+        int num_arg_derefs = 0;
+        if (ref && !_args[i].ref_match(instance_args[i].second,
+                                       num_arg_derefs)) {
+          ref = false;
+        }
+        num_derefs.push_back(num_arg_derefs);
+
+        if (cast &&
+            !_args[i].cast_match(instance_args[i].second)) {
+          cast = false;
+        }
+      }
+
+      if (exact) {
+        exact_matches.push_back(i);
+      } else if (ref) {
+        ref_matches.push_back(i);
+        ref_match_deref_counts.push_back(num_derefs);
+      } else if (cast) {
+        cast_matches.push_back(i);
       }
     }
 
-    if (exact) {
-      exact_matches.push_back(i);
-    } else if (ref) {
-      ref_matches.push_back(i);
-      ref_match_deref_counts.push_back(num_derefs);
-    } else if (cast) {
-      cast_matches.push_back(i);
-    }
-  }
-
-  if (exact_matches.empty()) {
-    if (ref_matches.empty()) {
-      if (!cast_matches.empty()) {
-        // Use casting matches
-        if (cast_matches.size() != 1) {
+    if (exact_matches.empty()) {
+      if (ref_matches.empty()) {
+        if (!cast_matches.empty()) {
+          // Use casting matches
+          if (cast_matches.size() != 1) {
+            throw std::runtime_error(
+                "Multiple castable matches were "
+                "found for function call '" +
+                fn_call_str(_name, _args) + "'");
+          } else {
+            _into = candidates.at(cast_matches.front());
+            return candidates.at(cast_matches.front())
+                .t.fn_return_type();
+          }
+        }
+      } else {
+        // Use ref matches
+        if (ref_matches.size() != 1) {
           throw std::runtime_error(
-              "Multiple castable matches were "
+              "Multiple reference matches were "
               "found for function call '" +
               fn_call_str(_name, _args) + "'");
         } else {
-          _into = candidates.at(cast_matches.front());
-          return candidates.at(cast_matches.front())
+          _into = candidates.at(ref_matches.front());
+          _derefs = ref_match_deref_counts.front();
+          return candidates.at(ref_matches.front())
               .t.fn_return_type();
         }
       }
     } else {
-      // Use ref matches
-      if (ref_matches.size() != 1) {
-        throw std::runtime_error(
-            "Multiple reference matches were "
-            "found for function call '" +
-            fn_call_str(_name, _args) + "'");
+      // Use exact matches
+
+      // Count number of signature-only matches
+      uint num_sigs = 0;
+      for (const auto &item : exact_matches) {
+        if (candidates.at(item).tags.contains("casual") &&
+            candidates.at(item).tags.at("casual") == "true") {
+          ++num_sigs;
+        }
+      }
+
+      if (!(num_sigs == exact_matches.size() ||
+            num_sigs + 1 == exact_matches.size())) {
+        throw std::runtime_error("Multiple exact matches were "
+                                 "found for function call '" +
+                                 fn_call_str(_name, _args) +
+                                 "'");
       } else {
-        _into = candidates.at(ref_matches.front());
-        _derefs = ref_match_deref_counts.front();
-        return candidates.at(ref_matches.front())
+        _into = candidates.at(exact_matches.front());
+        return candidates.at(exact_matches.front())
             .t.fn_return_type();
       }
     }
-  } else {
-    // Use exact matches
 
-    // Count number of signature-only matches
-    uint num_sigs = 0;
-    for (const auto &item : exact_matches) {
-      if (candidates.at(item).tags.contains("casual") &&
-          candidates.at(item).tags.at("casual") == "true") {
-        ++num_sigs;
+    if (_allow_template) {
+      // Do any templates
+      try {
+        // Find signature
+        // TODO: Make this suck less
+        // Note: This is immediately converted to std::string,
+        // so the file, line, and col don't matter
+        Lexer l;
+        uint64_t junk_line = 0, junk_col = 0;
+        std::list<std::string> signature = {"("};
+        for (const auto &arg : _args) {
+          // Ignore on first arg
+          if (signature.size() != 1) {
+            signature.push_back(",");
+          }
+
+          // Anonymous arg name
+          signature.push_back("_");
+          signature.push_back(":");
+
+          // Arg type
+          for (const auto &tok : l.lex(arg.oak_repr(), "NULL",
+                                       junk_line, junk_col)) {
+            signature.push_back(tok.text);
+          }
+        }
+        signature.push_back(")");
+        // Note: No return type!
+
+        // If there exist some substitutions such that some
+        // template exactly matches the signature, do that
+        const std::list<
+            std::pair<std::list<std::list<std::string>>, uint>>
+            ts = find_substitutions(_name, signature);
+        for (const auto &p : ts) {
+          if (templates.at(_name)
+                  .at(p.second)
+                  .attempt_instantiation(*this, p.first,
+                                         _settings)) {
+            // Don't allow templates this time!
+            return resolve_fn_call(_name, _args, _into, _derefs,
+                                   _settings, false);
+          }
+        }
+      } catch (std::runtime_error &_e) {
+        throw std::runtime_error(
+            "Error during template checking "
+            "requested by function call '" +
+            fn_call_str(_name, _args) + "':\n" + _e.what());
+      } catch (...) {
+        throw std::runtime_error(
+            "Unknown error during template checking "
+            "requested by function call '" +
+            fn_call_str(_name, _args) + "'");
       }
     }
 
-    if (!(num_sigs == exact_matches.size() ||
-          num_sigs + 1 == exact_matches.size())) {
-      throw std::runtime_error("Multiple exact matches were "
-                               "found for function call '" +
-                               fn_call_str(_name, _args) + "'");
-    } else {
-      _into = candidates.at(exact_matches.front());
-      return candidates.at(exact_matches.front())
-          .t.fn_return_type();
-    }
-  }
+    // Throw error if it couldn't be resolved
+    throw std::runtime_error("No existing candidate nor "
+                             "providing template could be "
+                             "found for function call '" +
+                             fn_call_str(_name, _args) + "'");
+  } catch (std::runtime_error &) {
+    _settings.ostream << "Candidates:\n";
+    for (uint i = 0; i < candidates.size(); ++i) {
+      _settings.ostream << candidates.at(i).tags["file"] << ":"
+                        << candidates.at(i).tags["line"] << "> "
+                        << candidates.at(i).t.oak_repr(_name);
 
-  if (_allow_template) {
-    // Do any templates
-    try {
-      // Find signature
-      // TODO: Make this suck less
-      // Note: This is immediately converted to std::string,
-      // so the file, line, and col don't matter
-      Lexer l;
-      uint64_t junk_line = 0, junk_col = 0;
-      std::list<std::string> signature = {"("};
-      for (const auto &arg : _args) {
-        // Ignore on first arg
-        if (signature.size() != 1) {
-          signature.push_back(",");
-        }
-
-        // Anonymous arg name
-        signature.push_back("_");
-        signature.push_back(":");
-
-        // Arg type
-        for (const auto &tok : l.lex(arg.oak_repr(), "NULL",
-                                     junk_line, junk_col)) {
-          signature.push_back(tok.text);
-        }
+      if (std::find(exact_matches.begin(), exact_matches.end(),
+                    i) != exact_matches.end()) {
+        _settings.ostream << " exact";
       }
-      signature.push_back(")");
-      // Note: No return type!
-
-      // If there exist some substitutions such that some
-      // template exactly matches the signature, do that
-      const std::list<
-          std::pair<std::list<std::list<std::string>>, uint>>
-          ts = find_substitutions(_name, signature);
-      for (const auto &p : ts) {
-        if (templates.at(_name)
-                .at(p.second)
-                .attempt_instantiation(*this, p.first,
-                                       _settings)) {
-          // Don't allow templates this time!
-          return resolve_fn_call(_name, _args, _into, _derefs,
-                                 _settings, false);
-        }
+      if (std::find(cast_matches.begin(), cast_matches.end(),
+                    i) != cast_matches.end()) {
+        _settings.ostream << " cast-matchable";
       }
-    } catch (std::runtime_error &_e) {
-      throw std::runtime_error("Error during template checking "
-                               "requested by function call '" +
-                               fn_call_str(_name, _args) +
-                               "':\n" + _e.what());
-    } catch (...) {
-      db_rethrow();
-      throw std::runtime_error(
-          "Unknown error during template checking "
-          "requested by function call '" +
-          fn_call_str(_name, _args) + "'");
+      if (std::find(ref_matches.begin(), ref_matches.end(),
+                    i) != ref_matches.end()) {
+        _settings.ostream << " ref-matchable";
+      }
+
+      _settings.ostream << '\n';
     }
+    throw;
   }
-
-  _settings.ostream << "Candidates:\n";
-  for (uint i = 0; i < candidates.size(); ++i) {
-    _settings.ostream << candidates.at(i).tags["file"] << ":"
-                      << candidates.at(i).tags["line"] << "> "
-                      << candidates.at(i).t.oak_repr(_name);
-
-    if (std::find(exact_matches.begin(), exact_matches.end(),
-                  i) != exact_matches.end()) {
-      _settings.ostream << " exact";
-    }
-    if (std::find(cast_matches.begin(), cast_matches.end(),
-                  i) != cast_matches.end()) {
-      _settings.ostream << " cast-matchable";
-    }
-    if (std::find(ref_matches.begin(), ref_matches.end(), i) !=
-        ref_matches.end()) {
-      _settings.ostream << " ref-matchable";
-    }
-
-    _settings.ostream << '\n';
-  }
-
-  // Throw error if it couldn't be resolved
-  throw std::runtime_error("No existing candidate nor "
-                           "providing template could be "
-                           "found for function call '" +
-                           fn_call_str(_name, _args) + "'");
 }
 
 /// Finds all possible template instantiations to match the

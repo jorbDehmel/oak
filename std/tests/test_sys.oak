@@ -1,4 +1,5 @@
 /*
+Tests the SYSTEM! macro
 */
 
 include!("std/std.oak");

@@ -108,6 +108,11 @@ public:
   /// O(1)
   bool is_fn() const noexcept;
 
+  /// Returns true iff the first node is of type POINTER and the
+  /// second node is of type FUNCTION
+  /// O(1)
+  bool is_fn_ptr() const noexcept;
+
   /// Gets the arguments, given that this is a function
   /// O(n)
   std::vector<std::pair<std::string, Type>> fn_args() const;

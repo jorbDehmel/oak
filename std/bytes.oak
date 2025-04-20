@@ -1,0 +1,41 @@
+/**
+ * @brief Byte objects of constant length. These are mostly used
+ * for interfacial struct packing and pointer casting.
+ */
+
+pragma!("no_dialect");
+
+/// One byte of data
+let Byte: struct {
+  _: u8
+}
+
+/// Two bytes of data
+let TwoBytes: struct {
+  _: [2uint]Byte
+}
+
+/// Four bytes of data
+let FourBytes: struct {
+  _: [4uint]Byte
+}
+
+/// Eight bytes of data
+let EightBytes: struct {
+  _: [8uint]Byte
+}
+
+/// Sixteen bytes of data
+let SixteenBytes: struct {
+  _: [16uint]Byte
+}
+
+/// Thirty-two bytes of data
+let ThirtyTwoBytes: struct {
+  _: [32uint]Byte
+}
+
+/// Sixty-four bytes of data
+let SixtyFourBytes: struct {
+  _: [64uint]Byte
+}

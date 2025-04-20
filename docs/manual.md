@@ -28,6 +28,11 @@ at runtime. `Oak` aims to be easy to interface and extend, and
 offers tools for the construction of syntactically diverse
 "dialects".
 
+`Oak`'s preprocessor is intentionally Turing-complete: Indeed,
+it is `Oak`. This allows arbitrarily (or indeed infinitely)
+nested preprocessor expansions. The preprocessor halts when a
+pass of it fails to alter the token stream.
+
 ## `Hello, World!`
 
 ```rust
@@ -581,6 +586,10 @@ contiguous array of 16 of its type.
 `free!(a)` is called on a variable `a` when it is time to
 release dynamically allocated memory. The same call works
 whether `a` is a pointer or an unsized array.
+
+### `str!` and `unstr!`
+
+Although these macros
 
 ## Macros
 

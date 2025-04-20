@@ -1,0 +1,31 @@
+/**
+ * @brief Tests traits in Oak
+ */
+
+// Checks are compile-time
+pragma!("no_run");
+include!("std/io.oak");
+
+// Parses iff T has a member variable named `a`
+let has_member_a<T>: trait {
+  let t: T;
+  t.a;
+}
+
+// A struct that should satisfy out trait
+let A: struct {
+  a: i32
+}
+
+// A function only instantiable if T satisfies our trait
+let foo<T>() -> void {
+  has_member_a<T>;
+  print("hi\n");
+}
+
+let main() -> i32 {
+  let a: A;
+  foo(a);
+
+  return 0i32;
+}

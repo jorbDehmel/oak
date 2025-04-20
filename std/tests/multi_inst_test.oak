@@ -4,7 +4,8 @@ Tests multiple instantiation
 
 include!("std/std.oak");
 
-let foo, fizz, buzz() -> void {}
+let foo, fizz, buzz() -> void {
+}
 
 let main() -> i32 {
   let a, b, c, d: i32;

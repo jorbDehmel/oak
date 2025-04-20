@@ -1,11 +1,29 @@
-/*
-Defines the `assert!` macro
-*/
+/**
+ * @file
+ * @brief Defines the `assert!` macro.
+ */
 
-include!("std/io.oak");
+pragma!("no_dialect");
 
+// Need to add this because `assert!` prints print/panic calls
+include!("std/io.oak", "std/panic.oak");
+
+/**
+ * @brief Given a code snippet (NOT a string), cause a runtime
+ * kernel panic if it evaluates to false. This has runtime cost!
+ * @param c The number of arguments
+ * @param v An array of at least one argument
+ * @returns Zero on success, where the assertion is written out
+ */
 let assert!(c: i32, v: [][]i8) -> i32 {
-  include!("std/printf.oak");
+  include!("std/printf.oak", "std/operators.oak");
+
+  // Ensure we have the right number of arguments
+  if (c != 2i32) {
+    return 1i32;
+  }
+
+  // Print the assertion
   printf!(
     "if (Not(%)) {"
     "print(\"Failed assertion at \");"
@@ -13,8 +31,11 @@ let assert!(c: i32, v: [][]i8) -> i32 {
     "print(\":\");"
     "print(LINE!);"
     "endl();"
+    "print(str!(%));"
+    "endl();"
     "panic();"
     "}",
+    Get(v, 1uint),
     Get(v, 1uint)
   );
 

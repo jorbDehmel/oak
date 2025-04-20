@@ -1,0 +1,26 @@
+/**
+ * @brief Tests threads in Oak
+ */
+
+include!(
+  "std/std.oak",
+  "std/thread.oak",
+  "std/printf.oak"
+);
+
+let thread_fn(arg: ^void) -> ^void {
+  // Void pointer casting
+  let thread_id_ptr: ^uint;
+  thread_id_ptr = arg;
+  let thread_id: uint;
+  thread_id = thread_id_ptr;
+
+  printf!(
+    "Hello from thread %\n".
+    thread_id
+  );
+}
+
+let main() {
+  return 0i32;
+}

@@ -34,12 +34,6 @@ const std::set<std::string> MacroManager::reserved_macro_names =
      "str!",
      "unstr!"};
 
-/**
- * @brief Runs a command, asserts it succeeded, and captures its
- * stdout.
- * @param _cmd The command to run
- * @returns The string output of the command
- */
 std::string get_cmd_output(const std::string &_cmd) {
   debug_print();
   char buffer[128];
@@ -57,7 +51,7 @@ std::string get_cmd_output(const std::string &_cmd) {
     memset(buffer, '\0', 128);
   }
 
-  int code = pclose(pipe);
+  int code = pclose(pipe) / 256;
   if (code != 0) {
     throw std::runtime_error("Command '" + std::string(_cmd) +
                              "' failed with error code " +
@@ -72,22 +66,17 @@ std::string MacroManager::strip_string_literal(
   debug_print();
   const static std::set<char> str_chars = {'\'', '"', '`'};
 
+  // Strip \" and the likes from within
   std::string out = _str_lit;
   while (out.front() == out.back() &&
          str_chars.contains(out.front())) {
-    char removed = out.front();
     std::string tmp;
-
-    // Strip \" and the likes from within
     for (uint i = 1; i + 1 < out.size(); ++i) {
-      if (i + 2 < out.size() && out[i] == '\\' &&
-          out[i + 1] == removed) {
+      if (i + 2 < out.size() && out[i] == '\\') {
         ++i;
-      } else {
-        tmp.push_back(out[i]);
       }
+      tmp.push_back(out[i]);
     }
-
     out = tmp;
   }
   return out;
@@ -476,7 +465,6 @@ void MacroManager::process_definition(
       } catch (...) {
         std::cerr << "From macro compiler:\n"
                   << macro_compilation_log.str() << '\n';
-        db_rethrow();
         throw std::runtime_error(
             "Unknown error occurred during "
             "compilation of macro '" +

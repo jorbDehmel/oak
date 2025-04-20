@@ -1,0 +1,53 @@
+/**
+ * @file
+ * @brief pthreads interface
+ */
+
+pragma!("no_dialect");
+link!("std/thread.o");
+flag!("-pthread")
+
+/// A pthread instance wrapped in Oak goop. pthreads should be
+/// the same size as u64's, so I've just added some junk on the
+/// end to make sure we're safe.
+let Thread: struct {
+  _: [2uint]u64
+}
+
+/// External creation and deletion functions
+let New, Del(self: ^Thread) -> void;
+
+/// Launch the thread from some function and some data
+let Copy(self: ^Thread, fn: ^(_: ^void) -> ^void, data: ^void
+  ) -> void;
+
+/// Await the function's return, yielding some void pointer
+let join(self: ^Thread) -> ^void;
+
+/// Signal that this thread is no longer under our control
+let detach(self: ^Thread) -> void;
+
+////////////////////////////////////////////////////////////////
+// Templated version
+
+let Thread<ArgType, RetType>: struct {
+  __data: Thread,
+}
+
+/// Launch the thread from some function and some data
+let Copy<ArgType, RetType>(self: ^Thread<ArgType, RetType>,
+  fn: ^(ArgType) -> RetType, data: ArgType) -> void {
+  Copy(self.__data, fn, data);
+}
+
+/// Await the function's return, yielding some void pointer
+let join<ArgType, RetType>(self: ^Thread<ArgType, RetType>
+  ) -> RetType {
+  return join(self.__data);
+}
+
+/// Signal that this thread is no longer under our control
+let detach<ArgType, RetType>(self: ^Thread<ArgType, RetType>
+  ) -> void {
+  detach(self.__data);
+}

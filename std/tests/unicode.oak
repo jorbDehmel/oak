@@ -1,0 +1,22 @@
+/**
+ * @brief Tests unicode support. We are limited by gcc's unicode
+ * support here.
+ */
+
+include!("std/std.oak");
+
+let ථ: struct {
+  ⅜: i32,
+}
+
+let main() -> i32 {
+  let ሀŵǝv: i32;
+
+  let Ꮰ: ථ;
+  Ꮰ.⅜ = 123i32;
+
+  let ⵁΏĤ: i32;
+  print("ⓂᶺٸฃᔠᐔᵛᗬೇⲘݔËථܣ⣥Ꮖ⧛⢠ᓍഷ⅜₴ฉ\n");
+
+  return 0i32;
+}

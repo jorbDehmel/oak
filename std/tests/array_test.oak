@@ -1,0 +1,42 @@
+/*
+Tests some array casts
+*/
+
+include!("std/std.oak");
+rule::use!("std");
+
+let indicize(arr: []i32, size: uint) -> void {
+  let i = 0u64;
+  while (i < size) {
+    Get(arr, i) = to_i32(i);
+    ++i;
+  }
+}
+
+let print(arr: []i32, size: uint) -> void {
+  let i = 0uint;
+  while (i < size) {
+    print(Get(arr, i));
+    endl();
+    ++i;
+  }
+}
+
+let size_1! = 16uint;
+let size_2! = 64uint;
+
+let main() -> i32 {
+  let arr_1: [size_1!]i32;
+  let arr_2: [size_2!]i32;
+
+  indicize(arr_1, size_1!);
+  indicize(arr_2, size_2!);
+
+  print("Array 1:\n");
+  print(arr_1, size_1!);
+
+  print("Array 2:\n");
+  print(arr_2, size_2!);
+
+  return 0i32;
+}

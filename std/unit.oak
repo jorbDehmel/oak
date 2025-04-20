@@ -1,9 +1,17 @@
-/*
-Defines the unit struct
-*/
+/**
+ * @file
+ * @brief Defines the unit struct
+ */
 
 pragma!("no_dialect");
 
+/**
+ * @brief A "unit" struct: Used in scenarios where a type is
+ * syntactically necessary but not actually needed (e.g. the
+ * "None" option of the "Optional" enum).
+ * @member _ Since structs must be nonempty, a private dummy
+ * variable whose values should not be used.
+ */
 let Unit: struct {
-  _: u8,
+  _: u8
 }

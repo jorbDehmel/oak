@@ -1,0 +1,27 @@
+/**
+ * @brief Tests non-capturing lambdas in Oak. This one's a
+ * stretch goal.
+ */
+
+include!("std/std.oak", "std/rules.oak");
+include!("std/assert.oak");
+rule::use!("std");
+
+let call_on_zero(fn: ^(_: i32) -> i32) -> i32 {
+  return fn(0i32);
+}
+
+let main() -> i32 {
+  let expected = 123i32;
+  let observed: i32;
+
+  observed = call_on_zero(
+    (_: i32) -> i32 {
+      return 123i32;
+    }
+  );
+
+  assert!(expected == observed);
+
+  return 0i32;
+}

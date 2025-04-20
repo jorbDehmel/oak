@@ -80,7 +80,7 @@ int strm_cmd_output(const std::string &_cmd,
 
   _to << cout_sstream.str();
   std::cerr.rdbuf(cout_buffer);
-  return pclose(pipe);
+  return pclose(pipe) / 256;
 }
 
 /// Print the version of Acorn
@@ -475,7 +475,6 @@ void OakCompiler::do_compilation() {
     }
 
     catch (...) {
-      db_rethrow();
       throw std::runtime_error(
           "An unknown error occurred while loading dialect "
           "file '" +
@@ -490,7 +489,6 @@ void OakCompiler::do_compilation() {
         "Error occurred while loading entry point " +
         csettings.entry_point.string() + ":\n" + e.what());
   } catch (...) {
-    db_rethrow();
     throw std::runtime_error(
         "An unknown error occurred while loading entry point " +
         csettings.entry_point.string());
@@ -1365,7 +1363,6 @@ uint64_t OakCompiler::preprocess(
       }
 
       catch (...) {
-        db_rethrow();
         if (it == _token_stream.end()) {
           throw;
         }
@@ -1418,7 +1415,6 @@ uint64_t OakCompiler::preprocess(
           }
 
           catch (...) {
-            db_rethrow();
             throw std::runtime_error(
                 "In file included from " + it->file.string() +
                 ":" + std::to_string(it->line) + "." +
@@ -1476,8 +1472,7 @@ uint64_t OakCompiler::preprocess(
           }
 
           for (const auto &f : args) {
-            csettings.link_flags.push_back(
-                resolve_path(f.text, f.file));
+            csettings.link_flags.push_back(f.text);
           }
         } else if (*it == "pragma!") {
           auto raw_args = MacroManager::get_macro_args(
@@ -1638,59 +1633,57 @@ uint64_t OakCompiler::preprocess(
         }
 
         else if (*it == "unstr!") {
+          Lexer::Token to_add(*it);
           auto raw_args = MacroManager::get_macro_args(
               _token_stream, it, _token_stream.end());
-          std::list<Lexer::Token> to_insert;
-          Lexer l;
+          to_add.text.clear();
 
           for (auto it = raw_args.begin(); it != raw_args.end();
                ++it) {
-            preprocess(*it);
-            Lexer::Token to_add = it->front();
-            for (auto inner_it = std::next(it->begin());
+            for (auto inner_it = it->begin();
                  inner_it != it->end(); ++inner_it) {
-              to_add.text += ' ';
+              if (!to_add.text.empty()) {
+                to_add.text += ' ';
+              }
               to_add.text += inner_it->text;
-            }
-            to_add.text =
-                MacroManager::strip_string_literal(to_add.text);
-
-            for (const auto &tok :
-                 l.lex(to_add.text, to_add.file, to_add.line,
-                       to_add.col)) {
-              to_insert.push_back(tok);
             }
           }
 
-          for (auto arg = to_insert.rbegin();
-               arg != to_insert.rend(); ++arg) {
+          to_add.text =
+              MacroManager::strip_string_literal(to_add.text);
+
+          Lexer lexer;
+          uint64_t dummy_line = to_add.line,
+                   dummy_col = to_add.col;
+          auto to_insert = lexer.lex(to_add.text, to_add.file,
+                                     dummy_line, dummy_col);
+          for (auto arg = to_insert.begin();
+               arg != to_insert.end(); ++arg) {
+            arg->line = to_add.line;
             _token_stream.emplace(it, *arg);
           }
         } else if (*it == "str!") {
+          Lexer::Token to_add(*it);
           auto raw_args = MacroManager::get_macro_args(
               _token_stream, it, _token_stream.end());
-          std::list<Lexer::Token> args;
+          to_add.text.clear();
+
           for (auto it = raw_args.begin(); it != raw_args.end();
                ++it) {
-            preprocess(*it);
-            Lexer::Token to_add = it->front();
-            for (auto inner_it = std::next(it->begin());
+            for (auto inner_it = it->begin();
                  inner_it != it->end(); ++inner_it) {
-              to_add.text += ' ';
+              if (!to_add.text.empty()) {
+                to_add.text += ' ';
+              }
               to_add.text += inner_it->text;
             }
-            // Ensure exactly one set of enclosing quotes
-            to_add.text = MacroManager::make_string_literal(
-                MacroManager::strip_string_literal(
-                    to_add.text));
-            Lexer::classify_type(to_add);
-            args.push_back(to_add);
           }
 
-          for (auto arg = args.rbegin(); arg != args.rend();
-               ++arg) {
-            _token_stream.emplace(it, *arg);
-          }
+          // Ensure exactly one set of enclosing quotes
+          to_add.text = MacroManager::make_string_literal(
+              MacroManager::strip_string_literal(to_add.text));
+          Lexer::classify_type(to_add);
+          _token_stream.emplace(it, to_add);
         }
 
         else if (*it == "compile_time_system!") {
@@ -1779,7 +1772,6 @@ uint64_t OakCompiler::preprocess(
       }
 
       catch (...) {
-        db_rethrow();
         if (it == _token_stream.end()) {
           throw;
         }
@@ -1813,7 +1805,6 @@ uint64_t OakCompiler::preprocess(
       }
 
       catch (...) {
-        db_rethrow();
         if (it == _token_stream.end()) {
           throw;
         }
@@ -1958,7 +1949,6 @@ void OakCompiler::do_file(
              settings.compile_settings());
     }
 
-    db_rethrow();
     throw std::runtime_error(
         "An unknown error occurred while lexing " +
         path.string() + "");

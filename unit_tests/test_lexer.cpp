@@ -4,9 +4,12 @@
  */
 
 #include "../src/lexer.hpp"
+#include "../src/macro.hpp"
 #include <cassert>
 #include <iostream>
+#include <map>
 #include <stdexcept>
+#include <sys/types.h>
 
 void assert_match(const std::string &_path,
                   const std::list<std::string> &_texts,
@@ -37,6 +40,18 @@ void assert_match(const std::string &_path,
     }
     std::cerr << '\n';
 
+    throw std::runtime_error("Failed match!");
+  }
+}
+
+void assert_match(const std::string &_observed,
+                  const std::string &_expected) {
+  bool match = _observed == _expected;
+
+  if (!match) {
+    // Write error message
+    std::cerr << "Expected: [" << _expected << "], observed ["
+              << _observed << "]\n";
     throw std::runtime_error("Failed match!");
   }
 }
@@ -72,6 +87,41 @@ int main() {
                  {"include!", "(", "\"std/io.oak\"", ")", ";",
                   "let", "main", "(", ")", "->", "i32"},
                  observed);
+  }
+
+  { // Test string literal operations
+    assert_match(
+        MacroManager::make_string_literal("Hello, world!"),
+        "\"Hello, world!\"");
+    assert_match(
+        MacroManager::make_string_literal("Hello, \"world\"!"),
+        "\"Hello, \\\"world\\\"!\"");
+    assert_match(MacroManager::make_string_literal(
+                     "\"Hello, \\\"world\\\"!\""),
+                 "\"\\\"Hello, \\\\\\\"world\\\\\\\"!\\\"\"");
+
+    assert_match(
+        MacroManager::strip_string_literal("Hello, \"world\"!"),
+        "Hello, \"world\"!");
+    assert_match(
+        MacroManager::strip_string_literal(
+            "\"\\\"Hello, \\\\\\\"hamburger\\\\\\\"!\\\"\""),
+        "Hello, \"hamburger\"!");
+  }
+
+  { // Testing string literal operations iteratively
+    std::string cur = "The \"cat\" jumps gleefully over "
+                      "\"lazy \\\"dogs\\\"\"";
+
+    for (uint i = 1; i < 8; ++i) {
+      std::string next = MacroManager::make_string_literal(cur);
+      assert_match(MacroManager::strip_string_literal(next),
+                   cur);
+      std::cout << "Passed iteration " << i << " w/ string:\n"
+                << next << "\n"
+                << std::flush;
+      cur = next + ", yo";
+    }
   }
 
   std::cout << "All lexer unit tests passed!\n";

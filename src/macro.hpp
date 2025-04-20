@@ -12,6 +12,14 @@
 #include <set>
 #include <variant>
 
+/**
+ * @brief Runs a command, asserts it succeeded, and captures its
+ * stdout.
+ * @param _cmd The command to run
+ * @returns The string output of the command
+ */
+std::string get_cmd_output(const std::string &_cmd);
+
 /// Forward definition to avoid loop inclusion
 class OakCompiler;
 
@@ -48,8 +56,8 @@ public:
                  const std::list<Lexer::Token>::iterator &_end);
 
   /// STRIPS QUOTES OFF OF a macro occurrence's
-  /// args. Then returns those args WITHOUT ERASURE and WITHOUT
-  /// recursion! This should only be used after all
+  /// args. Then returns those args WITHOUT ERASURE and
+  /// WITHOUT recursion! This should only be used after all
   /// preprocessing!
   static std::list<Lexer::Token> get_macro_args(
       const std::list<Lexer::Token>::const_iterator &_beg,
@@ -86,8 +94,8 @@ public:
 
   /**
    * @struct MacroManager::Alias
-   * @brief Holds information pertaining to inline/alias macros
-   * (EG LINE!, FILE!, etc)
+   * @brief Holds information pertaining to inline/alias
+   * macros (EG LINE!, FILE!, etc)
    */
   struct Alias {
     /// The thing the macro should be replaced with

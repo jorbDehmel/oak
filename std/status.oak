@@ -5,10 +5,26 @@ Defines the `Status` enum in Oak
 include!("std/unit.oak");
 
 let Status: enum {
-  good: Unit,
-  bad: Unit
+  bad: Unit,
+  good: Unit
 }
 
-let New(self: ^Status) -> Status {
-  wrap_good(self);
+let wrap_good(self: ^Status) -> void {
+  let u: Unit;
+  wrap_good(self, u);
+}
+
+let wrap_bad(self: ^Status) -> void {
+  let u: Unit;
+  wrap_bad(self, u);
+}
+
+let Copy(self: ^Status, other: Status) -> void {
+  match (other) {
+    case good(_: Unit) {
+      wrap_good(self);
+    } else {
+      wrap_bad(self);
+    }
+  }
 }
