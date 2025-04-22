@@ -484,6 +484,10 @@ void OakCompiler::do_compilation() {
 
   try {
     do_file(csettings.entry_point, csettings.entry_point);
+  } catch (OutOfPPPLError &e) {
+    throw OutOfPPPLError(
+        "Error occurred while loading entry point " +
+        csettings.entry_point.string() + ":\n" + e.what());
   } catch (std::runtime_error &e) {
     throw std::runtime_error(
         "Error occurred while loading entry point " +
@@ -1382,7 +1386,7 @@ uint64_t OakCompiler::preprocess(
   do {
     ++passes;
     if (passes >= csettings.preprocess_pass_limit) {
-      throw std::runtime_error(
+      throw OutOfPPPLError(
           "Ruleset failed to converge in " +
           std::to_string(csettings.preprocess_pass_limit) +
           " passes");
@@ -1399,13 +1403,24 @@ uint64_t OakCompiler::preprocess(
           saw_let = true;
         } else if (saw_let && *it != "!" &&
                    it->text.find('!') != std::string::npos) {
-          macros.process_definition(_token_stream, it,
-                                    _token_stream.end());
+          macros.process_definition(
+              _token_stream, it, _token_stream.end(),
+              settings.compile_settings()
+                      .preprocess_pass_limit -
+                  passes);
           saw_let = false;
           --it;
         } else {
           saw_let = false;
         }
+      } catch (OutOfPPPLError &e) {
+        if (it == _token_stream.end()) {
+          throw e;
+        }
+        throw std::runtime_error(
+            "At " + it->file.string() + ":" +
+            std::to_string(it->line) + "." +
+            std::to_string(it->col) + "\n" + e.what());
       } catch (std::runtime_error &e) {
         if (it == _token_stream.end()) {
           throw e;

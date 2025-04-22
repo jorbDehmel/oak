@@ -1,0 +1,14 @@
+/*
+This fails if the stack overflows
+*/
+
+pragma!("compile_should_fail");
+
+let a!(c: i32, v: [][]i8) -> i32 {
+  include!("./macro_recursion_failure_test.oak");
+}
+
+let main() -> i32 {
+  a!(FILE!);
+  return 0i32;
+}

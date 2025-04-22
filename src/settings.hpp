@@ -44,7 +44,7 @@ public:
 
     /// The max number of preprocessor passes to apply before
     /// erroring
-    uint preprocess_pass_limit = 0x10'00;
+    uint64_t preprocess_pass_limit = 0x1'00;
 
     /// The current return type (default void) for fn-parsing
     /// type checking. Must be an exact match.

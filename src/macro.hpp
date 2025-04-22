@@ -10,11 +10,22 @@
 #include <filesystem>
 #include <map>
 #include <set>
+#include <stdexcept>
 #include <variant>
 
 /**
- * @brief Runs a command, asserts it succeeded, and captures its
- * stdout.
+ * @brief An error class thrown when we surpass the PPP limit.
+ */
+class OutOfPPPLError : public std::runtime_error {
+public:
+  OutOfPPPLError(const std::string &_what)
+      : std::runtime_error(_what) {
+  }
+};
+
+/**
+ * @brief Runs a command, asserts it succeeded, and captures
+ * its stdout.
  * @param _cmd The command to run
  * @returns The string output of the command
  */
@@ -86,11 +97,14 @@ public:
    * @param _whole The iterand
    * @param _it The current position in the iterand
    * @param _end The end of the iterand
+   * @param _preproc_passes_allowed Used to prevent infinite
+   * macro recursion.
    */
   void process_definition(
       std::list<Lexer::Token> &_whole,
       std::list<Lexer::Token>::iterator &_it,
-      const std::list<Lexer::Token>::iterator &_end);
+      const std::list<Lexer::Token>::iterator &_end,
+      const uint64_t &_preproc_passes_allowed);
 
   /**
    * @struct MacroManager::Alias

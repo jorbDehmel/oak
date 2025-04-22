@@ -336,7 +336,8 @@ std::list<std::list<Lexer::Token>> MacroManager::get_macro_args(
 void MacroManager::process_definition(
     std::list<Lexer::Token> &_whole,
     std::list<Lexer::Token>::iterator &_it,
-    const std::list<Lexer::Token>::iterator &_end) {
+    const std::list<Lexer::Token>::iterator &_end,
+    const uint64_t &_preproc_passes_allowed) {
   debug_print();
 
   // let
@@ -442,6 +443,8 @@ void MacroManager::process_definition(
       // Compile to executable
       std::stringstream macro_compilation_log;
       OakCompiler oc(macro_compilation_log);
+      oc.settings.compile_settings().preprocess_pass_limit =
+          _preproc_passes_allowed;
       oc.settings.compile_settings().do_syntax_check = false;
       oc.settings.compile_settings().mode =
           Settings::CompileSettings::TRANSLATE_COMPILE_AND_LINK;
@@ -456,17 +459,22 @@ void MacroManager::process_definition(
 
       try {
         oc();
+      } catch (OutOfPPPLError &e) {
+        throw OutOfPPPLError(
+            "During compilation of macro '" + name +
+            "': Surpassed preprocessor pass limit! "
+            "Self-referential macro is likely");
       } catch (std::runtime_error &e) {
-        std::cerr << "From macro compiler:\n"
-                  << macro_compilation_log.str() << '\n';
         throw std::runtime_error(
-            "During compilation of macro '" + name + "':\n" +
+            "From macro compiler:\n" +
+            macro_compilation_log.str() +
+            "\nDuring compilation of macro '" + name + "':\n" +
             e.what());
       } catch (...) {
-        std::cerr << "From macro compiler:\n"
-                  << macro_compilation_log.str() << '\n';
         throw std::runtime_error(
-            "Unknown error occurred during "
+            "From macro compiler:\n" +
+            macro_compilation_log.str() +
+            "\nUnknown error occurred during "
             "compilation of macro '" +
             name + "'");
       }
