@@ -1088,13 +1088,13 @@ void OakCompiler::fix_math(
   // -> 'Add'). Precedence is embedded in the order in which you
   // call this lambda
   const auto resolve_binary_operator =
-      [&](const std::string &_operator,
-          const std::string &_op_name) {
+      [&](const std::map<std::string, std::string> &_ops) {
         // Scan strm
         for (auto it = _token_stream.begin();
              it != _token_stream.end(); ++it) {
           // On match
-          if (it->type == "OPERATOR" && it->text == _operator) {
+          if (it->type == "OPERATOR" &&
+              _ops.contains(it->text)) {
             std::list<Lexer::Token>::iterator
                 first_of_lhs,         // First tok in lhs
                 first_after_lhs = it, // The single-token op
@@ -1108,8 +1108,8 @@ void OakCompiler::fix_math(
                   "At " + it->file.string() + ":" +
                   std::to_string(it->line) + "." +
                   std::to_string(it->col) +
-                  "> Malformed operator '" + _operator +
-                  "' LHS");
+                  "> Malformed operator '" +
+                  first_after_lhs->text + "' LHS");
             } else if (*first_of_lhs == ")") {
               int depth = 0;
               do {
@@ -1136,17 +1136,17 @@ void OakCompiler::fix_math(
                   "At " + it->file.string() + ":" +
                   std::to_string(it->line) + "." +
                   std::to_string(it->col) +
-                  "> Malformed operator '" + _operator +
-                  "' LHS");
-            } else if (std::next(first_after_rhs)->text ==
-                       "(") {
+                  "> Malformed operator '" +
+                  first_after_lhs->text + "' LHS");
+            } else if (first_after_rhs->text == "(") {
+              // Parenthesization
               auto start_pos = first_after_rhs;
-              int depth = 0;
+              int depth = 1;
               do {
                 ++first_after_rhs;
-                if (*first_after_rhs == "(") {
+                if (first_after_rhs->text == "(") {
                   ++depth;
-                } else if (*first_after_rhs == ")") {
+                } else if (first_after_rhs->text == ")") {
                   --depth;
 
                   if (depth == 0) {
@@ -1158,11 +1158,25 @@ void OakCompiler::fix_math(
               // Erase matched parenthesis
               while (start_pos->text == "(" &&
                      std::prev(first_after_rhs)->text == ")") {
-                std::cout << __FILE__ << ":" << __LINE__ << '\n'
-                          << std::flush;
                 start_pos = _token_stream.erase(start_pos);
                 _token_stream.erase(std::prev(first_after_rhs));
               }
+            } else if (std::next(first_after_rhs)->text ==
+                       "(") {
+              // Function call
+              int depth = 0;
+              do {
+                ++first_after_rhs;
+                if (first_after_rhs->text == "(") {
+                  ++depth;
+                } else if (first_after_rhs->text == ")") {
+                  --depth;
+
+                  if (depth == 0) {
+                    ++first_after_rhs;
+                  }
+                }
+              } while (depth != 0);
             } else {
               ++first_after_rhs;
             }
@@ -1176,8 +1190,9 @@ void OakCompiler::fix_math(
             // "lhs _operator (...)" -> "_op_name ( lhs , ... )"
             _token_stream.insert(
                 first_of_lhs,
-                Lexer::Token(_op_name, it->file, it->line,
-                             it->col, "ID"));
+                Lexer::Token(_ops.at(first_after_lhs->text),
+                             it->file, it->line, it->col,
+                             "ID"));
             _token_stream.insert(first_of_lhs,
                                  Lexer::Token("(", it->file,
                                               it->line, it->col,
@@ -1197,7 +1212,8 @@ void OakCompiler::fix_math(
       };
 
   // Same, but for prefix unary operators
-  // Note: There are no suffix unary operators in oak
+  // Note: There are no suffix unary operators in oak, and all
+  // prefix unary operators have the same precendence
   const auto resolve_unary_operator =
       [&](const std::string &_operator,
           const std::string &_op_name) {
@@ -1270,17 +1286,47 @@ void OakCompiler::fix_math(
                           {"~", "Flip"}};
 
   // Binary operator precedence
-  const std::list<std::pair<std::string, std::string>>
+  const std::list<std::map<std::string, std::string>>
       binary_precedence = {
-          {"&", "And"},     {"|", "Or"},       {"*", "Mult"},
-          {"/", "Div"},     {"%", "Mod"},      {"+", "Add"},
-          {"-", "Sub"},     {"==", "Eq"},      {"!=", "Neq"},
-          {"<", "Less"},    {">", "Great"},    {"<=", "Leq"},
-          {">=", "Greq"},   {"&&", "Andd"},    {"||", "Orr"},
-          {"=", "Copy"},    {"&=", "AndEq"},   {"|=", "OrEq"},
-          {"<<=", "LBSEq"}, {">>=", "RBSEq"},  {"*=", "MultEq"},
-          {"/=", "DivEq"},  {"%=", "ModEq"},   {"+=", "AddEq"},
-          {"-=", "SubEq"},  {"&&=", "AnddEq"}, {"||=", "OrrEq"},
+          {
+              {"&", "And"},
+              {"|", "Or"},
+          },
+          {
+              {"*", "Mult"},
+              {"/", "Div"},
+              {"%", "Mod"},
+          },
+          {
+              {"+", "Add"},
+              {"-", "Sub"},
+          },
+          {
+              {"==", "Eq"},
+              {"!=", "Neq"},
+          },
+          {{"<", "Less"},
+           {">", "Great"},
+           {"<=", "Leq"},
+           {">=", "Greq"}},
+          {
+              {"&&", "Andd"},
+              {"||", "Orr"},
+          },
+          {
+              {"=", "Copy"},
+              {"&=", "AndEq"},
+              {"|=", "OrEq"},
+              {"<<=", "LBSEq"},
+              {">>=", "RBSEq"},
+              {"*=", "MultEq"},
+              {"/=", "DivEq"},
+              {"%=", "ModEq"},
+              {"+=", "AddEq"},
+              {"-=", "SubEq"},
+              {"&&=", "AnddEq"},
+              {"||=", "OrrEq"},
+          },
       };
 
   for (const auto &i : unary_precedence) {
@@ -1288,7 +1334,7 @@ void OakCompiler::fix_math(
   }
 
   for (const auto &i : binary_precedence) {
-    resolve_binary_operator(i.first, i.second);
+    resolve_binary_operator(i);
   }
 }
 
