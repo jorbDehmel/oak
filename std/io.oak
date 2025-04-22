@@ -1,15 +1,21 @@
-/*
-Oak-side interfacial file for std I/O
-Jordan Dehmel, 2025, MIT license
-*/
+/**
+ * @file
+ * @brief Oak-side interfacial file for std I/O
+ */
 
 pragma!("no_dialect");
 link!("std/io.o");
 
+/// Print a null-terminated C-string
 let print(_: []i8) -> void;
+
+/// Print a boolean: "true" or "false"
 let print(_: bool) -> void;
+
+/// Print a MEMORY ADDRESS
 let print(_: ^void) -> void;
 
+/// Integer printing
 let print(_: i8) -> void;
 let print(_: u8) -> void;
 let print(_: i16) -> void;
@@ -21,22 +27,29 @@ let print(_: u64) -> void;
 let print(_: int) -> void;
 let print(_: uint) -> void;
 
+/// Floating-point types
 let print(_: f32) -> void;
 let print(_: f64) -> void;
 
+/// Experimental types
 let print(_: i128) -> void;
 let print(_: u128) -> void;
 let print(_: f128) -> void;
 
-let endl() -> void {
-  print("\n");
-}
-
+/// Flush stdout
 let flush() -> void;
 
+/// Get a single char
 let getch() -> i8;
 
+/// Read in an integer
 let get_i32() -> i32;
+
+/// Read in a floating-point
 let get_f64() -> f64;
 
+/// Print a null-terminated C-string to stderr
 let err(_: []i8) -> void;
+
+/// Print the system newline character
+let endl() -> void;

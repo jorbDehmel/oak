@@ -3,6 +3,8 @@
  * @brief Preprocessor conditional macros
  */
 
+pragma!("no_dialect");
+
 /**
  * @brief Takes 3 or 4 arguments: string A, string B, "then"
  * code, and optionally "else" code. Outputs "then" code

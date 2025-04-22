@@ -1,15 +1,17 @@
-/*
-Defines interface for immediate kernel panics
-*/
+/**
+ * @file
+ * @brief Defines interface for immediate kernel panics
+ */
 
 pragma!("no_dialect");
 link!("std/panic.o");
 include!("std/io.oak");
 
-// Never returns!
+/// Raise a kernel panic: Never returns!
 let panic() -> void;
 
-// Never returns! Prints the given message before failure.
+/// Never returns! Prints the given null-terminated message
+/// before failure.
 let panic(msg: []i8) -> void {
   print("v~~~~~~~~~Kernel Panic~~~~~~~~~v\n");
   print(msg);

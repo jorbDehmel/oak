@@ -1,6 +1,9 @@
-/*
-Linkage file for the std oak package
-*/
+/**
+ * @file
+ * @brief Linkage file for the `std` Oak package. This is to be
+ * used as an entry point when the normal `std` files are
+ * wanted.
+ */
 
 pragma!("no_dialect");
 

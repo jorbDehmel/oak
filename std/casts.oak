@@ -1,6 +1,9 @@
-/*
-Casts in Oak
-*/
+/**
+ * @file
+ * @brief Casts in Oak. These all interface to corresponding C
+ * functions. This file is procedurally generated, so no
+ * function-level documentation will be attempted.
+ */
 
 pragma!("no_dialect");
 link!("std/casts.o");

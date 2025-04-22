@@ -5,11 +5,26 @@
 
 pragma!("no_dialect");
 
+/// Package info
 let std::ABOUT!   = "Oak standard Package";
+
+/// Maintainer of the package
 let std::AUTHOR!  = "Jordan Dehmel";
+
+/// Email of the maintainer
 let std::EMAIL!   = "jdehmel@outlook.com";
+
+/// The file to parse before copying files
 let std::INSTALL! = "std/install.oak";
+
+/// The licensing of the package
 let std::LICENSE! = "MIT";
+
+/// Where the package came from
 let std::SOURCE!  = "github.com/jorbDehmel";
+
+/// The version of the package
 let std::VERSION! = oak::VERSION!;
+
+/// The year this version of the package was released
 let std::YEAR!    = "2025";

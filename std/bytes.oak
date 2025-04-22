@@ -1,4 +1,5 @@
 /**
+ * @file
  * @brief Byte objects of constant length. These are mostly used
  * for interfacial struct packing and pointer casting.
  */

@@ -1,5 +1,6 @@
 /**
- * @brief
+ * @file
+ * @brief Macro information for Oak. This is experimental!
  */
 
 compile_time::error!("Lambdas are unimplemented!");

@@ -5,7 +5,9 @@
 
 pragma!("no_dialect");
 
-// Need to add this because `assert!` prints print/panic calls
+// Need to add this because `assert!` prints print/panic calls:
+// These libraries aren't needed by this file, but they will be
+// needed by any file that uses this one.
 include!("std/io.oak", "std/panic.oak");
 
 /**

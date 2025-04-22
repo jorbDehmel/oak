@@ -1,17 +1,34 @@
-/*
-ANSI escape codes for Oak
-*/
+/**
+ * @file
+ * @brief ANSI escape codes for Oak. These may or may not be
+ * supported by your terminal!
+ */
 
 pragma!("no_dialect");
 
+/// Reset all terminal effects
 let colors::reset! = "\033[0;0m";
 
-// Foreground
+/// Foreground (text) black
 let colors::fg_black!   = "\033[0;30m";
-let colors::fg_red!     = "\033[0;31m";
-let colors::fg_green!   = "\033[0;32m";
-let colors::fg_yellow!  = "\033[0;33m";
-let colors::fg_blue!    = "\033[0;34m";
-let colors::fg_magenta! = "\033[0;35m";
-let colors::fg_cyan!    = "\033[0;36m";
+
+/// Foreground (text) white
 let colors::fg_white!   = "\033[0;37m";
+
+/// Foreground (text) green
+let colors::fg_green!   = "\033[0;32m";
+
+/// Foreground (text) cyan
+let colors::fg_cyan!    = "\033[0;36m";
+
+/// Foreground (text) blue
+let colors::fg_blue!    = "\033[0;34m";
+
+/// Foreground (text) yellow
+let colors::fg_yellow!  = "\033[0;33m";
+
+/// Foreground (text) red
+let colors::fg_red!     = "\033[0;31m";
+
+/// Foreground (text) magenta
+let colors::fg_magenta! = "\033[0;35m";

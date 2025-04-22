@@ -1,36 +1,76 @@
-/*
-Math stuff
-*/
+/**
+ * @file
+ * @brief Interface to cmath
+ */
 
 pragma!("no_dialect");
 link!("std/math.o");
 
+/// Euler's number
 let math::e!  = 2.71828182f64;
+
+/// Pi
 let math::pi! = 3.14159265f64;
 
+/// Raising one floating-point to the power of another
 let pow(base: f64, exp: f64) -> f64;
+
+/// Return e to the power of something
 let exp(power: f64) -> f64;
+
+/// Return the floating-point square root of x
 let sqrt(x: f64) -> f64;
 
+/// Given some angle in RADIANS, return sine
 let sin(rad: f64) -> f64;
+
+/// Given some angle in RADIANS, return cosine
 let cos(rad: f64) -> f64;
+
+/// Given some angle in RADIANS, return tangent
 let tan(rad: f64) -> f64;
 
+/// Eeturn the hyperbolic sine of x
 let sinh(x: f64) -> f64;
+
+/// Eeturn the hyperbolic cosine of x
 let cosh(x: f64) -> f64;
+
+/// Eeturn the hyperbolic tangent of x
 let tanh(x: f64) -> f64;
 
+/// Return the NATURAL LOG of x. For log-base-10, use `log10`.
 let log(x: f64) -> f64;
+
+/// Return the log-base-2 of x
 let log2(x: f64) -> f64;
+
+/// Return the log-base-10 of x
 let log10(x: f64) -> f64;
+
+/// Return the cube root of x
 let cbrt(x: f64) -> f64;
+
+/// Return the length of c given a and b on a triangle
 let hypot(a: f64, b: f64) -> f64;
 
+/// Get the floating-point ceiling of x
 let ceil(x: f64) -> f64;
+
+/// Get the floating-point floor of x
 let floor(x: f64) -> f64;
+
+/// Do our best to round x to the nearest whole number
 let round(x: f64) -> f64;
+
+/// Do our best to round x to some number of decimal places
 let round(x: f64, decimal_places: uint) -> f64;
 
+/// Return the min of two numbers
 let min(l: f64, r: f64) -> f64;
+
+/// Return the max of two numbers
 let max(l: f64, r: f64) -> f64;
+
+/// Return the absolute value of a number
 let abs(x: f64) -> f64;

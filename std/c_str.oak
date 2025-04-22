@@ -1,13 +1,25 @@
-/*
-C-string operations in oak
-*/
+/**
+ * @file
+ * @brief C-string operations in oak
+ */
 
 pragma!("no_dialect");
 link!("std/c_str.o");
 
+/// Copy null-terminated C-string from src to dest
 let strcpy(dest: ^[]i8, src: []i8) -> []i8;
+
+/// Get the length of a null-terminated C-string
 let strlen(what: []i8) -> uint;
+
+/// Returns -1 if rhs is greater, 1 if lhs is, and 0 if the same
 let strcmp(lhs: []i8, rhs: []i8) -> int;
+
+/// Convert a C-string to an int
 let stoi(what: []i8) -> int;
+
+/// Convert a C-string to a uint
 let stou(what: []i8) -> uint;
-let stof(what: []i8) -> float;
+
+/// Convert a C-string to a float
+let stof(what: []i8) -> f64;

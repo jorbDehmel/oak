@@ -932,13 +932,21 @@ void OakCompiler::syntax_check(const std::filesystem::path &_fp,
 
   uint64_t line = 1, col = 0;
   std::stack<char> enclosure;
+  size_t i;
 
-  for (size_t i = 0; i < _text.size(); ++i, ++col) {
+  auto incr = [&]() {
+    if (col == 65) {
+      errors.push_back({line, col, "Line too long!"});
+    }
+    ++i, ++col;
+  };
+
+  for (i = 0; i < _text.size(); ++i, ++col) {
     // Comments
     if (_text.at(i) == '/' && i + 1 < _text.size() &&
         _text.at(i + 1) == '/') {
-      while (i + 1 < _text.size() && _text.at(i + 1) != '\n') {
-        ++i, ++col;
+      while (i < _text.size() && _text.at(i) != '\n') {
+        incr();
       }
       if (_text.at(i) == '\n') {
         ++line, col = 0;
@@ -950,21 +958,21 @@ void OakCompiler::syntax_check(const std::filesystem::path &_fp,
         if (_text.at(i) == '\n') {
           ++line, col = 0;
         }
-        ++i, ++col;
+        incr();
       }
-      ++i, ++col;
+      incr();
     }
 
     // Strings
     if (_text.at(i) == '\'') {
       bool skip = false;
-      ++i, ++col;
+      incr();
       while (i < _text.size()) {
         if (skip) {
           skip = false;
         } else if (_text.at(i) == '\\') {
           skip = true;
-          ++i, ++col;
+          incr();
           continue;
         } else if (_text.at(i) == '\'') {
           break;
@@ -972,17 +980,17 @@ void OakCompiler::syntax_check(const std::filesystem::path &_fp,
           ++line, col = 0;
           break;
         }
-        ++i, ++col;
+        incr();
       }
     } else if (_text.at(i) == '"') {
       bool skip = false;
-      ++i, ++col;
+      incr();
       while (i < _text.size()) {
         if (skip) {
           skip = false;
         } else if (_text.at(i) == '\\') {
           skip = true;
-          ++i, ++col;
+          incr();
           continue;
         } else if (_text.at(i) == '"') {
           break;
@@ -990,17 +998,17 @@ void OakCompiler::syntax_check(const std::filesystem::path &_fp,
           ++line, col = 0;
           break;
         }
-        ++i, ++col;
+        incr();
       }
     } else if (_text.at(i) == '`') {
       bool skip = false;
-      ++i, ++col;
+      incr();
       while (i < _text.size()) {
         if (skip) {
           skip = false;
         } else if (_text.at(i) == '\\') {
           skip = true;
-          ++i, ++col;
+          incr();
           continue;
         } else if (_text.at(i) == '`') {
           break;
@@ -1008,7 +1016,7 @@ void OakCompiler::syntax_check(const std::filesystem::path &_fp,
           ++line, col = 0;
           break;
         }
-        ++i, ++col;
+        incr();
       }
     }
 

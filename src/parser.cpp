@@ -395,14 +395,13 @@ void Parser::reconstruct(std::ostream &_where,
 
   // Function signatures
   for (const auto &p : functions) {
-    const auto name = p.first;
     for (const auto &info : p.second) {
-      if (name == "main") {
+      if (info.name == "main") {
         if (info.tags.at("file") == _csettings.entry_point) {
-          _where << info.t.c_repr(name, true) << ";\n";
+          _where << info.t.c_repr(info.name, true) << ";\n";
         }
       } else {
-        _where << info.t.c_repr(name, false) << ";\n";
+        _where << info.t.c_repr(info.name, false) << ";\n";
       }
     }
   }
@@ -576,7 +575,6 @@ void Parser::reconstruct(std::ostream &_where,
 
   // Function definitions
   for (const auto &p : functions) {
-    const auto name = p.first;
     for (const auto &info : p.second) {
       if (info.tags.contains("casual") &&
           info.tags.at("casual") == "true") {
@@ -586,15 +584,15 @@ void Parser::reconstruct(std::ostream &_where,
         _where << "// autogen\n";
       }
 
-      if (name == "main") {
+      if (info.name == "main") {
         if (info.tags.at("file") == _csettings.entry_point) {
-          _where << info.t.c_repr(name, true);
+          _where << info.t.c_repr(info.name, true);
           _where << "{";
           reconstruct_node(info.n);
           _where << ";}\n";
         }
       } else {
-        _where << info.t.c_repr(name, false);
+        _where << info.t.c_repr(info.name, false);
         _where << "{";
         reconstruct_node(info.n);
         _where << ";}\n";
@@ -696,6 +694,7 @@ void Parser::parse_function(
 
   // Either signature or implementation
   FnInfo to_add;
+  to_add.name = "FN_NAME_NOT_PROVIDED";
   to_add.t = t;
 
   to_add.tags["file"] = _cur_pos->file;
@@ -727,6 +726,7 @@ void Parser::parse_function(
     FnInfo temp_info = to_add;
     temp_info.tags = {{"casual", "true"}};
     for (const auto &name : _names) {
+      temp_info.name = name;
       functions[name].push_back(temp_info);
     }
 
@@ -773,6 +773,7 @@ void Parser::parse_function(
   }
 
   for (const auto &name : _names) {
+    to_add.name = name;
     functions[name].push_back(to_add);
   }
 }
@@ -1127,7 +1128,7 @@ void Parser::parse_struct(
     std::list<Lexer::Token>::const_iterator it =
         to_parse.begin();
     parse_function({"New"}, it, to_parse.end(), _settings);
-    functions["New"].back().tags["autogen"] = "true";
+    functions.at("New").back().tags["autogen"] = "true";
 
     // Reset, create destructor
     to_parse.clear();
@@ -1148,7 +1149,7 @@ void Parser::parse_struct(
     // Parse and mark
     it = to_parse.begin();
     parse_function({"Del"}, it, to_parse.end(), _settings);
-    functions["Del"].back().tags["autogen"] = "true";
+    functions.at("Del").back().tags["autogen"] = "true";
   }
 }
 
@@ -1229,6 +1230,7 @@ void Parser::parse_enum(
     for (const auto &p : to_add.options) {
       const auto wrapper_name = "wrap_" + p.first;
       FnInfo to_add;
+      to_add.name = wrapper_name;
 
       to_add.tags["file"] = _cur_pos->file;
       to_add.tags["line"] = std::to_string(_cur_pos->line);
@@ -1285,7 +1287,7 @@ void Parser::parse_enum(
     std::list<Lexer::Token>::const_iterator it =
         to_parse.begin();
     parse_function({"New"}, it, to_parse.end(), _settings);
-    functions["New"].back().tags["autogen"] = "true";
+    functions.at("New").back().tags["autogen"] = "true";
 
     // Create destructor
     // NOTE: Enum destructors are not overridable
@@ -2021,7 +2023,7 @@ Node Parser::parse_function_call(
                              derefs, _settings);
 
   // Build c-name
-  out.c_name = f.t.mangle(out.token.value().text);
+  out.c_name = f.t.mangle(f.name);
 
   // Modify children as needed
   if (!derefs.empty()) {

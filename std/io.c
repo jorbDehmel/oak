@@ -127,3 +127,12 @@ void flush_FN_MAPS_void() {
 void err_FN_ARR_i8_MAPS_void(i8 *msg) {
   fprintf(stderr, "%s", (char *)msg);
 }
+
+// let endl() -> void;
+void endl_FN_MAPS_void() {
+#if (defined(WIN32) || defined(WINNT))
+  printf("\r\n");
+#else
+  printf("\n");
+#endif
+}

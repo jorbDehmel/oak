@@ -1,9 +1,11 @@
-/*
-Builds the std package objects for installation
-*/
+/**
+ * @file
+ * @brief Builds the std package objects for installation
+ */
 
 pragma!("no_dialect");
 
+/// Delegate build to `make`
 compile_time::system!(
   "make"
 );

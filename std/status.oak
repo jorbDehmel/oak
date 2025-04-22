@@ -1,24 +1,31 @@
-/*
-Defines the `Status` enum in Oak
-*/
+/**
+ * @file
+ * @brief Defines the `Status` enum in Oak (pretty much just a
+ * fancy bool)
+ */
 
+pragma!("no_dialect");
 include!("std/unit.oak");
 
+/// Either `good` or `bad`, both of which are unit structs
 let Status: enum {
   bad: Unit,
   good: Unit
 }
 
+/// Indicate a good outcome
 let wrap_good(self: ^Status) -> void {
   let u: Unit;
   wrap_good(self, u);
 }
 
+/// Indicate a bad outcome
 let wrap_bad(self: ^Status) -> void {
   let u: Unit;
   wrap_bad(self, u);
 }
 
+/// Copy the outcome of another
 let Copy(self: ^Status, other: Status) -> void {
   match (other) {
     case good(_: Unit) {

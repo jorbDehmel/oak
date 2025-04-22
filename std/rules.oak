@@ -1,24 +1,29 @@
-/*
-Defines the std ruleset
+/**
+ * @file
+ * @brief Defines the std ruleset
 */
 
 pragma!("no_dialect");
 
+/// Allows method-call syntax
 rule::new!("methods",
   "$~ $. $>a . $~ $. $>b (",
   "$b ( $a ,"
 );
 
+/// Allows typed inline instantiate-copy operator
 rule::new!("decl_copy_1",
   "let $~ $. $>a : $~ $. $>b = $~ $. $>c ;",
   "let $a : $b ; $a = $c ;"
 );
 
+/// Allows untyped inline instantiate-copy operator
 rule::new!("decl_copy_2",
   "let $~ $. $>a = $~ $. $>c ;",
   "let $a : type! ( $c ) ; $a = $c ;"
 );
 
+/// If used, switches to `std` Oak (instead of `canonical` Oak)
 rule::bundle!("std",
   "methods",
   "decl_copy_1",

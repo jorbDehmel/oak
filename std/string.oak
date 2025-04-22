@@ -1,6 +1,7 @@
-/*
-Defines the dynamically-allocated `String` class in Oak
-*/
+/**
+ * @file
+ * @brief Defines the dynamically-allocated `String` class
+ */
 
 pragma!("no_dialect");
 include!(
@@ -15,6 +16,9 @@ rule::use!("std");
 ////////////////////////////////////////////////////////////////
 // Struct definition
 
+/**
+ * @brief A self-resizing, dynamically-allocated, RAII string
+ */
 let String: struct {
   __c_str: []i8,
   __size: uint,
@@ -24,16 +28,34 @@ let String: struct {
 ////////////////////////////////////////////////////////////////
 // Signatures
 
+/// Create an empty string
 let New(self: ^String) -> void;
+
+/// Delete a string's memory if it has any
 let Del(self: ^String) -> void;
+
+/// Deep copy of another string
 let Copy(self: ^String, other: String) -> ^String;
+
+/// Initialize from a null-terminated C-string
 let Copy(self: ^String, other: []i8) -> ^String;
+
+/// Get the i-th BYTE (not unicode codepoint) of the string
 let Get(self: ^String, i: uint) -> i8;
+
+/// String concatenation
 let Add(lhs: String, rhs: String) -> String;
+
+/// String equality
 let Eq(lhs: String, rhs: String) -> bool;
+
+/// String inequality
 let Neq(lhs: String, rhs: String) -> bool;
 
+/// Allocate enough space for `size` bytes of data
 let reserve(self: ^String, size: uint) -> void;
+
+/// Print the string
 let print(what: String) -> void;
 
 ////////////////////////////////////////////////////////////////

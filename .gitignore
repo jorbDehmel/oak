@@ -5,6 +5,7 @@
 *.log
 *.dump
 *.oak.c
+vgcore.*
 *.rule_log
 *.macro.oak
 *.acorn_dump

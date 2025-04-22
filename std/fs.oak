@@ -1,14 +1,38 @@
 /**
+ * @file
  * @brief std::filesystem Oak-to-C++ interface
  */
 
 pragma!("no_dialect");
 link!("std/fs.o");
 
+/// Returns whether or not a given filepath exists
 let fs::exists(path: []i8) -> bool;
+
+/// Returns whether the path is a directory
 let fs::is_dir(path: []i8) -> bool;
+
+/// Returns whether the path is a regular file
 let fs::is_regular_file(path: []i8) -> bool;
+
+/// Copies form one filepath to another
 let fs::copy(src: []i8, tgt: []i8) -> void;
+
+/// Changes to the given directory
 let fs::chdir(path: []i8) -> void;
+
+/// Create a directory
 let fs::mkdir(path: []i8) -> void;
+
+/// RECURSIVELY erase the file at the given path
 let fs::remove(path: []i8) -> void;
+
+/**
+ * @brief Attempts to obtain the current working directory into
+ * some buffer.
+ * @param into The buffer to attempt to save into
+ * @param size The max chars to read into the buffer
+ * @returns True on success, false on failure (e.g. buffer too
+ * small)
+ */
+let fs::current_path(into: []i8, size: uint) -> bool;

@@ -1,12 +1,17 @@
-/*
-A 2-pair in Oak
-*/
+/**
+ * @file
+ * @brief A templated 2-pair in Oak
+ */
 
+pragma!("no_dialect");
+
+/// A 2-pair
 let Pair<L, R>: struct {
   first: L,
   second: R
 }
 
+/// Initialize from two values
 let Copy<L, R>(self: Pair<L, R>, first: L, second: R
   ) -> Pair<L, R> {
   self.first = first;

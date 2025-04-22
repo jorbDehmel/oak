@@ -1,15 +1,18 @@
-/*
-Defines the printf! macro in Oak
-*/
+/**
+ * @file
+ * @brief Defines the printf! macro in Oak
+ */
 
 pragma!("no_dialect");
 include!("std/io.oak");
 
+/**
+ * @brief Given a format string and zero or more items, print
+ * the format string with instances of '%' replaced by
+ * those items.
+ */
 let printf!(c: i32, v: [][]i8) -> i32 {
   include!("std/io.oak", "std/operators.oak", "std/c_str.oak");
-
-  // 1st arg is format string
-  // Rest are inserted whenever '%' is seen
 
   let fstring_len, cur_obj, cur_fpos: uint;
   let in_print: bool;

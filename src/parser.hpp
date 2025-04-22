@@ -72,6 +72,10 @@ public:
     /// Pragma-like tags
     std::map<std::string, std::string> tags;
 
+    /// The function's birth name (might be different from the
+    /// key used to find it!)
+    std::string name;
+
     /// The fn's FULL type (not just return type)
     Type t;
 

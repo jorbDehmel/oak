@@ -1,5 +1,7 @@
 #include <filesystem>
 #include <std_oak_header.h>
+#include <string.h>
+#include <string>
 
 extern "C" {
 
@@ -36,6 +38,18 @@ void fs_mkdir_FN_ARR_i8_MAPS_void(i8 *path) {
 // fs_remove(path: []i8) -> void
 void fs_remove_FN_ARR_i8_MAPS_void(i8 *path) {
   std::filesystem::remove_all((char *)path);
+}
+
+// fs_current_path(into: []i8, size: uint) -> bool
+bool fs_current_path_FN_ARR_i8_JOIN_uint_MAPS_bool(i8 *into,
+                                                   uint size) {
+  std::string temp = std::filesystem::current_path();
+  if (temp.size() > size) {
+    return false;
+  } else {
+    strncpy((char *)into, temp.c_str(), temp.size());
+    return true;
+  }
 }
 
 } // extern "C"
