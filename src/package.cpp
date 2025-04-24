@@ -221,6 +221,9 @@ void PackageManager::install_package(
 
     try {
       c();
+    } catch (OutOfPPPLError &e) {
+      throw OutOfPPPLError("Error while building package " +
+                           spec.at("name") + ":\n" + e.what());
     } catch (std::runtime_error &e) {
       throw std::runtime_error("Error while building package " +
                                spec.at("name") + ":\n" +

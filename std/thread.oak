@@ -11,7 +11,8 @@ flag!("-pthread")
 /// the same size as u64's, so I've just added some junk on the
 /// end to make sure we're safe.
 let Thread: struct {
-  _: [2uint]u64
+  _: u64, // Pointer
+  __: u64 // Padding
 }
 
 /// External creation and deletion functions

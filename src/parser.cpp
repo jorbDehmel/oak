@@ -240,7 +240,13 @@ void Parser::parse_global(
 
             // Finish parsing type
             while (pos != end && *pos != "{") {
-              info.provides.push_back(*pos);
+              if (std::next(pos) == end ||
+                  *std::next(pos) != ":") {
+                info.provides.push_back(*pos);
+              } else {
+                info.provides.push_back("_");
+              }
+
               info.instantiate.push_back(*pos);
 
               incr(pos, end);
@@ -356,17 +362,14 @@ void Parser::parse_global(
             "Global scope parse error: Unexpected token '" +
             pos->text + "'");
       }
+    } catch (OutOfPPPLError &) {
+      throw;
     } catch (std::runtime_error &e) {
-      if (pos == _file_contents.end()) {
-        throw e;
-      }
       throw std::runtime_error("At " + pos->file.string() +
                                ":" + std::to_string(pos->line) +
                                "." + std::to_string(pos->col) +
                                "\n" + e.what());
-    }
-
-    catch (...) {
+    } catch (...) {
       if (pos == _file_contents.end()) {
         throw;
       }
@@ -2536,10 +2539,10 @@ Type Parser::resolve_fn_call(const std::string &_name,
         // so the file, line, and col don't matter
         Lexer l;
         uint64_t junk_line = 0, junk_col = 0;
-        std::list<std::string> signature = {"("};
+        std::list<std::string> signature = {"let", _name, "("};
         for (const auto &arg : _args) {
           // Ignore on first arg
-          if (signature.size() != 1) {
+          if (signature.size() != 3) {
             signature.push_back(",");
           }
 
@@ -2615,8 +2618,6 @@ Type Parser::resolve_fn_call(const std::string &_name,
   }
 }
 
-/// Finds all possible template instantiations to match the
-/// given function call information
 std::list<std::pair<std::list<std::list<std::string>>, uint>>
 Parser::find_substitutions(
     const std::string &_name,
@@ -2634,15 +2635,45 @@ Parser::find_substitutions(
       // If literal on both sides that matches, advance
       // Else if template has generic, log what that template
       // needs to be
+      const auto templ_info = templates.at(_name).at(i);
 
-      // bool do_add = true;
-      // for () {
-      throw std::runtime_error(__FUNCTION__);
-      // }
+      std::map<std::string, uint> generic_indices;
+      std::vector<std::list<std::string>> substitutions;
+      for (const auto &item : templ_info.generics) {
+        generic_indices[item] = substitutions.size();
+        substitutions.push_back({});
+      }
 
-      // if (do_add) {
-      //   out.push_back();
-      // }
+      auto desired_it = _signature.begin();
+      auto templ_it = templ_info.provides.begin();
+      bool do_add = true;
+
+      while (desired_it != _signature.end() &&
+             templ_it != templ_info.provides.end()) {
+        if (generic_indices.contains(*templ_it)) {
+          do {
+            substitutions.at(generic_indices.at(*templ_it))
+                .push_back(*desired_it);
+            ++desired_it;
+          } while (desired_it != _signature.end() &&
+                   *desired_it != *std::next(templ_it));
+          ++templ_it;
+        } else if (*desired_it == *templ_it) {
+          ++desired_it;
+          ++templ_it;
+        } else {
+          do_add = false;
+          break;
+        }
+      }
+
+      if (do_add) {
+        std::list<std::list<std::string>> to_append;
+        for (uint j = 0; j < substitutions.size(); ++j) {
+          to_append.push_back(substitutions.at(j));
+        }
+        out.push_back({to_append, i});
+      }
     }
   }
 

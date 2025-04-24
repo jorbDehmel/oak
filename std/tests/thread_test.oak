@@ -5,22 +5,40 @@
 include!(
   "std/std.oak",
   "std/thread.oak",
-  "std/printf.oak"
+  "std/printf.oak",
+  "std/rules.oak"
 );
+rule::use!("std");
 
-let thread_fn(arg: ^void) -> ^void {
-  // Void pointer casting
-  let thread_id_ptr: ^uint;
-  thread_id_ptr = arg;
-  let thread_id: uint;
-  thread_id = thread_id_ptr;
-
-  printf!(
-    "Hello from thread %\n".
-    thread_id
-  );
+// Casts and dereference the void pointer
+let get_thread_id(arg: ^void) -> u64 {
+  let out: u64;
+  c!("out = *(i32 *)(arg);");
+  return out;
 }
 
-let main() {
+// Creates a void pointer
+let make_thread_id(id_ptr: ^u64) -> ^void {
+  let out: ^void;
+  c!("out = id_ptr;");
+  return out;
+}
+
+let thread_fn(arg: ^void) -> ^void {
+  let thread_id: u64 = get_thread_id(arg);
+  printf!("Hello from thread %\n", thread_id);
+}
+
+let main() -> i32 {
+  let i: u64 = 0u64;
+  let fn: ^(_: ^void) -> ^void;
+  fn = thread_fn;
+  while (i < 8u64) {
+    let thrd: Thread;
+    thrd = (fn, make_thread_id(i));
+    ++i;
+    detach(thrd);
+  }
+
   return 0i32;
 }

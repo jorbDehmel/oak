@@ -9,10 +9,12 @@ pragma!("no_dialect");
 let Pair<L, R>: struct {
   first: L,
   second: R
+} post {
+  let Copy(_: ^Pair<L, R>, _: L, _: R) -> Pair<L, R>;
 }
 
 /// Initialize from two values
-let Copy<L, R>(self: Pair<L, R>, first: L, second: R
+let Copy<L, R>(self: ^Pair<L, R>, first: L, second: R
   ) -> Pair<L, R> {
   self.first = first;
   self.second = second;

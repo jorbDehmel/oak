@@ -79,14 +79,6 @@ CompiledRule compile(const Rule &_from) {
   out.lexed_in =
       break_input_pattern(split_on_spaces(_from.input_pattern));
 
-  // for (const auto &p : out.lexed_in) {
-  //   std::cout << p.first << '\t';
-  //   for (const auto &i : p.second) {
-  //     std::cout << i << ' ';
-  //   }
-  //   std::cout << '\n';
-  // }
-
   out.lexed_out = split_on_spaces(_from.output_pattern);
   return out;
 }

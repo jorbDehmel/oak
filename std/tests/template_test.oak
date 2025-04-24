@@ -9,9 +9,16 @@ let println<T>(what: T) -> void {
   endl();
 }
 
+let printtwo<A, B>(a: A, b: B) -> void {
+  println(a);
+  println(b);
+}
+
 let main() -> i32 {
-  println(123i32);
-  println(2.0f64);
+  println(123 i32);
+  println(2.0 f64);
+
+  printtwo(432u64, "hi there");
 
   return 0i32;
 }

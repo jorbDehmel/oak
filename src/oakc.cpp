@@ -417,6 +417,7 @@ void OakCompiler::operator()() {
       }
       did_fail = true;
     }
+
     if (!did_fail &&
         settings.compile_settings()
             .pragmas[settings.compile_settings().entry_point]
@@ -472,9 +473,7 @@ void OakCompiler::do_compilation() {
           "file '" +
           settings.dialect.value().string() + "':\n" +
           e.what());
-    }
-
-    catch (...) {
+    } catch (...) {
       throw std::runtime_error(
           "An unknown error occurred while loading dialect "
           "file '" +
@@ -1414,24 +1413,16 @@ uint64_t OakCompiler::preprocess(
           saw_let = false;
         }
       } catch (OutOfPPPLError &e) {
-        if (it == _token_stream.end()) {
-          throw e;
-        }
-        throw std::runtime_error(
-            "At " + it->file.string() + ":" +
-            std::to_string(it->line) + "." +
-            std::to_string(it->col) + "\n" + e.what());
+        throw OutOfPPPLError("At " + it->file.string() + ":" +
+                             std::to_string(it->line) + "." +
+                             std::to_string(it->col) + "\n" +
+                             e.what());
       } catch (std::runtime_error &e) {
-        if (it == _token_stream.end()) {
-          throw e;
-        }
         throw std::runtime_error(
             "At " + it->file.string() + ":" +
             std::to_string(it->line) + "." +
             std::to_string(it->col) + "\n" + e.what());
-      }
-
-      catch (...) {
+      } catch (...) {
         if (it == _token_stream.end()) {
           throw;
         }
@@ -1445,9 +1436,7 @@ uint64_t OakCompiler::preprocess(
     // Resolve includes and packages
     for (auto it = _token_stream.begin();
          it != _token_stream.end(); ++it) {
-
       try {
-
         if (*it == "include!") {
           auto raw_args = MacroManager::get_macro_args(
               _token_stream, it, _token_stream.end());
@@ -1476,20 +1465,22 @@ uint64_t OakCompiler::preprocess(
                 rules.add_entry_point(item);
               }
             }
+          } catch (OutOfPPPLError &e) {
+            throw OutOfPPPLError(
+                "In file included from " + it->file.string() +
+                ":" + std::to_string(it->line) + "." +
+                std::to_string(it->col) + "\n" + e.what());
           } catch (std::runtime_error &e) {
             throw std::runtime_error(
                 "In file included from " + it->file.string() +
                 ":" + std::to_string(it->line) + "." +
                 std::to_string(it->col) + "\n" + e.what());
-          }
-
-          catch (...) {
+          } catch (...) {
             throw std::runtime_error(
                 "In file included from " + it->file.string() +
                 ":" + std::to_string(it->line) + "." +
                 std::to_string(it->col) + "\nUnknown error");
           }
-
         } else if (*it == "link!") {
           auto raw_args = MacroManager::get_macro_args(
               _token_stream, it, _token_stream.end());
@@ -1830,17 +1821,17 @@ uint64_t OakCompiler::preprocess(
                 std::to_string(result));
           }
         }
-      } catch (std::runtime_error &e) {
-        if (it == _token_stream.end()) {
-          throw e;
-        }
+      } catch (OutOfPPPLError &e) {
         throw std::runtime_error(
             "At " + it->file.string() + ":" +
             std::to_string(it->line) + "." +
             std::to_string(it->col) + "\n" + e.what());
-      }
-
-      catch (...) {
+      } catch (std::runtime_error &e) {
+        throw std::runtime_error(
+            "At " + it->file.string() + ":" +
+            std::to_string(it->line) + "." +
+            std::to_string(it->col) + "\n" + e.what());
+      } catch (...) {
         if (it == _token_stream.end()) {
           throw;
         }
@@ -1863,17 +1854,17 @@ uint64_t OakCompiler::preprocess(
           macros.replace(_token_stream, it, _token_stream.end(),
                          settings, *this);
         }
+      } catch (OutOfPPPLError &e) {
+        throw OutOfPPPLError("At " + it->file.string() + ":" +
+                             std::to_string(it->line) + "." +
+                             std::to_string(it->col) + "\n" +
+                             e.what());
       } catch (std::runtime_error &e) {
-        if (it == _token_stream.end()) {
-          throw e;
-        }
         throw std::runtime_error(
             "At " + it->file.string() + ":" +
             std::to_string(it->line) + "." +
             std::to_string(it->col) + "\n" + e.what());
-      }
-
-      catch (...) {
+      } catch (...) {
         if (it == _token_stream.end()) {
           throw;
         }
@@ -2000,6 +1991,15 @@ void OakCompiler::do_file(
 
   try {
     token_stream = l.lex(text, path, line, col);
+  } catch (OutOfPPPLError &e) {
+    // If requested, dump
+    if (csettings.dump_file.has_value()) {
+      p.dump(*csettings.dump_file.value(), token_stream,
+             settings.compile_settings());
+    }
+
+    throw OutOfPPPLError("Error occurred while lexing " +
+                         path.string() + ":\n" + e.what());
   } catch (std::runtime_error &e) {
     // If requested, dump
     if (csettings.dump_file.has_value()) {
@@ -2009,9 +2009,7 @@ void OakCompiler::do_file(
 
     throw std::runtime_error("Error occurred while lexing " +
                              path.string() + ":\n" + e.what());
-  }
-
-  catch (...) {
+  } catch (...) {
     // If requested, dump
     if (csettings.dump_file.has_value()) {
       p.dump(*csettings.dump_file.value(), token_stream,

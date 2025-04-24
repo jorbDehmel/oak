@@ -639,7 +639,6 @@ std::string Type::struct_name() const {
   debug_print();
   if (nodes.empty() ||
       nodes.front().type != TypeNode::LITERAL) {
-    std::cout << nodes.front().type << '\n';
     throw std::runtime_error(
         "Cannot get struct/enum name of non-terminal type '" +
         oak_repr() + "'");

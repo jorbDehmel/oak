@@ -299,7 +299,9 @@ protected:
   void validate_type(const Type &_t) const;
 
   /// Finds all possible template instantiations to match the
-  /// given FUNCTION signature
+  /// given FUNCTION signature. The second in each pair is the
+  /// index of the template for which the first in that pair
+  /// provides substitutions.
   std::list<std::pair<std::list<std::list<std::string>>, uint>>
   find_substitutions(
       const std::string &_name,

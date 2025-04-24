@@ -18,6 +18,7 @@
  */
 class OutOfPPPLError : public std::runtime_error {
 public:
+  /// Initialize
   OutOfPPPLError(const std::string &_what)
       : std::runtime_error(_what) {
   }
