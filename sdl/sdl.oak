@@ -1,0 +1,227 @@
+/**
+ * @file
+ * @brief SDL2 interface
+ */
+
+pragma!("no_dialect");
+include!("std/std.oak", "std/bytes.oak", "std/unit.oak");
+link!("sdl/sdl.o");
+flag!(
+  "-I/usr/include/SDL2",
+  "-D_GNU_SOURCE=1",
+  "-D_REENTRANT",
+  "-L/usr/lib",
+  "-lSDL2"
+);
+
+////////////////////////////////////////////////////////////////
+/// Structs
+
+/// Interfaces to a SDL2 window
+let sdl::Window: struct {
+  _: ^void,
+  __: ^void
+}
+
+/// A 4-byte RGBA pixel in SDL2
+let sdl::Color: struct {
+  r, g, b, a: u8
+}
+
+/// A coordinate on the screen
+let sdl::Coord: struct {
+  x, y: int
+}
+
+/// A SDL2 rectangle
+let sdl::Rect: struct {
+  x, y, w, h: int
+}
+
+/// Used by event polling: A key press data
+let sdl::KeyEventData: struct {
+  keycode: int
+}
+
+/// Used by event polling: A mouse movement data
+let sdl::MouseMoveEventData: struct {
+  x, y: int
+}
+
+/// Used by event polling: A mouse button press data
+let sdl::MouseButtonEventData: struct {
+  x, y: int,
+  code: u8
+}
+
+/// Used by event polling: If the SDL2 event type is not
+/// otherwise classified, the type is saved herein.
+let sdl::MiscData: struct {
+  code: u32
+}
+
+/// Used by event polling
+let sdl::Event: enum {
+  none: Unit
+  key_down_event: sdl::KeyEventData,
+  key_up_event: sdl::KeyEventData,
+  mouse_move_event: sdl::MouseMoveEventData,
+  mouse_button_down_event: sdl::MouseButtonEventData,
+  mouse_button_up_event: sdl::MouseButtonEventData,
+  misc_event: sdl::MiscData,
+  quit_event: Unit,
+}
+
+////////////////////////////////////////////////////////////////
+/// Interfacial functions
+
+/// Returns an event if one exists, wrapping "none" if nothing
+let sdl::poll_event() -> sdl::Event;
+
+/// Returns a null-terminated (if space) representation of a
+/// SDL2 keycode
+let sdl::to_str(keycode: i64, buffer: []i8, n: u64) -> void;
+
+/// Makes a window full screen
+let sdl::enable_window_fullscreen(self: ^sdl::Window) -> void;
+
+/// Makes a window windowed instead of full screen
+let sdl::disable_window_fullscreen(self: ^sdl::Window) -> void;
+
+/// Saves a screenshot to BMP format
+let sdl::save(self: ^sdl::Window, filepath: []i8) -> void;
+
+/// SDL2 sin interface
+let sdl::sin(x: f64) -> f64;
+
+/// SDL2 cos interface
+let sdl::cos(x: f64) -> f64;
+
+/// SDL2 tan interface
+let sdl::tan(x: f64) -> f64;
+
+/// Initialize SDL2
+let sdl::init() -> void;
+
+/// Halt SDL2
+let sdl::quit() -> void;
+
+/// Await some number of milliseconds
+let sdl::delay(ms: i32) -> void;
+
+/// Get the number of ticks since init
+let sdl::get_ticks() -> u64;
+
+/// External init
+let New(self: ^sdl::Window) -> void;
+
+/// External deletion
+let Del(self: ^sdl::Window) -> void;
+
+/// Resize the window
+let Copy(self: ^sdl::Window, w: u64, h: u64) -> void;
+
+/// Push the window to the screen
+let show(window: ^sdl::Window) -> void;
+
+/// Fill the screen with some color
+let fill(window: ^sdl::Window, color: sdl::Color) -> void;
+
+/// Fill a pixel
+let draw_dot(window: ^sdl::Window, point: sdl::Coord,
+  color: sdl::Color) -> void;
+
+/// Draw a 1-pixel line
+let draw_line(window: ^sdl::Window, point_a: sdl::Coord,
+  point_b: sdl::Coord, color: sdl::Color) -> void;
+
+/// Draw a rectangle
+let draw_rect(window: ^sdl::Window, rect: sdl::Rect,
+  color: sdl::Color) -> void;
+
+/// Draw and fill a rectangle
+let fill_rect(window: ^sdl::Window, rect: sdl::Rect,
+  color: sdl::Color) -> void;
+
+/// Get the size of the window in pixels. The x and y should be
+/// zero
+let size(self: ^sdl::Window) -> sdl::Rect;
+
+////////////////////////////////////////////////////////////////
+/// Local functions
+
+/// Tuple copy
+let Copy(self: ^sdl::Color, r: u8, g: u8, b: u8, a: u8
+    ) -> void {
+  self.r = r;
+  self.g = g;
+  self.b = b;
+  self.a = a;
+}
+
+/// Copy from another color
+let Copy(self: ^sdl::Color, other: sdl::Color) -> void {
+  self.r = other.r;
+  self.g = other.g;
+  self.b = other.b;
+  self.a = other.a;
+}
+
+/// Tuple copy
+let Copy(self: ^sdl::Coord, x: int, y: int) -> void {
+  self.x = x;
+  self.y = y;
+}
+
+/// Copy from another
+let Copy(self: ^sdl::Coord, other: sdl::Coord) -> void {
+  self.x = other.x;
+  self.y = other.y;
+}
+
+/// Tuple copy
+let Copy(self: ^sdl::Rect, x: int, y: int, w: int, h: int
+    ) -> void {
+  self.x = x;
+  self.y = y;
+  self.w = w;
+  self.h = h;
+}
+
+/// Copy from another
+let Copy(self: ^sdl::Rect, other: sdl::Rect) -> void {
+  self.x = other.x;
+  self.y = other.y;
+  self.w = other.w;
+  self.h = other.h;
+}
+
+/// Copy event enum
+let Copy(self: ^sdl::Event, other: sdl::Event) -> void {
+  match (other) {
+    case key_down_event(data: sdl::KeyEventData) {
+      wrap_key_down_event(self, data);
+    } case key_up_event(data: sdl::KeyEventData) {
+      wrap_key_up_event(self, data);
+    } case mouse_move_event(data: sdl::MouseMoveEventData) {
+      wrap_mouse_move_event(self, data);
+    } case mouse_button_down_event(
+      data: sdl::MouseButtonEventData) {
+      wrap_mouse_button_down_event(self, data);
+    } case mouse_button_up_event(
+      data: sdl::MouseButtonEventData) {
+      wrap_mouse_button_up_event(self, data);
+    } case misc_event(data: sdl::MiscData) {
+      wrap_misc_event(self, data);
+    } case quit_event(data: Unit) {
+      wrap_quit_event(self, data);
+    } case none(data: Unit) {
+      wrap_none(self, data);
+    }
+  }
+}
+
+let wrap_none(self: ^sdl::Event) -> void {
+  let unit: Unit;
+  wrap_none(self, unit);
+}

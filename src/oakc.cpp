@@ -368,7 +368,7 @@ void OakCompiler::new_package(const std::string &_name) {
     std::map<std::string, std::string> key_value_pairs;
     key_value_pairs["INSTALL!"] = _name + "/install.oak";
     for (const auto &key :
-         {"ABOUT!", "AUTHOR!", "EMAIL", "LICENSE!", "SOURCE!",
+         {"ABOUT!", "AUTHOR!", "EMAIL!", "LICENSE!", "SOURCE!",
           "VERSION!", "YEAR!"}) {
       std::string response;
       std::cout << "Value for '" << key << "': ";

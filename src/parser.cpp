@@ -713,7 +713,8 @@ void Parser::parse_function(
       if (functions.contains(name)) {
         for (auto it = functions.at(name).begin();
              it != functions.at(name).end(); ++it) {
-          if (it->tags.contains("autogen") &&
+          if (it->t.exact_match(t) &&
+              it->tags.contains("autogen") &&
               it->tags.at("autogen") == "true") {
             auto to_delete = it;
             --it;
@@ -1766,26 +1767,6 @@ Node Parser::parse_function_call(
     return out;
   }
 
-  // Special case: Local objects
-  if (!locals.empty()) {
-    for (auto frame = locals.rbegin(); frame != locals.rend();
-         ++frame) {
-      if (frame->contains(*_cur_pos)) {
-        const Type local_var_type = frame->at(*_cur_pos);
-        if (local_var_type.is_fn_ptr()) {
-          // Fn pointer call (STILL NEED TO TYPE CHECK)
-          throw std::runtime_error(
-              "Function pointers are unimplemented!");
-        } else {
-          throw std::runtime_error(
-              "Cannot call variable with non-function-pointer "
-              "type '" +
-              local_var_type.oak_repr(*_cur_pos) + "'");
-        }
-      }
-    }
-  }
-
   // Function call
   Node out(Node::CALL);
   out.token = *_cur_pos;
@@ -2016,6 +1997,52 @@ Node Parser::parse_function_call(
     return out;
   }
 
+  // Special case: Local fn pointer
+  if (!locals.empty() && out.token.has_value()) {
+    for (auto frame = locals.rbegin(); frame != locals.rend();
+         ++frame) {
+      if (frame->contains(out.token.value().text)) {
+        const Type local_var_type =
+            frame->at(out.token.value().text);
+
+        if (local_var_type.is_fn_ptr()) {
+          const auto fn_type = local_var_type.deref();
+          const auto needed_args = fn_type.fn_args();
+
+          if (out.children.size() != needed_args.size()) {
+            throw std::runtime_error(
+                "Expected " +
+                std::to_string(needed_args.size()) +
+                " args in fn pointer call, but saw " +
+                std::to_string(out.children.size()));
+          }
+
+          for (uint i = 0; i < needed_args.size(); ++i) {
+            if (!needed_args[i].second.exact_match(
+                    out.children[i].type.value())) {
+              throw std::runtime_error(
+                  "Expected type '" +
+                  needed_args[i].second.oak_repr() +
+                  "' for arg " + std::to_string(i) +
+                  " of fn pointer call, but saw type '" +
+                  out.children[i].type->oak_repr() + "'");
+            }
+          }
+
+          out.type = fn_type.fn_return_type();
+          out.c_name = out.token.value().text;
+          return out;
+        } else {
+          throw std::runtime_error(
+              "Cannot call variable with non-function-pointer "
+              "type '" +
+              local_var_type.oak_repr(out.token.value().text) +
+              "'");
+        }
+      }
+    }
+  }
+
   // End special cases
   //////////////////////////////////////////////////////////////
 
@@ -2056,13 +2083,15 @@ Node Parser::parse_function_call(
 }
 
 /// Resolve the given variable
-Type Parser::resolve_variable(const Lexer::Token &_name) {
+Type Parser::resolve_variable(const Lexer::Token &_name,
+                              std::string &_new_name) {
   debug_print();
 
   if (!locals.empty()) {
     for (auto frame = locals.rbegin(); frame != locals.rend();
          ++frame) {
       if (frame->contains(_name)) {
+        _new_name = _name.text;
         return frame->at(_name);
       }
     }
@@ -2076,7 +2105,9 @@ Type Parser::resolve_variable(const Lexer::Token &_name) {
           _name.text + "'.");
     }
 
-    return functions.at(_name.text).front().t.ref();
+    const auto fn_type = functions.at(_name.text).front().t;
+    _new_name = fn_type.mangle(_name.text);
+    return fn_type.ref();
   }
 
   throw std::runtime_error("Variable '" + _name.text +
@@ -2088,41 +2119,41 @@ Node Parser::parse_object(
     std::list<Lexer::Token>::const_iterator &_cur_pos,
     const std::list<Lexer::Token>::const_iterator &_end,
     Settings &_settings) {
-  uint depth = 0;
-  while (*_cur_pos == "(") {
-    ++depth;
-    ++_cur_pos;
-  }
-  auto out =
-      parse_object_without_paren(_cur_pos, _end, _settings);
-  while (depth > 0) {
-    ++_cur_pos;
-    if (_cur_pos->text != ")") {
-      throw std::runtime_error("Expected ')', but saw '" +
-                               _cur_pos->text + "'");
-    }
-
-    --depth;
-  }
-
-  return out;
-}
-
-// Parses a single object (resolvable variable or function
-// call return value). Assumes we are pointing ot the first
-// token of the object. Non-global (inside statements)
-Node Parser::parse_object_without_paren(
-    std::list<Lexer::Token>::const_iterator &_cur_pos,
-    const std::list<Lexer::Token>::const_iterator &_end,
-    Settings &_settings) {
   debug_print();
   /*
   object = name | function_call | object . name ;
   */
 
-  // Open parenthesis: Function call
-  if (std::next(_cur_pos) != _end &&
-      *std::next(_cur_pos) == "(") {
+  // Open parenthesis immediately: No-capture lambda
+  if (*_cur_pos == "(") {
+    // Create name
+    uint lambda_counter = 1;
+    while (functions.contains("__oak_lambda_" +
+                              std::to_string(lambda_counter))) {
+      ++lambda_counter;
+    }
+    const std::string lambda_name =
+        "__oak_lambda_" + std::to_string(lambda_counter);
+
+    // Parse function
+    auto stack = locals;
+    locals.clear();
+    parse_function({lambda_name}, _cur_pos, _end, _settings);
+    locals = stack;
+
+    // Return a fn pointer to that lambda
+    Node out(Node::OBJECT);
+    out.token = Lexer::Token(*_cur_pos, lambda_name);
+    out.c_name = "";
+    out.type =
+        resolve_variable(out.token.value(), out.c_name.value());
+    out.token.value().text = out.c_name.value();
+    return out;
+  }
+
+  // Open parenthesis follows: Function call
+  else if (std::next(_cur_pos) != _end &&
+           *std::next(_cur_pos) == "(") {
     return parse_function_call(_cur_pos, _end, _settings);
   }
 
@@ -2147,13 +2178,13 @@ Node Parser::parse_object_without_paren(
           "'^' operator must operate on a variable.");
     }
 
-    auto name = *_cur_pos;
-    Type t = resolve_variable(name);
+    std::string name;
+    Type t = resolve_variable(*_cur_pos, name);
 
     // Derefs
     if (derefs > 0) {
       for (uint i = 0; i < derefs; ++i) {
-        name.text = "(*" + name.text + ")";
+        name = "(*" + name + ")";
 
         if (!t.nodes.empty() &&
             t.nodes.front().type == Type::TypeNode::POINTER) {
@@ -2177,7 +2208,7 @@ Node Parser::parse_object_without_paren(
       // Auto-deref for member access
       while (!t.nodes.empty() &&
              t.nodes.front().type == Type::TypeNode::POINTER) {
-        name.text = "(*" + name.text + ")";
+        name = "(*" + name + ")";
         t = t.deref();
       }
 
@@ -2206,7 +2237,7 @@ Node Parser::parse_object_without_paren(
         t = enum_info.options.at(member_name);
       }
 
-      name.text += "." + member_name;
+      name += "." + member_name;
     }
 
     Node out(Node::OBJECT);

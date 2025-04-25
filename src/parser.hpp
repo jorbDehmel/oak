@@ -179,8 +179,11 @@ public:
   parse_global(const std::list<Lexer::Token> &_file_contents,
                Settings &_settings);
 
-  /// Resolve the given variable
-  Type resolve_variable(const Lexer::Token &_name);
+  /// Resolve the given variable. If a name change is needed,
+  /// saves it in _new_name. Otherwise, it will contain a
+  /// duplicate of _name.text.
+  Type resolve_variable(const Lexer::Token &_name,
+                        std::string &_new_name);
 
   /// Constructs the equivalent C program in the given
   /// stringstream
@@ -273,15 +276,6 @@ protected:
   /// This is what you should call: The other one is called by
   /// this
   Node parse_object(
-      std::list<Lexer::Token>::const_iterator &_cur_pos,
-      const std::list<Lexer::Token>::const_iterator &_end,
-      Settings &_settings);
-
-  /// Parses a single object (resolvable variable or function
-  /// call return value). Assumes we are pointing ot the first
-  /// token of the object. Non-global (inside statements), does
-  /// not deal with parenthesis.
-  Node parse_object_without_paren(
       std::list<Lexer::Token>::const_iterator &_cur_pos,
       const std::list<Lexer::Token>::const_iterator &_end,
       Settings &_settings);

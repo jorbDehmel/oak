@@ -1,6 +1,5 @@
 /**
- * @brief Tests non-capturing lambdas in Oak. This one's a
- * stretch goal.
+ * @brief Tests non-capturing lambdas in Oak.
  */
 
 include!("std/std.oak", "std/rules.oak");
@@ -16,7 +15,8 @@ let main() -> i32 {
   let observed: i32;
 
   observed = call_on_zero(
-    (_: i32) -> i32 {
+    (arg: i32) -> i32 {
+      print("Hello from within a lambda!\n");
       return 123i32;
     }
   );

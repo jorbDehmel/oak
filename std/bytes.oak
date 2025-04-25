@@ -10,33 +10,40 @@ pragma!("no_dialect");
 let Byte: struct {
   _: u8
 }
+let New(self: ^Byte) -> void {}
 
 /// Two bytes of data
 let TwoBytes: struct {
-  _: [2uint]Byte
+  _, __: Byte
 }
+let New(self: ^TwoBytes) -> void {}
 
 /// Four bytes of data
 let FourBytes: struct {
-  _: [4uint]Byte
+  _, __: TwoByte
 }
+let New(self: ^FourBytes) -> void {}
 
 /// Eight bytes of data
 let EightBytes: struct {
-  _: [8uint]Byte
+  _, __: FourBytes
 }
+let New(self: ^EightBytes) -> void {}
 
 /// Sixteen bytes of data
 let SixteenBytes: struct {
-  _: [16uint]Byte
+  _, __: EightBytes
 }
+let New(self: ^SixteenBytes) -> void {}
 
 /// Thirty-two bytes of data
 let ThirtyTwoBytes: struct {
-  _: [32uint]Byte
+  _, __: SixteenBytes
 }
+let New(self: ^ThirtyTwoBytes) -> void {}
 
 /// Sixty-four bytes of data
 let SixtyFourBytes: struct {
-  _: [64uint]Byte
+  _, __: ThirtyTwoBytes
 }
+let New(self: ^SixtyFourBytes) -> void {}

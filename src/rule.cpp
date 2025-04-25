@@ -151,7 +151,12 @@ bool RuleRunner::process_text(std::list<Lexer::Token> &_what) {
     for (auto pos = _what.begin(); pos != _what.end(); ++pos) {
       const auto new_state =
           engine.state_transition(rule_spec, state, *pos);
-      if (engine.is_match(rule_spec, new_state)) {
+      // Emergency edge case handling: Shouldn't usually happen
+      if (resets.empty()) {
+        // Log as most recent reset
+        state = original_state;
+        resets.push({pos, state});
+      } else if (engine.is_match(rule_spec, new_state)) {
         has_changed = true;
 
         // Do replacement

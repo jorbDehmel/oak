@@ -1,0 +1,17 @@
+/**
+ * @brief Asserts that lambdas cannot access variables from
+ * their instantiating scope (no captures).
+ */
+
+pragma!("compile_should_fail");
+include!("std/io.oak");
+
+let main() -> i32 {
+  let inaccessible: i32;
+  let fn: ^(_: i32) -> void;
+  fn = (arg: i32) -> void {
+    print(inaccessible);
+  };
+
+  return 0i32;
+}

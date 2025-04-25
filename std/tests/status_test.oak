@@ -10,7 +10,7 @@ let fn() -> Status {
   wrap_good(out);
 
   if (rand() % 2int == 0int) {
-    out.wrap_bad();
+    wrap_bad(out);
   }
 
   return out;
