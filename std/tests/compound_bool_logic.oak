@@ -1,0 +1,18 @@
+/*
+Tests more complicated boolean logic
+*/
+
+include!("std/std.oak");
+
+let main() -> i32 {
+  if (true && (true || false)) {
+    print(LINE!);
+    endl();
+  }
+  if ((false || true) && true) {
+    print(LINE!);
+    endl();
+  }
+
+  return 0i32;
+}

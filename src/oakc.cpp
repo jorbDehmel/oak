@@ -1134,6 +1134,14 @@ void OakCompiler::fix_math(
               if (first_of_lhs->type != "ID") {
                 ++first_of_lhs;
               }
+
+              // Erase matched parenthesis
+              while (first_of_lhs->text == "(" &&
+                     std::prev(first_after_lhs)->text == ")") {
+                first_of_lhs =
+                    _token_stream.erase(first_of_lhs);
+                _token_stream.erase(std::prev(first_after_lhs));
+              }
             }
             while (std::prev(first_of_lhs)->text == ".") {
               first_of_lhs = std::prev(first_of_lhs, 2);

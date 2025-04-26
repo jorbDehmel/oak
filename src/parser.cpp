@@ -684,7 +684,7 @@ void Parser::dump(std::ostream &_where,
 
 // Parse a single function declaration
 // Assumes we have just seen "let NAME (" and are pointing to
-// the next token.
+// "("
 void Parser::parse_function(
     const std::list<std::string> &_names,
     std::list<Lexer::Token>::const_iterator &_cur_pos,
@@ -934,6 +934,11 @@ Type Parser::parse_type(
       first = false;
     } else {
       incr(_cur_pos, _end);
+    }
+
+    if (_cur_pos->text == ";" || _cur_pos->text == "{") {
+      throw std::runtime_error("Missing function return type: "
+                               "Did you mean '-> void'?");
     }
 
     out.process_next(*_cur_pos);

@@ -25,7 +25,8 @@ let make_thread_id(id_ptr: ^u64) -> ^void {
 }
 
 let thread_fn(arg: ^void) -> ^void {
-  let thread_id: u64 = get_thread_id(arg);
+  let thread_id: u64;
+  thread_id = get_thread_id(arg);
   printf!("Hello from thread %\n", thread_id);
 }
 

@@ -208,7 +208,7 @@ protected:
 
   /// Parse a single function declaration
   /// Assumes we have just seen "let NAME (" and are pointing
-  /// to the next token.
+  /// to "("
   void parse_function(
       const std::list<std::string> &_names,
       std::list<Lexer::Token>::const_iterator &_cur_pos,

@@ -141,6 +141,15 @@ let main(c: i32, v: [][]i8) -> i32 {
     }
   }
 
+  // Fn pointer type
+  let foo: ^(arg: i32, arg2: bool) -> void;
+  foo = (first: i32, second: bool) -> void {
+    // Lambdas exist, but cannot capture
+  };
+
+  // Fn pointer call
+  foo(123i32, false);
+
   return 0i32;
 }
 ```

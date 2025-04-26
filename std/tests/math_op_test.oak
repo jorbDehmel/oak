@@ -14,6 +14,12 @@ let main() -> i32 {
   print(2i32 / 3i32 / Add(1i32, 2i32));
   endl();
 
+  print(Add(1i32, 2i32) / 3i32 / 4i32);
+  endl();
+
+  print((1i32 / 2i32) / 3i32);
+  endl();
+
   print(2i32 / 3i32 + 5i32);
   endl();
 

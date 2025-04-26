@@ -12,20 +12,8 @@ Jordan Dehmel, jdehmel@outlook.com
     GPL), enforcing best `C++` practice
 
 ----------------------------------------------------------------
+
 ## Everything below is pre-rewrite (and GPL'ed)
-
-Before rewrite for compile-only:
-```
-Total:          80
-ms:             22681
-min:            3
-max:            830
-mean test ms:   283.512
-```
-
-After rewrite for compile-only (on different test files):
-```
-```
 
 ----------------------------------------------------------------
 
