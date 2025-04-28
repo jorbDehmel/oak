@@ -167,6 +167,45 @@ let Copy(self: ^sdl::Color, other: sdl::Color) -> void {
   self.a = other.a;
 }
 
+let sdl::Color::black() -> sdl::Color {
+  let out: sdl::Color;
+  out = (0 u8, 0 u8, 0 u8, 255 u8);
+  return out;
+}
+
+let sdl::Color::white() -> sdl::Color {
+  let out: sdl::Color;
+  out = (255 u8, 255 u8, 255 u8, 255 u8);
+  return out;
+}
+
+let sdl::Color::red() -> sdl::Color {
+  let out: sdl::Color;
+  out = (255 u8, 0 u8, 0 u8, 255 u8);
+  return out;
+}
+
+let sdl::Color::green() -> sdl::Color {
+  let out: sdl::Color;
+  out = (0 u8, 255 u8, 0 u8, 255 u8);
+  return out;
+}
+
+let sdl::Color::blue() -> sdl::Color {
+  let out: sdl::Color;
+  out = (0 u8, 0 u8, 255 u8, 255 u8);
+  return out;
+}
+
+let Eq(lhs: sdl::Color, rhs: sdl::Color) -> bool {
+  return lhs.r == rhs.r && lhs.g == rhs.g && lhs.b == rhs.b
+    && lhs.a == rhs.a;
+}
+
+let Neq(lhs: sdl::Color, rhs: sdl::Color) -> bool {
+  return !Eq(lhs, rhs);
+}
+
 /// Tuple copy
 let Copy(self: ^sdl::Coord, x: int, y: int) -> void {
   self.x = x;

@@ -30,3 +30,13 @@ int get_uid_FN_MAPS_int() {
 int get_euid_FN_MAPS_int() {
   return geteuid();
 }
+
+// atexit(fn: ^() -> void) -> void
+void atexit_FN_PTR_FN_MAPS_void_MAPS_void(void (*fn)()) {
+  atexit(fn);
+}
+
+// usleep(us: u64) -> void
+void usleep_FN_u64_MAPS_void(u64 us) {
+  usleep(us);
+}

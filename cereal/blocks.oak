@@ -1,0 +1,50 @@
+/**
+ * @brief Allows the serialization of heap chunks. Technically,
+ * this can be done without this file, but this adds some more
+ * useful resources. These are not useful for singular pointers,
+ * which should be dealt with via dereference only.
+ */
+
+include!("std/std.oak", "cereal/hex_ops.oak");
+
+let cereal::dyn_serializable<T>: trait {
+  serialize<T>(_: []T, _: u64, _: ^extra::string_builder);
+  deserialize<T>(_: ^[]T, _: ^u64, _: []i8, _: ^u64);
+}
+
+// cereals an alloc!-ed block.
+let serialize<T>(self: []T, size: u64,
+  into: ^extra::string_builder) -> void {
+
+  // Save size
+  serialize(size, into);
+
+  // Sequentially save contents of array
+  let i: u64 = 0u64;
+  while (i < size) {
+    serialize(Get(self, i), into);
+    i += 1u64;
+  }
+} pre {
+  cereal::serializable<T>;
+}
+
+let deserialize<T>(self: ^[]T, size: ^u64, from: []i8,
+  pos: ^u64) -> void {
+
+  // Load size
+  deserialize(size, from, pos);
+  assert!(size != 0u64);
+
+  // Allocate arr
+  alloc!(^self, ^size);
+
+  // Sequentially load contents of array
+  let i: u64 = 0u64;
+  while (i < size) {
+    deserialize(Get(^self, i), from, pos);
+    i += 1u64;
+  }
+} pre {
+  cereal::serializable<T>;
+}

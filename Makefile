@@ -29,6 +29,8 @@ install: check
 
 	@echo "Installing default Oak libraries..."
 	acorn -yS ./std
+	acorn -yS ./sdl
+	acorn -yS ./stl
 
 .PHONY:	install-debug
 install-debug: check

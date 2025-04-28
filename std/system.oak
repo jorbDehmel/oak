@@ -32,3 +32,9 @@ let get_uid() -> int;
 
 /// Get the effective user ID
 let get_euid() -> int;
+
+/// Attach the given function to be called on termination
+let atexit(fn: ^() -> void) -> void;
+
+/// Sleep for some number of microseconds
+let usleep(us: u64) -> void;

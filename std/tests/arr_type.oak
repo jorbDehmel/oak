@@ -1,0 +1,18 @@
+/*
+Tests array variable types in Oak
+*/
+
+include!("std/std.oak");
+
+let Z: struct {
+  a: [2uint]bool,
+  b: [128uint]i8
+}
+
+let main() -> i32 {
+  let x: [2uint]i32;
+  let y: [3uint][2uint]i32;
+  let z: [64u64]Z;
+
+  return 0i32;
+}

@@ -251,6 +251,7 @@ bool parse_args(const int _c, const char *const _v[],
               "'" + arg + "' must be followed by an argument");
         }
         _oakc.new_package(_v[++i]);
+        return false;
       }
 
       // Warnings to errors
@@ -432,7 +433,7 @@ bool parse_args(const int _c, const char *const _v[],
                 "' must be followed by an argument");
           }
           _oakc.new_package(_v[++i]);
-          break;
+          return false;
         case 'W': // Warnings to errors
           _oakc.settings.warning_mode =
               Settings::ERROR_WARNINGS;

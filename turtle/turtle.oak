@@ -1,0 +1,209 @@
+/**
+ * @file
+ * @brief Turtle code visualizer
+ */
+
+include!("std/std.oak", "sdl/sdl.oak", "std/system.oak");
+
+/// A turtle with a pen
+let turtle::Turtle: struct {
+  /// The size of the turtle
+  turtle_size: uint,
+  /// (0, 0) is the middle of the middle of the screen
+  x, y: int,
+  /// The direction in degrees. 0 is due right, 180 left
+  angle: u64,
+  /// The background color
+  bg_color: sdl::Color,
+  /// The color of the turtle's line
+  pen_color: sdl::Color,
+  /// The color of the turtle
+  turtle_color: sdl::Color,
+  /// If true, the pen will draw. Otherwise, it won't
+  pen_down: bool,
+  /// Pixels per second: If 0, treats as instantly
+  speed: int,
+
+  /// Private: The underlying screen interface
+  __window: sdl::Window,
+  /// Private: The actual dimensions of the window in pixels
+  __window_w, __window_h: i32,
+  /// Private: The colors of each pixel in the window
+  __bitmap: [][]sdl::Color
+}
+
+////////////////////////////////////////////////////////////////
+
+/// Waits the given number of *seconds*
+let turtle::sleep(s: f64) -> void {
+  usleep(to_u64(s) / 1 000 000 u64);
+}
+
+////////////////////////////////////////////////////////////////
+
+/// Initialize a turtle
+let New(self: ^turtle::Turtle) -> void;
+
+/// Clean up and free a turtle
+let Del(self: ^turtle::Turtle) -> void;
+
+/// Render a single frame to screen
+let __render(self: ^turtle::Turtle, ticks: uint) -> void;
+
+/// Draw a line and log it in the bitmask
+let __draw_line(self: ^turtle::Turtle, a: sdl::Coord,
+  b: sdl::Coord) -> void;
+
+/// Walk some number of units due forward
+let walk(self: ^turtle::Turtle, distance: i32) -> void;
+
+/// Turn some number of degrees left (CCW)
+let left(self: ^turtle::Turtle, degrees: f64) -> void;
+
+/// Turn some number of degrees right (CW)
+let right(self: ^turtle::Turtle, degrees: f64) -> void;
+
+/// Put the pen down
+let down(self: ^turtle::Turtle) -> void;
+
+/// Lift the pen up
+let up(self: ^turtle::Turtle) -> void;
+
+/// Flood fill based on where the turtle is
+let fill(self: ^turtle::Turtle) -> void;
+
+/// Intantly move directly to the given position
+let set_position(self: ^turtle::Turtle, x: i32, y: i32) -> void;
+
+/// Instantly turn to the given angle
+let set_angle(self: ^turtle::Turtle, degrees: f64) -> void;
+
+/// Set the size of the turtle
+let set_turtle_size(self: ^turtle::Turtle, size: uint) -> void;
+
+/// Set the background color
+let set_bg_color(self: ^turtle::Turtle, r: u8, g: u8, b: u8
+  ) -> void;
+
+/// Set the color of the turtle
+let set_turtle_color(self: ^turtle::Turtle, r: u8, g: u8, b: u8
+  ) -> void;
+
+/// Set the color of the pen
+let set_pen_color(self: ^turtle::Turtle, r: u8, g: u8, b: u8
+  ) -> void;
+
+////////////////////////////////////////////////////////////////
+
+let New(self: ^turtle::Turtle) -> void {
+  // Init local memory
+  self.turtle_size = 4 int;
+  self.x = 0 int;
+  self.y = 0 int;
+  self.angle = 0.0 f64;
+  self.bg_color = sdl::Color::white();
+  self.pen_color = sdl::Color::black();
+  self.turtle_color = sdl::Color::black();
+  self.pen_down = true;
+  self.speed = 4;
+
+  self.__window_w = 128 i32;
+  self.__window_h = 128 i32;
+
+  // Allocate array of empty allocatable arrays
+  alloc!(__bitmap, 128 uint);
+
+  // Allocate and empty subarrays
+  let x, y: uint;
+  y = 0 i32;
+  while (y < __window_h) {
+    alloc!(Get(__bitmap, y), 128 uint);
+    x = 0 i32;
+    while (x < __window_w) {
+      Get(Get(__bitmap, y), x) = self.bg_color;
+      ++x;
+    }
+    ++y;
+  }
+
+  // Init SDL + window
+  sdl::init();
+  self.__window = (__window_w, __window_h);
+}
+
+let Del(self: ^turtle::Turtle) -> void {
+  let y: uint;
+  y = 0 i32;
+  while (y < __window_h) {
+    free!(Get(__bitmap, y));
+    ++y;
+  }
+  free!(__bitmap);
+}
+
+let __render(self: ^turtle::Turtle, ticks: uint) -> void {
+  compile_time::error!("UNIMPLEMENTED");
+}
+
+let __draw_line(self: ^turtle::Turtle, a: sdl::Coord,
+  b: sdl::Coord) -> void {
+  compile_time::error!("UNIMPLEMENTED");
+}
+
+let walk(self: ^turtle::Turtle, distance: i32) -> void {
+  compile_time::error!("UNIMPLEMENTED");
+}
+
+let left(self: ^turtle::Turtle, degrees: f64) -> void {
+  compile_time::error!("UNIMPLEMENTED");
+}
+
+let right(self: ^turtle::Turtle, degrees: f64) -> void {
+  compile_time::error!("UNIMPLEMENTED");
+}
+
+let fill(self: ^turtle::Turtle) -> void {
+  compile_time::error!("UNIMPLEMENTED");
+}
+
+let down(self: ^turtle::Turtle) -> void {
+  self.pen_down = true;
+}
+
+let up(self: ^turtle::Turtle) -> void {
+  self.pen_down = false;
+}
+
+let set_position(self: ^turtle::Turtle, x: i32, y: i32
+    ) -> void {
+  let a, b: sdl::Coord;
+  a = (self.x, self.y);
+  b = (x, y);
+  __draw_line(self, a, b);
+  __render(self);
+}
+
+let set_angle(self: ^turtle::Turtle, degrees: f64) -> void {
+  self.angle = degrees;
+  __render(self);
+}
+
+let set_turtle_size(self: ^turtle::Turtle, size: uint
+    ) -> void {
+  self.turtle_size = size;
+}
+
+let set_bg_color(self: ^turtle::Turtle, r: u8, g: u8, b: u8
+    ) -> void {
+  self.bg_color = (r, g, b, self.bg_color.a);
+}
+
+let set_turtle_color(self: ^turtle::Turtle, r: u8, g: u8, b: u8
+    ) -> void {
+  self.turtle_color = (r, g, b, self.turtle_color.a);
+}
+
+let set_pen_color(self: ^turtle::Turtle, r: u8, g: u8, b: u8
+    ) -> void {
+  self.pen_color = (r, g, b, self.pen_color.a);
+}

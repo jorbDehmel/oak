@@ -1,0 +1,13 @@
+/*
+Tests C keyword avoidance (KWA) in Oak variable names.
+*/
+
+let goto(union: i32) -> void {
+}
+
+let main() -> i32 {
+  let typedef: i32;
+  goto(typedef);
+  typedef = 0i32;
+  return typedef;
+}

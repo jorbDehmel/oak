@@ -50,6 +50,9 @@ bool Type::is_built_in_type(const std::string &_what) noexcept {
 /// Process one token. This should be treated as consumptive.
 void Type::process_next(const std::string &_symbol) {
   debug_print();
+  std::cout << __FILE__ << ":" << __LINE__ << "> " << _symbol
+            << '\n'
+            << std::flush;
   if (_symbol == "^") {
     append_ptr();
   } else if (_symbol == ",") {
