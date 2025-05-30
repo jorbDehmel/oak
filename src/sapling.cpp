@@ -9,6 +9,7 @@
 #include "debug.hpp"
 #include "lexer.hpp"
 #include <cstdint>
+// #include <iostream>
 #include <stdexcept>
 
 /**
@@ -63,23 +64,51 @@ CompiledRule compile(const Rule &_from) {
             out;
 
         for (auto it = _in.begin(); it != _in.end(); ++it) {
+          // std::cout << __FILE__ << ":" << __LINE__ << "> "
+          //           << *it << '\n'
+          //           << std::flush;
           std::list<std::string> instrs;
-          while (it->starts_with("$~") ||
-                 it->starts_with("$>")) {
+          while (it != _in.end() && (it->starts_with("$~") ||
+                                     it->starts_with("$>"))) {
             instrs.push_back(*it);
             ++it;
           }
 
-          out.push_back({*it, instrs});
+          if (it != _in.end()) {
+            out.push_back({*it, instrs});
+          } else {
+            out.push_back({"", instrs});
+          }
         }
 
         return out;
       };
 
+  // std::cout << "Before compilation:\n"
+  //           << _from.input_pattern << "\n"
+  //           << _from.output_pattern << "\n"
+  //           << std::flush;
+
   out.lexed_in =
       break_input_pattern(split_on_spaces(_from.input_pattern));
 
   out.lexed_out = split_on_spaces(_from.output_pattern);
+
+  // std::cout << __FILE__ << ":" << __LINE__ << ">
+  // Compiled:\n"; std::cout << "Input rule:\n"; for (const auto
+  // &item : out.lexed_in) {
+  //   std::cout << item.first << "\t|\t";
+  //   for (const auto &subitem : item.second) {
+  //     std::cout << subitem << ' ';
+  //   }
+  //   std::cout << '\n';
+  // }
+  // std::cout << "Output rule: ";
+  // for (const auto &item : out.lexed_out) {
+  //   std::cout << item << ' ';
+  // }
+  // std::cout << '\n' << std::flush;
+
   return out;
 }
 
@@ -112,6 +141,11 @@ sapling::state_transition(const Rule &_rule,
                           const Lexer::Token &_current_input) {
   debug_print();
   const CompiledRule &r = fetch(_rule);
+
+  if (_current_state >= r.lexed_in.size()) {
+    return 0;
+  }
+
   const auto thing_to_match =
       r.lexed_in.at(_current_state).first;
 
@@ -119,6 +153,14 @@ sapling::state_transition(const Rule &_rule,
     if (thing_to_match == "$.") {
       // Single wildcard: Unconditionally advance
       return _current_state + 1;
+    } else if (thing_to_match == "$*") {
+      // Plural wildcard
+      if (sapling::state_transition(_rule, _current_state + 1,
+                                    _current_input) ==
+          _current_state + 2) {
+        return _current_state + 2;
+      }
+      return _current_state;
     }
 
     throw std::runtime_error(__FUNCTION__ + thing_to_match);
@@ -131,7 +173,7 @@ sapling::state_transition(const Rule &_rule,
   return 0;
 }
 
-std::list<Lexer::Token>
+TokenStream
 sapling::on_match(const Rule &_rule,
                   const std::list<Lexer::Token> &_match_text) {
   debug_print();

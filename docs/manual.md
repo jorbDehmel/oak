@@ -29,9 +29,9 @@ offers tools for the construction of syntactically diverse
 "dialects".
 
 `Oak`'s preprocessor is intentionally Turing-complete: Indeed,
-it is `Oak`. This allows arbitrarily (or indeed infinitely)
-nested preprocessor expansions. The preprocessor halts when a
-pass of it fails to alter the token stream.
+it is `Oak`. This allows arbitrarily nested preprocessor
+expansions. The preprocessor halts when a pass of it fails to
+alter the token stream.
 
 ## `Hello, World!`
 
@@ -327,6 +327,37 @@ the third is the "then" block (with no else block). If four
 arguments are provided, the third will be the "then" and the
 fourth will be the "else".
 
+### Inclusion funkiness
+
+Unlike `C`/`C++`, `Oak`'s `include!` macro does not simply
+insert the contents of another file at the call location:
+Instead, it pushes the local parse state, entirely parses the
+other file from scratch, then returns and merges state. This
+means that inclusions can be performed *anywhere* (although
+notably they still occur at parse-time, not run-time). This is
+mostly used in macro compilation, since file inclusions do not
+carry over into macro bodies.
+
+```rust
+// This ensures that any place that can call `foo!` has included
+// the io package. This means that the *output* of foo! can use
+// print.
+include!("std/io.oak");
+
+let foo!() -> i32 {
+  // If we want to use `print`, we have to include it here!
+  // This is because macros are placed in their own compilation
+  // environments disjoint from the caller.
+  include!("std/io.oak");
+  print(
+    "print(\"Hello, world!\\n\");\n"
+  );
+
+  return 0i32;
+}
+
+```
+
 ### Types
 
 In `Oak`, an unsized array of `i32`s is `[]i32`. An array of
@@ -475,6 +506,85 @@ variable which has been declared will have had `New` called on
 it, and every variable will have `Del` called on it before
 control exits its scope. This allows for RAII programming, which
 is `Oak`'s paradigm of memory control.
+
+### Strange Loop Compilation
+
+`Oak`'s macro language is `Oak` (whose macro language is `Oak`,
+whose macro language is `Oak`...). This causes `Oak` translation
+to contain a "strange loop". Although many language's
+preprocessors are Turing-complete and therefore undecidable,
+`Oak`'s is extremely and explicitly so.
+
+`C` code may be interspersed with preprocessor code and thus
+look something like this:
+
+```
+C
+|
++- Preproc
+|
++- Preproc
+```
+
+`Oak` might instead look something like this:
+
+```
+Runtime Oak
+|
++- Meta Oak
+|  |
+|  +- Meta meta Oak
+|  |  |
+|  |
+|  +- Meta meta Oak
+|
++- Meta Oak
+|  +- Meta meta Oak
+|
+```
+
+This hierarchy can be arbitrarily (though notably not
+infinitely) deep. It is worked through in a depth-first manner,
+where the "leaf" macros are compiled first and used to construct
+the lower-order ones. Only after all macros have resolved can
+the final program be compiled.
+
+## More on Functions
+
+`Oak` has both functions and (no-capture) lambdas.
+
+```rust
+let foo() -> i32 {
+  // Unwise, but fine
+  let self: ^() -> i32;
+  self = foo;
+
+  // Reassigning to a fn pointer
+  let id: int;
+  self = () -> i32 {
+    print("Hello from a lambda!\n");
+
+    // CANT do this: No captures!
+    // print(id);
+  };
+
+  return 0i32;
+}
+```
+
+It also has aliasing.
+
+```rust
+let name::thats::absurdly::long::probably::from::a::package(
+  ) -> void;
+
+// Make an alias named "short_name" which actually refers to the
+// obscenely named previous fn
+let short_name =
+  name::thats::absurdly::long::probably::from::a::package;
+```
+
+This is similar to `C++`'s `using a = b;` statement.
 
 ## Pragmas
 
@@ -1090,3 +1200,12 @@ runs: This allows us to use the `run_should_fail` pragma. This
 pragma does *not* modify the actual runtime: It only says that,
 if `acorn` is the one executing, a nonzero exit code should be
 expected and a zero exit code should be treated as an error.
+
+# Part 3: Future Features
+
+## Internal Rule Engines
+
+There is no reason why rule engines must be external: In the
+future, macros should be able to act as custom rule engines.
+This should be in the form of dynamic `.so` loading so as to
+reduce latency.

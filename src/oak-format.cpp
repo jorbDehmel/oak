@@ -10,7 +10,6 @@ Many valid Oak files -> 1 token stream
 #include "oakc.hpp"
 #include "settings.hpp"
 #include <cstdint>
-#include <cstdlib>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
@@ -141,23 +140,19 @@ bool validate(const std::string &_original_text,
               const std::string &_transformed_text) {
   static Lexer lexer;
   uint64_t dummy_line = 1, dummy_col = 0;
-  auto fully_lexed_input = lexer.lex(_original_text, __FILE__,
-                                     dummy_line, dummy_col);
-  auto fully_lexed_transformed = lexer.lex(
-      _transformed_text, __FILE__, dummy_line, dummy_col);
-  if (fully_lexed_transformed.size() !=
-      fully_lexed_input.size()) {
-    return false;
-  }
-  for (auto l = fully_lexed_input.cbegin(),
-            r = fully_lexed_transformed.cbegin();
-       l != fully_lexed_input.cend() &&
-       r != fully_lexed_transformed.cbegin();
-       ++l, ++r) {
-    if (l->text != r->text) {
+  auto l = lexer.lex(_original_text, __FILE__, dummy_line,
+                     dummy_col);
+  auto r = lexer.lex(_transformed_text, __FILE__, dummy_line,
+                     dummy_col);
+
+  for (; !(l.done() && r.done());) {
+    if (l.done() || r.done()) {
+      return false;
+    } else if (l.cur().text != r.cur().text) {
       return false;
     }
   }
+
   return true;
 }
 
@@ -168,7 +163,7 @@ int main(int c, char *v[]) {
 
   // If true, OVERWRITES the original file. If false, prints to
   // std::cout.
-  bool inplace = false;
+  bool in_place = false;
 
   // If true, ensures that lexing the transformed text yields
   // the same token stream as the input text
@@ -183,7 +178,7 @@ int main(int c, char *v[]) {
       if (strcmp(v[i], "--analyze") == 0) {
         analyze = !analyze;
       } else if (strcmp(v[i], "--inplace") == 0) {
-        inplace = !inplace;
+        in_place = !in_place;
       } else if (strcmp(v[i], "--verify") == 0) {
         verify = !verify;
       } else if (strcmp(v[i], "--help") == 0) {
@@ -205,7 +200,7 @@ int main(int c, char *v[]) {
           analyze = !analyze;
           break;
         case 'i':
-          inplace = !inplace;
+          in_place = !in_place;
           break;
         case 'v':
           verify = !verify;
@@ -307,7 +302,7 @@ int main(int c, char *v[]) {
   }
 
   // Output
-  if (inplace) {
+  if (in_place) {
     std::ofstream output_file(file);
     if (!output_file.is_open()) {
       std::cerr << "Failed to open output file '" +

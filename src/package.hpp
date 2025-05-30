@@ -48,9 +48,8 @@ struct Version {
  * @param _csettings The settings for all of oak.
  * NOTE: The version will be derived from the spec file.
  */
-void install_package(
-    const std::filesystem::path &_package,
-    const Settings::CompileSettings &_csettings);
+void install_package(const std::filesystem::path &_package,
+                     Settings &_settings);
 
 /**
  * @brief Erases some package from the system
@@ -63,12 +62,20 @@ void install_package(
 void uninstall_package(
     const std::string &_name,
     const std::filesystem::path &_oak_include,
-    const Version &_version = {});
+    Settings &_settings, const Version &_version = {});
 
 /**
  * @brief List all installed packages
  */
 void list_packages(std::ostream &_to,
                    const std::filesystem::path &_oak_include);
+
+/**
+ * @brief Loads the `dir/spec.oak` file
+ * @param _path The DIRECTORY of the package
+ */
+std::map<std::string, std::string>
+load_package_spec(const std::filesystem::path &_path,
+                  Settings &_settings);
 
 }; // namespace PackageManager

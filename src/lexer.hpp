@@ -105,9 +105,9 @@ public:
    * @brief Breaks some input file text
    * into a token stream
    */
-  std::list<Token> lex(const std::string &_text,
-                       const std::filesystem::path &_path,
-                       uint64_t &_line, uint64_t &_col);
+  class TokenStream lex(const std::string &_text,
+                        const std::filesystem::path &_path,
+                        uint64_t &_line, uint64_t &_col);
 
   /**
    * @brief Gets the type of a given literal, given that it is
@@ -126,8 +126,98 @@ public:
   static void classify_type(Token &_t);
 
   /// Transmute a series of strings to tokens
-  static std::list<Lexer::Token>
-  tokify(const std::list<std::string> &_what,
-         const std::filesystem::path &_where,
-         const uint64_t &_line, const uint64_t &_col);
+  static TokenStream tokify(const std::list<std::string> &_what,
+                            const std::filesystem::path &_where,
+                            const uint64_t &_line,
+                            const uint64_t &_col);
+};
+
+/**
+ * @brief Error handling wrapper for iterating over token
+ * streams as produced by a Lexer
+ */
+class TokenStream {
+private:
+  std::list<Lexer::Token> raw_stream;
+  std::list<Lexer::Token>::iterator cur_pos;
+
+  friend class Lexer;
+
+public:
+  /// @param _binding The list to bind to
+  TokenStream(const std::list<Lexer::Token> &_binding)
+      : raw_stream(_binding), cur_pos(raw_stream.begin()) {
+  }
+
+  /// Go to the next token, never advancing past the end
+  void next() noexcept;
+
+  /// Get the token _n ahead (.cur() is 0)
+  Lexer::Token peek(const uint &_n) const noexcept;
+
+  /// Go to the previous token, never advancing past the
+  /// beginning
+  void prev() noexcept;
+
+  /// @returns true iff we are on EOF
+  bool done() const noexcept;
+
+  /// @returns true iff we cannot call prev
+  bool at_beg() const noexcept;
+
+  /// @returns The front as a token
+  inline operator Lexer::Token() const noexcept {
+    return cur();
+  }
+
+  /// Reset to the top
+  inline void reset() noexcept {
+    cur_pos = raw_stream.begin();
+  }
+
+  /**
+   * @brief Get the current token, returning EOF if we are
+   * beyond the end.
+   * @returns The token or EOF
+   */
+  const Lexer::Token cur() const noexcept;
+
+  /// Low-level position access
+  std::list<Lexer::Token>::iterator tell() noexcept;
+
+  /// Low-level position control
+  void seek(
+      const std::list<Lexer::Token>::iterator &_where) noexcept;
+
+  /// Erases [_begin, _end)
+  void erase(const std::list<Lexer::Token>::iterator &_begin,
+             const std::list<Lexer::Token>::iterator &_end);
+
+  /// Erases _end
+  std::list<Lexer::Token>::iterator
+  erase(const std::list<Lexer::Token>::iterator &_end);
+
+  /// Inserts the given stream BEFORE _end
+  void insert(const std::list<Lexer::Token>::iterator &_end,
+              const TokenStream &_what);
+
+  /// Inserts the given token BEFORE _end
+  void insert(const std::list<Lexer::Token>::iterator &_end,
+              const Lexer::Token &_what);
+
+  /// Replace some range with some other token stream
+  /// Erases [_begin, _end)
+  void replace(const std::list<Lexer::Token>::iterator &_begin,
+               const std::list<Lexer::Token>::iterator &_end,
+               const TokenStream &_with);
+
+  /// Begin iteration
+  inline std::list<Lexer::Token>::iterator begin() {
+    return raw_stream.begin();
+  }
+
+  /// End iteration
+  inline std::list<Lexer::Token>::iterator end() {
+    return raw_stream.end();
+  }
 };

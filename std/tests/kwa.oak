@@ -2,6 +2,8 @@
 Tests C keyword avoidance (KWA) in Oak variable names.
 */
 
+include!("std/std.oak");
+
 let goto(union: i32) -> void {
 }
 

@@ -1,0 +1,17 @@
+/*
+Tests aliases
+*/
+
+include!("std/std.oak");
+
+let foo() -> void {
+  print("Hello from foo!\n");
+}
+
+let fizz = foo;
+
+let main() -> i32 {
+  foo();
+  fizz();
+  return 0 i32;
+}

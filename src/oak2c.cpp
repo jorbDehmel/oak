@@ -67,34 +67,35 @@ int main(int _c, char *_v[]) {
   // Run through lexer
   Lexer l;
   uint64_t line = 0, col = 0;
-  const auto lexed = l.lex(text, _v[0], line, col);
+  auto lexed = l.lex(text, _v[0], line, col);
 
   // Output mangled input
   if (fancy) {
     std::cout << "/*\n*/\n\n"
               << "#include \"oak/std/std_oak_header.h\"\n\n";
   }
-  for (auto it = lexed.begin(); it != lexed.end(); ++it) {
-    if (it->text == "let") {
-      ++it;
+  for (; !lexed.done(); lexed.next()) {
+    if (lexed.cur().text == "let") {
       std::set<std::string> names;
-      names.insert(*it);
-      ++it;
 
-      while (*it == ",") {
-        ++it;
-        names.insert(*it);
-        ++it;
+      lexed.next();
+      names.insert(lexed.cur());
+      lexed.next();
+
+      while (lexed.cur() == ",") {
+        lexed.next();
+        names.insert(lexed.cur());
+        lexed.next();
       }
 
-      if (*it == ":") {
-        ++it;
+      if (lexed.cur() == ":") {
+        lexed.next();
       }
 
       Type t;
       do {
-        t.process_next(it->text);
-        ++it;
+        t.process_next(lexed.cur());
+        lexed.next();
       } while (!t.valid());
 
       for (const auto &name : names) {
@@ -108,7 +109,7 @@ int main(int _c, char *_v[]) {
         }
       }
 
-      --it;
+      lexed.prev();
     }
   }
 

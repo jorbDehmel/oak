@@ -47,7 +47,7 @@ State state_transition(const Rule &_rule_to_use,
  * @param _match_text The matched text
  * @returns The text to replace the matched text with
  */
-std::list<Lexer::Token>
+TokenStream
 on_match(const Rule &_rule,
          const std::list<Lexer::Token> &_match_text);
 

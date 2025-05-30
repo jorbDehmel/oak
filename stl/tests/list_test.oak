@@ -13,8 +13,10 @@ rule::use!("std");
 let main() -> i32 {
   let l: List<u64>;
 
-  for (let i: u64 = 0u64; i < 128u64; ++i) {
+  let i = 0u64;
+  while (i < 128u64) {
     l.push_front(i);
+    ++i;
   }
 
   while (!l.empty()) {

@@ -25,7 +25,7 @@ int main() {
         "let var, var2: int; } "
         "let a(b: i32, c: []^bool) -> void;";
 
-    const auto lexed = l.lex(text, file, line, col);
+    auto lexed = l.lex(text, file, line, col);
 
     p.parse_global(lexed, settings);
     // p.reconstruct(std::cout, settings.compile_settings());
@@ -97,7 +97,7 @@ int main() {
                              "let main()->i32{let "
                              "a:foo;}";
 
-    const auto lexed = l.lex(text, file, line, col);
+    auto lexed = l.lex(text, file, line, col);
 
     p.parse_global(lexed, settings);
     // p.reconstruct(std::cout, settings.compile_settings());
@@ -114,7 +114,7 @@ int main() {
     const std::string text = "let fizz:enum{a:int,b,c:bool,}"
                              "let main()->i32{let a: fizz;}";
 
-    const auto lexed = l.lex(text, file, line, col);
+    auto lexed = l.lex(text, file, line, col);
 
     p.parse_global(lexed, settings);
     // p.reconstruct(std::cout, settings.compile_settings());
@@ -130,7 +130,7 @@ int main() {
 
     const std::string text = "let main()->i32{let a:foo;}";
 
-    const auto lexed = l.lex(text, file, line, col);
+    auto lexed = l.lex(text, file, line, col);
 
     bool did_throw = false;
     try {
@@ -157,7 +157,7 @@ int main() {
         "}\n";
     // clang-format on
 
-    const auto lexed = l.lex(text, file, line, col);
+    auto lexed = l.lex(text, file, line, col);
 
     p.parse_global(lexed, settings);
     // p.reconstruct(std::cout, settings.compile_settings());
@@ -183,7 +183,7 @@ int main() {
         "}\n";
     // clang-format on
 
-    const auto lexed = l.lex(text, file, line, col);
+    auto lexed = l.lex(text, file, line, col);
 
     p.parse_global(lexed, settings);
     // p.reconstruct(std::cout, settings.compile_settings());
@@ -211,7 +211,7 @@ int main() {
         "}\n";
     // clang-format on
 
-    const auto lexed = l.lex(text, file, line, col);
+    auto lexed = l.lex(text, file, line, col);
 
     p.parse_global(lexed, settings);
     // p.reconstruct(std::cout, settings.compile_settings());

@@ -72,7 +72,7 @@ public:
 
   /// Iteratively run our rules. Returns whether or not the
   /// token stream has changed
-  bool process_text(std::list<Lexer::Token> &_what);
+  bool process_text(TokenStream &_what);
 
   /// Collapse some list of entry points from a dependency
   /// graph to a runnable list. This is for internal use!
@@ -95,20 +95,20 @@ public:
     std::function<bool(const Rule &, const State &)> is_match;
 
     /// Transformation function
-    std::function<std::list<Lexer::Token>(
-        const Rule &, const std::list<Lexer::Token> &)>
+    std::function<TokenStream(const Rule &,
+                              const std::list<Lexer::Token> &)>
         on_match;
   };
-
-protected:
-  /// All known engines: You must compile with these!
-  const std::map<std::string, Engine> engines;
 
   /// All known rules
   std::map<std::string, Rule> rules;
 
   /// All known bundles
   std::map<std::string, std::list<std::string>> bundles;
+
+protected:
+  /// All known engines: You must compile with these!
+  const std::map<std::string, Engine> engines;
 
   /// All currently registered entry points
   std::list<std::string> entry_points;

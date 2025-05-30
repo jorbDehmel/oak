@@ -48,35 +48,27 @@ public:
   /**
    * @brief Replace the given region according to known macro
    * rules
-   * @param _whole The iterand itself
    * @param _it The current position in the iterand
-   * @param _end The end of the iterand
    * @param _csettings Settings for debugging
    * @param _oakc The compiler to be used for recursive
    * preprocessing
    */
-  void replace(std::list<Lexer::Token> &_whole,
-               std::list<Lexer::Token>::iterator &_it,
-               const std::list<Lexer::Token>::iterator &_end,
-               const Settings &_csettings,
+  void replace(TokenStream &_pos, const Settings &_csettings,
                OakCompiler &_oakc) const;
 
   /// Erases and returns a macro occurrence's args.
   static std::list<std::list<Lexer::Token>>
-  get_macro_args(std::list<Lexer::Token> &_whole,
-                 std::list<Lexer::Token>::iterator &_it,
-                 const std::list<Lexer::Token>::iterator &_end);
+  get_macro_args(TokenStream &_pos);
 
   /// STRIPS QUOTES OFF OF a macro occurrence's
   /// args. Then returns those args WITHOUT ERASURE and
   /// WITHOUT recursion! This should only be used after all
   /// preprocessing!
-  static std::list<Lexer::Token> get_macro_args(
-      const std::list<Lexer::Token>::const_iterator &_beg,
-      const std::list<Lexer::Token>::const_iterator &_end);
+  static std::list<Lexer::Token>
+  get_macro_args_no_erase(TokenStream &_pos);
 
   /**
-   * @brief Strips string literal delinators off a string
+   * @brief Strips string literal delimiters off a string
    * literal. For example: "fizz" -> fizz, 'buzz' -> buzz.
    * @param _str_lit The string literal to strip
    * @returns The stripped string literal
@@ -95,17 +87,12 @@ public:
   /**
    * @brief Process and remove a macro definition at the given
    * location
-   * @param _whole The iterand
-   * @param _it The current position in the iterand
-   * @param _end The end of the iterand
    * @param _preproc_passes_allowed Used to prevent infinite
    * macro recursion.
    */
-  void process_definition(
-      std::list<Lexer::Token> &_whole,
-      std::list<Lexer::Token>::iterator &_it,
-      const std::list<Lexer::Token>::iterator &_end,
-      const uint64_t &_preproc_passes_allowed);
+  void
+  process_definition(TokenStream &_pos,
+                     const uint64_t &_preproc_passes_allowed);
 
   /**
    * @struct MacroManager::Alias

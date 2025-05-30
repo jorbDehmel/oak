@@ -9,12 +9,10 @@
 #include "lexer.hpp"
 #include "oakc.hpp"
 #include "settings.hpp"
-#include <cctype>
 #include <cstdint>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
-#include <iostream>
 #include <iterator>
 #include <set>
 #include <sstream>
@@ -102,53 +100,51 @@ std::string MacroManager::make_string_literal(
   return out;
 }
 
-void MacroManager::replace(
-    std::list<Lexer::Token> &_whole,
-    std::list<Lexer::Token>::iterator &_it,
-    const std::list<Lexer::Token>::iterator &_end,
-    const Settings &_csettings, OakCompiler &_oakc) const {
+void MacroManager::replace(TokenStream &_pos,
+                           const Settings &_csettings,
+                           OakCompiler &_oakc) const {
   debug_print();
 
-  const auto name_tok = *_it;
+  const auto name_tok = _pos.cur();
   const std::string name =
-      _it->text.substr(0, _it->text.find('!') + 1);
+      _pos.cur().text.substr(0, _pos.cur().text.find('!') + 1);
   const std::string nonexistence_replacement =
-      _it->text.substr(_it->text.find('!') + 1);
+      _pos.cur().text.substr(_pos.cur().text.find('!') + 1);
 
   if (name == "LINE!") {
-    _it->type = "NUMBER";
-    _it->text = std::to_string(_it->line) + "u64";
+    _pos.tell()->type = "NUMBER";
+    _pos.tell()->text = std::to_string(_pos.cur().line) + "u64";
     return;
   } else if (name == "COL!") {
-    _it->type = "NUMBER";
-    _it->text = std::to_string(_it->col) + "u64";
+    _pos.tell()->type = "NUMBER";
+    _pos.tell()->text = std::to_string(_pos.cur().col) + "u64";
     return;
   } else if (name == "FILE!") {
-    _it->type = "STRING";
-    _it->text = '"' + _it->file.string() + '"';
+    _pos.tell()->type = "STRING";
+    _pos.tell()->text = '"' + _pos.cur().file.string() + '"';
     return;
   } else if (name == "oak_VERSION!") {
-    _it->type = "STRING";
-    _it->text = '"' + ACORN_VERSION + '"';
+    _pos.tell()->type = "STRING";
+    _pos.tell()->text = '"' + ACORN_VERSION + '"';
     return;
   } else if (name == "SYSTEM!") {
-    _it->type = "STRING";
+    _pos.tell()->type = "STRING";
 #if (defined(WIN32) || defined(WINNT))
-    _it->text = "\"WINDOWS\"";
+    _pos.tell()->text = "\"WINDOWS\"";
 #elif (defined(unix) || defined(__unix__))
-    _it->text = "\"UNIX\"";
+    _pos.tell()->text = "\"UNIX\"";
 #elif (defined(__APPLE__) || defined(__MACH__))
-    _it->text = "\"OSX\"";
+    _pos.tell()->text = "\"OSX\"";
 #else
-    _it->text = "\"OTHER\"";
+    _pos.tell()->text = "\"OTHER\"";
 #endif
     return;
   }
 
   if (!macros.contains(name)) {
     if (!nonexistence_replacement.empty()) {
-      _it->text = nonexistence_replacement;
-      Lexer::classify_type(*_it);
+      _pos.tell()->text = nonexistence_replacement;
+      Lexer::classify_type(*_pos.tell());
       return;
     } else {
       throw std::runtime_error("Macro '" + name +
@@ -158,18 +154,17 @@ void MacroManager::replace(
 
   if (std::holds_alternative<Alias>(macros.at(name))) {
     // Inline
-    const auto to_remove = _it;
+    const auto to_remove = _pos.tell();
     for (const auto &item :
          std::get<Alias>(macros.at(name)).contents) {
-      _whole.insert(to_remove, Lexer::Token(name_tok, item));
+      _pos.insert(to_remove, Lexer::Token(name_tok, item));
     }
-    _it = std::prev(to_remove);
-    _whole.erase(to_remove);
-  } else if (std::next(_it) != _end &&
-             std::next(_it)->text == "(") {
+    _pos.seek(std::prev(to_remove));
+    _pos.erase(to_remove);
+  } else if (_pos.peek(1).text == "(") {
     // Functional
-    auto args = get_macro_args(_whole, _it, _end);
-    ++_it;
+    auto args = get_macro_args(_pos);
+    _pos.next();
 
     const auto exe =
         std::get<Compiled>(macros.at(name)).executable;
@@ -182,8 +177,9 @@ void MacroManager::replace(
 
     // Prepare call
     std::string command = exe;
-    for (auto &arg : args) {
-      _oakc.preprocess(arg);
+    for (const auto &arg : args) {
+      TokenStream stream = arg;
+      _oakc.preprocess(stream);
       std::string arg_text;
       for (const auto &tok : arg) {
         if (!arg_text.empty()) {
@@ -211,7 +207,7 @@ void MacroManager::replace(
     // Lex replacement
     Lexer l;
     uint64_t junk_line = 0, junk_col = 0;
-    const auto lexed_replacement =
+    auto lexed_replacement =
         l.lex(replacement, name_tok.file, junk_line, junk_col);
 
     // Do replacement
@@ -220,11 +216,11 @@ void MacroManager::replace(
       to_insert.file = name_tok.file;
       to_insert.line = name_tok.line;
       to_insert.col = name_tok.col;
-      _whole.insert(_it, to_insert);
+      _pos.insert(_pos.tell(), to_insert);
     }
 
     // Decr one
-    --_it;
+    _pos.prev();
   } else {
     // Error
     throw std::runtime_error(
@@ -235,16 +231,15 @@ void MacroManager::replace(
 
 /// STRIPS QUOTES OFF OF a macro occurrence's
 /// args. Then returns those args WITHOUT ERASURE. NO RECURSE
-std::list<Lexer::Token> MacroManager::get_macro_args(
-    const std::list<Lexer::Token>::const_iterator &_beg,
-    const std::list<Lexer::Token>::const_iterator &_end) {
+std::list<Lexer::Token>
+MacroManager::get_macro_args_no_erase(TokenStream &_pos) {
   debug_print();
 
   // Points to name
   uint depth = 0;
   std::list<Lexer::Token> out;
-  auto it = _beg;
-  Lexer::Token cur(*_beg, "");
+  auto it = _pos.tell();
+  Lexer::Token cur(_pos.cur(), "");
   cur.text.clear();
 
   do {
@@ -273,7 +268,7 @@ std::list<Lexer::Token> MacroManager::get_macro_args(
       }
       cur.text += it->text;
     }
-  } while (it != _end);
+  } while (!_pos.done());
   if (!cur.text.empty()) {
     out.push_back(cur);
   }
@@ -281,127 +276,123 @@ std::list<Lexer::Token> MacroManager::get_macro_args(
   return out;
 }
 
-std::list<std::list<Lexer::Token>> MacroManager::get_macro_args(
-    std::list<Lexer::Token> &_whole,
-    std::list<Lexer::Token>::iterator &_it,
-    const std::list<Lexer::Token>::iterator &_end) {
+std::list<std::list<Lexer::Token>>
+MacroManager::get_macro_args(TokenStream &_pos) {
   debug_print();
 
   // Points to name
-  const auto range_start = _it;
+  const auto range_start = _pos.tell();
   uint depth = 0;
 
   std::list<std::list<Lexer::Token>> out;
   std::list<Lexer::Token> cur;
 
   do {
-    ++_it;
+    _pos.next();
 
-    if (*_it == "(") {
+    if (_pos.cur() == "(") {
       ++depth;
       if (depth == 1) {
         continue;
       }
-    } else if (*_it == ")") {
+    } else if (_pos.cur() == ")") {
       --depth;
       if (depth == 0) {
         break;
       }
     }
 
-    if (depth == 1 && *_it == ",") {
+    if (depth == 1 && _pos.cur() == ",") {
       if (!cur.empty()) {
         out.push_back(cur);
         cur.clear();
       }
     } else {
-      cur.push_back(*_it);
+      cur.push_back(_pos.cur());
     }
-  } while (_it != _end);
+  } while (!_pos.done());
   if (!cur.empty()) {
     out.push_back(cur);
   }
 
-  ++_it;
-  const auto first_after_range = _it;
+  _pos.next();
+  const auto first_after_range = _pos.tell();
 
   // Delete everything related to macro call, leave pointing to
   // item after call
-  _whole.erase(range_start, first_after_range);
+  _pos.erase(range_start, first_after_range);
   return out;
 }
 
 // Points to macro name after 'let'. Can be inline or
 // functional. Erases all traces after done
 void MacroManager::process_definition(
-    std::list<Lexer::Token> &_whole,
-    std::list<Lexer::Token>::iterator &_it,
-    const std::list<Lexer::Token>::iterator &_end,
+    TokenStream &_pos,
     const uint64_t &_preproc_passes_allowed) {
   debug_print();
 
   // let
-  const auto range_start = std::prev(_it);
+  const auto range_start = std::prev(_pos.tell());
 
   // name!
-  const auto name = _it->text;
+  const auto name = _pos.cur().text;
 
-  ++_it;
+  _pos.next();
 
   // Either '=' or '('
-  if (_it->text == "=") {
+  if (_pos.cur().text == "=") {
     // Scan until ;
     Alias info;
 
-    ++_it;
-    while (_it != _end && *_it != ";") {
-      info.contents.push_back(*_it);
-      ++_it;
+    _pos.next();
+    while (!_pos.done() && _pos.cur().text != ";") {
+      info.contents.push_back(_pos.cur());
+      _pos.next();
     }
 
     macros[name] = info;
-  } else if (_it->text == "(") {
+  } else if (_pos.cur().text == "(") {
     // Scrape definition
     std::list<Lexer::Token> contents;
-    contents.push_back(Lexer::Token(*_it, "let"));
-    contents.push_back(Lexer::Token(*_it, "main"));
+    contents.push_back(Lexer::Token(_pos.cur(), "let"));
+    contents.push_back(Lexer::Token(_pos.cur(), "main"));
 
     // Until first "{"
-    while (_it->text != "{") {
-      contents.push_back(*_it);
-      ++_it;
+    while (_pos.cur().text != "{") {
+      contents.push_back(_pos.cur());
+      _pos.next();
 
-      if (_it == _end) {
+      if (_pos.done()) {
         throw std::runtime_error(
             "Functional macro definition '" + name +
             "' must be followed by body");
       }
     }
 
-    contents.push_back(*_it);
-    ++_it;
+    contents.push_back(_pos.cur());
+    _pos.next();
 
     uint count = 1;
     while (count != 0) {
-      if (_it->text == "{") {
+      if (_pos.cur().text == "{") {
         ++count;
-      } else if (_it->text == "}") {
+      } else if (_pos.cur().text == "}") {
         --count;
       }
 
-      contents.push_back(*_it);
-      if (_it == _end) {
+      contents.push_back(_pos.cur());
+      if (_pos.done()) {
         throw std::runtime_error("Functional macro '" + name +
                                  "' has no ending curly brace");
       }
 
-      ++_it;
+      _pos.next();
     }
-    --_it;
+    _pos.prev();
 
     // Write to file
     const std::filesystem::path source_path =
-        _it->file.string() + "." +
+        _pos.cur().file.string() + "." +
         name.substr(0, name.size() - 1) + ".macro.oak";
     const std::filesystem::path executable_path =
         source_path.string() + ".out";
@@ -410,7 +401,7 @@ void MacroManager::process_definition(
     bool do_compile = true;
     if (std::filesystem::exists(executable_path)) {
       const auto src_last_write =
-          std::filesystem::last_write_time(_it->file);
+          std::filesystem::last_write_time(_pos.cur().file);
       const auto exe_last_write =
           std::filesystem::last_write_time(executable_path);
 
@@ -487,11 +478,12 @@ void MacroManager::process_definition(
   } else {
     throw std::runtime_error(
         "Malformed macro definition for " + name +
-        ": Expected '=' or '(', but saw '" + _it->text + "'");
+        ": Expected '=' or '(', but saw '" + _pos.cur().text +
+        "'");
   }
 
   // Erase range
-  ++_it;
-  const auto first_after_range = _it;
-  _whole.erase(range_start, first_after_range);
+  _pos.next();
+  const auto first_after_range = _pos.tell();
+  _pos.erase(range_start, first_after_range);
 }

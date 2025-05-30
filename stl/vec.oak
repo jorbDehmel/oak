@@ -1,0 +1,69 @@
+/**
+ * @file
+ * @brief
+ */
+
+/// A self-resizing vector
+let stl::Vec<T>: struct {
+  __size: u64,
+  __data: []T
+}
+
+////////////////////////////////////////////////////////////////
+/// Signatures
+
+/// Initialize an empty vector
+let New(self: ^stl::Vec<T>) -> void;
+
+/// Free any dynamically-allocated memory
+let Del(self: ^stl::Vec<T>) -> void;
+
+/// Allocate some size
+let Eq(self: ^stl::Vec<T>, size: u64) -> void;
+
+/// Deep copy from another vector
+let Eq(self: ^stl::Vec<T>, from: ^stl::Vec<T>) -> void;
+
+/// Get the i-th value from the vector, if it exists. Causes a
+/// kernel panic if i is out of range. Negative indices *are*
+/// allowed.
+let Get(self: ^stl::Vec<T>, i: u64) -> ^T;
+
+/// Re-allocate and move. Returns the number of items moved.
+let resize(self: ^stl::Vec<T>, desired: u64) -> u64;
+
+////////////////////////////////////////////////////////////////
+/// Implementations
+
+/// Initialize an empty vector
+let New(self: ^stl::Vec<T>) -> void {
+  self.__size = 0 u64;
+  self.__data = 0 u64;
+}
+
+/// Free any dynamically-allocated memory
+let Del(self: ^stl::Vec<T>) -> void {
+  if (self.__size != 0 u64) {
+    free!(self.__data);
+  }
+}
+
+/// Allocate some size
+let Eq(self: ^stl::Vec<T>, size: u64) -> void {
+  resize(self, size);
+}
+
+/// Deep copy from another vector
+let Eq(self: ^stl::Vec<T>, from: ^stl::Vec<T>) -> void {
+  resize(self, from.__size);
+}
+
+/// Get the i-th value from the vector, if it exists. Causes a
+/// kernel panic if i is out of range. Negative indices *are*
+/// allowed.
+let Get(self: ^stl::Vec<T>, i: u64) -> ^T {
+}
+
+/// Re-allocate and move. Returns the number of items moved.
+let resize(self: ^stl::Vec<T>, desired: u64) -> u64 {
+}

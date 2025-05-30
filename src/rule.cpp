@@ -131,7 +131,7 @@ RuleRunner::resolve(const std::list<std::string> &_rules) {
   return out;
 }
 
-bool RuleRunner::process_text(std::list<Lexer::Token> &_what) {
+bool RuleRunner::process_text(TokenStream &_what) {
   debug_print();
   const auto rules = resolve(entry_points);
   bool has_changed = false;
@@ -148,38 +148,36 @@ bool RuleRunner::process_text(std::list<Lexer::Token> &_what) {
         std::pair<std::list<Lexer::Token>::iterator, uint>>
         resets;
 
-    for (auto pos = _what.begin(); pos != _what.end(); ++pos) {
-      const auto new_state =
-          engine.state_transition(rule_spec, state, *pos);
+    for (_what.reset(); !_what.done(); _what.next()) {
+      const auto new_state = engine.state_transition(
+          rule_spec, state, _what.cur());
       // Emergency edge case handling: Shouldn't usually happen
       if (resets.empty()) {
         // Log as most recent reset
         state = original_state;
-        resets.push({pos, state});
+        resets.push({_what.tell(), state});
       } else if (engine.is_match(rule_spec, new_state)) {
         has_changed = true;
 
         // Do replacement
         std::list<Lexer::Token> matched_text;
         matched_text.assign(std::next(resets.top().first),
-                            std::next(pos));
+                            std::next(_what.tell()));
 
         const auto replacement =
             engine.on_match(rule_spec, matched_text);
 
-        _what.erase(std::next(resets.top().first),
-                    std::next(pos));
-        _what.insert(std::next(resets.top().first),
-                     replacement.begin(), replacement.end());
+        _what.replace(std::next(resets.top().first),
+                      std::next(_what.tell()), replacement);
 
         // Pop most recent reset
-        pos = resets.top().first;
+        _what.seek(resets.top().first);
         state = resets.top().second;
         resets.pop();
       } else if (new_state == original_state) {
         // Log as most recent reset
         state = new_state;
-        resets.push({pos, state});
+        resets.push({_what.tell(), state});
       } else {
         // Normal transition
         state = new_state;
@@ -187,5 +185,6 @@ bool RuleRunner::process_text(std::list<Lexer::Token> &_what) {
     }
   }
 
+  _what.reset();
   return has_changed;
 }

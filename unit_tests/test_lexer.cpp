@@ -7,23 +7,25 @@
 #include "../src/macro.hpp"
 #include <cassert>
 #include <iostream>
-#include <map>
 #include <stdexcept>
 #include <sys/types.h>
 
 void assert_match(const std::string &_path,
                   const std::list<std::string> &_texts,
-                  const std::list<Lexer::Token> &_observed) {
+                  const TokenStream &_observed) {
+  TokenStream r = _observed;
   bool match = true;
-
-  match &= (_texts.size() == _observed.size());
-
   auto l = _texts.begin();
-  auto r = _observed.begin();
   while (l != _texts.end() && match) {
-    match &= (r->text == *l);
-    match &= (r->file == _path);
-    ++l, ++r;
+    if (r.done()) {
+      match = false;
+      break;
+    }
+
+    match &= (r.cur().text == *l);
+    match &= (r.cur().file == _path);
+    ++l;
+    r.next();
   }
 
   if (!match) {
@@ -35,8 +37,8 @@ void assert_match(const std::string &_path,
       std::cerr << item << ' ';
     }
     std::cerr << "\nObserved: ";
-    for (const auto &item : _observed) {
-      std::cerr << item.text << ' ';
+    for (r.reset(); !r.done(); r.next()) {
+      std::cerr << r.cur().text << ' ';
     }
     std::cerr << '\n';
 

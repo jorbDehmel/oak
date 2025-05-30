@@ -5,21 +5,23 @@ Tests fix_math in preprocessing
 #include "../src/oakc.hpp"
 #include <cassert>
 
-std::list<Lexer::Token> lex(const std::string &_text) {
+TokenStream lex(const std::string &_text) {
   static Lexer l;
   uint64_t line = 0, col = 0;
   return l.lex(_text, __FILE__, line, col);
 }
 
-bool operator==(const std::list<Lexer::Token> &_lhs,
-                const std::list<Lexer::Token> &_rhs) {
+bool operator==(const TokenStream &_lhs,
+                const TokenStream &_rhs) {
+  TokenStream l = _lhs;
+  TokenStream r = _rhs;
+
   auto test = [&]() {
-    if (_lhs.size() != _rhs.size()) {
-      return false;
-    }
-    for (auto l = _lhs.begin(), r = _rhs.begin();
-         l != _lhs.end() && r != _rhs.end(); ++l, ++r) {
-      if (l->text != r->text) {
+    for (l.reset(), r.reset(); !(l.done() && r.done());
+         l.next(), r.next()) {
+      if (l.done() || r.done()) {
+        return false;
+      } else if (l.cur().text != r.cur().text) {
         return false;
       }
     }
@@ -30,12 +32,12 @@ bool operator==(const std::list<Lexer::Token> &_lhs,
     return true;
   } else {
     std::cerr << "[";
-    for (const auto &t : _lhs) {
-      std::cerr << t.text << ' ';
+    for (l.reset(); !l.done(); l.next()) {
+      std::cerr << l.cur().text << ' ';
     }
     std::cerr << "] != [";
-    for (const auto &t : _rhs) {
-      std::cerr << t.text << ' ';
+    for (r.reset(); !r.done(); r.next()) {
+      std::cerr << r.cur().text << ' ';
     }
     std::cerr << "]\n";
     return false;

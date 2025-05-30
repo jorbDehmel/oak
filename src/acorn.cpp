@@ -61,7 +61,7 @@ bool parse_args(const int _c, const char *const _v[],
           throw std::runtime_error(
               "'" + arg + "' must be followed by an argument");
         }
-        _oakc.settings.dialect = _v[++i];
+        _oakc.load_dialect_file(_v[++i]);
       }
 
       // Clean
@@ -158,9 +158,10 @@ bool parse_args(const int _c, const char *const _v[],
         auto package = _v[++i];
         PackageManager::uninstall_package(
             package,
-            _oakc.settings.compile_settings().include_path);
-        PackageManager::install_package(
-            package, _oakc.settings.compile_settings());
+            _oakc.settings.compile_settings().include_path,
+            _oakc.settings);
+        PackageManager::install_package(package,
+                                        _oakc.settings);
         out = false;
       }
 
@@ -172,7 +173,8 @@ bool parse_args(const int _c, const char *const _v[],
         }
         PackageManager::uninstall_package(
             _v[++i],
-            _oakc.settings.compile_settings().include_path);
+            _oakc.settings.compile_settings().include_path,
+            _oakc.settings);
         out = false;
       }
 
@@ -188,8 +190,8 @@ bool parse_args(const int _c, const char *const _v[],
           throw std::runtime_error(
               "'" + arg + "' must be followed by an argument");
         }
-        PackageManager::install_package(
-            _v[++i], _oakc.settings.compile_settings());
+        PackageManager::install_package(_v[++i],
+                                        _oakc.settings);
         out = false;
       }
 
@@ -375,9 +377,10 @@ bool parse_args(const int _c, const char *const _v[],
           auto package = _v[++i];
           PackageManager::uninstall_package(
               package,
-              _oakc.settings.compile_settings().include_path);
-          PackageManager::install_package(
-              package, _oakc.settings.compile_settings());
+              _oakc.settings.compile_settings().include_path,
+              _oakc.settings);
+          PackageManager::install_package(package,
+                                          _oakc.settings);
           out = false;
           break;
         }
@@ -389,7 +392,8 @@ bool parse_args(const int _c, const char *const _v[],
           }
           PackageManager::uninstall_package(
               _v[++i],
-              _oakc.settings.compile_settings().include_path);
+              _oakc.settings.compile_settings().include_path,
+              _oakc.settings);
           out = false;
           break;
         case 's': // Show Oak disk usage
@@ -455,8 +459,8 @@ bool parse_args(const int _c, const char *const _v[],
                 "'-" + std::string{flag} +
                 "' must be followed by an argument");
           }
-          PackageManager::install_package(
-              _v[++i], _oakc.settings.compile_settings());
+          PackageManager::install_package(_v[++i],
+                                          _oakc.settings);
           out = false;
           break;
 

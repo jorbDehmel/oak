@@ -27,5 +27,11 @@ let main() -> i32 {
   print(a.Add(2i32));
   endl();
 
+  // For loops
+  for (let i = 0u64; i < 10u64; ++i) {
+    print(i);
+    endl();
+  }
+
   return 0i32;
 }

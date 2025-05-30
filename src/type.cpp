@@ -5,7 +5,8 @@
 
 #include "type.hpp"
 #include "debug.hpp"
-#include <cwctype>
+#include <csignal>
+#include <cstdint>
 #include <iostream>
 #include <map>
 #include <set>
@@ -50,9 +51,6 @@ bool Type::is_built_in_type(const std::string &_what) noexcept {
 /// Process one token. This should be treated as consumptive.
 void Type::process_next(const std::string &_symbol) {
   debug_print();
-  std::cout << __FILE__ << ":" << __LINE__ << "> " << _symbol
-            << '\n'
-            << std::flush;
   if (_symbol == "^") {
     append_ptr();
   } else if (_symbol == ",") {
@@ -109,21 +107,33 @@ void Type::process_next(const std::string &_symbol) {
 
   // Type or arg name
   else {
+    debug_print();
     if (!enclosure.empty() && enclosure.top() == "*") {
+      debug_print();
       if (!nodes.empty()) {
+        debug_print();
         if (nodes.back().following_arg_name == "") {
+          debug_print();
           nodes.back().following_arg_name = _symbol;
         } else if (_symbol != ":") {
+          debug_print();
           throw std::runtime_error(
-              "Expected ':'. Arguments must take the form "
-              "'name: type' (even in implicit declarations).");
+              "Expected ':'. Arguments must take the "
+              "form "
+              "'name: type' (even in implicit "
+              "declarations).");
         }
+        debug_print();
       }
       enclosure.pop();
+      debug_print();
     } else {
+      debug_print();
       append_literal(_symbol);
     }
   }
+
+  debug_print();
 }
 
 /// Returns true iff the first node is of type FUNCTION

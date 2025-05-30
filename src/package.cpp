@@ -130,13 +130,14 @@ PackageManager::Version::from(const std::string &from) {
   return v;
 }
 
-/**
- * @brief
- * @param _path The DIRECTORY of the package
- */
 std::map<std::string, std::string>
-load_package_spec(const std::filesystem::path &_path) {
+PackageManager::load_package_spec(
+    const std::filesystem::path &_path, Settings &_settings) {
   debug_print();
+  if (_settings.debug) {
+    _settings.ostream << "Loading package spec " << _path
+                      << '\n';
+  }
 
   std::map<std::string, std::string> out;
 
@@ -154,9 +155,10 @@ load_package_spec(const std::filesystem::path &_path) {
 
   out["name"] = package_name;
 
-  OakCompiler c;
+  OakCompiler c(_settings.ostream);
   Settings::CompileSettings &settings =
       c.settings.compile_settings();
+  settings = _settings.compile_settings();
 
   settings.mode = Settings::CompileSettings::NOTHING;
   settings.entry_point = _path / "spec.oak";
@@ -166,8 +168,8 @@ load_package_spec(const std::filesystem::path &_path) {
   for (const auto &p : c.macros.macros) {
     if (p.first.starts_with(package_name + "_") &&
         std::holds_alternative<MacroManager::Alias>(p.second)) {
-      auto contents =
-          std::get<MacroManager::Alias>(p.second).contents;
+      TokenStream contents(
+          std::get<MacroManager::Alias>(p.second).contents);
       c.preprocess(contents);
 
       std::string to_add;
@@ -188,7 +190,7 @@ load_package_spec(const std::filesystem::path &_path) {
 
 void PackageManager::install_package(
     const std::filesystem::path &_package,
-    const Settings::CompileSettings &_csettings) {
+    Settings &_settings) {
   debug_print();
   if (!std::filesystem::exists(_package)) {
     throw std::runtime_error(_package.string() +
@@ -197,22 +199,31 @@ void PackageManager::install_package(
     throw std::runtime_error(_package.string() +
                              " is not a directory.");
   } else if (!std::filesystem::exists(
-                 _csettings.include_path)) {
+                 _settings.compile_settings().include_path)) {
     // This is a non-issue: Just make it
-    std::filesystem::create_directory(_csettings.include_path);
+    std::filesystem::create_directory(
+        _settings.compile_settings().include_path);
   } else if (!std::filesystem::is_directory(
-                 _csettings.include_path)) {
+                 _settings.compile_settings().include_path)) {
     throw std::runtime_error(
-        _csettings.include_path.string() +
+        _settings.compile_settings().include_path.string() +
         " include path is not a directory.");
   }
 
-  const auto spec = load_package_spec(_package);
+  const auto spec =
+      PackageManager::load_package_spec(_package, _settings);
 
   // Validate / build
   if (spec.contains("INSTALL!")) {
-    OakCompiler c;
-    c.settings.compile_settings() = _csettings;
+    if (_settings.debug) {
+      _settings.ostream << "Running prescribed install script "
+                        << spec.at("INSTALL!") << '\n';
+    }
+
+    OakCompiler c(_settings.ostream);
+    c.settings.debug = _settings.debug;
+    c.settings.compile_settings() =
+        _settings.compile_settings();
     Settings::CompileSettings &settings =
         c.settings.compile_settings();
 
@@ -243,8 +254,9 @@ void PackageManager::install_package(
   const auto raw = spec.at("VERSION!");
   const Version full_version = Version::from(raw);
   const auto name = spec.at("name");
-  const auto real_path = _csettings.include_path /
-                         (name + full_version.package_suffix());
+  const auto real_path =
+      _settings.compile_settings().include_path /
+      (name + full_version.package_suffix());
 
   std::filesystem::copy(
       _package, real_path,
@@ -254,7 +266,7 @@ void PackageManager::install_package(
                                std::filesystem::perms::all);
 
   add_symlinks(name, full_version, real_path,
-               _csettings.include_path);
+               _settings.compile_settings().include_path);
 }
 
 /**
@@ -263,7 +275,7 @@ void PackageManager::install_package(
 void PackageManager::uninstall_package(
     const std::string &_name,
     const std::filesystem::path &_oak_include,
-    const Version &_version) {
+    Settings &_settings, const Version &_version) {
   debug_print();
   const auto path =
       _oak_include / (_name + _version.package_suffix());
@@ -282,7 +294,8 @@ void PackageManager::uninstall_package(
   for (const auto &f :
        std::filesystem::directory_iterator{_oak_include}) {
     if (std::filesystem::is_directory(f)) {
-      const auto spec = load_package_spec(f);
+      const auto spec =
+          PackageManager::load_package_spec(f, _settings);
       if (!spec.contains("VERSION!")) {
         throw std::runtime_error("Package '" + spec.at("name") +
                                  "' has no version!");

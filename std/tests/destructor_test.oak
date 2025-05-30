@@ -14,7 +14,7 @@ let Copy(self: ^Wrapper, data: ^i32) -> void {
   return;
 }
 
-let Del(self: Wrapper) -> void {
+let Del(self: ^Wrapper) -> void {
   self.data = 0i32;
   return;
 }

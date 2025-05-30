@@ -66,6 +66,8 @@ struct Node {
  */
 class Parser {
 public:
+  friend class OakCompiler;
+
   /// Information about a single function. The type should be
   /// unique.
   struct FnInfo {
@@ -175,9 +177,8 @@ public:
 
   /// Parse a global scope. NOTE: All includes should have been
   /// handled already!
-  void
-  parse_global(const std::list<Lexer::Token> &_file_contents,
-               Settings &_settings);
+  void parse_global(TokenStream &_file_contents,
+                    Settings &_settings);
 
   /// Resolve the given variable. If a name change is needed,
   /// saves it in _new_name. Otherwise, it will contain a
@@ -192,8 +193,7 @@ public:
       const noexcept;
 
   /// Dump to the given stream
-  void dump(std::ostream &_where,
-            const std::list<Lexer::Token> &_file_contents,
+  void dump(std::ostream &_where, TokenStream &_file_contents,
             const Settings::CompileSettings &_csettings)
       const noexcept;
 
@@ -209,76 +209,50 @@ protected:
   /// Parse a single function declaration
   /// Assumes we have just seen "let NAME (" and are pointing
   /// to "("
-  void parse_function(
-      const std::list<std::string> &_names,
-      std::list<Lexer::Token>::const_iterator &_cur_pos,
-      const std::list<Lexer::Token>::const_iterator &_end,
-      Settings &_settings);
+  void parse_function(const std::list<std::string> &_names,
+                      TokenStream &_pos, Settings &_settings);
 
   /// Parse a single struct declaration
   /// Assumes we have just seen "let NAME : struct" and are
   /// pointing to the next token.
-  void parse_struct(
-      const std::list<std::string> &_names,
-      std::list<Lexer::Token>::const_iterator &_cur_pos,
-      const std::list<Lexer::Token>::const_iterator &_end,
-      Settings &_settings);
+  void parse_struct(const std::list<std::string> &_names,
+                    TokenStream &_pos, Settings &_settings);
 
   /// Parse a single enum declaration
   /// Assumes we have just seen "let NAME : enum" and are
   /// pointing to the next token.
-  void parse_enum(
-      const std::list<std::string> &_names,
-      std::list<Lexer::Token>::const_iterator &_cur_pos,
-      const std::list<Lexer::Token>::const_iterator &_end,
-      Settings &_settings);
+  void parse_enum(const std::list<std::string> &_names,
+                  TokenStream &_pos, Settings &_settings);
 
   /// Parses a struct/enum's guts
-  std::list<std::pair<std::string, Type>> parse_members(
-      std::list<Lexer::Token>::const_iterator &_cur_pos,
-      const std::list<Lexer::Token>::const_iterator &_end,
-      Settings &_settings);
+  std::list<std::pair<std::string, Type>>
+  parse_members(TokenStream &_pos, Settings &_settings);
 
   /// Parses the (pre, post) regions of a template if they
   /// exist. This should be called after any generic body
   std::pair<std::list<std::string>, std::list<std::string>>
-  parse_template_pre_post(
-      std::list<Lexer::Token>::const_iterator &_cur_pos,
-      const std::list<Lexer::Token>::const_iterator &_end);
+  parse_template_pre_post(TokenStream &_pos);
 
   /// Assumes we are pointing to the first token in the
   /// statement Non-global (inside functions)
-  Node parse_statement(
-      std::list<Lexer::Token>::const_iterator &_cur_pos,
-      const std::list<Lexer::Token>::const_iterator &_end,
-      Settings &_settings, const Type &_return_type = {});
+  Node parse_statement(TokenStream &_pos, Settings &_settings,
+                       const Type &_return_type = {});
 
   /// Assumes we are pointing to "case" or "else"
   /// Non-global (inside match statement)
-  Node parse_case(
-      const EnumInfo &_enum_type,
-      std::list<Lexer::Token>::const_iterator &_cur_pos,
-      const std::list<Lexer::Token>::const_iterator &_end,
-      Settings &_settings, const bool &_is_mutable);
+  Node parse_case(const EnumInfo &_enum_type, TokenStream &_pos,
+                  Settings &_settings, const bool &_is_mutable);
 
   /// Return the type spec at the specified location
-  Type parse_type(
-      std::list<Lexer::Token>::const_iterator &_cur_pos,
-      const std::list<Lexer::Token>::const_iterator &_end,
-      Settings &_settings);
+  Type parse_type(TokenStream &_pos, Settings &_settings);
 
   /// Parses a single function call
-  Node parse_function_call(
-      std::list<Lexer::Token>::const_iterator &_cur_pos,
-      const std::list<Lexer::Token>::const_iterator &_end,
-      Settings &_settings);
+  Node parse_function_call(TokenStream &_pos,
+                           Settings &_settings);
 
   /// This is what you should call: The other one is called by
   /// this
-  Node parse_object(
-      std::list<Lexer::Token>::const_iterator &_cur_pos,
-      const std::list<Lexer::Token>::const_iterator &_end,
-      Settings &_settings);
+  Node parse_object(TokenStream &_pos, Settings &_settings);
 
   /// Resolves a function call through any means necessary.
   /// If it cannot be resolved, an error is thrown. Returns

@@ -23,9 +23,16 @@ rule::new!("decl_copy_2",
   "let $a : type! ( $c ) ; $a = $c ;"
 );
 
+// /// C-style 'for' loop
+// rule::new!("for_1",
+// "for ( $~ $* $>a ; $~ $* $>b ; $~ $* $>c ) $~ $<${$}$> $>d",
+//   "{ $a ; while ( $b ) { $d $c ; } }"
+// );
+
 /// If used, switches to `std` Oak (instead of `canonical` Oak)
 rule::bundle!("std",
   "methods",
   "decl_copy_1",
-  "decl_copy_2"
+  "decl_copy_2",
+  // "for_1"
 );

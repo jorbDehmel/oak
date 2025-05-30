@@ -12,7 +12,6 @@
 #include "settings.hpp"
 #include <filesystem>
 #include <iostream>
-#include <list>
 #include <stdexcept>
 #include <string>
 
@@ -105,9 +104,16 @@ public:
   void operator()();
 
   /**
-   * @brief Preprocess until a fixed point is reached
+   * @brief Preprocess until a fixed point is reached. Expect
+   * the token stream position to be undefined after.
    */
-  uint64_t preprocess(std::list<Lexer::Token> &_token_stream);
+  uint64_t preprocess(TokenStream &_token_stream);
+
+  /**
+   * @brief Load a given dialect file and register it as the
+   * current dialect
+   */
+  void load_dialect_file(const std::filesystem::path &_file);
 
 protected:
   /**
@@ -120,7 +126,7 @@ protected:
   /**
    * @brief Parse and turn all math into operator calls
    */
-  void fix_math(std::list<Lexer::Token> &_token_stream);
+  void fix_math(TokenStream &_token_stream);
 
   /**
    * @brief Load the given file, following any includes found
@@ -141,11 +147,6 @@ protected:
    */
   void syntax_check(const std::filesystem::path &_fp,
                     const std::string &_text) const;
-
-  /**
-   * @brief Load a given dialect file and apply it
-   */
-  void load_dialect_file(const std::filesystem::path &_file);
 
   /**
    * @brief Write the parsed information to the given stream in

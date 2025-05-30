@@ -1,11 +1,83 @@
 #include "lexer.hpp"
 #include "debug.hpp"
-#include <climits>
 #include <cstdint>
 #include <cstring>
 #include <optional>
 #include <stdexcept>
 #include <vector>
+
+/**
+ * @brief Avoid C keywords
+ * @param _raw The symbol name to KWA-mangle
+ * @return The KWA-mangled symbol name (usually the same as inp)
+ */
+inline std::string
+kwa_mangle(const std::string &_raw) noexcept {
+  // Reserved symbols by C, with any that are also reserved Oak
+  // removed
+  const static std::set<std::string> reserved = {
+      "alignas",
+      "alignof",
+      "auto",
+      // "bool",
+      "break",
+      // "case",
+      "char",
+      "const",
+      "constexpr",
+      "continue",
+      "default",
+      "do",
+      "double",
+      // "else",
+      // "enum",
+      "extern",
+      // "false",
+      "float",
+      "for",
+      "goto",
+      // "if",
+      "inline",
+      // "int",
+      "long",
+      "nullptr",
+      "register",
+      "restrict",
+      // "return",
+      "short",
+      "signed",
+      "sizeof",
+      "static",
+      "static_assert",
+      // "struct",
+      "switch",
+      "thread_local",
+      // "true",
+      "typedef",
+      "typeof",
+      "typeof_unqual",
+      "union",
+      "unsigned",
+      // "void",
+      "volatile",
+      // "while",
+      "_Alignas",
+      "_Alignof",
+      "_Atomic",
+      "_BitInt",
+      "_Bool",
+      "_Complex",
+      "_Decimal128",
+      "_Decimal32",
+      "_Decimal64",
+      "_Generic",
+      "_Imaginary",
+      "_Noreturn",
+      "_Static_assert",
+      "_Thread_local",
+  };
+  return (reserved.contains(_raw) ? _raw + "_KWA" : _raw);
+}
 
 const std::set<char> Lexer::whitespace = {' ', '\t', '\n'};
 const std::set<char> Lexer::operators = {
@@ -251,9 +323,10 @@ Lexer::raw_lex(const std::string &_text,
     }
   }
 
-  // Classify types
+  // Classify types and avoid C keywords
   for (auto it = out.begin(); it != out.end(); ++it) {
     classify_type(*it);
+    it->text = kwa_mangle(it->text);
   }
 
   // Merge '.'s in float literals
@@ -300,10 +373,9 @@ Lexer::raw_lex(const std::string &_text,
   return out;
 }
 
-std::list<Lexer::Token>
-Lexer::lex(const std::string &_text,
-           const std::filesystem::path &_path, uint64_t &_line,
-           uint64_t &_col) {
+TokenStream Lexer::lex(const std::string &_text,
+                       const std::filesystem::path &_path,
+                       uint64_t &_line, uint64_t &_col) {
   auto out = raw_lex(_text, _path, _line, _col);
 
   // Merge successive literals
@@ -338,7 +410,7 @@ Lexer::lex(const std::string &_text,
     }
   }
 
-  return out;
+  return TokenStream(out);
 }
 
 /**
@@ -456,14 +528,93 @@ void Lexer::classify_type(Lexer::Token &_t) {
 }
 
 /// Transmute a series of strings to tokens
-std::list<Lexer::Token>
-Lexer::tokify(const std::list<std::string> &_what,
-              const std::filesystem::path &_where,
-              const uint64_t &_line, const uint64_t &_col) {
+TokenStream Lexer::tokify(const std::list<std::string> &_what,
+                          const std::filesystem::path &_where,
+                          const uint64_t &_line,
+                          const uint64_t &_col) {
   std::list<Lexer::Token> out;
   for (const auto &item : _what) {
     out.push_back(Lexer::Token(item, _where, _line, _col));
     Lexer::classify_type(out.back());
   }
   return out;
+}
+
+void TokenStream::next() noexcept {
+  if (!done()) {
+    ++cur_pos;
+  }
+}
+
+void TokenStream::prev() noexcept {
+  if (cur_pos != raw_stream.begin()) {
+    --cur_pos;
+  }
+}
+
+bool TokenStream::done() const noexcept {
+  return cur_pos == raw_stream.cend();
+}
+
+const Lexer::Token TokenStream::cur() const noexcept {
+  if (done()) {
+    return Lexer::Token("EOF", "N/A", 0, 0, "EOF");
+  } else {
+    return *cur_pos;
+  }
+}
+
+std::list<Lexer::Token>::iterator TokenStream::tell() noexcept {
+  return cur_pos;
+}
+
+void TokenStream::seek(
+    const std::list<Lexer::Token>::iterator &_where) noexcept {
+  cur_pos = _where;
+}
+
+std::list<Lexer::Token>::iterator TokenStream::erase(
+    const std::list<Lexer::Token>::iterator &_end) {
+  return raw_stream.erase(_end);
+}
+
+void TokenStream::erase(
+    const std::list<Lexer::Token>::iterator &_begin,
+    const std::list<Lexer::Token>::iterator &_end) {
+  raw_stream.erase(_begin, _end);
+}
+
+void TokenStream::replace(
+    const std::list<Lexer::Token>::iterator &_begin,
+    const std::list<Lexer::Token>::iterator &_end,
+    const TokenStream &_with) {
+  raw_stream.erase(_begin, _end);
+  raw_stream.insert(_end, _with.raw_stream.begin(),
+                    _with.raw_stream.end());
+}
+
+Lexer::Token TokenStream::peek(const uint &_n) const noexcept {
+  const auto out = std::next(cur_pos, _n);
+  if (out == raw_stream.end()) {
+    return Lexer::Token("EOF", "N/A", 0, 0, "EOF");
+  } else {
+    return *out;
+  }
+}
+
+bool TokenStream::at_beg() const noexcept {
+  return cur_pos == raw_stream.begin();
+}
+
+void TokenStream::insert(
+    const std::list<Lexer::Token>::iterator &_end,
+    const TokenStream &_with) {
+  raw_stream.insert(_end, _with.raw_stream.begin(),
+                    _with.raw_stream.end());
+}
+
+void TokenStream::insert(
+    const std::list<Lexer::Token>::iterator &_end,
+    const Lexer::Token &_what) {
+  raw_stream.insert(_end, _what);
 }

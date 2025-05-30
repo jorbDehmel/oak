@@ -20,26 +20,6 @@
 #include <variant>
 
 /**
- * @brief Safely increment an iterator. If it is the end before
- * OR AFTER incrementation, throws an error.
- * @param _it The iterator to increment
- * @param _end The end position from the iterand
- */
-void incr(std::list<Lexer::Token>::const_iterator &_it,
-          const std::list<Lexer::Token>::const_iterator &_end) {
-  debug_print();
-  if (_it == _end) {
-    throw std::runtime_error(
-        "Cannot increment iterator past end of iterand.");
-  }
-
-  ++_it;
-  if (_it == _end) {
-    throw std::runtime_error("Attempted to move past EOF.");
-  }
-}
-
-/**
  * @brief Determines if a name is valid for a struct/enum
  * @param _name The name to analyze
  * @returns True iff _name is a valid struct name
@@ -47,10 +27,9 @@ void incr(std::list<Lexer::Token>::const_iterator &_it,
 static bool
 is_valid_struct_name(const std::string &_name) noexcept {
   // The final chunk after any underscores/namespace operators
-  const auto pos = _name.find_last_of('_');
-  uint i = (pos == std::string::npos ? 0 : pos);
-
   const auto end = std::min(_name.find("_GEN"), _name.size());
+  const auto pos = _name.find_last_of('_', end);
+  uint i = (pos == std::string::npos ? 0 : pos);
 
   // Must be camelcase
   for (; i < end; ++i) {
@@ -82,20 +61,15 @@ Node Parser::pop_frame(const Node &_old_node,
   const auto old_frame = locals.back();
   Lexer lexer;
   uint64_t line = 0, col = 0;
-  std::list<Lexer::Token> to_parse;
 
   out.children = _old_node.children;
   for (const auto &p : old_frame) {
-    for (const auto &s : lexer.lex("Del(" + p.first + ");",
-                                   "NULL", line, col)) {
-      to_parse.push_back(s);
-    }
+    auto to_parse =
+        lexer.lex("Del(" + p.first + ");", "NULL", line, col);
 
     // Parse and mark
-    std::list<Lexer::Token>::const_iterator it =
-        to_parse.begin();
     const Node destructor =
-        parse_function_call(it, to_parse.end(), _settings);
+        parse_function_call(to_parse, _settings);
 
     auto first_return = out.children.begin();
     while (first_return != out.children.end() &&
@@ -114,87 +88,94 @@ Node Parser::pop_frame(const Node &_old_node,
 }
 
 // Parse a global scope
-void Parser::parse_global(
-    const std::list<Lexer::Token> &_file_contents,
-    Settings &_settings) {
+void Parser::parse_global(TokenStream &_pos,
+                          Settings &_settings) {
   debug_print();
-  // Iterate and delegate. No macros remain.
-  auto pos = _file_contents.begin();
-  const auto end = _file_contents.end();
+  if (_settings.debug) {
+    _settings.ostream << __FUNCTION__ << " at "
+                      << _pos.cur().file.string() << ":"
+                      << _pos.cur().line << "."
+                      << _pos.cur().col << '\n';
+  }
 
-  while (pos != _file_contents.end()) {
+  // Iterate and delegate. No macros remain.
+  while (!_pos.done()) {
     try {
-      if (*pos == "let") {
-        incr(pos, end);
+      if (_pos.cur() == "let") {
+        _pos.next();
         std::list<std::string> names;
-        names.push_back(*pos);
-        incr(pos, end);
+        names.push_back(_pos.cur());
+        _pos.next();
 
         // Plural instantiation
-        while (*pos == ",") {
-          incr(pos, end);
-          names.push_back(*pos);
-          incr(pos, end);
+        while (_pos.cur() == ",") {
+          _pos.next();
+          names.push_back(_pos.cur());
+          _pos.next();
         }
 
         // Generics
         std::list<std::string> generics;
-        if (*pos == "<") {
+        if (_pos.cur() == "<") {
           // Zero or more comma-separated generics
           do {
-            incr(pos, end);
-            if (!is_valid_struct_name(*pos)) {
+            _pos.next();
+            if (!is_valid_struct_name(_pos.cur())) {
               _settings.warn(
-                  "Generic '" + pos->text + "' at " +
-                  pos->file.string() + ":" +
-                  std::to_string(pos->line) + "." +
-                  std::to_string(pos->col) +
+                  "Generic '" + _pos.cur().text + "' at " +
+                  _pos.cur().file.string() + ":" +
+                  std::to_string(_pos.cur().line) + "." +
+                  std::to_string(_pos.cur().col) +
                   " does not appear to be camelcase");
             }
-            generics.push_back(*pos);
-            incr(pos, end);
-          } while (*pos == ",");
+            generics.push_back(_pos.cur());
+            _pos.next();
+          } while (_pos.cur() == ",");
 
-          if (*pos != ">") {
+          if (_pos.cur() != ">") {
             throw std::runtime_error(
                 "Malformed generic: Expected '>', but saw '" +
-                pos->text + "'");
+                _pos.cur().text + "'");
           }
-          incr(pos, end);
+          _pos.next();
         }
 
-        if (*pos == ":") {
+        if (_pos.cur() == ":") {
           // Struct, enum, or invalid global definition
-          incr(pos, end);
-          if (*pos == "struct") {
-            incr(pos, end); // Now pointing at body
+          _pos.next();
+          if (_pos.cur() == "struct") {
+            _pos.next(); // Now pointing at body
 
             if (generics.empty()) {
-              parse_struct(names, pos, end, _settings);
-            } else if (*pos == ";") {
+              parse_struct(names, _pos, _settings);
+            } else if (_pos.cur() == ";") {
               throw std::runtime_error(
                   "Generic struct signatures are illegal");
             } else {
               // Add definition for generic struct(s)
-              TemplateInfo info(pos->file, pos->line, pos->col);
+              TemplateInfo info(_pos.cur().file,
+                                _pos.cur().line,
+                                _pos.cur().col);
               info.generics = generics;
 
               // Grab body here
               int count = 0;
               do {
-                if (pos == end) {
-                  throw std::runtime_error("");
-                } else if (*pos == "{") {
+                if (_pos.done()) {
+                  throw std::runtime_error(
+                      "Generic struct signature must be "
+                      "defined");
+                } else if (_pos.cur() == "{") {
                   ++count;
-                } else if (*pos == "}") {
+                } else if (_pos.cur() == "}") {
                   --count;
                 }
-                info.instantiate.push_back(*pos);
-                ++pos; // Don't use incr
+                info.instantiate.push_back(_pos.cur());
+                _pos.next();
               } while (count != 0);
-              --pos;
+              _pos.prev();
 
-              const auto p = parse_template_pre_post(pos, end);
+              const auto p = parse_template_pre_post(_pos);
               for (const auto &item : p.second) {
                 info.instantiate.push_back(item);
               }
@@ -211,46 +192,46 @@ void Parser::parse_global(
               }
             }
 
-            ++pos; // Don't use incr here
-          } else if (*pos == "enum") {
-            incr(pos, end);
+            _pos.next();
+          } else if (_pos.cur() == "enum") {
+            _pos.next();
 
             if (generics.empty()) {
-              parse_enum(names, pos, end, _settings);
+              parse_enum(names, _pos, _settings);
             } else {
               throw std::runtime_error(
                   "Generic enums are unimplemented");
             }
 
-            ++pos; // Don't use incr here
+            _pos.next();
           } else {
             throw std::runtime_error(
                 "Global scope 'let' error: Expected 'struct' "
                 "or 'enum', saw '" +
-                pos->text + "'");
+                _pos.cur().text + "'");
           }
-        } else if (*pos == "(") {
+        } else if (_pos.cur() == "(") {
           // Function
           if (generics.empty()) {
-            parse_function(names, pos, end, _settings);
+            parse_function(names, _pos, _settings);
           } else {
             // Grab rest of signature
-            TemplateInfo info(pos->file, pos->line, pos->col);
+            TemplateInfo info(_pos.cur().file, _pos.cur().line,
+                              _pos.cur().col);
             info.generics = generics;
 
             // Finish parsing type
-            while (pos != end && *pos != "{") {
-              if (std::next(pos) == end ||
-                  *std::next(pos) != ":") {
-                info.provides.push_back(*pos);
+            while (!_pos.done() && _pos.cur() != "{") {
+              if (_pos.peek(1) != ":") {
+                info.provides.push_back(_pos.cur());
               } else {
                 info.provides.push_back("_");
               }
 
-              info.instantiate.push_back(*pos);
+              info.instantiate.push_back(_pos.cur());
 
-              incr(pos, end);
-              if (*pos == ";") {
+              _pos.next();
+              if (_pos.cur() == ";") {
                 // Generic signature
                 throw std::runtime_error(
                     "Generic function signatures are illegal");
@@ -260,20 +241,22 @@ void Parser::parse_global(
             // Grab body
             int count = 0;
             do {
-              if (pos == end) {
-                throw std::runtime_error("");
-              } else if (*pos == "{") {
+              if (_pos.done()) {
+                throw std::runtime_error(
+                    "Generic function signatures must be "
+                    "defined");
+              } else if (_pos.cur() == "{") {
                 ++count;
-              } else if (*pos == "}") {
+              } else if (_pos.cur() == "}") {
                 --count;
               }
-              info.instantiate.push_back(*pos);
-              ++pos; // Don't use incr
+              info.instantiate.push_back(_pos.cur());
+              _pos.next();
             } while (count != 0);
-            --pos;
+            _pos.prev();
 
             // Parse pre and post blocks
-            const auto p = parse_template_pre_post(pos, end);
+            const auto p = parse_template_pre_post(_pos);
             info.validate = p.first;
             for (const auto &item : p.second) {
               info.instantiate.push_back(item);
@@ -293,90 +276,104 @@ void Parser::parse_global(
             }
           }
 
-          ++pos;
+          _pos.next();
+        } else if (_pos.cur() == "=") {
+          // In Oak: let to = from;
+          // In C++: using to = from;
+          _pos.next();
+          const auto from_name = _pos.cur().text;
+
+          for (const auto &to_name : names) {
+            for (const auto &d : functions[from_name]) {
+              functions[to_name].push_back(d);
+            }
+          }
+
+          _pos.next();
         } else {
           throw std::runtime_error(
               "Global scope 'let' error: "
-              "Expected '(' or ':', saw '" +
-              pos->text + "'");
+              "Expected '(', '=' or ':', saw '" +
+              _pos.cur().text + "'");
         }
-      } else if (*pos == ";") {
-        ++pos;
+      } else if (_pos.cur() == ";") {
+        _pos.next();
       }
 
-      else if (*pos == "compile_time_error!") {
-        _settings.ostream << pos->file.string() << ":"
-                          << pos->line << "." << pos->col << ">"
-                          << pos->text
-                          << " Compile-time error:\n";
+      else if (_pos.cur() == "compile_time_error!") {
+        _settings.ostream
+            << _pos.cur().file.string() << ":"
+            << _pos.cur().line << "." << _pos.cur().col << ">"
+            << _pos.cur().text << " Compile-time error:\n";
 
         // Note: This is after all preprocessing
         const auto args =
-            MacroManager::get_macro_args(pos, end);
+            MacroManager::get_macro_args_no_erase(_pos);
         std::string msg;
         for (const auto &arg : args) {
           msg += arg.text + " ";
         }
         _settings.ostream << msg << '\n';
         throw std::runtime_error(msg);
-      } else if (*pos == "compile_time_warning!") {
+      } else if (_pos.cur() == "compile_time_warning!") {
         std::stringstream msg_strm;
-        msg_strm << pos->file.string() << ":" << pos->line
-                 << "." << pos->col << ">" << pos->text
+        msg_strm << _pos.cur().file.string() << ":"
+                 << _pos.cur().line << "." << _pos.cur().col
+                 << ">" << _pos.cur().text
                  << " Compile-time warning:\n";
 
         // Note: This is after all preprocessing
         const auto args =
-            MacroManager::get_macro_args(pos, end);
+            MacroManager::get_macro_args_no_erase(_pos);
         for (const auto &arg : args) {
           msg_strm << arg.text << " ";
         }
         msg_strm << '\n';
         _settings.warn(msg_strm.str());
 
-        while (*pos != ";") {
-          incr(pos, end);
+        while (_pos.cur() != ";") {
+          _pos.next();
         }
-      } else if (*pos == "compile_time_print!") {
-        _settings.ostream << pos->file.string() << ":"
-                          << pos->line << "." << pos->col << ">"
-                          << pos->text
-                          << " Compile-time print:\n";
+      } else if (_pos.cur() == "compile_time_print!") {
+        _settings.ostream
+            << _pos.cur().file.string() << ":"
+            << _pos.cur().line << "." << _pos.cur().col << ">"
+            << _pos.cur().text << " Compile-time print:\n";
 
         // Note: This is after all preprocessing
         const auto args =
-            MacroManager::get_macro_args(pos, end);
+            MacroManager::get_macro_args_no_erase(_pos);
         std::string msg;
         for (const auto &arg : args) {
           msg += arg.text + " ";
         }
         _settings.ostream << msg << '\n';
 
-        while (*pos != ";") {
-          incr(pos, end);
+        while (_pos.cur() != ";") {
+          _pos.next();
         }
       }
 
       else {
         throw std::runtime_error(
             "Global scope parse error: Unexpected token '" +
-            pos->text + "'");
+            _pos.cur().text + "'");
       }
     } catch (OutOfPPPLError &) {
       throw;
     } catch (std::runtime_error &e) {
-      throw std::runtime_error("At " + pos->file.string() +
-                               ":" + std::to_string(pos->line) +
-                               "." + std::to_string(pos->col) +
-                               "\n" + e.what());
+      throw std::runtime_error(
+          "At " + _pos.cur().file.string() + ":" +
+          std::to_string(_pos.cur().line) + "." +
+          std::to_string(_pos.cur().col) + "\n" + e.what());
     } catch (...) {
-      if (pos == _file_contents.end()) {
+      if (_pos.done()) {
         throw;
       }
       throw std::runtime_error(
-          "At " + pos->file.string() + ":" +
-          std::to_string(pos->line) + "." +
-          std::to_string(pos->col) +
+          "At " + _pos.cur().file.string() + ":" +
+          std::to_string(_pos.cur().line) + "." +
+          std::to_string(_pos.cur().col) +
           "\nUnknown error during global-scope parsing");
     }
   }
@@ -403,7 +400,10 @@ void Parser::reconstruct(std::ostream &_where,
         if (info.tags.at("file") == _csettings.entry_point) {
           _where << info.t.c_repr(info.name, true) << ";\n";
         }
-      } else {
+      }
+
+      // Avoid duplicating aliases
+      else if (p.first == info.name) {
         _where << info.t.c_repr(info.name, false) << ";\n";
       }
     }
@@ -594,7 +594,7 @@ void Parser::reconstruct(std::ostream &_where,
           reconstruct_node(info.n);
           _where << ";}\n";
         }
-      } else {
+      } else if (p.first == info.name) {
         _where << info.t.c_repr(info.name, false);
         _where << "{";
         reconstruct_node(info.n);
@@ -605,20 +605,17 @@ void Parser::reconstruct(std::ostream &_where,
 }
 
 /// Dump to the given stream
-void Parser::dump(std::ostream &_where,
-                  const std::list<Lexer::Token> &_file_contents,
+void Parser::dump(std::ostream &_where, TokenStream &_pos,
                   const Settings::CompileSettings &_csettings)
     const noexcept {
   debug_print();
 
-  _where << "// Lexed contents of file "
-         << _file_contents.front().file;
+  _where << "// Lexed contents of file " << _pos.cur().file;
 
   uint64_t cur_line = 0;
-  for (auto it = _file_contents.begin();
-       it != _file_contents.end(); ++it) {
-    if (cur_line == it->line) {
-      _where << ' ' << it->text;
+  for (const auto &cur : _pos) {
+    if (cur_line == cur.line) {
+      _where << ' ' << cur.text;
     } else {
       _where << '\n' << cur_line << "\t|";
     }
@@ -686,25 +683,73 @@ void Parser::dump(std::ostream &_where,
 // Assumes we have just seen "let NAME (" and are pointing to
 // "("
 void Parser::parse_function(
-    const std::list<std::string> &_names,
-    std::list<Lexer::Token>::const_iterator &_cur_pos,
-    const std::list<Lexer::Token>::const_iterator &_end,
+    const std::list<std::string> &_names, TokenStream &_pos,
     Settings &_settings) {
   debug_print();
+  if (_settings.debug) {
+    _settings.ostream << __FUNCTION__ << " at "
+                      << _pos.cur().file.string() << ":"
+                      << _pos.cur().line << "."
+                      << _pos.cur().col << " '"
+                      << _pos.cur().text << "'\n";
+  }
+
   // Finish parsing type
-  Type t = parse_type(_cur_pos, _end, _settings);
-  incr(_cur_pos, _end);
+  Type t = parse_type(_pos, _settings);
+  _pos.next();
+
+  // Special case type restrictions
+  for (const auto &name : _names) {
+    if (name == "main") {
+      const auto args = t.fn_args();
+      const auto ret = t.fn_return_type();
+      if (!args.empty()) {
+        if (args.size() != 2) {
+        } else if (!args.front().second.exact_match(
+                       Type({"i32"}))) {
+          throw std::runtime_error(
+              "If provided, " + name +
+              "'s first argument (argc) should be of type i32");
+        } else if (!args.back().second.exact_match(
+                       Type({"[", "]", "[", "]", "i8"}))) {
+          throw std::runtime_error("If provided, " + name +
+                                   "'s second argument (argv) "
+                                   "should be of type [][]i8");
+        }
+      }
+      if (!ret.exact_match(Type({"i32"}))) {
+        throw std::runtime_error(
+            name + " must have a return type of i32");
+      }
+    } else if (name == "New" || name == "Del") {
+      const auto args = t.fn_args();
+      const auto ret = t.fn_return_type();
+      if (args.size() != 1) {
+        throw std::runtime_error(
+            name + " must take only one argument: A pointer to "
+                   "the object to act upon");
+      } else if (args.front().second.nodes.empty() ||
+                 args.front().second.nodes.front().type !=
+                     Type::TypeNode::POINTER) {
+        throw std::runtime_error(
+            name + " must take a pointer as its argument");
+      } else if (!ret.exact_match(Type({"void"}))) {
+        throw std::runtime_error(
+            name + " must have a void return type");
+      }
+    }
+  }
 
   // Either signature or implementation
   FnInfo to_add;
   to_add.name = "FN_NAME_NOT_PROVIDED";
   to_add.t = t;
 
-  to_add.tags["file"] = _cur_pos->file;
-  to_add.tags["line"] = std::to_string(_cur_pos->line);
-  to_add.tags["col"] = std::to_string(_cur_pos->col);
+  to_add.tags["file"] = _pos.cur().file;
+  to_add.tags["line"] = std::to_string(_pos.cur().line);
+  to_add.tags["col"] = std::to_string(_pos.cur().col);
 
-  if (*_cur_pos == ";") {
+  if (_pos.cur() == ";") {
     // Signature
     to_add.tags = {{"casual", "true"}};
 
@@ -748,7 +793,7 @@ void Parser::parse_function(
     _settings.compile_settings().cur_return_type =
         t.fn_return_type();
 
-    to_add.n = parse_statement(_cur_pos, _end, _settings);
+    to_add.n = parse_statement(_pos, _settings);
 
     _settings.compile_settings().cur_return_type = backup;
 
@@ -783,45 +828,50 @@ void Parser::parse_function(
 }
 
 // Parses a struct/enum's guts
-std::list<std::pair<std::string, Type>> Parser::parse_members(
-    std::list<Lexer::Token>::const_iterator &_cur_pos,
-    const std::list<Lexer::Token>::const_iterator &_end,
-    Settings &_settings) {
+std::list<std::pair<std::string, Type>>
+Parser::parse_members(TokenStream &_pos, Settings &_settings) {
   debug_print();
+  if (_settings.debug) {
+    _settings.ostream << __FUNCTION__ << " at "
+                      << _pos.cur().file.string() << ":"
+                      << _pos.cur().line << "."
+                      << _pos.cur().col << '\n';
+  }
+
   // Where to write output
   std::list<std::pair<std::string, Type>> out;
 
   // For keeping track of used names
   std::set<std::string> all_names;
 
-  incr(_cur_pos, _end);
+  _pos.next();
 
-  while (*_cur_pos != "}") {
+  while (_pos.cur() != "}") {
     // One or more comma-separated names
     std::list<std::string> current_names;
 
     // Mandatory name
-    current_names.push_back(*_cur_pos);
-    incr(_cur_pos, _end);
+    current_names.push_back(_pos.cur());
+    _pos.next();
 
     // Optional names
-    while (*_cur_pos == ",") {
-      incr(_cur_pos, _end);
-      current_names.push_back(*_cur_pos);
-      incr(_cur_pos, _end);
+    while (_pos.cur() == ",") {
+      _pos.next();
+      current_names.push_back(_pos.cur());
+      _pos.next();
     }
 
     // Colon
-    if (*_cur_pos != ":") {
+    if (_pos.cur() != ":") {
       throw std::runtime_error("Invalid struct/enum body: "
                                "Expected ':' or '.' but saw '" +
-                               _cur_pos->text + "'");
+                               _pos.cur().text + "'");
     }
-    incr(_cur_pos, _end);
+    _pos.next();
 
     // Type
-    Type t = parse_type(_cur_pos, _end, _settings);
-    incr(_cur_pos, _end);
+    Type t = parse_type(_pos, _settings);
+    _pos.next();
 
     // Add these members
     for (const auto &name : current_names) {
@@ -836,8 +886,8 @@ std::list<std::pair<std::string, Type>> Parser::parse_members(
     }
 
     // Advance past vestigial commas
-    while (*_cur_pos == ",") {
-      incr(_cur_pos, _end);
+    while (_pos.cur() == ",") {
+      _pos.next();
     }
   }
 
@@ -848,36 +898,33 @@ std::list<std::pair<std::string, Type>> Parser::parse_members(
 /// Parses the (pre, post) regions of a template if they
 /// exist. This should be called after any generic body
 std::pair<std::list<std::string>, std::list<std::string>>
-Parser::parse_template_pre_post(
-    std::list<Lexer::Token>::const_iterator &_cur_pos,
-    const std::list<Lexer::Token>::const_iterator &_end) {
+Parser::parse_template_pre_post(TokenStream &_pos) {
+  debug_print();
   std::pair<std::list<std::string>, std::list<std::string>> out;
 
-  while (std::next(_cur_pos) != _end &&
-         (*std::next(_cur_pos) == "pre" ||
-          *std::next(_cur_pos) == "post")) {
-    incr(_cur_pos, _end); // Now pointing to block identifier
-    bool is_pre = (*_cur_pos == "pre");
-    incr(_cur_pos, _end); // Now pointing to "{"
-    if (*_cur_pos != "{") {
+  while (_pos.peek(1) == "pre" || _pos.peek(1) == "post") {
+    _pos.next(); // Now pointing to block identifier
+    bool is_pre = (_pos.cur() == "pre");
+    _pos.next(); // Now pointing to "{"
+    if (_pos.cur() != "{") {
       throw std::runtime_error(
           "Malformed " + std::string(is_pre ? "pre" : "post") +
-          " block: Expected '{', but saw '" + _cur_pos->text +
+          " block: Expected '{', but saw '" + _pos.cur().text +
           "'");
     }
 
     int count = 0;
     do {
-      if (_cur_pos == _end) {
+      if (_pos.done()) {
         throw std::runtime_error("Reached EOF before '}'");
-      } else if (*_cur_pos == "{") {
+      } else if (_pos.cur() == "{") {
         ++count;
 
         if (count == 1) {
-          ++_cur_pos; // Don't use incr here
+          _pos.next(); // Don't use incr here
           continue;
         }
-      } else if (*_cur_pos == "}") {
+      } else if (_pos.cur() == "}") {
         --count;
         if (count == 0) {
           break;
@@ -885,12 +932,12 @@ Parser::parse_template_pre_post(
       }
 
       if (is_pre) {
-        out.first.push_back(*_cur_pos);
+        out.first.push_back(_pos.cur());
       } else {
-        out.second.push_back(*_cur_pos);
+        out.second.push_back(_pos.cur());
       }
 
-      ++_cur_pos; // Don't use incr here
+      _pos.next(); // Don't use incr here
     } while (count != 0);
   }
 
@@ -898,29 +945,33 @@ Parser::parse_template_pre_post(
 }
 
 // Return the type spec at the specified location
-Type Parser::parse_type(
-    std::list<Lexer::Token>::const_iterator &_cur_pos,
-    const std::list<Lexer::Token>::const_iterator &_end,
-    Settings &_settings) {
+Type Parser::parse_type(TokenStream &_pos,
+                        Settings &_settings) {
   debug_print();
+  if (_settings.debug) {
+    _settings.ostream << __FUNCTION__ << " at "
+                      << _pos.cur().file.string() << ":"
+                      << _pos.cur().line << "."
+                      << _pos.cur().col << '\n';
+  }
 
   // Special case: type! macro
-  if (*_cur_pos == "type!") {
-    incr(_cur_pos, _end);
-    if (*_cur_pos != "(") {
+  if (_pos.cur() == "type!") {
+    _pos.next();
+    if (_pos.cur() != "(") {
       throw std::runtime_error(
           "Malformed type! macro: Expected '(', but saw '" +
-          _cur_pos->text + "'");
+          _pos.cur().text + "'");
     }
-    incr(_cur_pos, _end);
+    _pos.next();
 
-    auto tmp = parse_object(_cur_pos, _end, _settings);
+    auto tmp = parse_object(_pos, _settings);
 
-    incr(_cur_pos, _end);
-    if (*_cur_pos != ")") {
+    _pos.next();
+    if (_pos.cur() != ")") {
       throw std::runtime_error(
           "Malformed type! macro: Expected ')', but saw '" +
-          _cur_pos->text + "'");
+          _pos.cur().text + "'");
     }
 
     return tmp.type.value();
@@ -933,19 +984,18 @@ Type Parser::parse_type(
     if (first) {
       first = false;
     } else {
-      incr(_cur_pos, _end);
+      _pos.next();
     }
 
-    if (_cur_pos->text == ";" || _cur_pos->text == "{") {
+    if (_pos.cur().text == ";" || _pos.cur().text == "{") {
       throw std::runtime_error("Missing function return type: "
                                "Did you mean '-> void'?");
     }
 
-    out.process_next(*_cur_pos);
+    out.process_next(_pos.cur().text);
 
-    if (std::next(_cur_pos) != _end &&
-        std::next(_cur_pos)->type == "TEMPLATE" &&
-        std::next(_cur_pos)->text == "<") {
+    if (_pos.peek(1).type == "TEMPLATE" &&
+        _pos.peek(1).text == "<") {
       if (out.nodes.empty() ||
           out.nodes.back().type != Type::TypeNode::LITERAL) {
         throw std::runtime_error(
@@ -953,30 +1003,31 @@ Type Parser::parse_type(
             "type '" +
             out.oak_repr() + "'");
       }
-      incr(_cur_pos, _end); // Now pointing to '<'
+      _pos.next(); // Now pointing to '<'
 
       // Leave pointing to closing angle bracket
       std::list<std::list<std::string>> replacements;
       std::list<std::string> cur;
       int count = 0;
       do {
-        if (*_cur_pos == "<") {
+        if (_pos.cur() == "<") {
           ++count;
-        } else if (*_cur_pos == ">") {
+        } else if (_pos.cur() == ">") {
           --count;
         }
 
-        if (count == 1 && *_cur_pos == ",") {
+        if (count == 1 && _pos.cur() == ",") {
           replacements.push_back(cur);
           cur.clear();
         } else {
-          cur.push_back(*_cur_pos);
+          cur.push_back(_pos.cur());
         }
 
-        ++_cur_pos;
-      } while (count != 0);
+        _pos.next();
+      } while (!_pos.done() && count != 0);
+
       replacements.push_back(cur);
-      --_cur_pos;
+      _pos.prev();
 
       replacements.front().pop_front();
       replacements.back().pop_back();
@@ -1036,36 +1087,39 @@ Type Parser::parse_type(
         }
       }
     }
-  } while (!out.valid());
+  } while (!out.valid() && !_pos.done());
   return out;
 }
 
 // Parse a single struct declaration
 // Assumes we have just seen "let NAME : struct" and are
 // pointing to the next token.
-void Parser::parse_struct(
-    const std::list<std::string> &_names,
-    std::list<Lexer::Token>::const_iterator &_cur_pos,
-    const std::list<Lexer::Token>::const_iterator &_end,
-    Settings &_settings) {
+void Parser::parse_struct(const std::list<std::string> &_names,
+                          TokenStream &_pos,
+                          Settings &_settings) {
   debug_print();
+  if (_settings.debug) {
+    _settings.ostream << __FUNCTION__ << " at "
+                      << _pos.cur().file.string() << ":"
+                      << _pos.cur().line << "."
+                      << _pos.cur().col << '\n';
+  }
 
   // The struct info to populate
   StructInfo to_add;
 
-  to_add.tags["file"] = _cur_pos->file;
-  to_add.tags["line"] = std::to_string(_cur_pos->line);
-  to_add.tags["col"] = std::to_string(_cur_pos->col);
+  to_add.tags["file"] = _pos.cur().file;
+  to_add.tags["line"] = std::to_string(_pos.cur().line);
+  to_add.tags["col"] = std::to_string(_pos.cur().col);
 
   // Casual def
-  if (*_cur_pos == ";") {
+  if (_pos.cur() == ";") {
     to_add.tags["casual"] = "true";
   }
 
   // Declaration
-  else if (*_cur_pos == "{") {
-    const auto members =
-        parse_members(_cur_pos, _end, _settings);
+  else if (_pos.cur() == "{") {
+    const auto members = parse_members(_pos, _settings);
 
     for (const auto &member : members) {
       to_add.member_order.push_back(member.first);
@@ -1077,7 +1131,7 @@ void Parser::parse_struct(
   else {
     throw std::runtime_error("Invalid struct declaration: "
                              "Expected ';' or '{' but saw '" +
-                             _cur_pos->text + "'");
+                             _pos.cur().text + "'");
   }
 
   // Add these entries
@@ -1115,49 +1169,33 @@ void Parser::parse_struct(
     globals[name] = to_add;
 
     // Constructor and destructor autogen go here
-    uint64_t line = _cur_pos->line, col = _cur_pos->col;
+    uint64_t line = _pos.cur().line, col = _pos.cur().col;
     Lexer lexer;
 
     // Create a constructor to parse
-    std::list<Lexer::Token> to_parse =
-        lexer.lex("(self: ^" + name + ") -> void {",
-                  _cur_pos->file, line, col);
-
+    std::string to_lex = "(self: ^" + name + ") -> void { ";
     for (const auto &member : to_add.member_order) {
-      for (const auto &s :
-           lexer.lex("New(self." + member + ");",
-                     _cur_pos->file, line, col)) {
-        to_parse.push_back(s);
-      }
+      to_lex += "New(self." + member + "); ";
     }
-    to_parse.push_back(Lexer::Token("}", _cur_pos->file, line,
-                                    col, "OPERATOR"));
+    to_lex += "}";
 
     // Parse and mark as autogen
-    std::list<Lexer::Token>::const_iterator it =
-        to_parse.begin();
-    parse_function({"New"}, it, to_parse.end(), _settings);
+    auto to_parse =
+        lexer.lex(to_lex, _pos.cur().file, line, col);
+    parse_function({"New"}, to_parse, _settings);
     functions.at("New").back().tags["autogen"] = "true";
 
     // Reset, create destructor
-    to_parse.clear();
-    to_parse = lexer.lex("(self: ^" + name + ") -> void {",
-                         _cur_pos->file, line, col);
-
+    to_lex = "(self: ^" + name + ") -> void {";
     for (auto it = to_add.member_order.rbegin();
          it != to_add.member_order.rend(); ++it) {
-      for (const auto &s :
-           lexer.lex("Del(self." + *it + ");", _cur_pos->file,
-                     line, col)) {
-        to_parse.push_back(s);
-      }
+      to_lex += "Del(self." + *it + ");";
     }
-    to_parse.push_back(Lexer::Token("}", _cur_pos->file, line,
-                                    col, "OPERATOR"));
+    to_lex += "}";
 
     // Parse and mark
-    it = to_parse.begin();
-    parse_function({"Del"}, it, to_parse.end(), _settings);
+    to_parse = lexer.lex(to_lex, _pos.cur().file, line, col);
+    parse_function({"Del"}, to_parse, _settings);
     functions.at("Del").back().tags["autogen"] = "true";
   }
 }
@@ -1165,29 +1203,32 @@ void Parser::parse_struct(
 // Parse a single enum declaration
 // Assumes we have just seen "let NAME : enum" and are
 // pointing to the next token.
-void Parser::parse_enum(
-    const std::list<std::string> &_names,
-    std::list<Lexer::Token>::const_iterator &_cur_pos,
-    const std::list<Lexer::Token>::const_iterator &_end,
-    Settings &_settings) {
+void Parser::parse_enum(const std::list<std::string> &_names,
+                        TokenStream &_pos,
+                        Settings &_settings) {
   debug_print();
+  if (_settings.debug) {
+    _settings.ostream << __FUNCTION__ << " at "
+                      << _pos.cur().file.string() << ":"
+                      << _pos.cur().line << "."
+                      << _pos.cur().col << '\n';
+  }
 
   // The enum info to populate
   EnumInfo to_add;
 
-  to_add.tags["file"] = _cur_pos->file;
-  to_add.tags["line"] = std::to_string(_cur_pos->line);
-  to_add.tags["col"] = std::to_string(_cur_pos->col);
+  to_add.tags["file"] = _pos.cur().file;
+  to_add.tags["line"] = std::to_string(_pos.cur().line);
+  to_add.tags["col"] = std::to_string(_pos.cur().col);
 
   // Casual def
-  if (*_cur_pos == ";") {
+  if (_pos.cur() == ";") {
     to_add.tags["casual"] = "true";
   }
 
   // Declaration
-  else if (*_cur_pos == "{") {
-    const auto members =
-        parse_members(_cur_pos, _end, _settings);
+  else if (_pos.cur() == "{") {
+    const auto members = parse_members(_pos, _settings);
 
     for (const auto &member : members) {
       to_add.option_order.push_back(member.first);
@@ -1199,7 +1240,7 @@ void Parser::parse_enum(
   else {
     throw std::runtime_error("Invalid enum declaration: "
                              "Expected ';' or '{' but saw '" +
-                             _cur_pos->text + "'");
+                             _pos.cur().text + "'");
   }
 
   // Add these entries
@@ -1241,9 +1282,9 @@ void Parser::parse_enum(
       FnInfo to_add;
       to_add.name = wrapper_name;
 
-      to_add.tags["file"] = _cur_pos->file;
-      to_add.tags["line"] = std::to_string(_cur_pos->line);
-      to_add.tags["col"] = std::to_string(_cur_pos->col);
+      to_add.tags["file"] = _pos.cur().file;
+      to_add.tags["line"] = std::to_string(_pos.cur().line);
+      to_add.tags["col"] = std::to_string(_pos.cur().col);
 
       // Construct wrapper type
       to_add.t.append_fn();
@@ -1274,32 +1315,26 @@ void Parser::parse_enum(
     }
 
     // Constructor, destructor here
-    uint64_t line = _cur_pos->line, col = _cur_pos->col;
+    uint64_t line = _pos.cur().line, col = _pos.cur().col;
     Lexer lexer;
 
     // Create a constructor to parse
-    std::list<Lexer::Token> to_parse =
-        lexer.lex("(self: ^" + name + ") -> void {",
-                  _cur_pos->file, line, col);
-
     const std::string op = to_add.option_order.front();
-    for (const auto &s : lexer.lex(
-             "let __data: " + to_add.options.at(op).oak_repr() +
-                 "; wrap_" + op + "(self, __data);",
-             _cur_pos->file, line, col)) {
-      to_parse.push_back(s);
-    }
-    to_parse.push_back(Lexer::Token("}", _cur_pos->file, line,
-                                    col, "OPERATOR"));
+    const std::string text = "(self: ^" + name +
+                             ") -> void {"
+                             "let __data: " +
+                             to_add.options.at(op).oak_repr() +
+                             "; wrap_" + op +
+                             "(self, __data);"
+                             "}";
+    auto to_parse = lexer.lex(text, _pos.cur().file, line, col);
 
     // Parse and mark as autogen
-    std::list<Lexer::Token>::const_iterator it =
-        to_parse.begin();
-    parse_function({"New"}, it, to_parse.end(), _settings);
+    parse_function({"New"}, to_parse, _settings);
     functions.at("New").back().tags["autogen"] = "true";
 
     // Create destructor
-    // NOTE: Enum destructors are not overridable
+    // NOTE: Enum destructors are not override-able
     std::string to_lex = "(self: ^" + name +
                          ") -> void {\n"
                          "match (self) {\n";
@@ -1312,88 +1347,90 @@ void Parser::parse_enum(
           "Del(data);\n"
           "}\n";
     }
-
     to_lex.append("}\n}");
 
-    to_parse.clear();
-    line = _cur_pos->line;
-    col = _cur_pos->col;
+    line = _pos.cur().line;
+    col = _pos.cur().col;
 
     debug_print();
-    to_parse = lexer.lex(to_lex, _cur_pos->file, line, col);
-
-    it = to_parse.begin();
-    parse_function({"Del"}, it, to_parse.end(), _settings);
+    to_parse = lexer.lex(to_lex, _pos.cur().file, line, col);
+    parse_function({"Del"}, to_parse, _settings);
   }
 }
 
 // Assumes we are pointing to the first token in the statement
-Node Parser::parse_statement(
-    std::list<Lexer::Token>::const_iterator &_cur_pos,
-    const std::list<Lexer::Token>::const_iterator &_end,
-    Settings &_settings, const Type &_return_type) {
+Node Parser::parse_statement(TokenStream &_pos,
+                             Settings &_settings,
+                             const Type &_return_type) {
   debug_print();
+  if (_settings.debug) {
+    _settings.ostream << __FUNCTION__ << " at "
+                      << _pos.cur().file.string() << ":"
+                      << _pos.cur().line << "."
+                      << _pos.cur().col << '\n';
+  }
+
   // A statement can be a function call, a (possibly compound)
   // if statement, a match statement, nothing, a variable
   // declaration, or a while statement
 
-  if (*_cur_pos == "c!") {
-    incr(_cur_pos, _end);
-    if (*_cur_pos != "(") {
+  if (_pos.cur() == "c!") {
+    _pos.next();
+    if (_pos.cur() != "(") {
       throw std::runtime_error(
           "Invalid c! macro: Expected '(', but saw '" +
-          _cur_pos->text + "'");
+          _pos.cur().text + "'");
     }
-    incr(_cur_pos, _end);
+    _pos.next();
 
     // One string literal argument
     Node out(Node::RAW_C_FMT);
     out.c_name =
-        MacroManager::strip_string_literal(_cur_pos->text);
+        MacroManager::strip_string_literal(_pos.cur().text);
 
-    incr(_cur_pos, _end);
-    if (*_cur_pos != ")") {
+    _pos.next();
+    if (_pos.cur() != ")") {
       throw std::runtime_error(
           "Invalid c! macro: Expected ')', but saw '" +
-          _cur_pos->text + "'");
+          _pos.cur().text + "'");
     }
-    incr(_cur_pos, _end);
+    _pos.next();
 
     return out;
   }
 
-  if (*_cur_pos == ";") {
+  if (_pos.cur() == ";") {
     // Unit statement
     Node out(Node::NONE);
     return out;
-  } else if (*_cur_pos == "let") {
+  } else if (_pos.cur() == "let") {
     // Variable declaration
     // Collect names
     std::set<std::string> names;
 
     do {
       // Fluff
-      incr(_cur_pos, _end);
+      _pos.next();
 
       // Name
-      names.insert(*_cur_pos);
-      incr(_cur_pos, _end);
-    } while (*_cur_pos == ",");
+      names.insert(_pos.cur());
+      _pos.next();
+    } while (_pos.cur() == ",");
 
-    if (*_cur_pos != ":") {
+    if (_pos.cur() != ":") {
       throw std::runtime_error(
           "Expected ':' after 'let' statement. Instead saw '" +
-          _cur_pos->text + "'");
+          _pos.cur().text + "'");
     }
-    incr(_cur_pos, _end);
+    _pos.next();
 
     // Get type
-    Type t = parse_type(_cur_pos, _end, _settings);
+    Type t = parse_type(_pos, _settings);
     validate_type(t);
 
     Node out(Node::DECL);
     out.type = t;
-    out.token = Lexer::Token(*_cur_pos, "");
+    out.token = Lexer::Token(_pos.cur(), "");
 
     // Add all to symbol table
     for (const auto &name : names) {
@@ -1405,50 +1442,49 @@ Node Parser::parse_statement(
       locals.back()[name] = t;
 
       // Literal `New` call
-      const auto tok = *_cur_pos;
-      const std::list<Lexer::Token> new_call = {
-          Lexer::Token("New", tok.file, tok.line, tok.col,
-                       "ID"),
-          Lexer::Token("(", tok.file, tok.line, tok.col,
-                       "OPERATOR"),
-          Lexer::Token(name, tok.file, tok.line, tok.col, "ID"),
-          Lexer::Token(")", tok.file, tok.line, tok.col,
-                       "OPERATOR")};
-      auto it = new_call.begin();
+      const auto tok = _pos.cur();
+      TokenStream new_call(
+          {Lexer::Token("New", tok.file, tok.line, tok.col,
+                        "ID"),
+           Lexer::Token("(", tok.file, tok.line, tok.col,
+                        "OPERATOR"),
+           Lexer::Token(name, tok.file, tok.line, tok.col,
+                        "ID"),
+           Lexer::Token(")", tok.file, tok.line, tok.col,
+                        "OPERATOR")});
       out.children.push_back(
-          parse_function_call(it, new_call.end(), _settings));
+          parse_function_call(new_call, _settings));
     }
 
     return out;
-  } else if (*_cur_pos == "{") {
+  } else if (_pos.cur() == "{") {
     // Scope
     Node out(Node::STMT);
 
     // Add a frame to the scope stack
     locals.push_back({});
 
-    incr(_cur_pos, _end);
-    while (*_cur_pos != "}") {
-      out.children.push_back(
-          parse_statement(_cur_pos, _end, _settings));
-      incr(_cur_pos, _end);
+    _pos.next();
+    while (_pos.cur() != "}") {
+      out.children.push_back(parse_statement(_pos, _settings));
+      _pos.next();
     }
 
     // Remove that scope frame
     out = pop_frame(out, _settings);
 
     return out;
-  } else if (*_cur_pos == "if") {
+  } else if (_pos.cur() == "if") {
     // If statement
-    incr(_cur_pos, _end);
-    if (*_cur_pos != "(") {
+    _pos.next();
+    if (_pos.cur() != "(") {
       throw std::runtime_error(
           "Missing parenthesis in 'if' statement.");
     }
-    incr(_cur_pos, _end);
+    _pos.next();
 
     // Condition is a single boolean object
-    Node condition = parse_object(_cur_pos, _end, _settings);
+    Node condition = parse_object(_pos, _settings);
     if (!condition.type.value().cast_match(Type({"bool"}))) {
       throw std::runtime_error("Statement condition type '" +
                                condition.type->oak_repr() +
@@ -1456,42 +1492,41 @@ Node Parser::parse_statement(
     }
 
     // Closing parenthesis
-    incr(_cur_pos, _end);
-    if (*_cur_pos != ")") {
+    _pos.next();
+    if (_pos.cur() != ")") {
       throw std::runtime_error(
           "Missing ending parenthesis in 'if' statement.");
     }
-    incr(_cur_pos, _end);
+    _pos.next();
 
     // Body
-    Node body = parse_statement(_cur_pos, _end, _settings);
+    Node body = parse_statement(_pos, _settings);
 
     Node out(Node::IF);
     out.children = {condition, body};
 
     // Optional else clause
-    ++_cur_pos; // Can't use incr here!
-    if (_cur_pos != _end && *_cur_pos == "else") {
+    _pos.next();
+    if (!_pos.done() && _pos.cur() == "else") {
       // Else clause
-      incr(_cur_pos, _end);
-      out.children.push_back(
-          parse_statement(_cur_pos, _end, _settings));
+      _pos.next();
+      out.children.push_back(parse_statement(_pos, _settings));
     } else {
-      --_cur_pos;
+      _pos.prev();
     }
 
     return out;
-  } else if (*_cur_pos == "while") {
+  } else if (_pos.cur() == "while") {
     // While loop
-    incr(_cur_pos, _end);
-    if (*_cur_pos != "(") {
+    _pos.next();
+    if (_pos.cur() != "(") {
       throw std::runtime_error(
           "Missing parenthesis in 'while' statement.");
     }
-    incr(_cur_pos, _end);
+    _pos.next();
 
     // Condition is a single boolean object
-    Node condition = parse_object(_cur_pos, _end, _settings);
+    Node condition = parse_object(_pos, _settings);
     if (!condition.type.value().cast_match(Type({"bool"}))) {
       throw std::runtime_error("Statement condition type '" +
                                condition.type->oak_repr() +
@@ -1499,20 +1534,20 @@ Node Parser::parse_statement(
     }
 
     // Closing parenthesis
-    incr(_cur_pos, _end);
-    if (*_cur_pos != ")") {
+    _pos.next();
+    if (_pos.cur() != ")") {
       throw std::runtime_error(
           "Missing ending parenthesis in 'while' statement.");
     }
-    incr(_cur_pos, _end);
+    _pos.next();
 
     // Body
-    Node body = parse_statement(_cur_pos, _end, _settings);
+    Node body = parse_statement(_pos, _settings);
 
     Node out(Node::WHILE);
     out.children = {condition, body};
     return out;
-  } else if (*_cur_pos == "match") {
+  } else if (_pos.cur() == "match") {
     // Match statement
     /*
     match (NAME) {
@@ -1521,15 +1556,15 @@ Node Parser::parse_statement(
         else {}
     }
     */
-    incr(_cur_pos, _end);
-    if (*_cur_pos != "(") {
+    _pos.next();
+    if (_pos.cur() != "(") {
       throw std::runtime_error(
           "Missing parenthesis in 'match' statement.");
     }
-    incr(_cur_pos, _end);
+    _pos.next();
 
     // Target is an enum
-    Node target = parse_object(_cur_pos, _end, _settings);
+    Node target = parse_object(_pos, _settings);
     Type target_type = target.type.value();
 
     const bool is_mutable = (target_type.nodes.front().type ==
@@ -1550,12 +1585,12 @@ Node Parser::parse_statement(
     const auto info = std::get<EnumInfo>(globals.at(enum_name));
 
     // Closing parenthesis
-    incr(_cur_pos, _end);
-    if (*_cur_pos != ")") {
+    _pos.next();
+    if (_pos.cur() != ")") {
       throw std::runtime_error(
           "Missing ending parenthesis in 'match' statement.");
     }
-    incr(_cur_pos, _end);
+    _pos.next();
 
     // 0th child is operand, rest are cases
     Node out(Node::MATCH);
@@ -1570,26 +1605,26 @@ Node Parser::parse_statement(
     out.children = {target};
     out.is_mutable_match = is_mutable;
 
-    if (*_cur_pos != "{") {
+    if (_pos.cur() != "{") {
       throw std::runtime_error(
           "Missing opening curly brace in 'match' statement.");
     }
-    incr(_cur_pos, _end);
+    _pos.next();
 
-    while (*_cur_pos != "}") {
-      out.children.push_back(parse_case(info, _cur_pos, _end,
-                                        _settings, is_mutable));
-      incr(_cur_pos, _end);
+    while (_pos.cur() != "}") {
+      out.children.push_back(
+          parse_case(info, _pos, _settings, is_mutable));
+      _pos.next();
     }
 
     return out;
-  } else if (*_cur_pos == "return") {
+  } else if (_pos.cur() == "return") {
     // Return statement
     Node out(Node::STMT);
-    out.token = *_cur_pos;
-    incr(_cur_pos, _end);
-    if (*_cur_pos != ";") {
-      out.children = {parse_object(_cur_pos, _end, _settings)};
+    out.token = _pos.cur();
+    _pos.next();
+    if (_pos.cur() != ";") {
+      out.children = {parse_object(_pos, _settings)};
 
       if (!_settings.compile_settings()
                .cur_return_type.exact_match(
@@ -1614,9 +1649,9 @@ Node Parser::parse_statement(
     return out;
   } else {
     // Function call
-    Node ret = parse_function_call(_cur_pos, _end, _settings);
-    incr(_cur_pos, _end);
-    if (*_cur_pos != ";") {
+    Node ret = parse_function_call(_pos, _settings);
+    _pos.next();
+    if (_pos.cur() != ";") {
       throw std::runtime_error(
           "Missing semicolon after function call.");
     }
@@ -1626,43 +1661,48 @@ Node Parser::parse_statement(
 
 /// Assumes we are pointing to "case" or "else"
 /// Non-global (inside match statement)
-Node Parser::parse_case(
-    const EnumInfo &_enum_type,
-    std::list<Lexer::Token>::const_iterator &_cur_pos,
-    const std::list<Lexer::Token>::const_iterator &_end,
-    Settings &_settings, const bool &_is_mutable) {
+Node Parser::parse_case(const EnumInfo &_enum_type,
+                        TokenStream &_pos, Settings &_settings,
+                        const bool &_is_mutable) {
   debug_print();
-  if (*_cur_pos == "case") {
-    incr(_cur_pos, _end);
+  if (_settings.debug) {
+    _settings.ostream << __FUNCTION__ << " at "
+                      << _pos.cur().file.string() << ":"
+                      << _pos.cur().line << "."
+                      << _pos.cur().col << '\n';
+  }
+
+  if (_pos.cur() == "case") {
+    _pos.next();
 
     // Case name
-    const auto case_name = _cur_pos->text;
+    const auto case_name = _pos.cur().text;
     if (!_enum_type.options.contains(case_name)) {
       throw std::runtime_error("'" + case_name +
                                "' is not a valid enum option");
     }
 
     // Open parenthesis
-    incr(_cur_pos, _end);
-    if (*_cur_pos != "(") {
+    _pos.next();
+    if (_pos.cur() != "(") {
       throw std::runtime_error("Malformed 'case' statement: "
                                "Expected '(', but saw '" +
-                               _cur_pos->text + "'");
+                               _pos.cur().text + "'");
     }
-    incr(_cur_pos, _end);
+    _pos.next();
 
     // Arg w/ type
-    const auto passed_name = *_cur_pos;
-    incr(_cur_pos, _end);
+    const auto passed_name = _pos.cur();
+    _pos.next();
 
-    if (*_cur_pos != ":") {
+    if (_pos.cur() != ":") {
       throw std::runtime_error("Malformed 'case' statement: "
                                "Expected ':', but saw '" +
-                               _cur_pos->text + "'");
+                               _pos.cur().text + "'");
     }
-    incr(_cur_pos, _end);
+    _pos.next();
 
-    Type passed_type = parse_type(_cur_pos, _end, _settings);
+    Type passed_type = parse_type(_pos, _settings);
 
     if (_is_mutable) {
       // Pointer or exact allowed
@@ -1690,13 +1730,13 @@ Node Parser::parse_case(
     }
 
     // End parenthesis
-    incr(_cur_pos, _end);
-    if (*_cur_pos != ")") {
+    _pos.next();
+    if (_pos.cur() != ")") {
       throw std::runtime_error("Malformed 'case' statement: "
                                "Expected ')', but saw '" +
-                               _cur_pos->text + "'");
+                               _pos.cur().text + "'");
     }
-    incr(_cur_pos, _end);
+    _pos.next();
 
     // Push to locals stack
     locals.push_back({{passed_name, passed_type}});
@@ -1713,8 +1753,7 @@ Node Parser::parse_case(
     out.children = {first_child};
 
     // Statement
-    out.children.push_back(
-        parse_statement(_cur_pos, _end, _settings));
+    out.children.push_back(parse_statement(_pos, _settings));
 
     // Pop frame, calling destructors
     out = pop_frame(out, _settings);
@@ -1724,49 +1763,52 @@ Node Parser::parse_case(
     locals.pop_back();
 
     return out;
-  } else if (*_cur_pos == "else") {
+  } else if (_pos.cur() == "else") {
     // Statement
-    incr(_cur_pos, _end);
+    _pos.next();
     Node out(Node::NONE);
-    out.children = {parse_statement(_cur_pos, _end, _settings)};
+    out.children = {parse_statement(_pos, _settings)};
     return out;
   } else {
     throw std::runtime_error(
         "Error within match statement: Expected 'case' or "
         "'else', but saw '" +
-        _cur_pos->text + "'");
+        _pos.cur().text + "'");
   }
 }
 
 /// Parse a function call
-Node Parser::parse_function_call(
-    std::list<Lexer::Token>::const_iterator &_cur_pos,
-    const std::list<Lexer::Token>::const_iterator &_end,
-    Settings &_settings) {
+Node Parser::parse_function_call(TokenStream &_pos,
+                                 Settings &_settings) {
   debug_print();
+  if (_settings.debug) {
+    _settings.ostream << __FUNCTION__ << " at "
+                      << _pos.cur().file.string() << ":"
+                      << _pos.cur().line << "."
+                      << _pos.cur().col << '\n';
+  }
 
   // Special case: size!
-  if (*_cur_pos == "size!") {
-    incr(_cur_pos, _end);
-    if (*_cur_pos != "(") {
+  if (_pos.cur() == "size!") {
+    _pos.next();
+    if (_pos.cur() != "(") {
       throw std::runtime_error(
           "Invalid size! macro: Expected '(', but saw '" +
-          _cur_pos->text + "'");
+          _pos.cur().text + "'");
     }
-    incr(_cur_pos, _end);
+    _pos.next();
 
     // One type argument
     Node out(Node::RAW_C_FMT);
     out.type = Type({"uint"});
     out.c_name =
-        "sizeof(" +
-        parse_type(_cur_pos, _end, _settings).c_repr() + ")";
+        "sizeof(" + parse_type(_pos, _settings).c_repr() + ")";
 
-    incr(_cur_pos, _end);
-    if (*_cur_pos != ")") {
+    _pos.next();
+    if (_pos.cur() != ")") {
       throw std::runtime_error(
           "Invalid size! macro: Expected ')', but saw '" +
-          _cur_pos->text + "'");
+          _pos.cur().text + "'");
     }
 
     return out;
@@ -1774,22 +1816,21 @@ Node Parser::parse_function_call(
 
   // Function call
   Node out(Node::CALL);
-  out.token = *_cur_pos;
+  out.token = _pos.cur();
 
-  incr(_cur_pos, _end);
-  if (*_cur_pos != "(") {
+  _pos.next();
+  if (_pos.cur() != "(") {
     throw std::runtime_error("Expected function call");
   }
-  incr(_cur_pos, _end);
+  _pos.next();
 
   std::vector<Type> args;
-  while (*_cur_pos != ")") {
-    if (*_cur_pos != ",") {
-      out.children.push_back(
-          parse_object(_cur_pos, _end, _settings));
+  while (_pos.cur() != ")") {
+    if (_pos.cur() != ",") {
+      out.children.push_back(parse_object(_pos, _settings));
       args.push_back(out.children.back().type.value());
     }
-    incr(_cur_pos, _end);
+    _pos.next();
   }
 
   //////////////////////////////////////////////////////////////
@@ -1911,15 +1952,38 @@ Node Parser::parse_function_call(
     return out;
   }
 
+  // // New on sized array types
+  // else if (out.token.has_value() &&
+  //          out.token.value() == "New" &&
+  //          out.children.size() == 1 &&
+  //          out.children.front().type->nodes.front().type ==
+  //              Type::TypeNode::SIZED_ARRAY) {
+  //   Node new_out(Node::STMT);
+  //   Lexer l;
+  //   uint64_t line, col;
+  //   for (uint i = 0; i < out.children.front()
+  //                            .type->nodes.front()
+  //                            .sized_array_size;
+  //        ++i) {
+  //     line = out.token->line;
+  //     col = out.token->col;
+  //     auto lexed = l.lex(
+  //         "New(Get(" + out.children.front().c_name.value() +
+  //             ", " + std::to_string(i) + "uint));",
+  //         out.token->file, line, col);
+  //     new_out.children.push_back(
+  //         parse_function_call(lexed, _settings));
+  //     return new_out;
+  //   }
+  // }
+
   // Del on atomic types
   else if (out.token.has_value() &&
            out.token.value() == "Del" &&
            out.children.size() == 1 &&
            Type::is_built_in_type(
                out.children.front().type.value())) {
-    out.node_type = Node::RAW_C_FMT;
-    out.type = Type({"void"});
-    out.c_name = "% = 0;";
+    out.node_type = Node::NONE;
     return out;
   }
 
@@ -1936,57 +2000,30 @@ Node Parser::parse_function_call(
     return out;
   }
 
-  // New on sized array types
-  else if (out.token.has_value() &&
-           out.token.value() == "New" &&
-           out.children.size() == 1 &&
-           out.children.front().type->nodes.front().type ==
-               Type::TypeNode::SIZED_ARRAY) {
-    Node new_out(Node::STMT);
-    Lexer l;
-    uint64_t line, col;
-    for (uint i = 0; i < out.children.front()
-                             .type->nodes.front()
-                             .sized_array_size;
-         ++i) {
-      line = out.token->line;
-      col = out.token->col;
-      auto lexed = l.lex(
-          "New(Get(" + out.children.front().c_name.value() +
-              ", " + std::to_string(i) + "uint));",
-          out.token->file, line, col);
-      auto it = lexed.cbegin();
-      new_out.children.push_back(
-          parse_function_call(it, lexed.end(), _settings));
-      return new_out;
-    }
-  }
-
-  // Del on sized array
-  else if (out.token.has_value() &&
-           out.token.value() == "Del" &&
-           out.children.size() == 1 &&
-           out.children.front().type->nodes.front().type ==
-               Type::TypeNode::SIZED_ARRAY) {
-    Node new_out(Node::STMT);
-    Lexer l;
-    uint64_t line, col;
-    for (uint i = 0; i < out.children.front()
-                             .type->nodes.front()
-                             .sized_array_size;
-         ++i) {
-      line = out.token->line;
-      col = out.token->col;
-      auto lexed = l.lex(
-          "Del(Get(" + out.children.front().c_name.value() +
-              ", " + std::to_string(i) + "uint));",
-          out.token->file, line, col);
-      auto it = lexed.cbegin();
-      new_out.children.push_back(
-          parse_function_call(it, lexed.end(), _settings));
-      return new_out;
-    }
-  }
+  // // Del on sized array
+  // else if (out.token.has_value() &&
+  //          out.token.value() == "Del" &&
+  //          out.children.size() == 1 &&
+  //          out.children.front().type->nodes.front().type ==
+  //              Type::TypeNode::SIZED_ARRAY) {
+  //   Node new_out(Node::STMT);
+  //   Lexer l;
+  //   uint64_t line, col;
+  //   for (uint i = 0; i < out.children.front()
+  //                            .type->nodes.front()
+  //                            .sized_array_size;
+  //        ++i) {
+  //     line = out.token->line;
+  //     col = out.token->col;
+  //     auto lexed = l.lex(
+  //         "Del(Get(" + out.children.front().c_name.value() +
+  //             ", " + std::to_string(i) + "uint));",
+  //         out.token->file, line, col);
+  //     new_out.children.push_back(
+  //         parse_function_call(lexed, _settings));
+  //     return new_out;
+  //   }
+  // }
 
   // Pointer copy
   else if (out.token.has_value() &&
@@ -2003,7 +2040,7 @@ Node Parser::parse_function_call(
   }
 
   // Special case: Local fn pointer
-  if (!locals.empty() && out.token.has_value()) {
+  else if (!locals.empty() && out.token.has_value()) {
     for (auto frame = locals.rbegin(); frame != locals.rend();
          ++frame) {
       if (frame->contains(out.token.value().text)) {
@@ -2120,17 +2157,22 @@ Type Parser::resolve_variable(const Lexer::Token &_name,
 }
 
 /// Handles parenthesization
-Node Parser::parse_object(
-    std::list<Lexer::Token>::const_iterator &_cur_pos,
-    const std::list<Lexer::Token>::const_iterator &_end,
-    Settings &_settings) {
+Node Parser::parse_object(TokenStream &_pos,
+                          Settings &_settings) {
   debug_print();
+  if (_settings.debug) {
+    _settings.ostream << __FUNCTION__ << " at "
+                      << _pos.cur().file.string() << ":"
+                      << _pos.cur().line << "."
+                      << _pos.cur().col << '\n';
+  }
+
   /*
   object = name | function_call | object . name ;
   */
 
   // Open parenthesis immediately: No-capture lambda
-  if (*_cur_pos == "(") {
+  if (_pos.cur() == "(") {
     // Create name
     uint lambda_counter = 1;
     while (functions.contains("__oak_lambda_" +
@@ -2143,12 +2185,12 @@ Node Parser::parse_object(
     // Parse function
     auto stack = locals;
     locals.clear();
-    parse_function({lambda_name}, _cur_pos, _end, _settings);
+    parse_function({lambda_name}, _pos, _settings);
     locals = stack;
 
     // Return a fn pointer to that lambda
     Node out(Node::OBJECT);
-    out.token = Lexer::Token(*_cur_pos, lambda_name);
+    out.token = Lexer::Token(_pos.cur(), lambda_name);
     out.c_name = "";
     out.type =
         resolve_variable(out.token.value(), out.c_name.value());
@@ -2157,12 +2199,11 @@ Node Parser::parse_object(
   }
 
   // Open parenthesis follows: Function call
-  else if (std::next(_cur_pos) != _end &&
-           *std::next(_cur_pos) == "(") {
-    return parse_function_call(_cur_pos, _end, _settings);
+  else if (_pos.peek(1).text == "(") {
+    return parse_function_call(_pos, _settings);
   }
 
-  auto cur = *_cur_pos;
+  auto cur = _pos.cur();
   const auto literal_type = Lexer::get_literal_type(cur);
   if (literal_type.has_value()) {
     // Literal
@@ -2173,18 +2214,18 @@ Node Parser::parse_object(
   } else {
     // Name
     uint derefs = 0;
-    while (_cur_pos != _end && *_cur_pos == "^") {
+    while (!_pos.done() && _pos.cur() == "^") {
       ++derefs;
-      ++_cur_pos;
+      _pos.next();
     }
 
-    if (_cur_pos == _end) {
+    if (_pos.done()) {
       throw std::runtime_error(
           "'^' operator must operate on a variable.");
     }
 
     std::string name;
-    Type t = resolve_variable(*_cur_pos, name);
+    Type t = resolve_variable(_pos.cur(), name);
 
     // Derefs
     if (derefs > 0) {
@@ -2203,12 +2244,10 @@ Node Parser::parse_object(
     }
 
     // Member access
-    while (std::next(_cur_pos) != _end &&
-           *std::next(_cur_pos) == ".") {
-
-      incr(_cur_pos, _end); // pointing at .
-      incr(_cur_pos, _end); // pointing at member name
-      const auto member_name = _cur_pos->text;
+    while (_pos.peek(1).text == ".") {
+      _pos.next(); // pointing at .
+      _pos.next(); // pointing at member name
+      const auto member_name = _pos.cur().text;
 
       // Auto-deref for member access
       while (!t.nodes.empty() &&
@@ -2323,14 +2362,6 @@ std::list<std::string> Parser::TemplateInfo::replace(
   return out;
 }
 
-/// Run the given parser as necessary on this template.
-/// This first checks for existing instances. If one exists,
-/// returns true. If none exist, it replaces and parses the
-/// validate block. If that works, it replaces and parses the
-/// instantiate block. If the instantiate block fails, it
-/// raises an error. If not, the instance is logged and we
-/// return without error. Returns true on full success, false
-/// on failure w/o error
 bool Parser::TemplateInfo::attempt_instantiation(
     Parser &_p,
     const std::list<std::list<std::string>> &_substitutions,
@@ -2342,7 +2373,7 @@ bool Parser::TemplateInfo::attempt_instantiation(
   }
 
   // Build validation block
-  const auto replaced_validation_block =
+  auto replaced_validation_block =
       Lexer::tokify(replace(validate, generics, _substitutions),
                     path, line, col);
 

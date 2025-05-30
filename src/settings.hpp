@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "rule.hpp"
 #include "type.hpp"
 #include <filesystem>
 #include <list>
@@ -180,7 +181,7 @@ public:
   bool debug = false;
 
   /// If desired, the dialect file to load before running
-  std::optional<std::filesystem::path> dialect;
+  std::optional<std::string> dialect;
 
   /**
    * @brief Yields this object as a TestSettings variant

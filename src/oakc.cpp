@@ -405,6 +405,11 @@ void OakCompiler::operator()() {
   debug_print();
   bool did_fail = false;
   if (settings.is_compile()) {
+    if (settings.debug) {
+      settings.ostream
+          << "Compiler detected compilation mode.\n";
+    }
+
     try {
       do_compilation();
     } catch (RunError &) {
@@ -427,6 +432,10 @@ void OakCompiler::operator()() {
           "pragma!(\"compile_should_fail\")");
     }
   } else {
+    if (settings.debug) {
+      settings.ostream << "Compiler detected testing mode.\n";
+    }
+
     do_testing();
   }
 }
@@ -463,22 +472,16 @@ void OakCompiler::do_compilation() {
     break;
   }
 
-  // If requested, load dialect file
-  if (settings.dialect.has_value()) {
-    try {
-      load_dialect_file(settings.dialect.value());
-    } catch (std::runtime_error &e) {
-      throw std::runtime_error(
-          "Error occurred while loading dialect "
-          "file '" +
-          settings.dialect.value().string() + "':\n" +
-          e.what());
-    } catch (...) {
-      throw std::runtime_error(
-          "An unknown error occurred while loading dialect "
-          "file '" +
-          settings.dialect.value().string() + "'");
-    }
+  if (settings.debug) {
+    settings.ostream << "Source:     " << csettings.entry_point
+                     << "\nTarget:     " << translated_file
+                     << "\nObject:     " << compiled_file
+                     << "\nExecutable: " << linked_file << "\n";
+  }
+
+  if (settings.debug) {
+    settings.ostream << "Parsing " << csettings.entry_point
+                     << "\n";
   }
 
   try {
@@ -500,6 +503,12 @@ void OakCompiler::do_compilation() {
   // If requested, translate
   if (csettings.mode >=
       Settings::CompileSettings::TRANSLATE_ONLY) {
+    if (settings.debug) {
+      settings.ostream << "Translating "
+                       << csettings.entry_point << " to "
+                       << translated_file << "\n";
+    }
+
     // Translate Oak token stream to C directly to file
     std::ofstream target_file(translated_file);
     translate(target_file);
@@ -508,6 +517,10 @@ void OakCompiler::do_compilation() {
   // If requested, call compiler
   if (csettings.mode >=
       Settings::CompileSettings::TRANSLATE_AND_COMPILE) {
+    if (settings.debug) {
+      settings.ostream << "Compiling " << translated_file
+                       << " to " << compiled_file << "\n";
+    }
 
     // Prepare command
     std::string command;
@@ -545,6 +558,10 @@ void OakCompiler::do_compilation() {
   // If requested, call linker
   if (csettings.mode >=
       Settings::CompileSettings::TRANSLATE_COMPILE_AND_LINK) {
+    if (settings.debug) {
+      settings.ostream << "Linking " << compiled_file << " to "
+                       << linked_file << "\n";
+    }
 
     bool saw_main = false;
     const auto res = p.fetch_symbol("main");
@@ -612,6 +629,10 @@ void OakCompiler::do_compilation() {
       !settings.compile_settings()
            .pragmas[settings.compile_settings().entry_point]
            .contains("no_run")) {
+    if (settings.debug) {
+      settings.ostream << "Executing " << compiled_file << "\n";
+    }
+
     bool should_succeed =
         !settings.compile_settings()
              .pragmas[settings.compile_settings().entry_point]
@@ -1091,8 +1112,7 @@ void OakCompiler::syntax_check(const std::filesystem::path &_fp,
   }
 }
 
-void OakCompiler::fix_math(
-    std::list<Lexer::Token> &_token_stream) {
+void OakCompiler::fix_math(TokenStream &_pos) {
   debug_print();
   // Iterate through the token stream, replace all instances of
   // the given operator with the given op fn call name (EG '+'
@@ -1100,25 +1120,33 @@ void OakCompiler::fix_math(
   // call this lambda
   const auto resolve_binary_operator =
       [&](const std::map<std::string, std::string> &_ops) {
-        // Scan strm
-        for (auto it = _token_stream.begin();
-             it != _token_stream.end(); ++it) {
+        // Scan stream
+        for (_pos.reset(); !_pos.done(); _pos.next()) {
+          // Special case: skip anything of the form
+          // `let . = .* ;`
+          if (_pos.cur() == "let" && _pos.peek(2) == "=") {
+            while (!_pos.done() && _pos.cur() != ";") {
+              _pos.next();
+            }
+            continue;
+          }
+
           // On match
-          if (it->type == "OPERATOR" &&
-              _ops.contains(it->text)) {
+          if (_pos.cur().type == "OPERATOR" &&
+              _ops.contains(_pos.cur().text)) {
             std::list<Lexer::Token>::iterator
-                first_of_lhs,         // First tok in lhs
-                first_after_lhs = it, // The single-token op
-                first_after_rhs;      // First tok after rhs
+                first_of_lhs, // First tok in lhs
+                first_after_lhs =
+                    _pos.tell(), // The single-token op
+                first_after_rhs; // First tok after rhs
 
             // Find lhs
-            first_of_lhs = std::prev(it);
-            if (it == _token_stream.begin() ||
-                *first_of_lhs == "(") {
+            first_of_lhs = std::prev(_pos.tell());
+            if (_pos.at_beg() || *first_of_lhs == "(") {
               throw std::runtime_error(
-                  "At " + it->file.string() + ":" +
-                  std::to_string(it->line) + "." +
-                  std::to_string(it->col) +
+                  "At " + _pos.cur().file.string() + ":" +
+                  std::to_string(_pos.cur().line) + "." +
+                  std::to_string(_pos.cur().col) +
                   "> Malformed operator '" +
                   first_after_lhs->text + "' LHS");
             } else if (*first_of_lhs == ")") {
@@ -1138,9 +1166,8 @@ void OakCompiler::fix_math(
               // Erase matched parenthesis
               while (first_of_lhs->text == "(" &&
                      std::prev(first_after_lhs)->text == ")") {
-                first_of_lhs =
-                    _token_stream.erase(first_of_lhs);
-                _token_stream.erase(std::prev(first_after_lhs));
+                first_of_lhs = _pos.erase(first_of_lhs);
+                _pos.erase(std::prev(first_after_lhs));
               }
             }
             while (std::prev(first_of_lhs)->text == ".") {
@@ -1148,13 +1175,13 @@ void OakCompiler::fix_math(
             }
 
             // Find rhs
-            first_after_rhs = std::next(it);
-            if (first_after_rhs == _token_stream.end() ||
+            first_after_rhs = std::next(_pos.tell());
+            if (first_after_rhs->type == "EOF" ||
                 *first_after_rhs == ")") {
               throw std::runtime_error(
-                  "At " + it->file.string() + ":" +
-                  std::to_string(it->line) + "." +
-                  std::to_string(it->col) +
+                  "At " + _pos.cur().file.string() + ":" +
+                  std::to_string(_pos.cur().line) + "." +
+                  std::to_string(_pos.cur().col) +
                   "> Malformed operator '" +
                   first_after_lhs->text + "' LHS");
             } else if (first_after_rhs->text == "(") {
@@ -1177,8 +1204,8 @@ void OakCompiler::fix_math(
               // Erase matched parenthesis
               while (start_pos->text == "(" &&
                      std::prev(first_after_rhs)->text == ")") {
-                start_pos = _token_stream.erase(start_pos);
-                _token_stream.erase(std::prev(first_after_rhs));
+                start_pos = _pos.erase(start_pos);
+                _pos.erase(std::prev(first_after_rhs));
               }
             } else if (std::next(first_after_rhs)->text ==
                        "(") {
@@ -1207,25 +1234,27 @@ void OakCompiler::fix_math(
             // Operate
             // "lhs _operator rhs" -> "_op_name ( lhs , rhs )"
             // "lhs _operator (...)" -> "_op_name ( lhs , ... )"
-            _token_stream.insert(
+            _pos.insert(
                 first_of_lhs,
                 Lexer::Token(_ops.at(first_after_lhs->text),
-                             it->file, it->line, it->col,
-                             "ID"));
-            _token_stream.insert(first_of_lhs,
-                                 Lexer::Token("(", it->file,
-                                              it->line, it->col,
-                                              "OPERATOR"));
+                             _pos.cur().file, _pos.cur().line,
+                             _pos.cur().col, "ID"));
+            _pos.insert(first_of_lhs,
+                        Lexer::Token("(", _pos.cur().file,
+                                     _pos.cur().line,
+                                     _pos.cur().col,
+                                     "OPERATOR"));
 
             // Separating comma
             first_after_lhs->text = ",";
             first_after_lhs->type = "OPERATOR";
 
             // End parenthesis
-            _token_stream.insert(first_after_rhs,
-                                 Lexer::Token(")", it->file,
-                                              it->line, it->col,
-                                              "OPERATOR"));
+            _pos.insert(first_after_rhs,
+                        Lexer::Token(")", _pos.cur().file,
+                                     _pos.cur().line,
+                                     _pos.cur().col,
+                                     "OPERATOR"));
           }
         }
       };
@@ -1236,23 +1265,23 @@ void OakCompiler::fix_math(
   const auto resolve_unary_operator =
       [&](const std::string &_operator,
           const std::string &_op_name) {
-        // Scan strm
-        for (auto it = _token_stream.begin();
-             it != _token_stream.end(); ++it) {
+        // Scan stream
+        for (_pos.reset(); !_pos.done(); _pos.next()) {
           // On match
-          if (it->type == "OPERATOR" && it->text == _operator) {
+          if (_pos.cur().type == "OPERATOR" &&
+              _pos.cur().text == _operator) {
             std::list<Lexer::Token>::iterator
-                first_after_lhs = it, // The single-token op
-                first_after_rhs;      // First tok after rhs
+                first_after_lhs =
+                    _pos.tell(), // The single-token op
+                first_after_rhs; // First tok after rhs
 
             // Find rhs
-            first_after_rhs = std::next(it);
-            if (it == _token_stream.begin() ||
-                *first_after_rhs == ")") {
+            first_after_rhs = std::next(_pos.tell());
+            if (_pos.at_beg() || *first_after_rhs == ")") {
               throw std::runtime_error(
-                  "At " + it->file.string() + ":" +
-                  std::to_string(it->line) + "." +
-                  std::to_string(it->col) +
+                  "At " + _pos.cur().file.string() + ":" +
+                  std::to_string(_pos.cur().line) + "." +
+                  std::to_string(_pos.cur().col) +
                   "> Malformed operator '" + _operator +
                   "' LHS");
             } else if (std::next(first_after_rhs)->text ==
@@ -1281,18 +1310,19 @@ void OakCompiler::fix_math(
             // Operate
             // "_operator rhs" -> "_op_name ( rhs )"
             // Beginning of call: "Name ("
-            _token_stream.insert(
-                first_after_lhs,
-                Lexer::Token(_op_name, it->file, it->line,
-                             it->col, "ID"));
+            _pos.insert(first_after_lhs,
+                        Lexer::Token(_op_name, _pos.cur().file,
+                                     _pos.cur().line,
+                                     _pos.cur().col, "ID"));
             first_after_lhs->text = "(";
             first_after_lhs->type = "OPERATOR";
 
             // End parenthesis
-            _token_stream.insert(first_after_rhs,
-                                 Lexer::Token(")", it->file,
-                                              it->line, it->col,
-                                              "OPERATOR"));
+            _pos.insert(first_after_rhs,
+                        Lexer::Token(")", _pos.cur().file,
+                                     _pos.cur().line,
+                                     _pos.cur().col,
+                                     "OPERATOR"));
           }
         }
       };
@@ -1357,8 +1387,7 @@ void OakCompiler::fix_math(
   }
 }
 
-uint64_t OakCompiler::preprocess(
-    std::list<Lexer::Token> &_token_stream) {
+uint64_t OakCompiler::preprocess(TokenStream &_pos) {
   debug_print();
   bool did_change = false;
   uint64_t passes = 0;
@@ -1369,20 +1398,20 @@ uint64_t OakCompiler::preprocess(
     if (csettings.dump_file.has_value()) {
       log = csettings.dump_file.value();
     } else {
-      log = std::make_shared<std::ofstream>("acorn_rules.log");
+      log = std::make_shared<std::ofstream>("acorn_rules.log",
+                                            std::ios::app);
     }
 
     **log << "Raw lexed :\n ";
     uint64_t prev_line = 0;
     std::filesystem::path prev_path;
-    for (const auto &tok : _token_stream) {
+    for (const auto &tok : _pos) {
       if (tok.file != prev_path) {
         **log << '\n' << tok.file << ":\n";
         prev_path = tok.file;
       }
       if (tok.line != prev_line) {
-        **log << "\n"
-              << std::right << std::setw(8) << tok.line << " |";
+        **log << "\n" << tok.line << "\t|";
         prev_line = tok.line;
       }
       **log << ' ' << tok.text;
@@ -1403,61 +1432,61 @@ uint64_t OakCompiler::preprocess(
 
     // Macro definitions
     bool saw_let = false;
-    for (auto it = _token_stream.begin();
-         it != _token_stream.end(); ++it) {
+    for (_pos.reset(); !_pos.done(); _pos.next()) {
       try {
-        if (*it == "let") {
+        if (_pos.cur() == "let") {
           saw_let = true;
-        } else if (saw_let && *it != "!" &&
-                   it->text.find('!') != std::string::npos) {
+        } else if (saw_let && _pos.cur() != "!" &&
+                   _pos.cur().text.find('!') !=
+                       std::string::npos) {
           macros.process_definition(
-              _token_stream, it, _token_stream.end(),
-              settings.compile_settings()
-                      .preprocess_pass_limit -
-                  passes);
+              _pos, settings.compile_settings()
+                            .preprocess_pass_limit -
+                        passes);
           saw_let = false;
-          --it;
+          did_change = true;
+          _pos.prev();
         } else {
           saw_let = false;
         }
       } catch (OutOfPPPLError &e) {
-        throw OutOfPPPLError("At " + it->file.string() + ":" +
-                             std::to_string(it->line) + "." +
-                             std::to_string(it->col) + "\n" +
-                             e.what());
+        throw OutOfPPPLError(
+            "At " + _pos.cur().file.string() + ":" +
+            std::to_string(_pos.cur().line) + "." +
+            std::to_string(_pos.cur().col) + "\n" + e.what());
       } catch (std::runtime_error &e) {
         throw std::runtime_error(
-            "At " + it->file.string() + ":" +
-            std::to_string(it->line) + "." +
-            std::to_string(it->col) + "\n" + e.what());
+            "At " + _pos.cur().file.string() + ":" +
+            std::to_string(_pos.cur().line) + "." +
+            std::to_string(_pos.cur().col) + "\n" + e.what());
       } catch (...) {
-        if (it == _token_stream.end()) {
+        if (_pos.done()) {
           throw;
         }
         throw std::runtime_error(
-            "At " + it->file.string() + ":" +
-            std::to_string(it->line) + "." +
-            std::to_string(it->col) + "\nUnknown error");
+            "At " + _pos.cur().file.string() + ":" +
+            std::to_string(_pos.cur().line) + "." +
+            std::to_string(_pos.cur().col) + "\nUnknown error");
       }
     }
 
     // Resolve includes and packages
-    for (auto it = _token_stream.begin();
-         it != _token_stream.end(); ++it) {
+    for (_pos.reset(); !_pos.done(); _pos.next()) {
       try {
-        if (*it == "include!") {
-          auto raw_args = MacroManager::get_macro_args(
-              _token_stream, it, _token_stream.end());
+        if (_pos.cur() == "include!") {
+          did_change = true;
+          auto raw_args = MacroManager::get_macro_args(_pos);
 
           std::list<Lexer::Token> args;
           for (auto it = raw_args.begin(); it != raw_args.end();
                ++it) {
-            preprocess(*it);
-            Lexer::Token to_add = it->front();
-            for (auto inner_it = std::next(it->begin());
-                 inner_it != it->end(); ++inner_it) {
+            TokenStream cur_arg(*it);
+            preprocess(cur_arg);
+            Lexer::Token to_add = cur_arg.cur();
+            for (cur_arg.next(); !cur_arg.done();
+                 cur_arg.next()) {
               to_add.text += ' ';
-              to_add.text += inner_it->text;
+              to_add.text += cur_arg.cur().text;
             }
             to_add.text =
                 MacroManager::strip_string_literal(to_add.text);
@@ -1475,122 +1504,130 @@ uint64_t OakCompiler::preprocess(
             }
           } catch (OutOfPPPLError &e) {
             throw OutOfPPPLError(
-                "In file included from " + it->file.string() +
-                ":" + std::to_string(it->line) + "." +
-                std::to_string(it->col) + "\n" + e.what());
+                "In file included from " +
+                _pos.cur().file.string() + ":" +
+                std::to_string(_pos.cur().line) + "." +
+                std::to_string(_pos.cur().col) + "\n" +
+                e.what());
           } catch (std::runtime_error &e) {
             throw std::runtime_error(
-                "In file included from " + it->file.string() +
-                ":" + std::to_string(it->line) + "." +
-                std::to_string(it->col) + "\n" + e.what());
+                "In file included from " +
+                _pos.cur().file.string() + ":" +
+                std::to_string(_pos.cur().line) + "." +
+                std::to_string(_pos.cur().col) + "\n" +
+                e.what());
           } catch (...) {
             throw std::runtime_error(
-                "In file included from " + it->file.string() +
-                ":" + std::to_string(it->line) + "." +
-                std::to_string(it->col) + "\nUnknown error");
+                "In file included from " +
+                _pos.cur().file.string() + ":" +
+                std::to_string(_pos.cur().line) + "." +
+                std::to_string(_pos.cur().col) +
+                "\nUnknown error");
           }
-        } else if (*it == "link!") {
-          auto raw_args = MacroManager::get_macro_args(
-              _token_stream, it, _token_stream.end());
+        } else if (_pos.cur() == "link!") {
+          did_change = true;
+          auto raw_args = MacroManager::get_macro_args(_pos);
 
           std::list<Lexer::Token> args;
           for (auto it = raw_args.begin(); it != raw_args.end();
                ++it) {
-            preprocess(*it);
-            Lexer::Token to_add = it->front();
-            for (auto inner_it = std::next(it->begin());
-                 inner_it != it->end(); ++inner_it) {
+            TokenStream cur_arg(*it);
+            preprocess(cur_arg);
+            Lexer::Token to_add = cur_arg.cur();
+            for (cur_arg.next(); !cur_arg.done();
+                 cur_arg.next()) {
               to_add.text += ' ';
-              to_add.text += inner_it->text;
+              to_add.text += cur_arg.cur().text;
             }
-            to_add.text =
-                MacroManager::strip_string_literal(to_add.text);
             args.push_back(to_add);
           }
 
           for (auto it = args.begin(); it != args.end(); ++it) {
-            it->text = MacroManager::strip_string_literal(*it);
+            it->text =
+                MacroManager::strip_string_literal(it->text);
           }
 
           for (const auto &f : args) {
             csettings.objects.push_back(
                 resolve_path(f.text, f.file));
           }
-        } else if (*it == "flag!") {
-          auto raw_args = MacroManager::get_macro_args(
-              _token_stream, it, _token_stream.end());
+        } else if (_pos.cur() == "flag!") {
+          did_change = true;
+          auto raw_args = MacroManager::get_macro_args(_pos);
 
           std::list<Lexer::Token> args;
           for (auto it = raw_args.begin(); it != raw_args.end();
                ++it) {
-            preprocess(*it);
-            Lexer::Token to_add = it->front();
-            for (auto inner_it = std::next(it->begin());
-                 inner_it != it->end(); ++inner_it) {
+            TokenStream cur_arg(*it);
+            preprocess(cur_arg);
+            Lexer::Token to_add = cur_arg.cur();
+            for (cur_arg.next(); !cur_arg.done();
+                 cur_arg.next()) {
               to_add.text += ' ';
-              to_add.text += inner_it->text;
+              to_add.text += cur_arg.cur().text;
             }
-            to_add.text =
-                MacroManager::strip_string_literal(to_add.text);
             args.push_back(to_add);
           }
 
           for (auto it = args.begin(); it != args.end(); ++it) {
-            it->text = MacroManager::strip_string_literal(*it);
+            it->text =
+                MacroManager::strip_string_literal(it->text);
           }
 
           for (const auto &f : args) {
             csettings.link_flags.push_back(f.text);
           }
-        } else if (*it == "pragma!") {
-          auto raw_args = MacroManager::get_macro_args(
-              _token_stream, it, _token_stream.end());
+        } else if (_pos.cur() == "pragma!") {
+          did_change = true;
+          auto raw_args = MacroManager::get_macro_args(_pos);
 
           std::list<Lexer::Token> args;
           for (auto it = raw_args.begin(); it != raw_args.end();
                ++it) {
-            preprocess(*it);
-            Lexer::Token to_add = it->front();
-            for (auto inner_it = std::next(it->begin());
-                 inner_it != it->end(); ++inner_it) {
+            TokenStream cur_arg(*it);
+            preprocess(cur_arg);
+            Lexer::Token to_add = cur_arg.cur();
+            for (cur_arg.next(); !cur_arg.done();
+                 cur_arg.next()) {
               to_add.text += ' ';
-              to_add.text += inner_it->text;
+              to_add.text += cur_arg.cur().text;
             }
-            to_add.text =
-                MacroManager::strip_string_literal(to_add.text);
             args.push_back(to_add);
           }
 
           for (auto it = args.begin(); it != args.end(); ++it) {
-            it->text = MacroManager::strip_string_literal(*it);
+            it->text =
+                MacroManager::strip_string_literal(it->text);
           }
 
           if (args.size() == 1) {
             args.push_back(Lexer::Token(args.front(), ""));
           }
-          csettings.pragmas[it->file][args.front().text] =
+
+          csettings
+              .pragmas[_pos.cur().file][args.front().text] =
               std::next(args.begin())->text;
-        } else if (*it == "rule_new!") {
-          auto raw_args = MacroManager::get_macro_args(
-              _token_stream, it, _token_stream.end());
+        } else if (_pos.cur() == "rule_new!") {
+          did_change = true;
+          auto raw_args = MacroManager::get_macro_args(_pos);
 
           std::list<Lexer::Token> args;
           for (auto it = raw_args.begin(); it != raw_args.end();
                ++it) {
-            preprocess(*it);
-            Lexer::Token to_add = it->front();
-            for (auto inner_it = std::next(it->begin());
-                 inner_it != it->end(); ++inner_it) {
+            TokenStream cur_arg(*it);
+            preprocess(cur_arg);
+            Lexer::Token to_add = cur_arg.cur();
+            for (cur_arg.next(); !cur_arg.done();
+                 cur_arg.next()) {
               to_add.text += ' ';
-              to_add.text += inner_it->text;
+              to_add.text += cur_arg.cur().text;
             }
-            to_add.text =
-                MacroManager::strip_string_literal(to_add.text);
             args.push_back(to_add);
           }
 
           for (auto it = args.begin(); it != args.end(); ++it) {
-            it->text = MacroManager::strip_string_literal(*it);
+            it->text =
+                MacroManager::strip_string_literal(it->text);
           }
 
           if (args.size() < 3) {
@@ -1613,7 +1650,7 @@ uint64_t OakCompiler::preprocess(
             engine = *std::next(args.begin(), 3);
             for (auto it = std::next(args.begin(), 4);
                  it != args.end(); ++it) {
-              prereqs.push_back(*it);
+              prereqs.push_back(_pos.cur());
             }
           }
 
@@ -1622,23 +1659,21 @@ uint64_t OakCompiler::preprocess(
                       engine);
 
           rules.register_rule(name, to_add);
-        } else if (*it == "rule_use!") {
-          did_change |= true;
-          auto raw_args = MacroManager::get_macro_args(
-              _token_stream, it, _token_stream.end());
+        } else if (_pos.cur() == "rule_use!") {
+          did_change = true;
+          auto raw_args = MacroManager::get_macro_args(_pos);
 
           std::list<Lexer::Token> args;
           for (auto it = raw_args.begin(); it != raw_args.end();
                ++it) {
-            preprocess(*it);
-            Lexer::Token to_add = it->front();
-            for (auto inner_it = std::next(it->begin());
-                 inner_it != it->end(); ++inner_it) {
+            TokenStream cur_arg(*it);
+            preprocess(cur_arg);
+            Lexer::Token to_add = cur_arg.cur();
+            for (cur_arg.next(); !cur_arg.done();
+                 cur_arg.next()) {
               to_add.text += ' ';
-              to_add.text += inner_it->text;
+              to_add.text += cur_arg.cur().text;
             }
-            to_add.text =
-                MacroManager::strip_string_literal(to_add.text);
             args.push_back(to_add);
           }
 
@@ -1646,22 +1681,21 @@ uint64_t OakCompiler::preprocess(
             rules.add_entry_point(
                 MacroManager::strip_string_literal(arg));
           }
-        } else if (*it == "rule_remove!") {
-          auto raw_args = MacroManager::get_macro_args(
-              _token_stream, it, _token_stream.end());
+        } else if (_pos.cur() == "rule_remove!") {
+          did_change = true;
+          auto raw_args = MacroManager::get_macro_args(_pos);
 
           std::list<Lexer::Token> args;
           for (auto it = raw_args.begin(); it != raw_args.end();
                ++it) {
-            preprocess(*it);
-            Lexer::Token to_add = it->front();
-            for (auto inner_it = std::next(it->begin());
-                 inner_it != it->end(); ++inner_it) {
+            TokenStream cur_arg(*it);
+            preprocess(cur_arg);
+            Lexer::Token to_add = cur_arg.cur();
+            for (cur_arg.next(); !cur_arg.done();
+                 cur_arg.next()) {
               to_add.text += ' ';
-              to_add.text += inner_it->text;
+              to_add.text += cur_arg.cur().text;
             }
-            to_add.text =
-                MacroManager::strip_string_literal(to_add.text);
             args.push_back(to_add);
           }
 
@@ -1669,22 +1703,21 @@ uint64_t OakCompiler::preprocess(
             rules.remove_entry_point(
                 MacroManager::strip_string_literal(arg));
           }
-        } else if (*it == "rule_bundle!") {
-          auto raw_args = MacroManager::get_macro_args(
-              _token_stream, it, _token_stream.end());
+        } else if (_pos.cur() == "rule_bundle!") {
+          did_change = true;
+          auto raw_args = MacroManager::get_macro_args(_pos);
 
           std::list<Lexer::Token> args;
           for (auto it = raw_args.begin(); it != raw_args.end();
                ++it) {
-            preprocess(*it);
-            Lexer::Token to_add = it->front();
-            for (auto inner_it = std::next(it->begin());
-                 inner_it != it->end(); ++inner_it) {
+            TokenStream cur_arg(*it);
+            preprocess(cur_arg);
+            Lexer::Token to_add = cur_arg.cur();
+            for (cur_arg.next(); !cur_arg.done();
+                 cur_arg.next()) {
               to_add.text += ' ';
-              to_add.text += inner_it->text;
+              to_add.text += cur_arg.cur().text;
             }
-            to_add.text =
-                MacroManager::strip_string_literal(to_add.text);
             args.push_back(to_add);
           }
 
@@ -1692,18 +1725,16 @@ uint64_t OakCompiler::preprocess(
           for (auto it = std::next(args.begin());
                it != args.end(); ++it) {
             entails.push_back(
-                MacroManager::strip_string_literal(*it));
+                MacroManager::strip_string_literal(it->text));
           }
 
           rules.register_bundle(
               MacroManager::strip_string_literal(args.front()),
               entails);
-        }
-
-        else if (*it == "unstr!") {
-          Lexer::Token to_add(*it);
-          auto raw_args = MacroManager::get_macro_args(
-              _token_stream, it, _token_stream.end());
+        } else if (_pos.cur() == "unstr!") {
+          did_change = true;
+          Lexer::Token to_add(_pos.cur());
+          auto raw_args = MacroManager::get_macro_args(_pos);
           to_add.text.clear();
 
           for (auto it = raw_args.begin(); it != raw_args.end();
@@ -1725,15 +1756,11 @@ uint64_t OakCompiler::preprocess(
                    dummy_col = to_add.col;
           auto to_insert = lexer.lex(to_add.text, to_add.file,
                                      dummy_line, dummy_col);
-          for (auto arg = to_insert.begin();
-               arg != to_insert.end(); ++arg) {
-            arg->line = to_add.line;
-            _token_stream.emplace(it, *arg);
-          }
-        } else if (*it == "str!") {
-          Lexer::Token to_add(*it);
-          auto raw_args = MacroManager::get_macro_args(
-              _token_stream, it, _token_stream.end());
+          _pos.insert(_pos.tell(), to_insert);
+        } else if (_pos.cur() == "str!") {
+          did_change = true;
+          Lexer::Token to_add(_pos.cur());
+          auto raw_args = MacroManager::get_macro_args(_pos);
           to_add.text.clear();
 
           for (auto it = raw_args.begin(); it != raw_args.end();
@@ -1751,35 +1778,33 @@ uint64_t OakCompiler::preprocess(
           to_add.text = MacroManager::make_string_literal(
               MacroManager::strip_string_literal(to_add.text));
           Lexer::classify_type(to_add);
-          _token_stream.emplace(it, to_add);
-        }
-
-        else if (*it == "compile_time_system!") {
+          _pos.insert(_pos.tell(), to_add);
+        } else if (_pos.cur() == "compile_time_system!") {
+          did_change = true;
           settings.ostream
-              << it->file.string() << ":" << it->line << "."
-              << it->col
+              << _pos.cur().file.string() << ":"
+              << _pos.cur().line << "." << _pos.cur().col
               << ">\ncompile_time::system! asks to run `";
 
-          auto raw_args = MacroManager::get_macro_args(
-              _token_stream, it, _token_stream.end());
+          auto raw_args = MacroManager::get_macro_args(_pos);
 
           std::list<Lexer::Token> args;
           for (auto it = raw_args.begin(); it != raw_args.end();
                ++it) {
-            preprocess(*it);
-            Lexer::Token to_add = it->front();
-            for (auto inner_it = std::next(it->begin());
-                 inner_it != it->end(); ++inner_it) {
+            TokenStream cur_arg(*it);
+            preprocess(cur_arg);
+            Lexer::Token to_add = cur_arg.cur();
+            for (cur_arg.next(); !cur_arg.done();
+                 cur_arg.next()) {
               to_add.text += ' ';
-              to_add.text += inner_it->text;
+              to_add.text += cur_arg.cur().text;
             }
-            to_add.text =
-                MacroManager::strip_string_literal(to_add.text);
             args.push_back(to_add);
           }
 
           for (auto it = args.begin(); it != args.end(); ++it) {
-            it->text = MacroManager::strip_string_literal(*it);
+            it->text =
+                MacroManager::strip_string_literal(it->text);
           }
 
           std::string cmd;
@@ -1791,7 +1816,8 @@ uint64_t OakCompiler::preprocess(
           }
 
           settings.ostream << cmd << "` at "
-                           << it->file.parent_path() << "\n"
+                           << _pos.cur().file.parent_path()
+                           << "\n"
                            << std::flush;
 
           if (!csettings.no_confirm) {
@@ -1816,7 +1842,8 @@ uint64_t OakCompiler::preprocess(
           }
 
           const auto old_cwd = std::filesystem::current_path();
-          std::filesystem::current_path(it->file.parent_path());
+          std::filesystem::current_path(
+              _pos.cur().file.parent_path());
 
           auto result = system(cmd.c_str());
 
@@ -1831,66 +1858,66 @@ uint64_t OakCompiler::preprocess(
         }
       } catch (OutOfPPPLError &e) {
         throw std::runtime_error(
-            "At " + it->file.string() + ":" +
-            std::to_string(it->line) + "." +
-            std::to_string(it->col) + "\n" + e.what());
+            "At " + _pos.cur().file.string() + ":" +
+            std::to_string(_pos.cur().line) + "." +
+            std::to_string(_pos.cur().col) + "\n" + e.what());
       } catch (std::runtime_error &e) {
         throw std::runtime_error(
-            "At " + it->file.string() + ":" +
-            std::to_string(it->line) + "." +
-            std::to_string(it->col) + "\n" + e.what());
+            "At " + _pos.cur().file.string() + ":" +
+            std::to_string(_pos.cur().line) + "." +
+            std::to_string(_pos.cur().col) + "\n" + e.what());
       } catch (...) {
-        if (it == _token_stream.end()) {
+        if (_pos.done()) {
           throw;
         }
         throw std::runtime_error(
-            "At " + it->file.string() + ":" +
-            std::to_string(it->line) + "." +
-            std::to_string(it->col) + "\nUnknown error");
+            "At " + _pos.cur().file.string() + ":" +
+            std::to_string(_pos.cur().line) + "." +
+            std::to_string(_pos.cur().col) + "\nUnknown error");
       }
     }
 
     // Resolve macros (functional and inline)
-    for (auto it = _token_stream.begin();
-         it != _token_stream.end(); ++it) {
+    for (_pos.reset(); !_pos.done(); _pos.next()) {
       try {
-        if (*it != "!" && it->type == "ID" &&
-            it->text.find('!') != std::string::npos &&
+        if (_pos.cur() != "!" && _pos.cur().type == "ID" &&
+            _pos.cur().text.find('!') != std::string::npos &&
             !MacroManager::reserved_macro_names.contains(
-                it->text)) {
-          did_change |= true;
-          macros.replace(_token_stream, it, _token_stream.end(),
-                         settings, *this);
+                _pos.cur().text)) {
+          did_change = true;
+          macros.replace(_pos, settings, *this);
         }
       } catch (OutOfPPPLError &e) {
-        throw OutOfPPPLError("At " + it->file.string() + ":" +
-                             std::to_string(it->line) + "." +
-                             std::to_string(it->col) + "\n" +
-                             e.what());
+        throw OutOfPPPLError(
+            "At " + _pos.cur().file.string() + ":" +
+            std::to_string(_pos.cur().line) + "." +
+            std::to_string(_pos.cur().col) + "\n" + e.what());
       } catch (std::runtime_error &e) {
         throw std::runtime_error(
-            "At " + it->file.string() + ":" +
-            std::to_string(it->line) + "." +
-            std::to_string(it->col) + "\n" + e.what());
+            "At " + _pos.cur().file.string() + ":" +
+            std::to_string(_pos.cur().line) + "." +
+            std::to_string(_pos.cur().col) + "\n" + e.what());
       } catch (...) {
-        if (it == _token_stream.end()) {
+        if (_pos.done()) {
           throw;
         }
         throw std::runtime_error(
-            "At " + it->file.string() + ":" +
-            std::to_string(it->line) + "." +
-            std::to_string(it->col) + "\nUnknown error");
+            "At " + _pos.cur().file.string() + ":" +
+            std::to_string(_pos.cur().line) + "." +
+            std::to_string(_pos.cur().col) + "\nUnknown error");
       }
     }
 
     // Apply ruleset
-    did_change |= rules.process_text(_token_stream);
+    if (rules.process_text(_pos)) {
+      did_change = true;
+    }
 
     if (log.has_value()) {
       **log << "\nAfter pass " << passes << ":\n";
       uint64_t prev_line = 0;
       std::filesystem::path prev_path;
-      for (const auto &tok : _token_stream) {
+      for (const auto &tok : _pos) {
         if (tok.file != prev_path) {
           **log << '\n' << tok.file << ":\n";
           prev_path = tok.file;
@@ -1906,13 +1933,13 @@ uint64_t OakCompiler::preprocess(
   } while (did_change);
 
   // Fix math
-  fix_math(_token_stream);
+  fix_math(_pos);
 
   if (log.has_value()) {
     **log << "\nAfter operator substitution:\n";
     uint64_t prev_line = 0;
     std::filesystem::path prev_path;
-    for (const auto &tok : _token_stream) {
+    for (const auto &tok : _pos) {
       if (tok.file != prev_path) {
         **log << '\n' << tok.file << ":\n";
         prev_path = tok.file;
@@ -1926,13 +1953,40 @@ uint64_t OakCompiler::preprocess(
     **log << '\n';
   }
 
+  _pos.reset();
   return passes;
 }
 
 void OakCompiler::load_dialect_file(
-    const std::filesystem::path &_file) {
+    const std::filesystem::path &_path) {
   debug_print();
-  throw std::runtime_error(__FUNCTION__);
+
+  // Parse that file
+  OakCompiler c(settings.ostream);
+  Settings::CompileSettings &csettings =
+      c.settings.compile_settings();
+  csettings = settings.compile_settings();
+  csettings.mode = Settings::CompileSettings::NOTHING;
+  csettings.entry_point = _path;
+  c();
+
+  // pragma!("export_dialect", "one_rule_name");
+  if (csettings.pragmas.at(_path).contains("export_dialect")) {
+    for (const auto &rule : c.rules.rules) {
+      rules.register_rule(rule.first, rule.second);
+    }
+    for (const auto &bundle : c.rules.bundles) {
+      rules.register_bundle(bundle.first, bundle.second);
+    }
+
+    settings.dialect =
+        csettings.pragmas.at(_path).at("export_dialect");
+  } else {
+    throw std::runtime_error(
+        "Dialect file '" + _path.string() +
+        "' does contain `pragma!(\"export_dialect\", "
+        "\"...\");`");
+  }
 }
 
 /**
@@ -1995,7 +2049,7 @@ void OakCompiler::do_file(
 
   Lexer l;
   uint64_t line = 1, col = 0;
-  std::list<Lexer::Token> token_stream;
+  TokenStream token_stream({});
 
   try {
     token_stream = l.lex(text, path, line, col);
@@ -2030,20 +2084,30 @@ void OakCompiler::do_file(
   }
 
   // Preprocess (including includes)
+  if (settings.dialect.has_value()) {
+    rules.add_entry_point(settings.dialect.value());
+  }
   preprocess(token_stream);
+  token_stream.reset();
 
   // If requested, syntax check
   if (csettings.do_syntax_check) {
     syntax_check(path, text);
+    token_stream.reset();
   }
 
   // Do actual parsing here
   debug_print();
   p.parse_global(token_stream, settings);
+  token_stream.reset();
 
   // If requested, dump
   if (csettings.dump_file.has_value()) {
     p.dump(*csettings.dump_file.value(), token_stream,
            settings.compile_settings());
+  }
+
+  if (settings.debug) {
+    settings.ostream << "Exiting file " << path << '\n';
   }
 }

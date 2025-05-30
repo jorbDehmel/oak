@@ -1,4 +1,4 @@
-#include "oak/std/std_oak_header.h"
+#include "std_oak_header.h"
 #include <pthread.h>
 #include <string.h>
 
