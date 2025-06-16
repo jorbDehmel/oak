@@ -3,6 +3,7 @@
  */
 
 #include "parser.hpp"
+#include "ast_node.hpp"
 #include "debug.hpp"
 #include "lexer.hpp"
 #include "macro.hpp"
@@ -12,7 +13,6 @@
 #include <cassert>
 #include <cctype>
 #include <cstdint>
-#include <functional>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
@@ -48,16 +48,16 @@ is_valid_struct_name(const std::string &_name) noexcept {
   return true;
 }
 
-Node Parser::pop_frame(const Node &_old_node,
-                       Settings &_settings) {
+ASTNodes::Statement
+Parser::pop_frame(const ASTNodes::Statement &_old_node,
+                  Settings &_settings) {
   debug_print();
 
   if (locals.empty()) {
     throw std::runtime_error("Cannot pop from empty context");
   }
 
-  Node out = _old_node;
-  out.node_type = Node::STMT;
+  ASTNodes::Statement out = _old_node;
   const auto old_frame = locals.back();
   Lexer lexer;
   uint64_t line = 0, col = 0;
@@ -389,7 +389,7 @@ void Parser::reconstruct(std::ostream &_where,
   _where << "#include \"oak/std/std_oak_header.h\"\n";
 
   // Struct and enum signatures
-  for (const auto &g : globals_order) {
+  for (const auto &g : global_types_order) {
     _where << "struct " << g << ";\n";
   }
 
@@ -410,8 +410,8 @@ void Parser::reconstruct(std::ostream &_where,
   }
 
   // Struct and enum definitions
-  for (const auto &name : globals_order) {
-    auto data = globals.at(name);
+  for (const auto &name : global_types_order) {
+    auto data = global_types.at(name);
     if (std::holds_alternative<StructInfo>(data)) {
       const auto info = std::get<StructInfo>(data);
       _where << "struct " << name << " {\n";
@@ -433,149 +433,6 @@ void Parser::reconstruct(std::ostream &_where,
     }
   }
 
-  const std::function<void(const Node &)> reconstruct_node =
-      [&](const Node &stmt) -> void {
-    switch (stmt.node_type) {
-    case Node::IF:
-      db_assert(stmt.children.size() == 2 ||
-                stmt.children.size() == 3);
-      _where << "if (";
-      reconstruct_node(stmt.children.at(0));
-      _where << ")";
-      reconstruct_node(stmt.children.at(1));
-      if (stmt.children.size() == 3) {
-        _where << "else ";
-        reconstruct_node(stmt.children.at(2));
-      }
-      break;
-    case Node::WHILE:
-      db_assert(stmt.children.size() == 2);
-      _where << "while (";
-      reconstruct_node(stmt.children.at(0));
-      _where << ")";
-      reconstruct_node(stmt.children.at(1));
-      break;
-    case Node::MATCH:
-      db_assert(stmt.children.size() > 0);
-      db_assert(stmt.c_name.has_value());
-
-      // 0th is operand, rest are cases
-      _where << "switch ((";
-      reconstruct_node(stmt.children.at(0));
-      _where << ").__info){\n";
-      for (uint i = 1; i < stmt.children.size(); ++i) {
-        const auto child = stmt.children.at(i);
-
-        if (child.children.size() == 1) {
-          // 'else'
-          _where << "default: {";
-          reconstruct_node(child.children.at(0));
-          _where << "} break;\n";
-        } else {
-          // 'case'
-          db_assert(child.c_name.has_value());
-          db_assert(child.children.at(0).type.has_value());
-          db_assert(child.children.at(0).token.has_value());
-
-          _where << "case " << stmt.c_name.value() << "_OPT_"
-                 << child.c_name.value() << ": {\n"
-                 << child.children.at(0).type->c_repr(
-                        child.children.at(0).token.value())
-                 << " = " << (stmt.is_mutable_match ? "&" : "")
-                 << "(";
-          reconstruct_node(stmt.children.at(0));
-          _where << ").__data." << child.c_name.value()
-                 << "; {";
-          reconstruct_node(child.children.at(1));
-          _where << "}} break;\n";
-        }
-      }
-      _where << "}\n";
-      break;
-    case Node::RAW_C_FMT:
-      // Literal C format string
-      if (!stmt.children.empty()) {
-        auto cur_child = stmt.children.begin();
-        for (const char &c : stmt.c_name.value()) {
-          if (c == '%') {
-            // Format case
-            db_assert(cur_child != stmt.children.end());
-            reconstruct_node(*cur_child);
-            ++cur_child;
-          } else {
-            // Literal C
-            _where << c;
-          }
-        }
-      } else {
-        // Not actually formatted: Treat as literal
-        _where << stmt.c_name.value();
-      }
-      break;
-    case Node::OBJECT:
-      // Literal or variable
-      db_assert(stmt.children.size() == 0);
-      db_assert(stmt.c_name.has_value());
-      _where << stmt.c_name.value();
-      break;
-    case Node::CALL: {
-      _where << stmt.c_name.value() << "(";
-      bool first = true;
-      for (const auto &item : stmt.children) {
-        if (first) {
-          first = false;
-        } else {
-          _where << ", ";
-        }
-        reconstruct_node(item);
-      }
-      _where << ")";
-      break;
-    }
-    case Node::DECL:
-      db_assert(stmt.type.has_value());
-      db_assert(stmt.token.has_value());
-      _where << stmt.type->c_repr(stmt.token->text) << ";\n";
-
-      // `New` calls
-      for (const auto &child : stmt.children) {
-        reconstruct_node(child);
-        _where << ";\n";
-      }
-
-      break;
-    case Node::STMT:
-      if (stmt.token.has_value() && *stmt.token == "return") {
-        // Return statement
-        _where << "return ";
-        if (!stmt.children.empty()) {
-          reconstruct_node(stmt.children.at(0));
-        }
-      } else if (!stmt.children.empty()) {
-        // Scope
-        _where << "{\n";
-        for (const auto &child : stmt.children) {
-          reconstruct_node(child);
-          _where << ";\n";
-        }
-        _where << "}\n";
-      }
-      break;
-    case Node::ARR:
-      // Array access: 2 children (var and index)
-      db_assert(stmt.children.size() == 2);
-      _where << "(";
-      reconstruct_node(stmt.children.at(0));
-      _where << "[";
-      reconstruct_node(stmt.children.at(1));
-      _where << "])";
-      break;
-
-    case Node::NONE:
-      break;
-    }
-  };
-
   // Function definitions
   for (const auto &p : functions) {
     for (const auto &info : p.second) {
@@ -591,13 +448,13 @@ void Parser::reconstruct(std::ostream &_where,
         if (info.tags.at("file") == _csettings.entry_point) {
           _where << info.t.c_repr(info.name, true);
           _where << "{";
-          reconstruct_node(info.n);
+          ASTNodes::reconstruct(info.n, _where);
           _where << ";}\n";
         }
       } else if (p.first == info.name) {
         _where << info.t.c_repr(info.name, false);
         _where << "{";
-        reconstruct_node(info.n);
+        ASTNodes::reconstruct(info.n, _where);
         _where << ";}\n";
       }
     }
@@ -632,9 +489,9 @@ void Parser::dump(std::ostream &_where, TokenStream &_pos,
   }
 
   _where << "// Structs and enums:\n";
-  for (const auto &name : globals_order) {
+  for (const auto &name : global_types_order) {
     _where << name << " [";
-    auto data = globals.at(name);
+    auto data = global_types.at(name);
     if (std::holds_alternative<StructInfo>(data)) {
       const auto info = std::get<StructInfo>(data);
       for (auto it = info.tags.begin(); it != info.tags.end();
@@ -1051,7 +908,8 @@ Type Parser::parse_type(TokenStream &_pos,
         out.nodes.back().literal_name += "ENDGEN";
       }
 
-      if (!globals.contains(out.nodes.back().literal_name)) {
+      if (!global_types.contains(
+              out.nodes.back().literal_name)) {
         // Attempt template instantiation
         bool success = false;
         for (uint i = 0; i < templates.at(original_name).size();
@@ -1136,11 +994,11 @@ void Parser::parse_struct(const std::list<std::string> &_names,
 
   // Add these entries
   for (const auto &name : _names) {
-    if (globals.contains(name) && // Disallow overwriting
+    if (global_types.contains(name) && // Disallow overwriting
         !(std::holds_alternative<StructInfo>(
-              globals.at(name)) && // Except for
-                                   // structs
-          std::get<StructInfo>(globals.at(name))
+              global_types.at(name)) && // Except for
+                                        // structs
+          std::get<StructInfo>(global_types.at(name))
                   .tags["casual"] ==
               "true") // That are only casually defined
     ) {
@@ -1149,10 +1007,10 @@ void Parser::parse_struct(const std::list<std::string> &_names,
       std::string existing_type_str;
 
       if (std::holds_alternative<StructInfo>(
-              globals.at(name))) {
+              global_types.at(name))) {
         existing_type_str = "struct";
       } else if (std::holds_alternative<EnumInfo>(
-                     globals.at(name))) {
+                     global_types.at(name))) {
         existing_type_str = "enum";
       }
 
@@ -1165,8 +1023,8 @@ void Parser::parse_struct(const std::list<std::string> &_names,
                      "\" does not seem to be camelcase");
     }
 
-    globals_order.push_back(name);
-    globals[name] = to_add;
+    global_types_order.push_back(name);
+    global_types[name] = to_add;
 
     // Constructor and destructor autogen go here
     uint64_t line = _pos.cur().line, col = _pos.cur().col;
@@ -1245,21 +1103,22 @@ void Parser::parse_enum(const std::list<std::string> &_names,
 
   // Add these entries
   for (const auto &name : _names) {
-    if (globals.contains(name) && // Disallow overwriting
+    if (global_types.contains(name) && // Disallow overwriting
         !(std::holds_alternative<EnumInfo>(
-              globals.at(name)) && // Except for
-                                   // enums
-          std::get<EnumInfo>(globals.at(name)).tags["casual"] ==
+              global_types.at(name)) && // Except for
+                                        // enums
+          std::get<EnumInfo>(global_types.at(name))
+                  .tags["casual"] ==
               "true") // That are only casually defined
     ) {
       // Construct the existing type as a str
       std::string existing_type_str;
 
       if (std::holds_alternative<StructInfo>(
-              globals.at(name))) {
+              global_types.at(name))) {
         existing_type_str = "struct";
       } else if (std::holds_alternative<EnumInfo>(
-                     globals.at(name))) {
+                     global_types.at(name))) {
         existing_type_str = "enum";
       }
 
@@ -1272,8 +1131,8 @@ void Parser::parse_enum(const std::list<std::string> &_names,
                      "\" does not seem to be camelcase");
     }
 
-    globals_order.push_back(name);
-    globals[name] = to_add;
+    global_types_order.push_back(name);
+    global_types[name] = to_add;
 
     // Wrappers
     // wrap_a(self, what)
@@ -1298,16 +1157,16 @@ void Parser::parse_enum(const std::list<std::string> &_names,
       to_add.t.append_literal("void");
 
       // Node
-      to_add.n.node_type = Node::RAW_C_FMT;
+      ASTNodes::RawCFormat child;
 
       // clang-format off
-      to_add.n.c_name =
+      child.format_string =
         "{ self->__info = " + name + "_OPT_" + p.first +
         "; self->__data." + p.first +
         " = __data; }";
       // clang-format on
 
-      // Tags
+      to_add.n.children = {ASTNodes::RawCFormat()};
       to_add.tags["autogen"] = "true";
 
       // Insert fn
@@ -1428,7 +1287,7 @@ Node Parser::parse_statement(TokenStream &_pos,
     Type t = parse_type(_pos, _settings);
     validate_type(t);
 
-    Node out(Node::DECL);
+    ASTNodes::Declaration out;
     out.type = t;
     out.token = Lexer::Token(_pos.cur(), "");
 
@@ -1459,7 +1318,7 @@ Node Parser::parse_statement(TokenStream &_pos,
     return out;
   } else if (_pos.cur() == "{") {
     // Scope
-    Node out(Node::STMT);
+    ASTNodes::Statement out;
 
     // Add a frame to the scope stack
     locals.push_back({});
@@ -1477,11 +1336,12 @@ Node Parser::parse_statement(TokenStream &_pos,
   } else if (_pos.cur() == "if") {
     // If statement
     _pos.next();
+    bool has_parenthesis = true;
     if (_pos.cur() != "(") {
-      throw std::runtime_error(
-          "Missing parenthesis in 'if' statement.");
+      has_parenthesis = false;
+    } else {
+      _pos.next();
     }
-    _pos.next();
 
     // Condition is a single boolean object
     Node condition = parse_object(_pos, _settings);
@@ -1493,11 +1353,13 @@ Node Parser::parse_statement(TokenStream &_pos,
 
     // Closing parenthesis
     _pos.next();
-    if (_pos.cur() != ")") {
-      throw std::runtime_error(
-          "Missing ending parenthesis in 'if' statement.");
+    if (has_parenthesis) {
+      if (_pos.cur() != ")") {
+        throw std::runtime_error(
+            "Missing ending parenthesis in 'if' statement.");
+      }
+      _pos.next();
     }
-    _pos.next();
 
     // Body
     Node body = parse_statement(_pos, _settings);
@@ -1519,11 +1381,12 @@ Node Parser::parse_statement(TokenStream &_pos,
   } else if (_pos.cur() == "while") {
     // While loop
     _pos.next();
+    bool has_parenthesis = true;
     if (_pos.cur() != "(") {
-      throw std::runtime_error(
-          "Missing parenthesis in 'while' statement.");
+      has_parenthesis = false;
+    } else {
+      _pos.next();
     }
-    _pos.next();
 
     // Condition is a single boolean object
     Node condition = parse_object(_pos, _settings);
@@ -1535,11 +1398,13 @@ Node Parser::parse_statement(TokenStream &_pos,
 
     // Closing parenthesis
     _pos.next();
-    if (_pos.cur() != ")") {
-      throw std::runtime_error(
-          "Missing ending parenthesis in 'while' statement.");
+    if (has_parenthesis) {
+      if (_pos.cur() != ")") {
+        throw std::runtime_error(
+            "Missing ending parenthesis in 'while' statement.");
+      }
+      _pos.next();
     }
-    _pos.next();
 
     // Body
     Node body = parse_statement(_pos, _settings);
@@ -1557,11 +1422,12 @@ Node Parser::parse_statement(TokenStream &_pos,
     }
     */
     _pos.next();
+    bool has_parenthesis = true;
     if (_pos.cur() != "(") {
-      throw std::runtime_error(
-          "Missing parenthesis in 'match' statement.");
+      has_parenthesis = false;
+    } else {
+      _pos.next();
     }
-    _pos.next();
 
     // Target is an enum
     Node target = parse_object(_pos, _settings);
@@ -1575,22 +1441,25 @@ Node Parser::parse_statement(TokenStream &_pos,
 
     const auto enum_name = target_type.struct_name();
 
-    if (!globals.contains(enum_name) ||
+    if (!global_types.contains(enum_name) ||
         !std::holds_alternative<EnumInfo>(
-            globals.at(enum_name))) {
+            global_types.at(enum_name))) {
       throw std::runtime_error("Enum type '" + enum_name +
                                "' does not exist.");
     }
 
-    const auto info = std::get<EnumInfo>(globals.at(enum_name));
+    const auto info =
+        std::get<EnumInfo>(global_types.at(enum_name));
 
     // Closing parenthesis
     _pos.next();
-    if (_pos.cur() != ")") {
-      throw std::runtime_error(
-          "Missing ending parenthesis in 'match' statement.");
+    if (has_parenthesis) {
+      if (_pos.cur() != ")") {
+        throw std::runtime_error(
+            "Missing ending parenthesis in 'match' statement.");
+      }
+      _pos.next();
     }
-    _pos.next();
 
     // 0th child is operand, rest are cases
     Node out(Node::MATCH);
@@ -1661,9 +1530,10 @@ Node Parser::parse_statement(TokenStream &_pos,
 
 /// Assumes we are pointing to "case" or "else"
 /// Non-global (inside match statement)
-Node Parser::parse_case(const EnumInfo &_enum_type,
-                        TokenStream &_pos, Settings &_settings,
-                        const bool &_is_mutable) {
+ASTNodes::Case Parser::parse_case(const EnumInfo &_enum_type,
+                                  TokenStream &_pos,
+                                  Settings &_settings,
+                                  const bool &_is_mutable) {
   debug_print();
   if (_settings.debug) {
     _settings.ostream << __FUNCTION__ << " at "
@@ -1744,7 +1614,7 @@ Node Parser::parse_case(const EnumInfo &_enum_type,
     // Push frame to be popped
     locals.push_back({});
 
-    Node out(Node::NONE);
+    ASTNodes::Case out;
     out.c_name = case_name;
 
     Node first_child(Node::NONE);
@@ -2156,7 +2026,6 @@ Type Parser::resolve_variable(const Lexer::Token &_name,
                            "' does not exist.");
 }
 
-/// Handles parenthesization
 Node Parser::parse_object(TokenStream &_pos,
                           Settings &_settings) {
   debug_print();
@@ -2256,7 +2125,7 @@ Node Parser::parse_object(TokenStream &_pos,
         t = t.deref();
       }
 
-      const auto info = globals.at(t.struct_name());
+      const auto info = global_types.at(t.struct_name());
 
       if (std::holds_alternative<StructInfo>(info)) {
         const StructInfo struct_info =
@@ -2757,7 +2626,7 @@ void Parser::validate_type(const Type &_t) const {
         continue;
       }
 
-      if (!globals.contains(node.literal_name)) {
+      if (!global_types.contains(node.literal_name)) {
         throw std::runtime_error("Atomic type '" +
                                  node.literal_name +
                                  "' does not exist.");
@@ -2774,12 +2643,13 @@ Parser::fetch_symbol(const std::string &_name) const noexcept {
   std::optional<
       std::variant<StructInfo, EnumInfo, std::list<FnInfo>>>
       out;
-  if (globals.contains(_name)) {
+  if (global_types.contains(_name)) {
     // Some syntactic fluff on the "variant" type
-    if (std::holds_alternative<StructInfo>(globals.at(_name))) {
-      out = std::get<StructInfo>(globals.at(_name));
+    if (std::holds_alternative<StructInfo>(
+            global_types.at(_name))) {
+      out = std::get<StructInfo>(global_types.at(_name));
     } else {
-      out = std::get<EnumInfo>(globals.at(_name));
+      out = std::get<EnumInfo>(global_types.at(_name));
     }
   } else if (functions.contains(_name)) {
     out = functions.at(_name);

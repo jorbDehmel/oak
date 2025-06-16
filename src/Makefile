@@ -5,13 +5,14 @@
 # `-D EXTRA_RULE_ENGINE_INCLUDES`. For engine entries, use
 # `-D EXTRA_RULE_ENGINE_PAIRS` (see ./rule.cpp for more info).
 
-HEADERS := lexer.hpp oakc.hpp package.hpp rule.hpp type.hpp \
-	parser.hpp sapling.hpp debug.hpp macro.hpp settings.hpp
-OBJECTS := lexer.o oakc.o package.o rule.o type.o parser.o \
-	sapling.o macro.o
-CPP     := g++ -std=c++20 -pedantic -Wall -O3
-CPP-DB  := g++ -std=c++20 -pedantic -Wall -g -D DEBUG
+CWD := $(shell pwd)
 
+HEADERS	  := $(shell find $(CWD) -type f -iname '*.hpp')
+CPP_FILES := $(shell find $(CWD) -type f -iname '*.cpp')
+OBJECTS   := $(CPP_FILES:%.cpp=%.o)
+
+CPP    = g++ -std=c++20 -pedantic -Wall -O3
+CPP-DB = g++ -std=c++20 -pedantic -Wall -g -D DEBUG
 TARGET = /usr/bin
 
 %.out:	%.o $(OBJECTS) $(EXTRA_OBJECTS)

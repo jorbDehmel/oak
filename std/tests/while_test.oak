@@ -14,5 +14,11 @@ let main() -> i32 {
     ++counter;
   }
 
+  while counter < 256i32 {
+    print(counter);
+    endl();
+    ++counter;
+  }
+
   return 0i32;
 }

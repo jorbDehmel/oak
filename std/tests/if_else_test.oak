@@ -14,5 +14,11 @@ let main() -> i32 {
     print("Condition was false\n");
   }
 
+  if !condition {
+    print("!Condition was true\n");
+  } else {
+    print("!Condition was false\n");
+  }
+
   return 0i32;
 }

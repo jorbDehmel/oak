@@ -13,6 +13,12 @@
 #include <string>
 #include <vector>
 
+// Forward definitions
+namespace ASTNodes {
+struct Call;
+struct Object;
+} // namespace ASTNodes
+
 /**
  * @class Type
  * @brief A class representing a type that an entry in a symbol
@@ -120,6 +126,10 @@ public:
   /// Gets the fn return type, given that this is a function
   /// O(n)
   Type fn_return_type() const;
+
+  /// Returns a destructor call
+  ASTNodes::Call get_destructor_call(
+      const ASTNodes::Object &_to_destruct) const;
 
 protected:
   /// Appends a pointer node to this type

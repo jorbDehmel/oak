@@ -14,6 +14,18 @@
 #include <set>
 #include <string>
 
+/// Interfacial struct
+extern "C" struct OakToken {
+  /// Points to parser-owned C-strings: DO NOT DESTROY!
+  uint8_t *text;
+  uint8_t *type;
+  uint8_t *file;
+
+  /// Points to parser-owned ints
+  uint64_t *line;
+  uint64_t *col;
+};
+
 /**
  * @brief Takes a block of text and yields a token stream
  */
@@ -37,6 +49,17 @@ public:
    * @brief A single token in a token stream
    */
   struct Token {
+    /// Returns the Oak interfacial version
+    inline OakToken as_oak() {
+      OakToken out;
+      out.text = (uint8_t *)text.c_str();
+      out.type = (uint8_t *)type.c_str();
+      out.file = (uint8_t *)file.c_str();
+      out.line = &line;
+      out.col = &col;
+      return out;
+    }
+
     /// The literal string value
     std::string text;
 

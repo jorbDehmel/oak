@@ -15,8 +15,6 @@
 #include <stdexcept>
 #include <string>
 
-const static std::string ACORN_VERSION = "0.8.0";
-
 /**
  * @class OakCompiler
  * @brief Preprocessor and management. This is NOT a parser, but
@@ -24,6 +22,9 @@ const static std::string ACORN_VERSION = "0.8.0";
  */
 class OakCompiler {
 public:
+  ///
+  const static std::string version;
+
   /**
    * @brief Given a requested path, return the actual path to
    * (possibly) visit
@@ -154,3 +155,5 @@ protected:
    */
   void translate(std::ostream &_into);
 };
+
+const static std::string version = "0.8.0";

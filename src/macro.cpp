@@ -152,11 +152,11 @@ void MacroManager::replace(TokenStream &_pos,
     }
   }
 
-  if (std::holds_alternative<Alias>(macros.at(name))) {
+  if (std::holds_alternative<Inline>(macros.at(name))) {
     // Inline
     const auto to_remove = _pos.tell();
     for (const auto &item :
-         std::get<Alias>(macros.at(name)).contents) {
+         std::get<Inline>(macros.at(name)).contents) {
       _pos.insert(to_remove, Lexer::Token(name_tok, item));
     }
     _pos.seek(std::prev(to_remove));
@@ -342,7 +342,7 @@ void MacroManager::process_definition(
   // Either '=' or '('
   if (_pos.cur().text == "=") {
     // Scan until ;
-    Alias info;
+    Inline info;
 
     _pos.next();
     while (!_pos.done() && _pos.cur().text != ";") {

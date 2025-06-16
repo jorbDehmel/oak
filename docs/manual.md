@@ -1209,3 +1209,28 @@ There is no reason why rule engines must be external: In the
 future, macros should be able to act as custom rule engines.
 This should be in the form of dynamic `.so` loading so as to
 reduce latency.
+
+```rust
+let rules::EngineInfo: struct {
+  max_output: uint,
+}
+
+let PreProcessor: struct {
+  // ...
+}
+
+/// Initialize the engine
+let New(self: ^PreProcessor) -> void;
+
+/// Report information about the class
+let RuleEngineReport(self: ^PreProcessor) -> rules::EngineInfo;
+
+/// If returns false, write the input. Else if output_size is 0
+/// (default), don't write anything. If output_size is nonzero,
+/// put the first `output_size` items of `output`.
+let process(self: ^PreProcessor, input: []i8, output: [][]i8,
+  output_size: ^uint) -> bool;
+
+rule::register_engine!("preprocessor", PreProcessor);
+
+```

@@ -5,7 +5,6 @@
 
 #pragma once
 
-#include "rule.hpp"
 #include "type.hpp"
 #include <filesystem>
 #include <list>
