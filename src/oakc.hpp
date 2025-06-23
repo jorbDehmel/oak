@@ -1,14 +1,14 @@
 /**
  * @file
- * @brief Defines the OakCompiler class
+ * @brief Defines the OakCompiler class, which manages
+ * preprocessing and parsing so that it can be easily called by
+ * a CLI.
  */
 
 #pragma once
 
 #include "lexer.hpp"
-#include "macro.hpp"
 #include "parser.hpp"
-#include "rule.hpp"
 #include "settings.hpp"
 #include <filesystem>
 #include <iostream>
@@ -17,12 +17,13 @@
 
 /**
  * @class OakCompiler
- * @brief Preprocessor and management. This is NOT a parser, but
- * handles entry points and whatnot.
+ * @brief Preprocessor and management. This is NOT a parser! It
+ * dispatches to parser, runner, testing, etc. depending on the
+ * settings.
  */
 class OakCompiler {
 public:
-  ///
+  /// Oak's version
   const static std::string version;
 
   /**
@@ -61,17 +62,8 @@ public:
    * @param _strm The stream to use as cout
    */
   OakCompiler(std::ostream &_strm = std::cout)
-      : settings(_strm) {
+      : settings(_strm), p(settings) {
   }
-
-  /// The parser
-  Parser p;
-
-  /// Rule definitions
-  RuleRunner rules;
-
-  /// Macro definitions
-  MacroManager macros;
 
   //////////////////////////////////////////////////////////////
 
@@ -98,6 +90,9 @@ public:
 
   /// The settings to run after argument parsing
   Settings settings;
+
+  /// The parser
+  Parser p;
 
   /**
    * @brief Compile according to settings
@@ -153,7 +148,10 @@ protected:
    * @brief Write the parsed information to the given stream in
    * C format.
    */
-  void translate(std::ostream &_into);
+  inline void translate(std::ostream &_into) {
+    p.reconstruct(_into);
+  }
 };
 
+/// The Acorn version
 const static std::string version = "0.8.0";

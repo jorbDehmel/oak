@@ -107,6 +107,9 @@ public:
     /// Keeps track of all files processed to avoid
     /// duplication
     std::set<std::filesystem::path> visited;
+
+    /// Holds the most recent modification of all visited files
+    std::filesystem::file_time_type most_recent_mod_time;
   };
 
   /**

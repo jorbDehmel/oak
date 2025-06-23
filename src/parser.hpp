@@ -14,7 +14,71 @@
 #include "symbols.hpp"
 #include "type.hpp"
 #include <list>
-#include <vector>
+
+/**
+ * @brief An error class thrown when we surpass the PreProcessor
+ * Pass limit.
+ */
+class OutOfPPPLError : public std::runtime_error {
+public:
+  /// Initialize
+  OutOfPPPLError(const std::string &_what)
+      : std::runtime_error(_what) {
+  }
+};
+
+/// Static functions for macro operations
+namespace Macros {
+
+/**
+ * @brief Runs a command, asserts it succeeded, and captures
+ * its stdout.
+ * @param _cmd The command to run
+ * @returns The string output of the command
+ */
+std::string get_cmd_output(const std::string &_cmd);
+
+/// Internal oak macros which are deferred to parse time
+/// (EG size!, type!)
+const static std::set<std::string> reserved_macro_names = {
+    "size!",
+    "type!",
+    "c!",
+    "alloc!",
+    "free!",
+    "compile_time_error!",
+    "compile_time_warning!",
+    "compile_time_print!",
+    "str!",
+    "unstr!"};
+
+/// Erases and returns a macro occurrence's args.
+std::list<std::list<Lexer::Token>>
+get_macro_args(TokenStream &_pos);
+
+/// STRIPS QUOTES OFF OF a macro occurrence's
+/// args. Then returns those args WITHOUT ERASURE and
+/// WITHOUT recursion! This should only be used after all
+/// preprocessing!
+std::list<Lexer::Token>
+get_macro_args_no_erase(TokenStream &_pos);
+
+/**
+ * @brief Strips string literal delimiters off a string
+ * literal. For example: "fizz" -> fizz, 'buzz' -> buzz.
+ * @param _str_lit The string literal to strip
+ * @returns The stripped string literal
+ */
+std::string strip_string_literal(const std::string &_str_lit);
+
+/**
+ * @brief Inverse of strip_string_literal.
+ * @param _contents The contents to embed in double quotes
+ * @returns The string literal
+ */
+std::string make_string_literal(const std::string &_contents);
+
+}; // namespace Macros
 
 /**
  * @brief Parses the text once it has been brought to Oak normal
@@ -23,29 +87,26 @@
 class Parser {
 public:
   ///
-  using ScopeFrame = std::map<std::string, Type>;
+  Parser(Settings &_s) : settings(_s) {
+  }
+
+  ///
+  Settings &settings;
 
   /// Parse a global scope. NOTE: All includes should have been
   /// handled already!
-  void parse_global(TokenStream &_file_contents,
-                    Settings &_settings);
-
-  /// Resolve the given variable. If a name change is needed,
-  /// saves it in _new_name. Otherwise, it will contain a
-  /// duplicate of _name.text.
-  Type resolve_variable(const Lexer::Token &_name,
-                        std::string &_new_name);
+  void parse_global(TokenStream &_file_contents);
 
   /// Constructs the equivalent C program in the given
   /// string stream
-  void reconstruct(std::ostream &_where,
-                   const Settings::CompileSettings &_csettings)
-      const noexcept;
+  void reconstruct(std::ostream &_where) const noexcept;
 
   /// Dump to the given stream
-  void dump(std::ostream &_where, TokenStream &_file_contents,
-            const Settings::CompileSettings &_csettings)
-      const noexcept;
+  void dump(std::ostream &_where,
+            TokenStream &_file_contents) const noexcept;
+
+  /// The instance managing all the internal data
+  ScopeManager scope_manager;
 
 protected:
   // All parse methods leave the iterator pointing to the
@@ -55,23 +116,23 @@ protected:
   /// Assumes we have just seen "let NAME (" and are pointing
   /// to "("
   void parse_function(const std::list<std::string> &_names,
-                      TokenStream &_pos, Settings &_settings);
+                      TokenStream &_pos);
 
   /// Parse a single struct declaration
   /// Assumes we have just seen "let NAME : struct" and are
   /// pointing to the next token.
   void parse_struct(const std::list<std::string> &_names,
-                    TokenStream &_pos, Settings &_settings);
+                    TokenStream &_pos);
 
   /// Parse a single enum declaration
   /// Assumes we have just seen "let NAME : enum" and are
   /// pointing to the next token.
   void parse_enum(const std::list<std::string> &_names,
-                  TokenStream &_pos, Settings &_settings);
+                  TokenStream &_pos);
 
   /// Parses a struct/enum's guts
   std::list<std::pair<std::string, Type>>
-  parse_members(TokenStream &_pos, Settings &_settings);
+  parse_members(TokenStream &_pos);
 
   /// Parses the (pre, post) regions of a template if they
   /// exist. This should be called after any generic body
@@ -81,39 +142,40 @@ protected:
   /// Assumes we are pointing to the first token in the
   /// statement Non-global (inside functions)
   ASTNodes::Statement
-  parse_statement(TokenStream &_pos, Settings &_settings,
+  parse_statement(TokenStream &_pos,
                   const Type &_return_type = {});
 
   /// Assumes we are pointing to "case" or "else"
   /// Non-global (inside match statement)
-  ASTNodes::Case parse_case(const EnumInfo &_enum_type,
-                            TokenStream &_pos,
-                            Settings &_settings,
-                            const bool &_is_mutable);
+  std::variant<ASTNodes::Case, ASTNodes::Statement>
+  parse_case(const EnumInfo &_enum_type, TokenStream &_pos,
+             const bool &_is_mutable);
 
   /// Return the type spec at the specified location
-  Type parse_type(TokenStream &_pos, Settings &_settings);
+  Type parse_type(TokenStream &_pos);
 
   /// Parses a single function call
-  ASTNodes::Call parse_function_call(TokenStream &_pos,
-                                     Settings &_settings);
+  ASTNodes::Node parse_function_call(TokenStream &_pos);
+
+  /// Points to macro name after 'let'. Can be inline or
+  /// functional. Erases all traces after done
+  std::variant<InlineMacro, CompiledMacro>
+  parse_macro(TokenStream &_pos,
+              const uint64_t &_preproc_passes_allowed);
 
   /// This is what you should call: The other one is called by
   /// this
-  ASTNodes::Object parse_object(TokenStream &_pos,
-                                Settings &_settings);
+  ASTNodes::Node parse_object(TokenStream &_pos);
 
   /// Resolves a function call through any means necessary.
-  /// If it cannot be resolved, an error is thrown. Returns
-  /// the ENTIRE FN TYPE, not just the return type!
-  Type resolve_fn_call(const std::string &_name,
-                       const std::vector<Type> &_args,
-                       FnInfo &_into, std::vector<int> &_derefs,
-                       Settings &_settings,
-                       const bool &_allow_template = true);
+  /// This may involve templates!
+  ASTNodes::Call
+  resolve_fn_call(const std::string &_name,
+                  const std::list<ASTNodes::Object> &_args);
 
-  /// Throws an error on invalid type (EG undefined struct name)
-  void validate_type(const Type &_t) const;
+  /// Throws an error on invalid type (EG undefined struct
+  /// name)
+  void validate_type(const Type &_t);
 
   /// Finds all possible template instantiations to match the
   /// given FUNCTION signature. The second in each pair is the
@@ -123,7 +185,4 @@ protected:
   find_substitutions(
       const std::string &_name,
       const std::list<std::string> &_signature) const;
-
-  /// The instance managing all the internal data
-  ScopeManager scope_manager;
 };

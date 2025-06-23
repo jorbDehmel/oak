@@ -1,7 +1,8 @@
 #include "ast_node.hpp"
+#include <stdexcept>
 #include <variant>
 
-void ASTNodes::reconstruct(const ASTNodes::DataType &_what,
+void ASTNodes::reconstruct(const ASTNodes::Node &_what,
                            std::ostream &_where) {
 
   if (std::holds_alternative<ASTNodes::If>(_what)) {
@@ -32,18 +33,17 @@ void ASTNodes::reconstruct(const ASTNodes::DataType &_what,
     reconstruct(d.upon, _where);
     _where << ").__info){\n";
     for (const auto &branch : d.branches) {
-      if (std::holds_alternative<ASTNodes::Match::Else>(
-              branch)) {
+      if (std::holds_alternative<ASTNodes::Statement>(branch)) {
         // 'else'
         const auto branch_d =
-            std::get<ASTNodes::Match::Else>(branch);
+            std::get<ASTNodes::Statement>(branch);
         _where << "default: {";
         reconstruct(branch_d, _where);
         _where << "} break;\n";
       } else {
         // 'case'
         const auto branch_d = std::get<ASTNodes::Case>(branch);
-        _where << "case " << branch_d.enum_name << "_OPT_"
+        _where << "case " << d.enum_name << "_OPT_"
                << branch_d.case_name << ": {\n"
                << branch_d.type.c_repr(branch_d.passed_name)
                << " = " << (d.is_mutable ? "&" : "") << "(";
@@ -99,7 +99,7 @@ void ASTNodes::reconstruct(const ASTNodes::DataType &_what,
           _where << "&";
         }
       }
-      _where << arg.name;
+      _where << arg.name.raw_text;
     }
     _where << ")";
   }
@@ -149,5 +149,46 @@ void ASTNodes::reconstruct(const ASTNodes::DataType &_what,
     _where << "[";
     reconstruct(d.index, _where);
     _where << "])";
+  }
+}
+
+Type ASTNodes::type(const ASTNodes::Node &_what) {
+  if (std::holds_alternative<ASTNodes::If>(_what) ||
+      std::holds_alternative<ASTNodes::While>(_what) ||
+      std::holds_alternative<ASTNodes::Match>(_what) ||
+      std::holds_alternative<ASTNodes::Case>(_what) ||
+      std::holds_alternative<ASTNodes::Declaration>(_what) ||
+      std::holds_alternative<ASTNodes::Statement>(_what) ||
+      std::holds_alternative<ASTNodes::Return>(_what)) {
+    // No type
+    throw std::runtime_error(
+        "Expected typed object, but found untyped statement, "
+        "declaration, or conditional.");
+  }
+
+  else if (std::holds_alternative<ASTNodes::Object>(_what)) {
+    return std::get<ASTNodes::Object>(_what).type;
+  } else if (std::holds_alternative<ASTNodes::Call>(_what)) {
+    // RETURN TYPE ONLY
+    return std::get<ASTNodes::Call>(_what).return_type;
+  } else if (std::holds_alternative<ASTNodes::ArrAccess>(
+                 _what)) {
+    return std::get<ASTNodes::ArrAccess>(_what).return_type;
+  } else if (std::holds_alternative<ASTNodes::RawCFormat>(
+                 _what)) {
+    if (std::get<ASTNodes::RawCFormat>(_what)
+            .type.has_value()) {
+      return std::get<ASTNodes::RawCFormat>(_what).type.value();
+    }
+    throw std::runtime_error("RawCFormat AST node is missing "
+                             "type when one is expected");
+  }
+
+  else {
+    // Me-proofing for when I add another variant and forget
+    // to change this
+    throw std::runtime_error(__FILE__ ":" +
+                             std::to_string(__LINE__) +
+                             " Unreachable state reached!");
   }
 }

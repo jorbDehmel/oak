@@ -1,10 +1,9 @@
 #include "oakc.hpp"
 #include "debug.hpp"
 #include "lexer.hpp"
-#include "macro.hpp"
 #include "parser.hpp"
-#include "rule.hpp"
 #include "settings.hpp"
+#include "symbols.hpp"
 #include <cassert>
 #include <chrono>
 #include <cstdint>
@@ -86,7 +85,7 @@ int strm_cmd_output(const std::string &_cmd,
 /// Print the version of Acorn
 void OakCompiler::print_version() noexcept {
   debug_print();
-  std::cout << "Acorn version " << ACORN_VERSION << "\n"
+  std::cout << "Acorn version " << OakCompiler::version << "\n"
             << "MIT Licensed\n";
 }
 
@@ -564,16 +563,22 @@ void OakCompiler::do_compilation() {
     }
 
     bool saw_main = false;
-    const auto res = p.fetch_symbol("main");
+    const auto res = p.scope_manager.get("main");
     if (res.has_value() &&
-        std::holds_alternative<std::list<Parser::FnInfo>>(
-            res.value())) {
-      for (const auto &def :
-           std::get<std::list<Parser::FnInfo>>(res.value())) {
-        if (!def.tags.contains("casual") &&
-            def.tags.at("file") == csettings.entry_point) {
-          saw_main = true;
-          break;
+        std::holds_alternative<
+            std::list<std::variant<FnInfo, TemplateInfo>>>(
+            res.value().get())) {
+      for (const auto &def : std::get<
+               std::list<std::variant<FnInfo, TemplateInfo>>>(
+               res.value().get())) {
+        if (std::holds_alternative<FnInfo>(def)) {
+          const auto candidate = std::get<FnInfo>(def);
+          if (!candidate.tags.contains("casual") &&
+              candidate.tags.at("file") ==
+                  csettings.entry_point) {
+            saw_main = true;
+            break;
+          }
         }
       }
     }
@@ -943,9 +948,6 @@ void OakCompiler::do_testing() {
   }
 }
 
-/**
- * @brief
- */
 void OakCompiler::syntax_check(const std::filesystem::path &_fp,
                                const std::string &_text) const {
   debug_print();
@@ -1475,7 +1477,7 @@ uint64_t OakCompiler::preprocess(TokenStream &_pos) {
       try {
         if (_pos.cur() == "include!") {
           did_change = true;
-          auto raw_args = MacroManager::get_macro_args(_pos);
+          auto raw_args = Macros::get_macro_args(_pos);
 
           std::list<Lexer::Token> args;
           for (auto it = raw_args.begin(); it != raw_args.end();
@@ -1489,7 +1491,7 @@ uint64_t OakCompiler::preprocess(TokenStream &_pos) {
               to_add.text += cur_arg.cur().text;
             }
             to_add.text =
-                MacroManager::strip_string_literal(to_add.text);
+                Macros::strip_string_literal(to_add.text);
             args.push_back(to_add);
           }
 
@@ -1526,7 +1528,7 @@ uint64_t OakCompiler::preprocess(TokenStream &_pos) {
           }
         } else if (_pos.cur() == "link!") {
           did_change = true;
-          auto raw_args = MacroManager::get_macro_args(_pos);
+          auto raw_args = Macros::get_macro_args(_pos);
 
           std::list<Lexer::Token> args;
           for (auto it = raw_args.begin(); it != raw_args.end();
@@ -1543,8 +1545,7 @@ uint64_t OakCompiler::preprocess(TokenStream &_pos) {
           }
 
           for (auto it = args.begin(); it != args.end(); ++it) {
-            it->text =
-                MacroManager::strip_string_literal(it->text);
+            it->text = Macros::strip_string_literal(it->text);
           }
 
           for (const auto &f : args) {
@@ -1553,7 +1554,7 @@ uint64_t OakCompiler::preprocess(TokenStream &_pos) {
           }
         } else if (_pos.cur() == "flag!") {
           did_change = true;
-          auto raw_args = MacroManager::get_macro_args(_pos);
+          auto raw_args = Macros::get_macro_args(_pos);
 
           std::list<Lexer::Token> args;
           for (auto it = raw_args.begin(); it != raw_args.end();
@@ -1570,8 +1571,7 @@ uint64_t OakCompiler::preprocess(TokenStream &_pos) {
           }
 
           for (auto it = args.begin(); it != args.end(); ++it) {
-            it->text =
-                MacroManager::strip_string_literal(it->text);
+            it->text = Macros::strip_string_literal(it->text);
           }
 
           for (const auto &f : args) {
@@ -1579,7 +1579,7 @@ uint64_t OakCompiler::preprocess(TokenStream &_pos) {
           }
         } else if (_pos.cur() == "pragma!") {
           did_change = true;
-          auto raw_args = MacroManager::get_macro_args(_pos);
+          auto raw_args = Macros::get_macro_args(_pos);
 
           std::list<Lexer::Token> args;
           for (auto it = raw_args.begin(); it != raw_args.end();
@@ -1596,8 +1596,7 @@ uint64_t OakCompiler::preprocess(TokenStream &_pos) {
           }
 
           for (auto it = args.begin(); it != args.end(); ++it) {
-            it->text =
-                MacroManager::strip_string_literal(it->text);
+            it->text = Macros::strip_string_literal(it->text);
           }
 
           if (args.size() == 1) {
@@ -1609,7 +1608,7 @@ uint64_t OakCompiler::preprocess(TokenStream &_pos) {
               std::next(args.begin())->text;
         } else if (_pos.cur() == "rule_new!") {
           did_change = true;
-          auto raw_args = MacroManager::get_macro_args(_pos);
+          auto raw_args = Macros::get_macro_args(_pos);
 
           std::list<Lexer::Token> args;
           for (auto it = raw_args.begin(); it != raw_args.end();
@@ -1626,8 +1625,7 @@ uint64_t OakCompiler::preprocess(TokenStream &_pos) {
           }
 
           for (auto it = args.begin(); it != args.end(); ++it) {
-            it->text =
-                MacroManager::strip_string_literal(it->text);
+            it->text = Macros::strip_string_literal(it->text);
           }
 
           if (args.size() < 3) {
@@ -1661,7 +1659,7 @@ uint64_t OakCompiler::preprocess(TokenStream &_pos) {
           rules.register_rule(name, to_add);
         } else if (_pos.cur() == "rule_use!") {
           did_change = true;
-          auto raw_args = MacroManager::get_macro_args(_pos);
+          auto raw_args = Macros::get_macro_args(_pos);
 
           std::list<Lexer::Token> args;
           for (auto it = raw_args.begin(); it != raw_args.end();
@@ -1679,11 +1677,11 @@ uint64_t OakCompiler::preprocess(TokenStream &_pos) {
 
           for (const auto &arg : args) {
             rules.add_entry_point(
-                MacroManager::strip_string_literal(arg));
+                Macros::strip_string_literal(arg));
           }
         } else if (_pos.cur() == "rule_remove!") {
           did_change = true;
-          auto raw_args = MacroManager::get_macro_args(_pos);
+          auto raw_args = Macros::get_macro_args(_pos);
 
           std::list<Lexer::Token> args;
           for (auto it = raw_args.begin(); it != raw_args.end();
@@ -1701,11 +1699,11 @@ uint64_t OakCompiler::preprocess(TokenStream &_pos) {
 
           for (const auto &arg : args) {
             rules.remove_entry_point(
-                MacroManager::strip_string_literal(arg));
+                Macros::strip_string_literal(arg));
           }
         } else if (_pos.cur() == "rule_bundle!") {
           did_change = true;
-          auto raw_args = MacroManager::get_macro_args(_pos);
+          auto raw_args = Macros::get_macro_args(_pos);
 
           std::list<Lexer::Token> args;
           for (auto it = raw_args.begin(); it != raw_args.end();
@@ -1725,16 +1723,16 @@ uint64_t OakCompiler::preprocess(TokenStream &_pos) {
           for (auto it = std::next(args.begin());
                it != args.end(); ++it) {
             entails.push_back(
-                MacroManager::strip_string_literal(it->text));
+                Macros::strip_string_literal(it->text));
           }
 
           rules.register_bundle(
-              MacroManager::strip_string_literal(args.front()),
+              Macros::strip_string_literal(args.front()),
               entails);
         } else if (_pos.cur() == "unstr!") {
           did_change = true;
           Lexer::Token to_add(_pos.cur());
-          auto raw_args = MacroManager::get_macro_args(_pos);
+          auto raw_args = Macros::get_macro_args(_pos);
           to_add.text.clear();
 
           for (auto it = raw_args.begin(); it != raw_args.end();
@@ -1749,7 +1747,7 @@ uint64_t OakCompiler::preprocess(TokenStream &_pos) {
           }
 
           to_add.text =
-              MacroManager::strip_string_literal(to_add.text);
+              Macros::strip_string_literal(to_add.text);
 
           Lexer lexer;
           uint64_t dummy_line = to_add.line,
@@ -1760,7 +1758,7 @@ uint64_t OakCompiler::preprocess(TokenStream &_pos) {
         } else if (_pos.cur() == "str!") {
           did_change = true;
           Lexer::Token to_add(_pos.cur());
-          auto raw_args = MacroManager::get_macro_args(_pos);
+          auto raw_args = Macros::get_macro_args(_pos);
           to_add.text.clear();
 
           for (auto it = raw_args.begin(); it != raw_args.end();
@@ -1775,8 +1773,8 @@ uint64_t OakCompiler::preprocess(TokenStream &_pos) {
           }
 
           // Ensure exactly one set of enclosing quotes
-          to_add.text = MacroManager::make_string_literal(
-              MacroManager::strip_string_literal(to_add.text));
+          to_add.text = Macros::make_string_literal(
+              Macros::strip_string_literal(to_add.text));
           Lexer::classify_type(to_add);
           _pos.insert(_pos.tell(), to_add);
         } else if (_pos.cur() == "compile_time_system!") {
@@ -1786,7 +1784,7 @@ uint64_t OakCompiler::preprocess(TokenStream &_pos) {
               << _pos.cur().line << "." << _pos.cur().col
               << ">\ncompile_time::system! asks to run `";
 
-          auto raw_args = MacroManager::get_macro_args(_pos);
+          auto raw_args = Macros::get_macro_args(_pos);
 
           std::list<Lexer::Token> args;
           for (auto it = raw_args.begin(); it != raw_args.end();
@@ -1803,8 +1801,7 @@ uint64_t OakCompiler::preprocess(TokenStream &_pos) {
           }
 
           for (auto it = args.begin(); it != args.end(); ++it) {
-            it->text =
-                MacroManager::strip_string_literal(it->text);
+            it->text = Macros::strip_string_literal(it->text);
           }
 
           std::string cmd;
@@ -1882,10 +1879,30 @@ uint64_t OakCompiler::preprocess(TokenStream &_pos) {
       try {
         if (_pos.cur() != "!" && _pos.cur().type == "ID" &&
             _pos.cur().text.find('!') != std::string::npos &&
-            !MacroManager::reserved_macro_names.contains(
+            !Macros::reserved_macro_names.contains(
                 _pos.cur().text)) {
           did_change = true;
-          macros.replace(_pos, settings, *this);
+          const auto res = p.scope_manager.get(_pos.cur().text);
+          if (res.has_value() &&
+              std::holds_alternative<MacroInfo>(
+                  res.value().get())) {
+            // Macro exists: Execute standard replacement
+            std::get<MacroInfo>(res.value().get())
+                .replace(_pos, settings, *this);
+          } else if () {
+            // Macro does not exist, but an alternative was
+            // provided: Use that
+
+#error ""
+
+          } else {
+            // Macro does not exist and no alternative was
+            // provided
+            throw std::runtime_error(
+                "Macro '" + _pos.cur().text +
+                "' does not exist and no alternative was "
+                "provided");
+          }
         }
       } catch (OutOfPPPLError &e) {
         throw OutOfPPPLError(
@@ -1989,20 +2006,6 @@ void OakCompiler::load_dialect_file(
   }
 }
 
-/**
- * @brief
- */
-void OakCompiler::translate(std::ostream &_into) {
-  debug_print();
-  p.reconstruct(_into, settings.compile_settings());
-}
-
-/**
- * @brief Load the given file, following any includes found
- * within and doing any preprocessor rules as expected. This
- * is called by do_compilation, and should not be called
- * outside of it!
- */
 void OakCompiler::do_file(
     const std::string &_path,
     const std::filesystem::path &_cur_file) {
@@ -2023,6 +2026,12 @@ void OakCompiler::do_file(
 
   if (settings.debug) {
     settings.ostream << "Visiting file " << path << '\n';
+  }
+
+  const auto path_write_time =
+      std::filesystem::last_write_time(path);
+  if (path_write_time > csettings.most_recent_mod_time) {
+    csettings.most_recent_mod_time = path_write_time;
   }
   csettings.visited.insert(path);
 
@@ -2056,8 +2065,7 @@ void OakCompiler::do_file(
   } catch (OutOfPPPLError &e) {
     // If requested, dump
     if (csettings.dump_file.has_value()) {
-      p.dump(*csettings.dump_file.value(), token_stream,
-             settings.compile_settings());
+      p.dump(*csettings.dump_file.value(), token_stream);
     }
 
     throw OutOfPPPLError("Error occurred while lexing " +
@@ -2065,8 +2073,7 @@ void OakCompiler::do_file(
   } catch (std::runtime_error &e) {
     // If requested, dump
     if (csettings.dump_file.has_value()) {
-      p.dump(*csettings.dump_file.value(), token_stream,
-             settings.compile_settings());
+      p.dump(*csettings.dump_file.value(), token_stream);
     }
 
     throw std::runtime_error("Error occurred while lexing " +
@@ -2074,8 +2081,7 @@ void OakCompiler::do_file(
   } catch (...) {
     // If requested, dump
     if (csettings.dump_file.has_value()) {
-      p.dump(*csettings.dump_file.value(), token_stream,
-             settings.compile_settings());
+      p.dump(*csettings.dump_file.value(), token_stream);
     }
 
     throw std::runtime_error(
@@ -2098,13 +2104,12 @@ void OakCompiler::do_file(
 
   // Do actual parsing here
   debug_print();
-  p.parse_global(token_stream, settings);
+  p.parse_global(token_stream);
   token_stream.reset();
 
   // If requested, dump
   if (csettings.dump_file.has_value()) {
-    p.dump(*csettings.dump_file.value(), token_stream,
-           settings.compile_settings());
+    p.dump(*csettings.dump_file.value(), token_stream);
   }
 
   if (settings.debug) {

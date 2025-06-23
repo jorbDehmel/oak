@@ -1,8 +1,8 @@
 #include "package.hpp"
 #include "debug.hpp"
 #include "lexer.hpp"
-#include "macro.hpp"
 #include "oakc.hpp"
+#include "symbols.hpp"
 #include <compare>
 #include <filesystem>
 #include <map>
@@ -165,11 +165,12 @@ PackageManager::load_package_spec(
 
   c();
 
-  for (const auto &p : c.macros.macros) {
-    if (p.first.starts_with(package_name + "_") &&
-        std::holds_alternative<MacroManager::Alias>(p.second)) {
-      TokenStream contents(
-          std::get<MacroManager::Alias>(p.second).contents);
+  for (const auto &name : c.p.scope_manager.names()) {
+    if (name.starts_with(package_name + "_")) {
+      TokenStream contents =
+          std::get<InlineMacro>(
+              c.p.scope_manager.get(name).value().get())
+              .contents;
       c.preprocess(contents);
 
       std::string to_add;
@@ -180,8 +181,8 @@ PackageManager::load_package_spec(
         to_add += tok.text;
       }
 
-      out[p.first.substr(package_name.size() + 1)] =
-          MacroManager::strip_string_literal(to_add);
+      out[name.substr(package_name.size() + 1)] =
+          Macros::strip_string_literal(to_add);
     }
   }
 

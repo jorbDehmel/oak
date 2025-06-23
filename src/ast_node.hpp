@@ -1,140 +1,167 @@
+/**
+ * @file
+ * @brief Abstract Syntax Tree nodes used in program
+ * reconstruction
+ */
+
 #pragma once
+
 #include "type.hpp"
+#include <memory>
 #include <optional>
 #include <ostream>
 #include <string>
 #include <variant>
 
+/// A smattering of node types for AST parsing
 namespace ASTNodes {
 
-using DataType =
-    std::variant<struct If, struct While, struct Match,
-                 struct Case, struct Object, struct Call,
-                 struct Declaration, struct ArrAccess,
-                 struct Statement, struct RawCFormat,
-                 struct Return>;
+/// A union of all AST node types
+using Node = std::variant<struct If, struct While, struct Match,
+                          struct Case, struct Object,
+                          struct Call, struct Declaration,
+                          struct ArrAccess, struct Statement,
+                          struct RawCFormat, struct Return>;
 
-///
+/// Zero or more sequential statements
 struct Statement {
-  ///
-  std::vector<DataType> children;
+  /// The children, in order
+  std::vector<Node> children;
 };
 
-///
+/// A resolved object in the form of a string
 struct Object {
-  ///
+  /// The C identifier of the object
   std::string raw_text;
-};
 
-///
-struct If {
-  ///
-  Object condition;
-
-  ///
-  Statement then_body;
-
-  ///
-  std::optional<Statement> else_body;
-};
-
-///
-struct While {
-  ///
-  Object condition;
-
-  ///
-  Statement body;
-};
-
-///
-struct Match {
-  ///
-  Object upon;
-
-  using Else = Statement;
-
-  ///
-  std::list<std::variant<Case, Else>> branches;
-
-  ///
-  bool is_mutable;
-};
-
-///
-struct Case {
-  ///
-  std::string case_name;
-
-  ///
-  std::string enum_name;
-
-  ///
-  std::string passed_name;
-
-  ///
-  Statement body;
-
-  ///
+  /// The type of this object
   Type type;
 };
 
-/// A (resolved) call
+/// An if-then-else statement where the else block is optional
+struct If {
+  /// The condition
+  std::unique_ptr<Node> condition;
+
+  /// What is executed if the condition is true
+  Statement then_body;
+
+  /// If provided, the else block
+  std::optional<Statement> else_body;
+};
+
+/// A while statement
+struct While {
+  /// The condition
+  std::unique_ptr<Node> condition;
+
+  /// What is executed within the loop
+  Statement body;
+};
+
+/// A Rust-style match statement
+struct Match {
+  /// The enum instance we are looking at
+  Object upon;
+
+  /// The enum root name (of which is option is a part)
+  std::string enum_name;
+
+  /// The tines of the match statement
+  std::list<std::variant<Case, Statement>> branches;
+
+  /// If true, all the cases will be references
+  bool is_mutable = false;
+};
+
+/// A branch of a match statement
+struct Case {
+  /// The enum option name
+  std::string case_name;
+
+  /// The name given to the option value
+  std::string passed_name;
+
+  /// The type of the option value
+  Type type;
+
+  /// The body of the case
+  Statement body;
+};
+
+/// A (resolved) function call
 struct Call {
-  ///
+  /// A single argument in the call
   struct Arg {
-    std::string name;
+    /// The identifier of this arg
+    Object name;
+
+    /// The type of this arg
     Type type;
+
+    /// The number of times (possibly negative) that this arg
+    /// needs to be dereferenced in C
     int derefs;
   };
 
-  ///
+  /// The C identifier
   std::string mangled_c_fn_name;
 
-  ///
+  /// The arguments
   std::list<Arg> args;
+
+  /// The type returned by the fn call
+  Type return_type;
+};
+
+/// Declares one or more named variables and provides their
+/// constructors
+struct Declaration {
+  /// The type shared by all of them
+  Type type;
+
+  /// The names of the variables
+  std::list<std::string> names;
+
+  /// Constructors
+  std::list<Node> new_calls;
+};
+
+/// A low-level array access object
+struct ArrAccess {
+  /// The thing being accessed
+  std::unique_ptr<Node> upon;
+
+  /// The index into `upon`
+  std::unique_ptr<Node> index;
 
   ///
   Type return_type;
 };
 
-///
-struct Declaration {
-  ///
-  Type type;
-
-  ///
-  std::list<std::string> names;
-
-  /// Constructors
-  std::list<Call> new_calls;
-};
-
-///
-struct ArrAccess {
-  ///
-  Object upon;
-
-  ///
-  Object index;
-};
-
-///
+/// A format string in C
 struct RawCFormat {
-  ///
+  /// The format string, where any '%' is replaced  by the next
+  /// format argument
   std::string format_string;
 
+  /// The arguments to be inserted at '%'
+  std::vector<Node> args;
+
   ///
-  std::vector<DataType> args;
+  std::optional<Type> type;
 };
 
-///
+/// A return statement
 struct Return {
   /// If provided, the value
   std::optional<Object> value;
 };
 
-/// Recursively reconstruct in C
-void reconstruct(const DataType &_what, std::ostream &_where);
+/// Recursively reconstruct AST in C
+void reconstruct(const Node &_what, std::ostream &_where);
+
+///
+Type type(const Node &_what);
 
 } // namespace ASTNodes
