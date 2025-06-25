@@ -61,7 +61,7 @@ bool parse_args(const int _c, const char *const _v[],
           throw std::runtime_error(
               "'" + arg + "' must be followed by an argument");
         }
-        _oakc.load_dialect_file(_v[++i]);
+        _oakc.p.load_dialect_file(_v[++i]);
       }
 
       // Clean

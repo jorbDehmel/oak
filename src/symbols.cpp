@@ -50,8 +50,8 @@ ASTNodes::Statement ScopeManager::pop_frame() {
         if (std::holds_alternative<Type>(non_ref_value)) {
           const auto instance = std::get<Type>(non_ref_value);
           destructors.children.push_back(
-              instance.get_destructor_call(
-                  ASTNodes::Object(entry.first)));
+              ASTNodes::Box<ASTNodes::Node>(ASTNodes::Object(
+                  instance.get_destructor_call(entry.first))));
         }
       }
     }
@@ -148,6 +148,42 @@ void ScopeManager::remove_prefix(const std::string &_prefix) {
   }
 }
 
+std::string
+fn_call_str(const std::string &_name,
+            const std::list<ASTNodes::Object> &_args) {
+  debug_print();
+  std::string call_text = _name + "(";
+  bool first = true;
+  for (const auto &arg : _args) {
+    if (first) {
+      first = false;
+    } else {
+      call_text += ", ";
+    }
+    call_text += "_: " + arg.type.oak_repr();
+  }
+  call_text += ")";
+  return call_text;
+}
+
+std::string
+fn_call_str(const std::string &_name,
+            const std::list<ASTNodes::Node> &_args) {
+  debug_print();
+  std::string call_text = _name + "(";
+  bool first = true;
+  for (const auto &arg : _args) {
+    if (first) {
+      first = false;
+    } else {
+      call_text += ", ";
+    }
+    call_text += "_: " + ASTNodes::type(arg).oak_repr();
+  }
+  call_text += ")";
+  return call_text;
+}
+
 std::optional<std::reference_wrapper<ScopeManager::Value>>
 ScopeManager::get(const std::string &_name) noexcept {
   auto frame_it = frames.rbegin();
@@ -240,7 +276,7 @@ TemplateInfo::find_substitutions(
 
 std::optional<ASTNodes::Call>
 ScopeManager::get_fn(const std::string &_name,
-                     const std::list<ASTNodes::Object> &_args) {
+                     const std::list<ASTNodes::Node> &_args) {
   debug_print();
 
   std::vector<FnInfo> fn_candidates;
@@ -251,10 +287,12 @@ ScopeManager::get_fn(const std::string &_name,
 
   try {
     if (!all_candidates.has_value()) {
+      debug_print();
       return {};
     } else if (!std::holds_alternative<std::list<
                    std::variant<FnInfo, TemplateInfo>>>(
                    all_candidates.value().get())) {
+      debug_print();
       return {};
     }
 
@@ -284,23 +322,24 @@ ScopeManager::get_fn(const std::string &_name,
            j < instance_args.size() && args_at_j != _args.end();
            ++j, ++args_at_j) {
         ASTNodes::Call::Arg arg_to_add;
-        arg_to_add.name = *args_at_j;
+        arg_to_add.name.get() = *args_at_j;
         arg_to_add.derefs = 0;
-        arg_to_add.type = args_at_j->type;
+        arg_to_add.type = ASTNodes::type(*args_at_j);
 
-        if (exact && !args_at_j->type.exact_match(
-                         instance_args[j].second)) {
+        if (exact &&
+            !ASTNodes::type(*args_at_j)
+                 .exact_match(instance_args[j].second)) {
           exact = false;
         }
 
-        if (ref &&
-            !args_at_j->type.ref_match(instance_args[j].second,
-                                       arg_to_add.derefs)) {
+        if (ref && !ASTNodes::type(*args_at_j)
+                        .ref_match(instance_args[j].second,
+                                   arg_to_add.derefs)) {
           ref = false;
         }
 
-        if (cast && !args_at_j->type.cast_match(
-                        instance_args[i].second)) {
+        if (cast && !ASTNodes::type(*args_at_j)
+                         .cast_match(instance_args[i].second)) {
           cast = false;
         }
 
@@ -362,6 +401,8 @@ ScopeManager::get_fn(const std::string &_name,
     }
     throw std::runtime_error(msg + e.what());
   }
+
+  debug_print();
 }
 
 std::set<std::string> ScopeManager::names() const noexcept {
@@ -407,24 +448,6 @@ void ScopeManager::tag_fn(const std::string &_name,
       std::get<ScopeManager::FnValue>(get(_name).value().get())
           .back())
       .tags[_key] = _value;
-}
-
-std::string
-fn_call_str(const std::string &_name,
-            const std::list<ASTNodes::Object> &_args) {
-  debug_print();
-  std::string call_text = _name + "(";
-  bool first = true;
-  for (const auto &arg : _args) {
-    if (first) {
-      first = false;
-    } else {
-      call_text += ", ";
-    }
-    call_text += "_: " + arg.type.oak_repr();
-  }
-  call_text += ")";
-  return call_text;
 }
 
 bool ScopeManager::contains_atomic_type(

@@ -9,47 +9,49 @@ void ASTNodes::reconstruct(const ASTNodes::Node &_what,
     const auto d = std::get<ASTNodes::If>(_what);
 
     _where << "if (";
-    reconstruct(d.condition, _where);
+    reconstruct(d.condition.get(), _where);
     _where << ")";
-    reconstruct(d.then_body, _where);
+    reconstruct(d.then_body.get(), _where);
     if (d.else_body.has_value()) {
       _where << "else ";
-      reconstruct(d.else_body.value(), _where);
+      reconstruct(d.else_body.get(), _where);
     }
   }
 
   else if (std::holds_alternative<ASTNodes::While>(_what)) {
     const auto d = std::get<ASTNodes::While>(_what);
     _where << "while (";
-    reconstruct(d.condition, _where);
+    reconstruct(d.condition.get(), _where);
     _where << ")";
-    reconstruct(d.body, _where);
+    reconstruct(d.body.get(), _where);
   }
 
   else if (std::holds_alternative<ASTNodes::Match>(_what)) {
     const auto d = std::get<ASTNodes::Match>(_what);
 
     _where << "switch ((";
-    reconstruct(d.upon, _where);
+    reconstruct(d.upon.get(), _where);
     _where << ").__info){\n";
     for (const auto &branch : d.branches) {
-      if (std::holds_alternative<ASTNodes::Statement>(branch)) {
+      if (std::holds_alternative<ASTNodes::Statement>(
+              branch.get())) {
         // 'else'
         const auto branch_d =
-            std::get<ASTNodes::Statement>(branch);
+            std::get<ASTNodes::Statement>(branch.get());
         _where << "default: {";
         reconstruct(branch_d, _where);
         _where << "} break;\n";
       } else {
         // 'case'
-        const auto branch_d = std::get<ASTNodes::Case>(branch);
+        const auto branch_d =
+            std::get<ASTNodes::Case>(branch.get());
         _where << "case " << d.enum_name << "_OPT_"
                << branch_d.case_name << ": {\n"
                << branch_d.type.c_repr(branch_d.passed_name)
                << " = " << (d.is_mutable ? "&" : "") << "(";
-        reconstruct(d.upon, _where);
+        reconstruct(d.upon.get(), _where);
         _where << ").__data." << branch_d.case_name << "; {";
-        reconstruct(branch_d.body, _where);
+        reconstruct(branch_d.body.get(), _where);
         _where << "}} break;\n";
       }
     }
@@ -64,7 +66,7 @@ void ASTNodes::reconstruct(const ASTNodes::Node &_what,
     for (const char &c : d.format_string) {
       if (c == '%' && cur_child < d.args.size()) {
         // Format case
-        reconstruct(d.args.at(cur_child), _where);
+        reconstruct(d.args.at(cur_child).get(), _where);
         ++cur_child;
       } else {
         // Literal C
@@ -99,7 +101,7 @@ void ASTNodes::reconstruct(const ASTNodes::Node &_what,
           _where << "&";
         }
       }
-      _where << arg.name.raw_text;
+      reconstruct(arg.name.get(), _where);
     }
     _where << ")";
   }
@@ -115,7 +117,7 @@ void ASTNodes::reconstruct(const ASTNodes::Node &_what,
 
     // `New` calls
     for (const auto &call : d.new_calls) {
-      reconstruct(call, _where);
+      reconstruct(call.get(), _where);
       _where << ";\n";
     }
   }
@@ -126,7 +128,7 @@ void ASTNodes::reconstruct(const ASTNodes::Node &_what,
       // Scope
       _where << "{\n";
       for (const auto &child : d.children) {
-        reconstruct(child, _where);
+        reconstruct(child.get(), _where);
         _where << ";\n";
       }
       _where << "}\n";
@@ -137,7 +139,7 @@ void ASTNodes::reconstruct(const ASTNodes::Node &_what,
     const auto d = std::get<ASTNodes::Return>(_what);
     _where << "return ";
     if (d.value.has_value()) {
-      reconstruct(d.value.value(), _where);
+      reconstruct(d.value.get(), _where);
     }
   }
 
@@ -145,9 +147,9 @@ void ASTNodes::reconstruct(const ASTNodes::Node &_what,
     const auto d = std::get<ASTNodes::ArrAccess>(_what);
     // Array access: 2 children (var and index)
     _where << "(";
-    reconstruct(d.upon, _where);
+    reconstruct(d.upon.get(), _where);
     _where << "[";
-    reconstruct(d.index, _where);
+    reconstruct(d.index.get(), _where);
     _where << "])";
   }
 }

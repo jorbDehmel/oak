@@ -127,14 +127,6 @@ public:
           const std::list<std::string> &_generics,
           const Substitution &_replacements);
 
-  /// This first checks for existing instances. If none
-  /// exist, it replaces and parses the validate block. If
-  /// that works, it replaces and parses the instantiate
-  /// block. If the instantiate block fails, it raises an
-  /// error. If not, the instance is logged and we return
-  /// without error.
-  TokenStream instantiate(const Substitution &_substitutions);
-
   /// The things to replace
   std::list<std::string> generics;
 
@@ -277,7 +269,7 @@ public:
   /// doing any templates (we don't have a parser!)
   std::optional<ASTNodes::Call>
   get_fn(const std::string &_name,
-         const std::list<ASTNodes::Object> &_args);
+         const std::list<ASTNodes::Node> &_args);
 
   /// Drops any fn/templates with given name, key, and value
   void drop_fn_with_tag(const std::string &_name,
@@ -300,7 +292,7 @@ public:
       throw std::runtime_error(
           "Unexpected meta-type for symbol '" + _name + "'");
     }
-    return std::get<T>(gotten);
+    return std::get<T>(gotten.value().get());
   }
 
   /// Used at reconstruction

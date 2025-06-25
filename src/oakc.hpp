@@ -7,13 +7,14 @@
 
 #pragma once
 
-#include "lexer.hpp"
 #include "parser.hpp"
 #include "settings.hpp"
-#include <filesystem>
 #include <iostream>
 #include <stdexcept>
 #include <string>
+
+/// The Acorn version
+const static std::string acorn_version = "0.8.0";
 
 /**
  * @class OakCompiler
@@ -23,22 +24,6 @@
  */
 class OakCompiler {
 public:
-  /// Oak's version
-  const static std::string version;
-
-  /**
-   * @brief Given a requested path, return the actual path to
-   * (possibly) visit
-   * @param _requested The raw path: EG "std/io.oak"
-   * @param _cur_file The file which is requesting to resolve
-   * the path. This is where all local paths will be from
-   * @returns The canonical (fully qualified and standardized)
-   * path to visit: Might be local, might be global.
-   */
-  std::filesystem::path
-  resolve_path(const std::string &_requested,
-               const std::filesystem::path &_cur_file);
-
   /**
    * @class RunError
    * @brief Thrown when we try and fail to run. If the caught
@@ -99,18 +84,6 @@ public:
    */
   void operator()();
 
-  /**
-   * @brief Preprocess until a fixed point is reached. Expect
-   * the token stream position to be undefined after.
-   */
-  uint64_t preprocess(TokenStream &_token_stream);
-
-  /**
-   * @brief Load a given dialect file and register it as the
-   * current dialect
-   */
-  void load_dialect_file(const std::filesystem::path &_file);
-
 protected:
   /**
    * @brief Do an entire translation unit according to the
@@ -120,29 +93,9 @@ protected:
   void do_compilation();
 
   /**
-   * @brief Parse and turn all math into operator calls
-   */
-  void fix_math(TokenStream &_token_stream);
-
-  /**
-   * @brief Load the given file, following any includes found
-   * within and doing any preprocessor rules as expected. This
-   * is called by do_compilation, and should not be called
-   * outside of it!
-   */
-  void do_file(const std::string &_path,
-               const std::filesystem::path &_cur_file);
-
-  /**
    * @brief Runs in testing mode
    */
   void do_testing();
-
-  /**
-   * @brief Tests the input file contents for validity
-   */
-  void syntax_check(const std::filesystem::path &_fp,
-                    const std::string &_text) const;
 
   /**
    * @brief Write the parsed information to the given stream in
@@ -152,6 +105,3 @@ protected:
     p.reconstruct(_into);
   }
 };
-
-/// The Acorn version
-const static std::string version = "0.8.0";

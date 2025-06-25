@@ -17,6 +17,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <iterator>
 #include <memory>
@@ -837,28 +838,37 @@ Type Parser::parse_type(TokenStream &_pos) {
               out.nodes.back().literal_name)) {
         // Attempt template instantiation
         bool success = false;
-        for (uint i = 0; i < templates.at(original_name).size();
-             ++i) {
-          if (templates.at(original_name)
-                  .at(i)
-                  .does_provide(replacements, {"struct"})) {
-            if (templates.at(original_name)
-                    .at(i)
-                    .attempt_instantiation(*this, replacements,
-                                           settings)) {
-              success = true;
-              break;
+        const auto res = scope_manager.get(original_name);
+        if (res.has_value() &&
+            std::holds_alternative<
+                std::list<std::variant<FnInfo, TemplateInfo>>>(
+                res.value().get())) {
+
+          std::list<std::variant<FnInfo, TemplateInfo>>
+              &templates = std::get<std::list<
+                  std::variant<FnInfo, TemplateInfo>>>(
+                  res.value().get());
+
+          for (auto templates_at_i = templates.begin();
+               templates_at_i != templates.end();
+               ++templates_at_i) {
+            if (!std::holds_alternative<TemplateInfo>(
+                    *templates_at_i)) {
+              continue;
             }
-          } else if (templates.at(original_name)
-                         .at(i)
-                         .does_provide(replacements,
-                                       {"enum"})) {
-            if (templates.at(original_name)
-                    .at(i)
-                    .attempt_instantiation(*this, replacements,
-                                           settings)) {
-              success = true;
-              break;
+
+            TemplateInfo &t =
+                std::get<TemplateInfo>(*templates_at_i);
+            if (t.does_provide(replacements, {"struct"})) {
+              if (instantiate(t, replacements)) {
+                success = true;
+                break;
+              }
+            } else if (t.does_provide(replacements, {"enum"})) {
+              if (instantiate(t, replacements)) {
+                success = true;
+                break;
+              }
             }
           }
         }
@@ -1023,7 +1033,7 @@ void Parser::parse_enum(const std::list<std::string> &_names,
       to_add.t.append_fn();
       to_add.t.nodes.back().following_arg_name = "self";
       to_add.t.append_ptr();
-      to_add.t.append_literal(name); // enum name
+      to_add.t.append_literal(name); // Enum name
       to_add.t.append_join();
       to_add.t.nodes.back().following_arg_name = "__data";
       to_add.t.append_type(p.second);
@@ -1033,14 +1043,12 @@ void Parser::parse_enum(const std::list<std::string> &_names,
       // Node
       ASTNodes::RawCFormat child;
 
-      // clang-format off
       child.format_string =
-        "{ self->__info = " + name + "_OPT_" + p.first +
-        "; self->__data." + p.first +
-        " = __data; }";
-      // clang-format on
+          "{ self->__info = " + name + "_OPT_" + p.first +
+          "; self->__data." + p.first + " = __data; }";
 
-      to_add.n.children = {ASTNodes::RawCFormat()};
+      to_add.n.children = {ASTNodes::Box<ASTNodes::Node>(
+          ASTNodes::RawCFormat())};
       to_add.tags["autogen"] = "true";
 
       // Insert fn
@@ -1129,7 +1137,8 @@ Parser::parse_statement(TokenStream &_pos,
     }
     _pos.next();
 
-    return ASTNodes::Statement({out});
+    return ASTNodes::Statement(
+        {ASTNodes::Box<ASTNodes::Node>(out)});
   }
 
   if (_pos.cur() == ";") {
@@ -1181,7 +1190,8 @@ Parser::parse_statement(TokenStream &_pos,
       out.new_calls.push_back(parse_function_call(new_call));
     }
 
-    return ASTNodes::Statement({out});
+    return ASTNodes::Statement(
+        {ASTNodes::Box<ASTNodes::Node>(out)});
   } else if (_pos.cur() == "{") {
     // Scope
     ASTNodes::Statement out;
@@ -1191,12 +1201,14 @@ Parser::parse_statement(TokenStream &_pos,
 
     _pos.next();
     while (_pos.cur() != "}") {
-      out.children.push_back(parse_statement(_pos));
+      out.children.push_back(
+          ASTNodes::Box<ASTNodes::Node>(parse_statement(_pos)));
       _pos.next();
     }
 
     // Remove that scope frame
-    out.children.push_back(scope_manager.pop_frame());
+    out.children.push_back(ASTNodes::Box<ASTNodes::Node>(
+        scope_manager.pop_frame()));
     return out;
   } else if (_pos.cur() == "if") {
     // If statement
@@ -1210,13 +1222,13 @@ Parser::parse_statement(TokenStream &_pos,
 
     // Condition is a single boolean object
     ASTNodes::If out;
-    *out.condition = parse_object(_pos);
+    out.condition.get() = parse_object(_pos);
 
-    if (!ASTNodes::type(*out.condition)
+    if (!ASTNodes::type(out.condition.get())
              .cast_match(Type({"bool"}))) {
       throw std::runtime_error(
           "Statement condition type '" +
-          ASTNodes::type(*out.condition).oak_repr() +
+          ASTNodes::type(out.condition.get()).oak_repr() +
           "' is not castable to bool.");
     }
 
@@ -1233,19 +1245,21 @@ Parser::parse_statement(TokenStream &_pos,
     // Body
     ASTNodes::Statement body = parse_statement(_pos);
 
-    out.then_body = body;
+    out.then_body = ASTNodes::Box<ASTNodes::Node>(body);
 
     // Optional else clause
     _pos.next();
     if (!_pos.done() && _pos.cur() == "else") {
       // Else clause
       _pos.next();
-      out.else_body = parse_statement(_pos);
+      out.else_body = ASTNodes::OptBox<ASTNodes::Node>(
+          parse_statement(_pos));
     } else {
       _pos.prev();
     }
 
-    return ASTNodes::Statement({out});
+    return ASTNodes::Statement(
+        {ASTNodes::Box<ASTNodes::Node>(out)});
   } else if (_pos.cur() == "while") {
     // While loop
     _pos.next();
@@ -1258,12 +1272,12 @@ Parser::parse_statement(TokenStream &_pos,
 
     // Condition is a single boolean object
     ASTNodes::While out;
-    *out.condition = parse_object(_pos);
-    if (!ASTNodes::type(*out.condition)
+    out.condition.get() = parse_object(_pos);
+    if (!ASTNodes::type(out.condition.get())
              .cast_match(Type({"bool"}))) {
       throw std::runtime_error(
           "Statement condition type '" +
-          ASTNodes::type(*out.condition).oak_repr() +
+          ASTNodes::type(out.condition.get()).oak_repr() +
           "' is not castable to bool.");
     }
 
@@ -1281,7 +1295,8 @@ Parser::parse_statement(TokenStream &_pos,
     ASTNodes::Statement body = parse_statement(_pos);
 
     out.body = body;
-    return ASTNodes::Statement({out});
+    return ASTNodes::Statement(
+        {ASTNodes::Box<ASTNodes::Node>(out)});
   } else if (_pos.cur() == "match") {
     // Match statement
     /*
@@ -1309,9 +1324,8 @@ Parser::parse_statement(TokenStream &_pos,
       target_type = target_type.deref();
     }
 
-    const auto enum_name = target_type.struct_name();
-
-    const auto info = scope_manager.at<EnumInfo>(enum_name);
+    const std::string enum_name = target_type.struct_name();
+    const EnumInfo info = scope_manager.at<EnumInfo>(enum_name);
 
     // Closing parenthesis
     _pos.next();
@@ -1331,7 +1345,7 @@ Parser::parse_statement(TokenStream &_pos,
     if (is_mutable) {
       ASTNodes::RawCFormat new_target;
       new_target.format_string = "(*%)";
-      new_target.args = {target};
+      new_target.args = {(target)};
       target = new_target;
     }
     out.upon = target;
@@ -1343,12 +1357,19 @@ Parser::parse_statement(TokenStream &_pos,
     _pos.next();
 
     while (_pos.cur() != "}") {
-      out.branches.push_back(
-          parse_case(info, _pos, is_mutable));
+      const auto res = parse_case(info, _pos, is_mutable);
+      if (std::holds_alternative<ASTNodes::Case>(res)) {
+        out.branches.push_back(ASTNodes::Box<ASTNodes::Node>(
+            std::get<ASTNodes::Case>(res)));
+      } else {
+        out.branches.push_back(ASTNodes::Box<ASTNodes::Node>(
+            std::get<ASTNodes::Statement>(res)));
+      }
       _pos.next();
     }
 
-    return ASTNodes::Statement({out});
+    return ASTNodes::Statement(
+        {ASTNodes::Box<ASTNodes::Node>(out)});
   } else if (_pos.cur() == "return") {
     // Return statement
     ASTNodes::Return out;
@@ -1358,10 +1379,10 @@ Parser::parse_statement(TokenStream &_pos,
 
       if (!settings.compile_settings()
                .cur_return_type.exact_match(
-                   out.value.value().type)) {
+                   ASTNodes::type(out.value.get()))) {
         throw std::runtime_error(
             "Invalid return type '" +
-            out.value.value().type.oak_repr() +
+            ASTNodes::type(out.value.get()).oak_repr() +
             "' for fn w/ return "
             "type '" +
             settings.compile_settings()
@@ -1376,7 +1397,8 @@ Parser::parse_statement(TokenStream &_pos,
               .cur_return_type.oak_repr() +
           "'");
     }
-    return ASTNodes::Statement({out});
+    return ASTNodes::Statement(
+        {ASTNodes::Box<ASTNodes::Node>(out)});
   } else {
     // Function call
     auto ret = parse_function_call(_pos);
@@ -1481,10 +1503,12 @@ Parser::parse_case(const EnumInfo &_enum_type,
     out.type = passed_type;
 
     // Statement
-    out.body = parse_statement(_pos);
+    auto statement = parse_statement(_pos);
 
     // Pop frame, calling destructors
-    out.body.children.push_back(scope_manager.pop_frame());
+    statement.children.push_back(ASTNodes::Box<ASTNodes::Node>(
+        scope_manager.pop_frame()));
+    out.body = statement;
 
     // Pop from locals stack WITHOUT CALLING DESTRUCTOR ON
     // CAPTURE
@@ -1495,7 +1519,8 @@ Parser::parse_case(const EnumInfo &_enum_type,
     // Statement
     _pos.next();
     ASTNodes::Statement out;
-    out.children = {parse_statement(_pos)};
+    out.children = {
+        ASTNodes::Box<ASTNodes::Node>(parse_statement(_pos))};
     return out;
   } else {
     throw std::runtime_error(
@@ -1572,8 +1597,8 @@ ASTNodes::Node Parser::parse_function_call(TokenStream &_pos) {
            Type::TypeNode::UNSIZED_ARRAY)) {
     // Only resolvable at reconstruction-time
     ASTNodes::ArrAccess out;
-    out.upon = std::make_shared(args.front());
-    out.index = std::make_shared(args.back());
+    out.upon = ASTNodes::Box<ASTNodes::Node>(args.front());
+    out.index = ASTNodes::Box<ASTNodes::Node>(args.back());
     return out;
   }
 
@@ -1581,45 +1606,50 @@ ASTNodes::Node Parser::parse_function_call(TokenStream &_pos) {
   else if (unmangled_name == "alloc!") {
     // 1-arg
     if (args.size() == 1) {
-      if (args.front().type.nodes.empty() ||
-          args.front().type.nodes.front().type !=
+      if (ASTNodes::type(args.front()).nodes.empty() ||
+          ASTNodes::type(args.front()).nodes.front().type !=
               Type::TypeNode::POINTER) {
         throw std::runtime_error(
             "Expected pointer type for alloc!(into), instead "
             "saw '" +
-            args.front().type->oak_repr() + "'");
+            ASTNodes::type(args.front()).oak_repr() + "'");
       }
 
-      out.node_type = Node::RAW_C_FMT;
+      ASTNodes::RawCFormat out;
       out.type = Type({"void"});
-      out.children.push_back(out.children.front());
-      out.c_name = "% = (" +
-                   out.children.front().type->c_repr() +
-                   ") malloc(sizeof(" +
-                   out.children.front().type->deref().c_repr() +
-                   ")); assert(% != NULL)";
+      out.args = {args.front(), args.front()};
+      out.format_string =
+          "% = (" +
+          ASTNodes::type(out.args.front().get()).c_repr() +
+          ") malloc(sizeof(" +
+          ASTNodes::type(out.args.front().get())
+              .deref()
+              .c_repr() +
+          ")); assert(% != NULL)";
       return out;
     }
 
     // 2-arg
     else if (args.size() == 2) {
-      if (args.front().type.nodes.empty() ||
-          args.front().type.nodes.front().type !=
+      if (ASTNodes::type(args.front()).nodes.empty() ||
+          ASTNodes::type(args.front()).nodes.front().type !=
               Type::TypeNode::UNSIZED_ARRAY) {
         throw std::runtime_error(
             "Expected unsized array type for alloc!(into, "
             "size), instead saw '" +
-            args.front().type.oak_repr() + "'");
+            ASTNodes::type(args.front()).oak_repr() + "'");
       }
 
-      out.node_type = Node::RAW_C_FMT;
+      ASTNodes::RawCFormat out;
       out.type = Type({"void"});
-      out.children.push_back(out.children.front());
-      out.c_name = "% = (" +
-                   out.children.front().type->c_repr() +
-                   ") calloc(%, sizeof(" +
-                   out.children.front().type->deref().c_repr() +
-                   ")); assert(% != NULL)";
+      out.args = {args.front(), args.back()};
+      out.args.push_back(args.front());
+      out.format_string =
+          "% = (" +
+          ASTNodes::type(out.args.front().get()).c_repr() +
+          ") calloc(%, sizeof(" +
+          ASTNodes::type(out.args.front().get()).c_repr() +
+          ")); assert(% != NULL)";
       return out;
     }
 
@@ -1631,117 +1661,122 @@ ASTNodes::Node Parser::parse_function_call(TokenStream &_pos) {
 
   // free!
   else if (unmangled_name == "free!") {
-    if (out.children.size() != 1 ||
-        args.front().type->nodes.empty() ||
-        (args.front().type->nodes.front().type !=
+    if (args.size() != 1 ||
+        ASTNodes::type(args.front()).nodes.empty() ||
+        (ASTNodes::type(args.front()).nodes.front().type !=
              Type::TypeNode::POINTER &&
-         args.front().type->nodes.front().type !=
+         ASTNodes::type(args.front()).nodes.front().type !=
              Type::TypeNode::UNSIZED_ARRAY)) {
       throw std::runtime_error(
           "Expected pointer or unsized array type for "
           "free!(to_free), instead saw '" +
-          args.front().type->oak_repr() + "'");
+          ASTNodes::type(args.front()).oak_repr() + "'");
     }
 
-    out.node_type = Node::RAW_C_FMT;
+    ASTNodes::RawCFormat out;
+    out.args = {args.front()};
     out.type = Type({"void"});
-    out.c_name = "free((void *)(%))";
+    out.format_string = "free((void *)(%))";
     return out;
   }
 
   // New on pointer or unsized array types
   else if (unmangled_name == "New" && args.size() == 1 &&
-           (args.front().type->nodes.front().type ==
+           (ASTNodes::type(args.front()).nodes.front().type ==
                 Type::TypeNode::POINTER ||
-            args.front().type->nodes.front().type ==
+            ASTNodes::type(args.front()).nodes.front().type ==
                 Type::TypeNode::UNSIZED_ARRAY)) {
-    out.node_type = Node::RAW_C_FMT;
+    ASTNodes::RawCFormat out;
+    out.args = {args.front()};
     out.type = Type({"void"});
-    out.c_name = "% = 0;";
+    out.format_string = "% = 0;";
     return out;
   }
 
   // New on atomic types
   else if (unmangled_name == "New" && args.size() == 1 &&
-           Type::is_built_in_type(args.front().type.value())) {
-    out.node_type = Node::RAW_C_FMT;
+           Type::is_built_in_type(
+               ASTNodes::type(args.front()))) {
+    ASTNodes::RawCFormat out;
+    out.args = {args.front()};
     out.type = Type({"void"});
-    out.c_name = "% = 0;";
+    out.format_string = "% = 0;";
     return out;
   }
 
   // Del on atomic types
   else if (unmangled_name == "Del" && args.size() == 1 &&
-           Type::is_built_in_type(args.front().type.value())) {
-    out.node_type = Node::NONE;
-    return out;
+           Type::is_built_in_type(
+               ASTNodes::type(args.front()))) {
+    return ASTNodes::Statement();
   }
 
   // Del on pointer or unsized array types
   else if (unmangled_name == "Del" && args.size() == 1 &&
-           args.front().type.has_value() &&
-           (args.front().type->nodes.front().type ==
+           (ASTNodes::type(args.front()).nodes.front().type ==
                 Type::TypeNode::POINTER ||
-            args.front().type->nodes.front().type ==
+            ASTNodes::type(args.front()).nodes.front().type ==
                 Type::TypeNode::UNSIZED_ARRAY)) {
-    out.node_type = Node::NONE;
-    return out;
+    return ASTNodes::Statement();
   }
 
   // Pointer copy
   else if (unmangled_name == "Copy" && args.size() == 2 &&
-           args.back().type->nodes.front().type ==
+           ASTNodes::type(args.back()).nodes.front().type ==
                Type::TypeNode::POINTER &&
-           args.front().type->cast_match(*args.back().type)) {
-    out.node_type = Node::RAW_C_FMT;
+           ASTNodes::type(args.front())
+               .cast_match(ASTNodes::type(args.back()))) {
+    ASTNodes::RawCFormat out;
+    out.args = {args.front(), args.back()};
     out.type = Type({"void"});
-    out.c_name = "% = %;";
+    out.format_string = "% = %;";
     return out;
   }
 
   // Special case: Local fn pointer
-  else if (!locals.empty() && out.token.has_value()) {
-    for (auto frame = locals.rbegin(); frame != locals.rend();
-         ++frame) {
-      if (frame->contains(out.token.value().text)) {
-        const Type local_var_type =
-            frame->at(out.token.value().text);
+  else if (scope_manager.contains(unmangled_name) &&
+           std::holds_alternative<Type>(
+               scope_manager.get(unmangled_name)
+                   .value()
+                   .get())) {
+    const Type local_var_type =
+        scope_manager.at<Type>(unmangled_name);
 
-        if (local_var_type.is_fn_ptr()) {
-          const auto fn_type = local_var_type.deref();
-          const auto needed_args = fn_type.fn_args();
+    if (local_var_type.is_fn_ptr()) {
+      const auto fn_type = local_var_type.deref();
+      const auto needed_args = fn_type.fn_args();
 
-          if (args.size() != needed_args.size()) {
-            throw std::runtime_error(
-                "Expected " +
-                std::to_string(needed_args.size()) +
-                " args in fn pointer call, but saw " +
-                std::to_string(args.size()));
-          }
+      if (args.size() != needed_args.size()) {
+        throw std::runtime_error(
+            "Expected " + std::to_string(needed_args.size()) +
+            " args in fn pointer call, but saw " +
+            std::to_string(args.size()));
+      }
 
-          for (uint i = 0; i < needed_args.size(); ++i) {
-            if (!needed_args[i].second.exact_match(
-                    args[i].type.value())) {
-              throw std::runtime_error(
-                  "Expected type '" +
-                  needed_args[i].second.oak_repr() +
-                  "' for arg " + std::to_string(i) +
-                  " of fn pointer call, but saw type '" +
-                  args[i].type->oak_repr() + "'");
-            }
-          }
-
-          out.type = fn_type.fn_return_type();
-          out.c_name = out.token.value().text;
-          return out;
-        } else {
+      auto args_at_i = args.begin();
+      for (uint i = 0;
+           i < needed_args.size() && args_at_i != args.end();
+           ++i, ++args_at_i) {
+        if (!needed_args[i].second.exact_match(
+                ASTNodes::type(*args_at_i))) {
           throw std::runtime_error(
-              "Cannot call variable with non-function-pointer "
-              "type '" +
-              local_var_type.oak_repr(out.token.value().text) +
-              "'");
+              "Expected type '" +
+              needed_args[i].second.oak_repr() + "' for arg " +
+              std::to_string(i) +
+              " of fn pointer call, but saw type '" +
+              ASTNodes::type(*args_at_i).oak_repr() + "'");
         }
       }
+
+      ASTNodes::Object out;
+      out.type = fn_type.fn_return_type();
+      out.raw_text = unmangled_name;
+      return out;
+    } else {
+      throw std::runtime_error(
+          "Cannot call variable with non-function-pointer "
+          "type '" +
+          local_var_type.oak_repr(unmangled_name) + "'");
     }
   }
 
@@ -1846,8 +1881,8 @@ ASTNodes::Node Parser::parse_object(TokenStream &_pos) {
 
     // Member access
     while (_pos.peek(1).text == ".") {
-      _pos.next(); // pointing at .
-      _pos.next(); // pointing at member name
+      _pos.next(); // Pointing at .
+      _pos.next(); // Pointing at member name
       const auto member_name = _pos.cur().text;
 
       // Auto-deref for member access
@@ -1905,8 +1940,8 @@ bool TemplateInfo::does_provide(
     tokenized.push_back(i);
   }
 
-  const auto will_provide =
-      replace(tokenized, generics, _substitutions);
+  const auto will_provide = TemplateInfo::replace(
+      tokenized, generics, _substitutions);
 
   if (will_provide.size() != _desired.size()) {
     return false;
@@ -1964,39 +1999,41 @@ std::list<std::string> TemplateInfo::replace(
   return out;
 }
 
-TokenStream TemplateInfo::instantiate(
+bool Parser::instantiate(
+    TemplateInfo &_what,
     const std::list<std::list<std::string>> &_substitutions) {
   debug_print();
   // Check for existing instances
-  if (existing_instances.contains(_substitutions)) {
+  if (_what.existing_instances.contains(_substitutions)) {
     return true;
   }
 
   // Build validation block
-  auto replaced_validation_block =
-      Lexer::tokify(replace(validate, generics, _substitutions),
-                    path, line, col);
+  auto replaced_validation_block = Lexer::tokify(
+      TemplateInfo::replace(_what.validate_block,
+                            _what.generics, _substitutions),
+      _what.path, _what.line, _what.col);
 
   // Run validation block
-  Parser backup = _p;
+  Parser tester = *this;
   try {
-    _p.parse_global(replaced_validation_block);
+    tester.parse_global(replaced_validation_block);
   } catch (...) {
-    _p = backup;
     return false;
   }
 
   // Replace the instantiation block
   auto replaced_instantiation_block = Lexer::tokify(
-      replace(instantiate_block, generics, _substitutions),
-      path, line, col);
+      TemplateInfo::replace(_what.instantiate_block,
+                            _what.generics, _substitutions),
+      _what.path, _what.line, _what.col);
 
   // Struct name fix
-  if (provides_block.size() == 1 &&
-      provides_block.front() == "struct") {
+  if (_what.provides_block.size() == 1 &&
+      _what.provides_block.front() == "struct") {
     auto it = std::next(replaced_instantiation_block.begin());
-    const auto repl =
-        replace(generics, generics, _substitutions);
+    const auto repl = TemplateInfo::replace(
+        _what.generics, _what.generics, _substitutions);
 
     it->text += "_GEN_";
     bool first = true;
@@ -2028,7 +2065,7 @@ TokenStream TemplateInfo::instantiate(
 
   // Run instantiation block
   try {
-    _p.parse_global(replaced_instantiation_block);
+    parse_global(replaced_instantiation_block);
   } catch (std::runtime_error &e) {
     std::string msg;
     for (const auto &item : replaced_instantiation_block) {
@@ -2054,7 +2091,7 @@ TokenStream TemplateInfo::instantiate(
   }
 
   // Log any success
-  existing_instances.insert(_substitutions);
+  _what.existing_instances.insert(_substitutions);
 
   return true;
 }
@@ -2143,134 +2180,6 @@ Macros::make_string_literal(const std::string &_contents) {
 
   out += "\"";
   return out;
-}
-
-void Macros::replace(TokenStream &_pos,
-                     const Settings &_csettings,
-                     OakCompiler &_oakc) {
-  debug_print();
-
-  const auto name_tok = _pos.cur();
-  const std::string name =
-      _pos.cur().text.substr(0, _pos.cur().text.find('!') + 1);
-  const std::string nonexistence_replacement =
-      _pos.cur().text.substr(_pos.cur().text.find('!') + 1);
-
-  if (name == "LINE!") {
-    _pos.tell()->type = "NUMBER";
-    _pos.tell()->text = std::to_string(_pos.cur().line) + "u64";
-    return;
-  } else if (name == "COL!") {
-    _pos.tell()->type = "NUMBER";
-    _pos.tell()->text = std::to_string(_pos.cur().col) + "u64";
-    return;
-  } else if (name == "FILE!") {
-    _pos.tell()->type = "STRING";
-    _pos.tell()->text = '"' + _pos.cur().file.string() + '"';
-    return;
-  } else if (name == "oak_VERSION!") {
-    _pos.tell()->type = "STRING";
-    _pos.tell()->text = '"' + OakCompiler::version + '"';
-    return;
-  } else if (name == "SYSTEM!") {
-    _pos.tell()->type = "STRING";
-#if (defined(WIN32) || defined(WINNT))
-    _pos.tell()->text = "\"WINDOWS\"";
-#elif (defined(unix) || defined(__unix__))
-    _pos.tell()->text = "\"UNIX\"";
-#elif (defined(__APPLE__) || defined(__MACH__))
-    _pos.tell()->text = "\"OSX\"";
-#else
-    _pos.tell()->text = "\"OTHER\"";
-#endif
-    return;
-  }
-
-  if (!macros.contains(name)) {
-    if (!nonexistence_replacement.empty()) {
-      _pos.tell()->text = nonexistence_replacement;
-      Lexer::classify_type(*_pos.tell());
-      return;
-    } else {
-      throw std::runtime_error("Macro '" + name +
-                               "' has no definition");
-    }
-  }
-
-  if (std::holds_alternative<InlineMacro>(macros.at(name))) {
-    // Inline
-    const auto to_remove = _pos.tell();
-    for (const auto &item :
-         std::get<Inline>(macros.at(name)).contents) {
-      _pos.insert(to_remove, Lexer::Token(name_tok, item));
-    }
-    _pos.seek(std::prev(to_remove));
-    _pos.erase(to_remove);
-  } else if (_pos.peek(1).text == "(") {
-    // Functional
-    auto args = get_macro_args(_pos);
-    _pos.next();
-
-    const auto exe =
-        std::get<CompiledMacro>(macros.at(name)).executable;
-
-    if (!std::filesystem::exists(exe)) {
-      throw std::runtime_error("Compiled macro " +
-                               exe.string() +
-                               " does not exist!");
-    }
-
-    // Prepare call
-    std::string command = exe;
-    for (const auto &arg : args) {
-      TokenStream stream = arg;
-      _oakc.preprocess(stream);
-      std::string arg_text;
-      for (const auto &tok : arg) {
-        if (!arg_text.empty()) {
-          arg_text.push_back(' ');
-        }
-        arg_text += tok;
-      }
-      command += " " + Macros::make_string_literal(arg_text);
-    }
-
-    if (_csettings.debug) {
-      _csettings.ostream << "Running macro call '" << command
-                         << "'\n";
-    }
-
-    // Run call and get replacement
-    const auto replacement = get_cmd_output(command);
-
-    if (_csettings.debug) {
-      _csettings.ostream << "Macro returned text:\n```oak\n"
-                         << replacement << "\n```\n";
-    }
-
-    // Lex replacement
-    Lexer l;
-    uint64_t junk_line = 0, junk_col = 0;
-    auto lexed_replacement =
-        l.lex(replacement, name_tok.file, junk_line, junk_col);
-
-    // Do replacement
-    for (const auto &t : lexed_replacement) {
-      Lexer::Token to_insert = t;
-      to_insert.file = name_tok.file;
-      to_insert.line = name_tok.line;
-      to_insert.col = name_tok.col;
-      _pos.insert(_pos.tell(), to_insert);
-    }
-
-    // Decr one
-    _pos.prev();
-  } else {
-    // Error
-    throw std::runtime_error(
-        "Compiled macro '" + name +
-        "' must be invoked as a function call.");
-  }
 }
 
 /// STRIPS QUOTES OFF OF a macro occurrence's
@@ -2543,7 +2452,13 @@ ASTNodes::Call Parser::resolve_fn_call(
       "No matching function found for call '" +
       fn_call_str(_name, _args) + "'";
 
-  auto candidate = scope_manager.get_fn(_name, _args);
+  std::list<ASTNodes::Node> args_in_disguise;
+  for (const auto &arg : _args) {
+    args_in_disguise.push_back(arg);
+  }
+
+  auto candidate =
+      scope_manager.get_fn(_name, args_in_disguise);
   if (candidate.has_value()) {
     // No templates needed
     return candidate.value();
@@ -2598,10 +2513,11 @@ ASTNodes::Call Parser::resolve_fn_call(
       const auto substitutions =
           t.find_substitutions(_name, signature);
       if (substitutions.has_value()) {
-        t.instantiate(substitutions.value());
+        instantiate(t, substitutions.value());
 
         // Don't allow templates this time!
-        candidate = scope_manager.get_fn(_name, _args);
+        candidate =
+            scope_manager.get_fn(_name, args_in_disguise);
         if (candidate.has_value()) {
           return candidate.value();
         } else {
@@ -2615,9 +2531,1335 @@ ASTNodes::Call Parser::resolve_fn_call(
                              fn_call_str(_name, _args) +
                              "':\n" + _e.what());
   } catch (...) {
+  }
+  throw std::runtime_error(
+      "Unknown error during template checking "
+      "requested by function call '" +
+      fn_call_str(_name, _args) + "'");
+}
+
+void Parser::syntax_check(const std::filesystem::path &_fp,
+                          const std::string &_text) const {
+  debug_print();
+  // All detected errors: line, col, message
+  std::list<std::tuple<uint64_t, uint64_t, std::string>> errors;
+
+  // Scan for syntax errors here
+
+  uint64_t line = 1, col = 0;
+  std::stack<char> enclosure;
+  size_t i;
+
+  auto incr = [&]() {
+    if (col == 65) {
+      errors.push_back({line, col, "Line too long!"});
+    }
+    ++i, ++col;
+  };
+
+  for (i = 0; i < _text.size(); ++i, ++col) {
+    // Comments
+    if (_text.at(i) == '/' && i + 1 < _text.size() &&
+        _text.at(i + 1) == '/') {
+      while (i < _text.size() && _text.at(i) != '\n') {
+        incr();
+      }
+      if (_text.at(i) == '\n') {
+        ++line, col = 0;
+      }
+    } else if (_text.at(i) == '/' && i + 1 < _text.size() &&
+               _text.at(i + 1) == '*') {
+      while (i + 1 < _text.size() &&
+             !(_text.at(i) == '*' && _text.at(i + 1) == '/')) {
+        if (_text.at(i) == '\n') {
+          ++line, col = 0;
+        }
+        incr();
+      }
+      incr();
+    }
+
+    // Strings
+    if (_text.at(i) == '\'') {
+      bool skip = false;
+      incr();
+      while (i < _text.size()) {
+        if (skip) {
+          skip = false;
+        } else if (_text.at(i) == '\\') {
+          skip = true;
+          incr();
+          continue;
+        } else if (_text.at(i) == '\'') {
+          break;
+        } else if (_text.at(i) == '\n') {
+          ++line, col = 0;
+          break;
+        }
+        incr();
+      }
+    } else if (_text.at(i) == '"') {
+      bool skip = false;
+      incr();
+      while (i < _text.size()) {
+        if (skip) {
+          skip = false;
+        } else if (_text.at(i) == '\\') {
+          skip = true;
+          incr();
+          continue;
+        } else if (_text.at(i) == '"') {
+          break;
+        } else if (_text.at(i) == '\n') {
+          ++line, col = 0;
+          break;
+        }
+        incr();
+      }
+    } else if (_text.at(i) == '`') {
+      bool skip = false;
+      incr();
+      while (i < _text.size()) {
+        if (skip) {
+          skip = false;
+        } else if (_text.at(i) == '\\') {
+          skip = true;
+          incr();
+          continue;
+        } else if (_text.at(i) == '`') {
+          break;
+        } else if (_text.at(i) == '\n') {
+          ++line, col = 0;
+          break;
+        }
+        incr();
+      }
+    }
+
+    else {
+      // Everything else
+      switch (_text.at(i)) {
+      case '\n':
+        ++line, col = 0;
+        break;
+      case '[':
+      case '(':
+      case '{':
+        enclosure.push(_text.at(i));
+        break;
+      case ']':
+        if (enclosure.empty()) {
+          errors.push_back({line, col, "Too many ']'"});
+        } else if (enclosure.top() != '[') {
+          errors.push_back({line, col,
+                            std::string("Tried to end '") +
+                                enclosure.top() +
+                                "' with ']'"});
+        } else {
+          enclosure.pop();
+        }
+        break;
+      case ')':
+        if (enclosure.empty()) {
+          errors.push_back({line, col, "Too many ')'"});
+        } else if (enclosure.top() != '(') {
+          errors.push_back({line, col,
+                            std::string("Tried to end '") +
+                                enclosure.top() +
+                                "' with ')'"});
+        } else {
+          enclosure.pop();
+        }
+        break;
+      case '}':
+        if (enclosure.empty()) {
+          errors.push_back({line, col, "Too many '}'"});
+        } else if (enclosure.top() != '{') {
+          errors.push_back({line, col,
+                            std::string("Tried to end '") +
+                                enclosure.top() +
+                                "' with '}'"});
+        } else {
+          enclosure.pop();
+        }
+        break;
+      }
+
+      if (col == 65) {
+        errors.push_back({line, col, "Line too long!"});
+      }
+    }
+  }
+
+  // If errors were found, throw them
+  if (!errors.empty()) {
+    for (const auto &p : errors) {
+      settings.ostream << _fp.string() << ":" << std::get<0>(p)
+                       << "." << std::get<1>(p) << "> '"
+                       << std::get<2>(p) << "'\n";
+    }
+
+    throw std::runtime_error(std::to_string(errors.size()) +
+                             " syntax error(s) occurred.");
+  }
+}
+
+void Parser::fix_math(TokenStream &_pos) {
+  debug_print();
+  // Iterate through the token stream, replace all instances of
+  // the given operator with the given op fn call name (EG '+'
+  // -> 'Add'). Precedence is embedded in the order in which you
+  // call this lambda
+  const auto resolve_binary_operator =
+      [&](const std::map<std::string, std::string> &_ops) {
+        // Scan stream
+        for (_pos.reset(); !_pos.done(); _pos.next()) {
+          // Special case: skip anything of the form
+          // `let . = .* ;`
+          if (_pos.cur() == "let" && _pos.peek(2) == "=") {
+            while (!_pos.done() && _pos.cur() != ";") {
+              _pos.next();
+            }
+            continue;
+          }
+
+          // On match
+          if (_pos.cur().type == "OPERATOR" &&
+              _ops.contains(_pos.cur().text)) {
+            std::list<Lexer::Token>::iterator
+                first_of_lhs, // First tok in lhs
+                first_after_lhs =
+                    _pos.tell(), // The single-token op
+                first_after_rhs; // First tok after rhs
+
+            // Find lhs
+            first_of_lhs = std::prev(_pos.tell());
+            if (_pos.at_beg() || *first_of_lhs == "(") {
+              throw std::runtime_error(
+                  "At " + _pos.cur().file.string() + ":" +
+                  std::to_string(_pos.cur().line) + "." +
+                  std::to_string(_pos.cur().col) +
+                  "> Malformed operator '" +
+                  first_after_lhs->text + "' LHS");
+            } else if (*first_of_lhs == ")") {
+              int depth = 0;
+              do {
+                if (*first_of_lhs == "(") {
+                  ++depth;
+                } else if (*first_of_lhs == ")") {
+                  --depth;
+                }
+                --first_of_lhs;
+              } while (depth != 0);
+              if (first_of_lhs->type != "ID") {
+                ++first_of_lhs;
+              }
+
+              // Erase matched parenthesis
+              while (first_of_lhs->text == "(" &&
+                     std::prev(first_after_lhs)->text == ")") {
+                first_of_lhs = _pos.erase(first_of_lhs);
+                _pos.erase(std::prev(first_after_lhs));
+              }
+            }
+            while (std::prev(first_of_lhs)->text == ".") {
+              first_of_lhs = std::prev(first_of_lhs, 2);
+            }
+
+            // Find rhs
+            first_after_rhs = std::next(_pos.tell());
+            if (first_after_rhs->type == "EOF" ||
+                *first_after_rhs == ")") {
+              throw std::runtime_error(
+                  "At " + _pos.cur().file.string() + ":" +
+                  std::to_string(_pos.cur().line) + "." +
+                  std::to_string(_pos.cur().col) +
+                  "> Malformed operator '" +
+                  first_after_lhs->text + "' LHS");
+            } else if (first_after_rhs->text == "(") {
+              // Parenthesization
+              auto start_pos = first_after_rhs;
+              int depth = 1;
+              do {
+                ++first_after_rhs;
+                if (first_after_rhs->text == "(") {
+                  ++depth;
+                } else if (first_after_rhs->text == ")") {
+                  --depth;
+
+                  if (depth == 0) {
+                    ++first_after_rhs;
+                  }
+                }
+              } while (depth != 0);
+
+              // Erase matched parenthesis
+              while (start_pos->text == "(" &&
+                     std::prev(first_after_rhs)->text == ")") {
+                start_pos = _pos.erase(start_pos);
+                _pos.erase(std::prev(first_after_rhs));
+              }
+            } else if (std::next(first_after_rhs)->text ==
+                       "(") {
+              // Function call
+              int depth = 0;
+              do {
+                ++first_after_rhs;
+                if (first_after_rhs->text == "(") {
+                  ++depth;
+                } else if (first_after_rhs->text == ")") {
+                  --depth;
+
+                  if (depth == 0) {
+                    ++first_after_rhs;
+                  }
+                }
+              } while (depth != 0);
+            } else {
+              ++first_after_rhs;
+            }
+
+            while (first_after_rhs->text == ".") {
+              first_after_rhs = std::next(first_after_rhs, 2);
+            }
+
+            // Operate
+            // "lhs _operator rhs" -> "_op_name ( lhs , rhs )"
+            // "lhs _operator (...)" -> "_op_name ( lhs , ... )"
+            _pos.insert(
+                first_of_lhs,
+                Lexer::Token(_ops.at(first_after_lhs->text),
+                             _pos.cur().file, _pos.cur().line,
+                             _pos.cur().col, "ID"));
+            _pos.insert(first_of_lhs,
+                        Lexer::Token("(", _pos.cur().file,
+                                     _pos.cur().line,
+                                     _pos.cur().col,
+                                     "OPERATOR"));
+
+            // Separating comma
+            first_after_lhs->text = ",";
+            first_after_lhs->type = "OPERATOR";
+
+            // End parenthesis
+            _pos.insert(first_after_rhs,
+                        Lexer::Token(")", _pos.cur().file,
+                                     _pos.cur().line,
+                                     _pos.cur().col,
+                                     "OPERATOR"));
+          }
+        }
+      };
+
+  // Same, but for prefix unary operators
+  // Note: There are no suffix unary operators in oak, and all
+  // prefix unary operators have the same precendence
+  const auto resolve_unary_operator =
+      [&](const std::string &_operator,
+          const std::string &_op_name) {
+        // Scan stream
+        for (_pos.reset(); !_pos.done(); _pos.next()) {
+          // On match
+          if (_pos.cur().type == "OPERATOR" &&
+              _pos.cur().text == _operator) {
+            std::list<Lexer::Token>::iterator
+                first_after_lhs =
+                    _pos.tell(), // The single-token op
+                first_after_rhs; // First tok after rhs
+
+            // Find rhs
+            first_after_rhs = std::next(_pos.tell());
+            if (_pos.at_beg() || *first_after_rhs == ")") {
+              throw std::runtime_error(
+                  "At " + _pos.cur().file.string() + ":" +
+                  std::to_string(_pos.cur().line) + "." +
+                  std::to_string(_pos.cur().col) +
+                  "> Malformed operator '" + _operator +
+                  "' LHS");
+            } else if (std::next(first_after_rhs)->text ==
+                       "(") {
+              int depth = 0;
+              do {
+                ++first_after_rhs;
+                if (*first_after_rhs == "(") {
+                  ++depth;
+                } else if (*first_after_rhs == ")") {
+                  --depth;
+
+                  if (depth == 0) {
+                    ++first_after_rhs;
+                  }
+                }
+              } while (depth != 0);
+            } else {
+              ++first_after_rhs;
+            }
+
+            while (first_after_rhs->text == ".") {
+              first_after_rhs = std::next(first_after_rhs, 2);
+            }
+
+            // Operate
+            // "_operator rhs" -> "_op_name ( rhs )"
+            // Beginning of call: "Name ("
+            _pos.insert(first_after_lhs,
+                        Lexer::Token(_op_name, _pos.cur().file,
+                                     _pos.cur().line,
+                                     _pos.cur().col, "ID"));
+            first_after_lhs->text = "(";
+            first_after_lhs->type = "OPERATOR";
+
+            // End parenthesis
+            _pos.insert(first_after_rhs,
+                        Lexer::Token(")", _pos.cur().file,
+                                     _pos.cur().line,
+                                     _pos.cur().col,
+                                     "OPERATOR"));
+          }
+        }
+      };
+
+  // Unary operator precedence
+  const std::list<std::pair<std::string, std::string>>
+      unary_precedence = {{"!", "Not"},
+                          {"++", "Incr"},
+                          {"--", "Decr"},
+                          {"~", "Flip"}};
+
+  // Binary operator precedence
+  const std::list<std::map<std::string, std::string>>
+      binary_precedence = {
+          {
+              {"&", "And"},
+              {"|", "Or"},
+          },
+          {
+              {"*", "Mult"},
+              {"/", "Div"},
+              {"%", "Mod"},
+          },
+          {
+              {"+", "Add"},
+              {"-", "Sub"},
+          },
+          {
+              {"==", "Eq"},
+              {"!=", "Neq"},
+          },
+          {{"<", "Less"},
+           {">", "Great"},
+           {"<=", "Leq"},
+           {">=", "Greq"}},
+          {
+              {"&&", "Andd"},
+              {"||", "Orr"},
+          },
+          {
+              {"=", "Copy"},
+              {"&=", "AndEq"},
+              {"|=", "OrEq"},
+              {"<<=", "LBSEq"},
+              {">>=", "RBSEq"},
+              {"*=", "MultEq"},
+              {"/=", "DivEq"},
+              {"%=", "ModEq"},
+              {"+=", "AddEq"},
+              {"-=", "SubEq"},
+              {"&&=", "AnddEq"},
+              {"||=", "OrrEq"},
+          },
+      };
+
+  for (const auto &i : unary_precedence) {
+    resolve_unary_operator(i.first, i.second);
+  }
+
+  for (const auto &i : binary_precedence) {
+    resolve_binary_operator(i);
+  }
+}
+
+uint64_t Parser::preprocess(TokenStream &_pos) {
+  debug_print();
+  bool did_change = false;
+  uint64_t passes = 0;
+  auto &csettings = settings.compile_settings();
+
+  std::optional<std::shared_ptr<std::ostream>> log;
+  if (csettings.rule_logs) {
+    if (csettings.dump_file.has_value()) {
+      log = csettings.dump_file.value();
+    } else {
+      log = std::make_shared<std::ofstream>("acorn_rules.log",
+                                            std::ios::app);
+    }
+
+    **log << "Raw lexed :\n ";
+    uint64_t prev_line = 0;
+    std::filesystem::path prev_path;
+    for (const auto &tok : _pos) {
+      if (tok.file != prev_path) {
+        **log << '\n' << tok.file << ":\n";
+        prev_path = tok.file;
+      }
+      if (tok.line != prev_line) {
+        **log << "\n" << tok.line << "\t|";
+        prev_line = tok.line;
+      }
+      **log << ' ' << tok.text;
+    }
+    **log << '\n';
+  }
+
+  do {
+    ++passes;
+    if (passes >= csettings.preprocess_pass_limit) {
+      throw OutOfPPPLError(
+          "Ruleset failed to converge in " +
+          std::to_string(csettings.preprocess_pass_limit) +
+          " passes");
+    }
+
+    did_change = false;
+
+    // Macro definitions
+    bool saw_let = false;
+    for (_pos.reset(); !_pos.done(); _pos.next()) {
+      try {
+        if (_pos.cur() == "let") {
+          saw_let = true;
+        } else if (saw_let && _pos.cur() != "!" &&
+                   _pos.cur().text.find('!') !=
+                       std::string::npos) {
+          parse_macro(_pos, settings.compile_settings()
+                                    .preprocess_pass_limit -
+                                passes);
+          saw_let = false;
+          did_change = true;
+          _pos.prev();
+        } else {
+          saw_let = false;
+        }
+      } catch (OutOfPPPLError &e) {
+        throw OutOfPPPLError(
+            "At " + _pos.cur().file.string() + ":" +
+            std::to_string(_pos.cur().line) + "." +
+            std::to_string(_pos.cur().col) + "\n" + e.what());
+      } catch (std::runtime_error &e) {
+        throw std::runtime_error(
+            "At " + _pos.cur().file.string() + ":" +
+            std::to_string(_pos.cur().line) + "." +
+            std::to_string(_pos.cur().col) + "\n" + e.what());
+      } catch (...) {
+        if (_pos.done()) {
+          throw;
+        }
+        throw std::runtime_error(
+            "At " + _pos.cur().file.string() + ":" +
+            std::to_string(_pos.cur().line) + "." +
+            std::to_string(_pos.cur().col) + "\nUnknown error");
+      }
+    }
+
+    // Resolve includes and packages
+    for (_pos.reset(); !_pos.done(); _pos.next()) {
+      try {
+        if (_pos.cur() == "include!") {
+          did_change = true;
+          auto raw_args = Macros::get_macro_args(_pos);
+
+          std::list<Lexer::Token> args;
+          for (auto it = raw_args.begin(); it != raw_args.end();
+               ++it) {
+            TokenStream cur_arg(*it);
+            preprocess(cur_arg);
+            Lexer::Token to_add = cur_arg.cur();
+            for (cur_arg.next(); !cur_arg.done();
+                 cur_arg.next()) {
+              to_add.text += ' ';
+              to_add.text += cur_arg.cur().text;
+            }
+            to_add.text =
+                Macros::strip_string_literal(to_add.text);
+            args.push_back(to_add);
+          }
+
+          try {
+            for (const auto &f : args) {
+              // const auto backup = rules.purge_entry_points();
+              do_file(f.text, f.file);
+              // rules.purge_entry_points();
+              // for (const auto &item : backup) {
+              //   rules.add_entry_point(item);
+              // }
+              std::cerr << __FILE__ << ":" << __LINE__
+                        << "> Unimplemented\n"
+                        << std::flush;
+            }
+          } catch (OutOfPPPLError &e) {
+            throw OutOfPPPLError(
+                "In file included from " +
+                _pos.cur().file.string() + ":" +
+                std::to_string(_pos.cur().line) + "." +
+                std::to_string(_pos.cur().col) + "\n" +
+                e.what());
+          } catch (std::runtime_error &e) {
+            throw std::runtime_error(
+                "In file included from " +
+                _pos.cur().file.string() + ":" +
+                std::to_string(_pos.cur().line) + "." +
+                std::to_string(_pos.cur().col) + "\n" +
+                e.what());
+          } catch (...) {
+            throw std::runtime_error(
+                "In file included from " +
+                _pos.cur().file.string() + ":" +
+                std::to_string(_pos.cur().line) + "." +
+                std::to_string(_pos.cur().col) +
+                "\nUnknown error");
+          }
+        } else if (_pos.cur() == "link!") {
+          did_change = true;
+          auto raw_args = Macros::get_macro_args(_pos);
+
+          std::list<Lexer::Token> args;
+          for (auto it = raw_args.begin(); it != raw_args.end();
+               ++it) {
+            TokenStream cur_arg(*it);
+            preprocess(cur_arg);
+            Lexer::Token to_add = cur_arg.cur();
+            for (cur_arg.next(); !cur_arg.done();
+                 cur_arg.next()) {
+              to_add.text += ' ';
+              to_add.text += cur_arg.cur().text;
+            }
+            args.push_back(to_add);
+          }
+
+          for (auto it = args.begin(); it != args.end(); ++it) {
+            it->text = Macros::strip_string_literal(it->text);
+          }
+
+          for (const auto &f : args) {
+            csettings.objects.push_back(
+                resolve_path(f.text, f.file));
+          }
+        } else if (_pos.cur() == "flag!") {
+          did_change = true;
+          auto raw_args = Macros::get_macro_args(_pos);
+
+          std::list<Lexer::Token> args;
+          for (auto it = raw_args.begin(); it != raw_args.end();
+               ++it) {
+            TokenStream cur_arg(*it);
+            preprocess(cur_arg);
+            Lexer::Token to_add = cur_arg.cur();
+            for (cur_arg.next(); !cur_arg.done();
+                 cur_arg.next()) {
+              to_add.text += ' ';
+              to_add.text += cur_arg.cur().text;
+            }
+            args.push_back(to_add);
+          }
+
+          for (auto it = args.begin(); it != args.end(); ++it) {
+            it->text = Macros::strip_string_literal(it->text);
+          }
+
+          for (const auto &f : args) {
+            csettings.link_flags.push_back(f.text);
+          }
+        } else if (_pos.cur() == "pragma!") {
+          did_change = true;
+          auto raw_args = Macros::get_macro_args(_pos);
+
+          std::list<Lexer::Token> args;
+          for (auto it = raw_args.begin(); it != raw_args.end();
+               ++it) {
+            TokenStream cur_arg(*it);
+            preprocess(cur_arg);
+            Lexer::Token to_add = cur_arg.cur();
+            for (cur_arg.next(); !cur_arg.done();
+                 cur_arg.next()) {
+              to_add.text += ' ';
+              to_add.text += cur_arg.cur().text;
+            }
+            args.push_back(to_add);
+          }
+
+          for (auto it = args.begin(); it != args.end(); ++it) {
+            it->text = Macros::strip_string_literal(it->text);
+          }
+
+          if (args.size() == 1) {
+            args.push_back(Lexer::Token(args.front(), ""));
+          }
+
+          csettings
+              .pragmas[_pos.cur().file][args.front().text] =
+              std::next(args.begin())->text;
+        } else if (_pos.cur() == "rule_new!") {
+          did_change = true;
+          auto raw_args = Macros::get_macro_args(_pos);
+
+          std::list<Lexer::Token> args;
+          for (auto it = raw_args.begin(); it != raw_args.end();
+               ++it) {
+            TokenStream cur_arg(*it);
+            preprocess(cur_arg);
+            Lexer::Token to_add = cur_arg.cur();
+            for (cur_arg.next(); !cur_arg.done();
+                 cur_arg.next()) {
+              to_add.text += ' ';
+              to_add.text += cur_arg.cur().text;
+            }
+            args.push_back(to_add);
+          }
+
+          for (auto it = args.begin(); it != args.end(); ++it) {
+            it->text = Macros::strip_string_literal(it->text);
+          }
+
+          if (args.size() < 3) {
+            throw std::runtime_error(
+                "Malformed rule::new! call: Arguments must "
+                "be "
+                "rule_name, input_rule, output_rule, "
+                "[engine_name], [prerequisites...]");
+          }
+
+          // Name, input, output (using sapling engine)
+          std::string name = args.front();
+          std::string engine = "sapling";
+          std::list<std::string> prereqs;
+          if (args.size() == 4) {
+            // Name, input, output, engine
+            engine = *std::next(args.begin(), 3);
+          } else if (args.size() > 4) {
+            // Name, input, output, engine, prerequisites
+            engine = *std::next(args.begin(), 3);
+            for (auto it = std::next(args.begin(), 4);
+                 it != args.end(); ++it) {
+              prereqs.push_back(_pos.cur());
+            }
+          }
+
+          // Rule to_add(*std::next(args.begin()),
+          //             *std::next(args.begin(), 2), prereqs,
+          //             engine);
+
+          // rules.register_rule(name, to_add);
+          std::cerr << __FILE__ << ":" << __LINE__
+                    << "> Unimplemented\n"
+                    << std::flush;
+        } else if (_pos.cur() == "rule_use!") {
+          did_change = true;
+          auto raw_args = Macros::get_macro_args(_pos);
+
+          std::list<Lexer::Token> args;
+          for (auto it = raw_args.begin(); it != raw_args.end();
+               ++it) {
+            TokenStream cur_arg(*it);
+            preprocess(cur_arg);
+            Lexer::Token to_add = cur_arg.cur();
+            for (cur_arg.next(); !cur_arg.done();
+                 cur_arg.next()) {
+              to_add.text += ' ';
+              to_add.text += cur_arg.cur().text;
+            }
+            args.push_back(to_add);
+          }
+
+          // for (const auto &_ : args) {
+          //   rules.add_entry_point(
+          //       Macros::strip_string_literal(arg));
+          //   std::cerr << __FILE__ << ":" << __LINE__
+          //             << "> Unimplemented\n"
+          //             << std::flush;
+          // }
+          std::cerr << __FILE__ << ":" << __LINE__
+                    << "> Unimplemented\n"
+                    << std::flush;
+        } else if (_pos.cur() == "rule_remove!") {
+          did_change = true;
+          auto raw_args = Macros::get_macro_args(_pos);
+
+          std::list<Lexer::Token> args;
+          for (auto it = raw_args.begin(); it != raw_args.end();
+               ++it) {
+            TokenStream cur_arg(*it);
+            preprocess(cur_arg);
+            Lexer::Token to_add = cur_arg.cur();
+            for (cur_arg.next(); !cur_arg.done();
+                 cur_arg.next()) {
+              to_add.text += ' ';
+              to_add.text += cur_arg.cur().text;
+            }
+            args.push_back(to_add);
+          }
+
+          for (const auto &_ : args) {
+            // rules.remove_entry_point(
+            //     Macros::strip_string_literal(arg));
+            std::cerr << __FILE__ << ":" << __LINE__
+                      << "> Unimplemented\n"
+                      << std::flush;
+          }
+        } else if (_pos.cur() == "rule_bundle!") {
+          did_change = true;
+          auto raw_args = Macros::get_macro_args(_pos);
+
+          std::list<Lexer::Token> args;
+          for (auto it = raw_args.begin(); it != raw_args.end();
+               ++it) {
+            TokenStream cur_arg(*it);
+            preprocess(cur_arg);
+            Lexer::Token to_add = cur_arg.cur();
+            for (cur_arg.next(); !cur_arg.done();
+                 cur_arg.next()) {
+              to_add.text += ' ';
+              to_add.text += cur_arg.cur().text;
+            }
+            args.push_back(to_add);
+          }
+
+          std::list<std::string> entails;
+          for (auto it = std::next(args.begin());
+               it != args.end(); ++it) {
+            entails.push_back(
+                Macros::strip_string_literal(it->text));
+          }
+
+          // rules.register_bundle(
+          //     Macros::strip_string_literal(args.front()),
+          //     entails);
+          std::cerr << __FILE__ << ":" << __LINE__
+                    << "> Unimplemented\n"
+                    << std::flush;
+        } else if (_pos.cur() == "unstr!") {
+          did_change = true;
+          Lexer::Token to_add(_pos.cur());
+          auto raw_args = Macros::get_macro_args(_pos);
+          to_add.text.clear();
+
+          for (auto it = raw_args.begin(); it != raw_args.end();
+               ++it) {
+            for (auto inner_it = it->begin();
+                 inner_it != it->end(); ++inner_it) {
+              if (!to_add.text.empty()) {
+                to_add.text += ' ';
+              }
+              to_add.text += inner_it->text;
+            }
+          }
+
+          to_add.text =
+              Macros::strip_string_literal(to_add.text);
+
+          Lexer lexer;
+          uint64_t dummy_line = to_add.line,
+                   dummy_col = to_add.col;
+          auto to_insert = lexer.lex(to_add.text, to_add.file,
+                                     dummy_line, dummy_col);
+          _pos.insert(_pos.tell(), to_insert);
+        } else if (_pos.cur() == "str!") {
+          did_change = true;
+          Lexer::Token to_add(_pos.cur());
+          auto raw_args = Macros::get_macro_args(_pos);
+          to_add.text.clear();
+
+          for (auto it = raw_args.begin(); it != raw_args.end();
+               ++it) {
+            for (auto inner_it = it->begin();
+                 inner_it != it->end(); ++inner_it) {
+              if (!to_add.text.empty()) {
+                to_add.text += ' ';
+              }
+              to_add.text += inner_it->text;
+            }
+          }
+
+          // Ensure exactly one set of enclosing quotes
+          to_add.text = Macros::make_string_literal(
+              Macros::strip_string_literal(to_add.text));
+          Lexer::classify_type(to_add);
+          _pos.insert(_pos.tell(), to_add);
+        } else if (_pos.cur() == "compile_time_system!") {
+          did_change = true;
+          settings.ostream
+              << _pos.cur().file.string() << ":"
+              << _pos.cur().line << "." << _pos.cur().col
+              << ">\ncompile_time::system! asks to run `";
+
+          auto raw_args = Macros::get_macro_args(_pos);
+
+          std::list<Lexer::Token> args;
+          for (auto it = raw_args.begin(); it != raw_args.end();
+               ++it) {
+            TokenStream cur_arg(*it);
+            preprocess(cur_arg);
+            Lexer::Token to_add = cur_arg.cur();
+            for (cur_arg.next(); !cur_arg.done();
+                 cur_arg.next()) {
+              to_add.text += ' ';
+              to_add.text += cur_arg.cur().text;
+            }
+            args.push_back(to_add);
+          }
+
+          for (auto it = args.begin(); it != args.end(); ++it) {
+            it->text = Macros::strip_string_literal(it->text);
+          }
+
+          std::string cmd;
+          for (const auto &arg : args) {
+            if (!cmd.empty()) {
+              cmd.push_back(' ');
+            }
+            cmd += arg.text;
+          }
+
+          settings.ostream << cmd << "` at "
+                           << _pos.cur().file.parent_path()
+                           << "\n"
+                           << std::flush;
+
+          if (!csettings.no_confirm) {
+            settings.ostream << "Allow? [N/y/a] ";
+            char choice = std::cin.get();
+
+            switch (choice) {
+            default:
+              throw std::runtime_error("Abort!");
+            case 'a':
+            case 'A':
+              settings.ostream << "Not asking again!\n";
+              csettings.no_confirm = true;
+            case 'y':
+            case 'Y':
+              break;
+            }
+          } else {
+            settings.ostream
+                << "(no_confirm is enabled, so running "
+                   "without asking)\n";
+          }
+
+          const auto old_cwd = std::filesystem::current_path();
+          std::filesystem::current_path(
+              _pos.cur().file.parent_path());
+
+          auto result = system(cmd.c_str());
+
+          std::filesystem::current_path(old_cwd);
+
+          if (result != 0) {
+            throw std::runtime_error(
+                "System call '" + cmd +
+                "' exited with nonzero exit code " +
+                std::to_string(result));
+          }
+        }
+      } catch (OutOfPPPLError &e) {
+        throw std::runtime_error(
+            "At " + _pos.cur().file.string() + ":" +
+            std::to_string(_pos.cur().line) + "." +
+            std::to_string(_pos.cur().col) + "\n" + e.what());
+      } catch (std::runtime_error &e) {
+        throw std::runtime_error(
+            "At " + _pos.cur().file.string() + ":" +
+            std::to_string(_pos.cur().line) + "." +
+            std::to_string(_pos.cur().col) + "\n" + e.what());
+      } catch (...) {
+        if (_pos.done()) {
+          throw;
+        }
+        throw std::runtime_error(
+            "At " + _pos.cur().file.string() + ":" +
+            std::to_string(_pos.cur().line) + "." +
+            std::to_string(_pos.cur().col) + "\nUnknown error");
+      }
+    }
+
+    // Resolve macros (functional and inline)
+    for (_pos.reset(); !_pos.done(); _pos.next()) {
+      try {
+        if (_pos.cur() != "!" && _pos.cur().type == "ID" &&
+            _pos.cur().text.find('!') != std::string::npos &&
+            !Macros::reserved_macro_names.contains(
+                _pos.cur().text)) {
+          did_change = true;
+          replace_macro(_pos);
+        }
+      } catch (OutOfPPPLError &e) {
+        throw OutOfPPPLError(
+            "At " + _pos.cur().file.string() + ":" +
+            std::to_string(_pos.cur().line) + "." +
+            std::to_string(_pos.cur().col) + "\n" + e.what());
+      } catch (std::runtime_error &e) {
+        throw std::runtime_error(
+            "At " + _pos.cur().file.string() + ":" +
+            std::to_string(_pos.cur().line) + "." +
+            std::to_string(_pos.cur().col) + "\n" + e.what());
+      } catch (...) {
+        if (_pos.done()) {
+          throw;
+        }
+        throw std::runtime_error(
+            "At " + _pos.cur().file.string() + ":" +
+            std::to_string(_pos.cur().line) + "." +
+            std::to_string(_pos.cur().col) + "\nUnknown error");
+      }
+    }
+
+    // Apply ruleset
+    // if (rules.process_text(_pos)) {
+    //   did_change = true;
+    // }
+    std::cerr << __FILE__ << ":" << __LINE__
+              << "> Unimplemented\n"
+              << std::flush;
+
+    if (log.has_value()) {
+      **log << "\nAfter pass " << passes << ":\n";
+      uint64_t prev_line = 0;
+      std::filesystem::path prev_path;
+      for (const auto &tok : _pos) {
+        if (tok.file != prev_path) {
+          **log << '\n' << tok.file << ":\n";
+          prev_path = tok.file;
+        }
+        if (tok.line != prev_line) {
+          **log << "\n" << tok.line << "\t|";
+          prev_line = tok.line;
+        }
+        **log << ' ' << tok.text;
+      }
+      **log << '\n';
+    }
+  } while (did_change);
+
+  // Fix math
+  fix_math(_pos);
+
+  if (log.has_value()) {
+    **log << "\nAfter operator substitution:\n";
+    uint64_t prev_line = 0;
+    std::filesystem::path prev_path;
+    for (const auto &tok : _pos) {
+      if (tok.file != prev_path) {
+        **log << '\n' << tok.file << ":\n";
+        prev_path = tok.file;
+      }
+      if (tok.line != prev_line) {
+        **log << "\n" << tok.line << "\t|";
+        prev_line = tok.line;
+      }
+      **log << ' ' << tok.text;
+    }
+    **log << '\n';
+  }
+
+  _pos.reset();
+  return passes;
+}
+
+void Parser::load_dialect_file(
+    const std::filesystem::path &_path) {
+  debug_print();
+
+  // Parse that file
+  OakCompiler c(settings.ostream);
+  Settings::CompileSettings &csettings =
+      c.settings.compile_settings();
+  csettings = settings.compile_settings();
+  csettings.mode = Settings::CompileSettings::NOTHING;
+  csettings.entry_point = _path;
+  c();
+
+  // pragma!("export_dialect", "one_rule_name");
+  if (csettings.pragmas.at(_path).contains("export_dialect")) {
+    // for (const auto &rule : c.rules.rules) {
+    //   rules.register_rule(rule.first, rule.second);
+    // }
+    // for (const auto &bundle : c.rules.bundles) {
+    //   rules.register_bundle(bundle.first, bundle.second);
+    // }
+    std::cerr << __FILE__ << ":" << __LINE__
+              << "> Unimplemented\n"
+              << std::flush;
+
+    settings.dialect =
+        csettings.pragmas.at(_path).at("export_dialect");
+  } else {
     throw std::runtime_error(
-        "Unknown error during template checking "
-        "requested by function call '" +
-        fn_call_str(_name, _args) + "'");
+        "Dialect file '" + _path.string() +
+        "' does contain `pragma!(\"export_dialect\", "
+        "\"...\");`");
+  }
+}
+
+std::filesystem::path
+Parser::resolve_path(const std::string &_requested,
+                     const std::filesystem::path &_cur_file) {
+  const auto local = _cur_file.parent_path() / _requested;
+  const auto global =
+      settings.compile_settings().include_path / _requested;
+  const bool global_exists = std::filesystem::exists(global);
+
+  if (std::filesystem::exists(local)) {
+    if (global_exists &&
+        std::filesystem::canonical(global) !=
+            std::filesystem::canonical(local)) {
+      settings.warn("Choosing local file " + _requested +
+                    " over package file of same name");
+    }
+    return std::filesystem::canonical(local);
+  } else if (global_exists) {
+    return std::filesystem::canonical(global);
+  } else {
+    throw std::runtime_error("Failed to resolve file '" +
+                             _requested + "'");
+  }
+}
+
+void Parser::do_file(const std::string &_path,
+                     const std::filesystem::path &_cur_file) {
+  debug_print();
+
+  const auto path = resolve_path(_path, _cur_file);
+
+  Settings::CompileSettings &csettings =
+      settings.compile_settings();
+
+  if (csettings.visited.contains(path)) {
+    if (settings.debug) {
+      settings.ostream << "Ignoring repeat inclusion " << path
+                       << '\n';
+    }
+    return;
+  }
+
+  if (settings.debug) {
+    settings.ostream << "Visiting file " << path << '\n';
+  }
+
+  const auto path_write_time =
+      std::filesystem::last_write_time(path);
+  if (path_write_time > csettings.most_recent_mod_time) {
+    csettings.most_recent_mod_time = path_write_time;
+  }
+  csettings.visited.insert(path);
+
+  // Load and lex
+  if (!std::filesystem::exists(path)) {
+    throw std::runtime_error("File " + path.string() +
+                             " does not exist.");
+  } else if (!std::filesystem::is_regular_file(path)) {
+    throw std::runtime_error(
+        "File " + path.string() +
+        " exists, but is not a regular file.");
+  }
+
+  std::string text;
+  std::ifstream source(path);
+  if (!source.is_open()) {
+    throw std::runtime_error("Failed to open file " +
+                             path.string());
+  }
+
+  text.assign(std::istreambuf_iterator<char>(source),
+              std::istreambuf_iterator<char>());
+  source.close();
+
+  Lexer l;
+  uint64_t line = 1, col = 0;
+  TokenStream token_stream({});
+
+  try {
+    token_stream = l.lex(text, path, line, col);
+  } catch (OutOfPPPLError &e) {
+    // If requested, dump
+    if (csettings.dump_file.has_value()) {
+      dump(*csettings.dump_file.value(), token_stream);
+    }
+
+    throw OutOfPPPLError("Error occurred while lexing " +
+                         path.string() + ":\n" + e.what());
+  } catch (std::runtime_error &e) {
+    // If requested, dump
+    if (csettings.dump_file.has_value()) {
+      dump(*csettings.dump_file.value(), token_stream);
+    }
+
+    throw std::runtime_error("Error occurred while lexing " +
+                             path.string() + ":\n" + e.what());
+  } catch (...) {
+    // If requested, dump
+    if (csettings.dump_file.has_value()) {
+      dump(*csettings.dump_file.value(), token_stream);
+    }
+
+    throw std::runtime_error(
+        "An unknown error occurred while lexing " +
+        path.string() + "");
+  }
+
+  // Preprocess (including includes)
+  if (settings.dialect.has_value()) {
+    // rules.add_entry_point(settings.dialect.value());
+    std::cerr << __FILE__ << ":" << __LINE__
+              << "> Unimplemented\n"
+              << std::flush;
+  }
+  preprocess(token_stream);
+  token_stream.reset();
+
+  // If requested, syntax check
+  if (csettings.do_syntax_check) {
+    syntax_check(path, text);
+    token_stream.reset();
+  }
+
+  // Do actual parsing here
+  debug_print();
+  parse_global(token_stream);
+  token_stream.reset();
+
+  // If requested, dump
+  if (csettings.dump_file.has_value()) {
+    dump(*csettings.dump_file.value(), token_stream);
+  }
+
+  if (settings.debug) {
+    settings.ostream << "Exiting file " << path << '\n';
+  }
+}
+
+void Parser::replace_macro(TokenStream &_pos) {
+  debug_print();
+
+  const auto name_tok = _pos.cur();
+  const std::string name =
+      _pos.cur().text.substr(0, _pos.cur().text.find('!') + 1);
+  const std::string nonexistence_replacement =
+      _pos.cur().text.substr(_pos.cur().text.find('!') + 1);
+
+  if (name == "LINE!") {
+    _pos.tell()->type = "NUMBER";
+    _pos.tell()->text = std::to_string(_pos.cur().line) + "u64";
+    return;
+  } else if (name == "COL!") {
+    _pos.tell()->type = "NUMBER";
+    _pos.tell()->text = std::to_string(_pos.cur().col) + "u64";
+    return;
+  } else if (name == "FILE!") {
+    _pos.tell()->type = "STRING";
+    _pos.tell()->text = '"' + _pos.cur().file.string() + '"';
+    return;
+  } else if (name == "oak_VERSION!") {
+    _pos.tell()->type = "STRING";
+    _pos.tell()->text = '"' + acorn_version + '"';
+    return;
+  } else if (name == "SYSTEM!") {
+    _pos.tell()->type = "STRING";
+#if (defined(WIN32) || defined(WINNT))
+    _pos.tell()->text = "\"WINDOWS\"";
+#elif (defined(unix) || defined(__unix__))
+    _pos.tell()->text = "\"UNIX\"";
+#elif (defined(__APPLE__) || defined(__MACH__))
+    _pos.tell()->text = "\"OSX\"";
+#else
+    _pos.tell()->text = "\"OTHER\"";
+#endif
+    return;
+  }
+
+  const auto res = scope_manager.get(name);
+
+  if (!res.has_value()) {
+    if (!nonexistence_replacement.empty()) {
+      _pos.tell()->text = nonexistence_replacement;
+      Lexer::classify_type(*_pos.tell());
+      return;
+    } else {
+      throw std::runtime_error("Macro '" + name +
+                               "' has no definition");
+    }
+  }
+
+  if (std::holds_alternative<InlineMacro>(res.value().get())) {
+    // Inline
+    const auto to_remove = _pos.tell();
+    for (const auto &item :
+         std::get<InlineMacro>(res.value().get()).contents) {
+      _pos.insert(to_remove, Lexer::Token(name_tok, item));
+    }
+    _pos.seek(std::prev(to_remove));
+    _pos.erase(to_remove);
+  } else if (_pos.peek(1).text == "(") {
+    // Functional
+    auto args = Macros::get_macro_args(_pos);
+    _pos.next();
+
+    const auto exe =
+        std::get<CompiledMacro>(res.value().get()).executable;
+
+    if (!std::filesystem::exists(exe)) {
+      throw std::runtime_error("Compiled macro " +
+                               exe.string() +
+                               " does not exist!");
+    }
+
+    // Prepare call
+    std::string command = exe;
+    for (const auto &arg : args) {
+      TokenStream stream = arg;
+      preprocess(stream);
+      std::string arg_text;
+      for (const auto &tok : arg) {
+        if (!arg_text.empty()) {
+          arg_text.push_back(' ');
+        }
+        arg_text += tok;
+      }
+      command += " " + Macros::make_string_literal(arg_text);
+    }
+
+    if (settings.debug) {
+      settings.ostream << "Running macro call '" << command
+                       << "'\n";
+    }
+
+    // Run call and get replacement
+    const auto replacement = get_cmd_output(command);
+
+    if (settings.debug) {
+      settings.ostream << "Macro returned text:\n```oak\n"
+                       << replacement << "\n```\n";
+    }
+
+    // Lex replacement
+    Lexer l;
+    uint64_t junk_line = 0, junk_col = 0;
+    auto lexed_replacement =
+        l.lex(replacement, name_tok.file, junk_line, junk_col);
+
+    // Do replacement
+    for (const auto &t : lexed_replacement) {
+      Lexer::Token to_insert = t;
+      to_insert.file = name_tok.file;
+      to_insert.line = name_tok.line;
+      to_insert.col = name_tok.col;
+      _pos.insert(_pos.tell(), to_insert);
+    }
+
+    // Decr one
+    _pos.prev();
+  } else {
+    // Error
+    throw std::runtime_error(
+        "Compiled macro '" + name +
+        "' must be invoked as a function call.");
   }
 }

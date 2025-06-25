@@ -171,7 +171,7 @@ PackageManager::load_package_spec(
           std::get<InlineMacro>(
               c.p.scope_manager.get(name).value().get())
               .contents;
-      c.preprocess(contents);
+      c.p.preprocess(contents);
 
       std::string to_add;
       for (const auto &tok : contents) {

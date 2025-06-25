@@ -93,6 +93,19 @@ public:
   ///
   Settings &settings;
 
+  /**
+   * @brief Given a requested path, return the actual path to
+   * (possibly) visit
+   * @param _requested The raw path: EG "std/io.oak"
+   * @param _cur_file The file which is requesting to resolve
+   * the path. This is where all local paths will be from
+   * @returns The canonical (fully qualified and standardized)
+   * path to visit: Might be local, might be global.
+   */
+  std::filesystem::path
+  resolve_path(const std::string &_requested,
+               const std::filesystem::path &_cur_file);
+
   /// Parse a global scope. NOTE: All includes should have been
   /// handled already!
   void parse_global(TokenStream &_file_contents);
@@ -108,7 +121,6 @@ public:
   /// The instance managing all the internal data
   ScopeManager scope_manager;
 
-protected:
   // All parse methods leave the iterator pointing to the
   // first token OF the thing parsed, NOT AFTER
 
@@ -157,12 +169,6 @@ protected:
   /// Parses a single function call
   ASTNodes::Node parse_function_call(TokenStream &_pos);
 
-  /// Points to macro name after 'let'. Can be inline or
-  /// functional. Erases all traces after done
-  std::variant<InlineMacro, CompiledMacro>
-  parse_macro(TokenStream &_pos,
-              const uint64_t &_preproc_passes_allowed);
-
   /// This is what you should call: The other one is called by
   /// this
   ASTNodes::Node parse_object(TokenStream &_pos);
@@ -185,4 +191,52 @@ protected:
   find_substitutions(
       const std::string &_name,
       const std::list<std::string> &_signature) const;
+
+  /// Points to macro name after 'let'. Can be inline or
+  /// functional. Erases all traces after done
+  std::variant<InlineMacro, CompiledMacro>
+  parse_macro(TokenStream &_pos,
+              const uint64_t &_preproc_passes_allowed);
+
+  /**
+   * @brief Preprocess until a fixed point is reached. Expect
+   * the token stream position to be undefined after.
+   */
+  uint64_t preprocess(TokenStream &_token_stream);
+
+  /**
+   * @brief Load a given dialect file and register it as the
+   * current dialect
+   */
+  void load_dialect_file(const std::filesystem::path &_file);
+
+  /**
+   * @brief Parse and turn all math into operator calls
+   */
+  void fix_math(TokenStream &_token_stream);
+
+  /**
+   * @brief Load the given file, following any includes found
+   * within and doing any preprocessor rules as expected. This
+   * is called by do_compilation, and should not be called
+   * outside of it!
+   */
+  void do_file(const std::string &_path,
+               const std::filesystem::path &_cur_file);
+
+  /**
+   * @brief Tests the input file contents for validity
+   */
+  void syntax_check(const std::filesystem::path &_fp,
+                    const std::string &_text) const;
+
+  ///
+  bool instantiate(
+      TemplateInfo &_what,
+      const std::list<std::list<std::string>> &_substitutions);
+
+  ///
+  void replace_macro(TokenStream &_pos);
+
+  friend class OakCompiler;
 };

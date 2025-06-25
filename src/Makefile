@@ -1,14 +1,9 @@
-# Note: If you have an additional rule engine to include at
-# compile-time, append its object file(s) to EXTRA_OBJECTS
-# and append its -D values to EXTRA_FLAGS. For headers that
-# need to be included to `rule.cpp`, use
-# `-D EXTRA_RULE_ENGINE_INCLUDES`. For engine entries, use
-# `-D EXTRA_RULE_ENGINE_PAIRS` (see ./rule.cpp for more info).
-
 CWD := $(shell pwd)
 
 HEADERS	  := $(shell find $(CWD) -type f -iname '*.hpp')
-CPP_FILES := $(shell find $(CWD) -type f -iname '*.cpp')
+CPP_FILES := $(shell find $(CWD) -type f -iname '*.cpp' -not \
+	-iname 'acorn.cpp' -not -iname 'oak-format.cpp' \
+	-not -iname 'oak2c.cpp')
 OBJECTS   := $(CPP_FILES:%.cpp=%.o)
 
 CPP    = g++ -std=c++20 -pedantic -Wall -O3

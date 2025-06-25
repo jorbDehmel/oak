@@ -668,3 +668,16 @@ bool Type::is_fn_ptr() const noexcept {
           nodes.front().type == TypeNode::POINTER &&
           std::next(nodes.begin())->type == TypeNode::FUNCTION);
 }
+
+/// Returns a destructor call
+std::string Type::get_destructor_call(
+    const std::string &_to_destruct) const {
+  if (is_fn_ptr() || is_fn() || is_built_in_type(*this)) {
+    // No destructor needed
+  } else if (nodes.front().type == TypeNode::POINTER) {
+    // If non-nullptr, delete
+    return "{if (" + _to_destruct + " != 0) free(" +
+           _to_destruct + "); " + _to_destruct + " = 0;}";
+  }
+  return "";
+}
