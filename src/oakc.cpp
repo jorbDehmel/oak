@@ -59,14 +59,12 @@ int strm_cmd_output(const std::string &_cmd,
   return pclose(pipe) / 256;
 }
 
-/// Print the version of Acorn
 void OakCompiler::print_version() noexcept {
   debug_print();
   std::cout << "Acorn version " << acorn_version << "\n"
             << "MIT Licensed\n";
 }
 
-/// Print the help text for Acorn
 void OakCompiler::print_help_text() noexcept {
   debug_print();
 
@@ -153,7 +151,6 @@ void OakCompiler::print_help_text() noexcept {
   print_version();
 }
 
-/// Print the total disk usage of Acorn
 void OakCompiler::print_size() noexcept {
   debug_print();
   const static std::list<std::filesystem::path> files_to_check =
@@ -161,11 +158,11 @@ void OakCompiler::print_size() noexcept {
        "/usr/bin/oak2c", "/usr/bin/oak2c-debug",
        "/usr/include/oak"};
 
-  /// Global used by the recursive function to ensure no
-  /// double-counting
+  // Global used by the recursive function to ensure no
+  // double-counting
   std::set<std::filesystem::path> visited;
 
-  /// Recursive file/dir size getter
+  // Recursive file/dir size getter
   const static std::function<uintmax_t(
       const std::filesystem::path &)>
       size_in_bytes =
@@ -188,7 +185,7 @@ void OakCompiler::print_size() noexcept {
     return total;
   };
 
-  /// Formats and prints a byte size
+  // Formats and prints a byte size
   const static auto print_bytes = [](const uintmax_t &_bytes) {
     const static uintmax_t KiB = 1024;
     const static uintmax_t MiB = KiB * KiB;
@@ -259,14 +256,11 @@ void internal_uninstall() {
   std::cout << "Acorn has been erased. Farewell!\n";
 }
 
-/// Register some uninstallation lambda to run after this
-/// process has ceased
 void OakCompiler::uninstall_acorn() noexcept {
   debug_print();
   std::atexit(internal_uninstall);
 }
 
-/// Purge all temporary files
 void OakCompiler::clean() {
   debug_print();
   std::list<std::filesystem::path> to_erase;
@@ -303,7 +297,6 @@ void OakCompiler::clean() {
   }
 }
 
-/// Create a new template package with the given name
 void OakCompiler::new_package(const std::string &_name) {
   debug_print();
   const std::filesystem::path path(_name);
@@ -376,7 +369,6 @@ void OakCompiler::new_package(const std::string &_name) {
   }
 }
 
-/// Compile according to settings
 void OakCompiler::operator()() {
   debug_print();
   bool did_fail = false;
@@ -542,12 +534,12 @@ void OakCompiler::do_compilation() {
     bool saw_main = false;
     const auto res = p.scope_manager.get("main");
     if (res.has_value() &&
-        std::holds_alternative<
-            std::list<std::variant<FnInfo, TemplateInfo>>>(
-            res.value().get())) {
-      for (const auto &def : std::get<
-               std::list<std::variant<FnInfo, TemplateInfo>>>(
-               res.value().get())) {
+        std::holds_alternative<std::list<std::variant<
+            FnInfo, std::shared_ptr<TemplateInfo>>>>(
+            res.value())) {
+      for (const auto &def : std::get<std::list<std::variant<
+               FnInfo, std::shared_ptr<TemplateInfo>>>>(
+               res.value())) {
         if (std::holds_alternative<FnInfo>(def)) {
           const auto candidate = std::get<FnInfo>(def);
           if (!candidate.tags.contains("casual") &&

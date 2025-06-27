@@ -363,8 +363,9 @@ void Parser::reconstruct(std::ostream &_where) const noexcept {
     } else if (std::holds_alternative<FnInfo>(entry)) {
       const auto info = std::get<FnInfo>(entry);
       if (info.name == "main") {
-        if (info.tags.at("file") ==
-            settings.compile_settings().entry_point) {
+        if (!info.tags.contains("file") ||
+            info.tags.at("file") ==
+                settings.compile_settings().entry_point) {
           _where << info.t.c_repr(info.name, true) << ";\n";
         }
       } else {
@@ -384,15 +385,15 @@ void Parser::reconstruct(std::ostream &_where) const noexcept {
       _where << "};\n";
     } else if (std::holds_alternative<EnumInfo>(data)) {
       const auto info = std::get<EnumInfo>(data);
-      _where << "struct " << info.name << "{enum{\n";
+      _where << "struct " << info.name << " {\nenum {\n";
       for (const auto &item : info.option_order) {
-        _where << info.name << "_OPT_" << item << ",";
+        _where << info.name << "_OPT_" << item << ",\n";
       }
-      _where << "}__info;union{\n";
+      _where << "} __info;\nunion {\n";
       for (const auto &item : info.option_order) {
-        _where << info.options.at(item).c_repr(item) << ";";
+        _where << info.options.at(item).c_repr(item) << ";\n";
       }
-      _where << "}__data;};\n";
+      _where << "} __data;\n};\n";
     } else if (std::holds_alternative<FnInfo>(data)) {
       const auto info = std::get<FnInfo>(data);
       if (info.tags.contains("casual") &&
@@ -404,24 +405,24 @@ void Parser::reconstruct(std::ostream &_where) const noexcept {
       }
 
       if (info.name == "main") {
-        if (info.tags.at("file") ==
-            settings.compile_settings().entry_point) {
+        if (!info.tags.contains("file") ||
+            info.tags.at("file") ==
+                settings.compile_settings().entry_point) {
           _where << info.t.c_repr(info.name, true);
           _where << "{";
           ASTNodes::reconstruct(info.n, _where);
-          _where << ";}\n";
+          _where << "}\n";
         }
       } else {
         _where << info.t.c_repr(info.name, false);
         _where << "{";
         ASTNodes::reconstruct(info.n, _where);
-        _where << ";}\n";
+        _where << "}\n";
       }
     }
   }
 }
 
-/// Dump to the given stream
 void Parser::dump(std::ostream &_where,
                   TokenStream &_pos) const noexcept {
   debug_print();
@@ -498,10 +499,14 @@ void Parser::parse_function(
     const std::list<std::string> &_names, TokenStream &_pos) {
   debug_print();
   if (settings.debug) {
-    settings.ostream << __FUNCTION__ << " at "
-                     << _pos.cur().file.string() << ":"
-                     << _pos.cur().line << "." << _pos.cur().col
-                     << " '" << _pos.cur().text << "'\n";
+    settings.ostream
+        << __FUNCTION__ << " at " << _pos.cur().file.string()
+        << ":" << _pos.cur().line << "." << _pos.cur().col
+        << " '" << _pos.cur().text
+        << "'\nParsing body/signature for function(s):\n";
+    for (const auto &name : _names) {
+      settings.ostream << " - " << name << '\n';
+    }
   }
 
   // Finish parsing type
@@ -609,6 +614,10 @@ void Parser::parse_function(
     to_add.name = name;
     scope_manager.add(name, to_add);
   }
+
+  if (settings.debug) {
+    scope_manager.dump(settings.ostream);
+  }
 }
 
 // Parses a struct/enum's guts
@@ -679,8 +688,6 @@ Parser::parse_members(TokenStream &_pos) {
   return out;
 }
 
-/// Parses the (pre, post) regions of a template if they
-/// exist. This should be called after any generic body
 std::pair<std::list<std::string>, std::list<std::string>>
 Parser::parse_template_pre_post(TokenStream &_pos) {
   debug_print();
@@ -840,32 +847,34 @@ Type Parser::parse_type(TokenStream &_pos) {
         bool success = false;
         const auto res = scope_manager.get(original_name);
         if (res.has_value() &&
-            std::holds_alternative<
-                std::list<std::variant<FnInfo, TemplateInfo>>>(
-                res.value().get())) {
+            std::holds_alternative<std::list<std::variant<
+                FnInfo, std::shared_ptr<TemplateInfo>>>>(
+                res.value())) {
 
-          std::list<std::variant<FnInfo, TemplateInfo>>
-              &templates = std::get<std::list<
-                  std::variant<FnInfo, TemplateInfo>>>(
-                  res.value().get());
+          const auto templates =
+              std::get<std::list<std::variant<
+                  FnInfo, std::shared_ptr<TemplateInfo>>>>(
+                  res.value());
 
           for (auto templates_at_i = templates.begin();
                templates_at_i != templates.end();
                ++templates_at_i) {
-            if (!std::holds_alternative<TemplateInfo>(
+            if (!std::holds_alternative<
+                    std::shared_ptr<TemplateInfo>>(
                     *templates_at_i)) {
               continue;
             }
 
-            TemplateInfo &t =
-                std::get<TemplateInfo>(*templates_at_i);
-            if (t.does_provide(replacements, {"struct"})) {
-              if (instantiate(t, replacements)) {
+            auto t = std::get<std::shared_ptr<TemplateInfo>>(
+                *templates_at_i);
+            if (t->does_provide(replacements, {"struct"})) {
+              if (instantiate(*t, replacements)) {
                 success = true;
                 break;
               }
-            } else if (t.does_provide(replacements, {"enum"})) {
-              if (instantiate(t, replacements)) {
+            } else if (t->does_provide(replacements,
+                                       {"enum"})) {
+              if (instantiate(*t, replacements)) {
                 success = true;
                 break;
               }
@@ -1411,8 +1420,6 @@ Parser::parse_statement(TokenStream &_pos,
   }
 }
 
-/// Assumes we are pointing to "case" or "else"
-/// Non-global (inside match statement)
 std::variant<ASTNodes::Case, ASTNodes::Statement>
 Parser::parse_case(const EnumInfo &_enum_type,
                    TokenStream &_pos, const bool &_is_mutable) {
@@ -1530,7 +1537,6 @@ Parser::parse_case(const EnumInfo &_enum_type,
   }
 }
 
-/// Parse a function call
 ASTNodes::Node Parser::parse_function_call(TokenStream &_pos) {
   debug_print();
   if (settings.debug) {
@@ -1736,9 +1742,7 @@ ASTNodes::Node Parser::parse_function_call(TokenStream &_pos) {
   // Special case: Local fn pointer
   else if (scope_manager.contains(unmangled_name) &&
            std::holds_alternative<Type>(
-               scope_manager.get(unmangled_name)
-                   .value()
-                   .get())) {
+               scope_manager.get(unmangled_name).value())) {
     const Type local_var_type =
         scope_manager.at<Type>(unmangled_name);
 
@@ -1783,12 +1787,7 @@ ASTNodes::Node Parser::parse_function_call(TokenStream &_pos) {
   // End special cases
   //////////////////////////////////////////////////////////////
 
-  const auto to_return =
-      scope_manager.get_fn(unmangled_name, args);
-  if (!to_return.has_value()) {
-    throw std::runtime_error("Call resolution failed");
-  }
-  return to_return.value();
+  return scope_manager.get_fn(unmangled_name, args);
 }
 
 ASTNodes::Node Parser::parse_object(TokenStream &_pos) {
@@ -1893,7 +1892,7 @@ ASTNodes::Node Parser::parse_object(TokenStream &_pos) {
       }
 
       const auto info =
-          scope_manager.get(t.struct_name()).value().get();
+          scope_manager.get(t.struct_name()).value();
 
       if (std::holds_alternative<StructInfo>(info)) {
         const StructInfo struct_info =
@@ -1928,8 +1927,6 @@ ASTNodes::Node Parser::parse_object(TokenStream &_pos) {
   }
 }
 
-/// Returns whether the given substitutions would cause the
-/// `provides_block` list to match the given list
 bool TemplateInfo::does_provide(
     const std::list<std::list<std::string>> &_substitutions,
     const std::list<std::string> &_desired) const {
@@ -1957,9 +1954,6 @@ bool TemplateInfo::does_provide(
   return true;
 }
 
-/// Returns a list of tokens based on _to_augment wherein
-/// all occurrences of generics are replaced with their
-/// corresponding replacements
 std::list<std::string> TemplateInfo::replace(
     const std::list<std::string> &_to_augment,
     const std::list<std::string> &_generics,
@@ -2107,10 +2101,8 @@ void Parser::validate_type(const Type &_t) {
       const auto entry = scope_manager.get(node.literal_name);
 
       if (!entry.has_value() ||
-          !(std::holds_alternative<StructInfo>(
-                entry.value().get()) ||
-            std::holds_alternative<EnumInfo>(
-                entry.value().get()))) {
+          !(std::holds_alternative<StructInfo>(entry.value()) ||
+            std::holds_alternative<EnumInfo>(entry.value()))) {
         throw std::runtime_error("Atomic type '" +
                                  node.literal_name +
                                  "' does not exist.");
@@ -2182,8 +2174,6 @@ Macros::make_string_literal(const std::string &_contents) {
   return out;
 }
 
-/// STRIPS QUOTES OFF OF a macro occurrence's
-/// args. Then returns those args WITHOUT ERASURE. NO RECURSE
 std::list<Lexer::Token>
 Macros::get_macro_args_no_erase(TokenStream &_pos) {
   debug_print();
@@ -2279,10 +2269,16 @@ Macros::get_macro_args(TokenStream &_pos) {
 
 // Points to macro name after 'let'. Can be inline or
 // functional. Erases all traces after done
-std::variant<InlineMacro, CompiledMacro>
-Parser::parse_macro(TokenStream &_pos,
-                    const uint64_t &_preproc_passes_allowed) {
+void Parser::parse_macro(
+    TokenStream &_pos,
+    const uint64_t &_preproc_passes_allowed) {
   debug_print();
+  if (settings.debug) {
+    settings.ostream << __FUNCTION__ << " at "
+                     << _pos.cur().file.string() << ":"
+                     << _pos.cur().line << "." << _pos.cur().col
+                     << '\n';
+  }
 
   // let
   const auto range_start = std::prev(_pos.tell());
@@ -2291,8 +2287,6 @@ Parser::parse_macro(TokenStream &_pos,
   const auto name = _pos.cur().text;
 
   _pos.next();
-
-  std::variant<InlineMacro, CompiledMacro> out;
 
   // Either '=' or '('
   if (_pos.cur().text == "=") {
@@ -2305,7 +2299,7 @@ Parser::parse_macro(TokenStream &_pos,
       _pos.next();
     }
 
-    out = info;
+    scope_manager.add(name, info);
   } else if (_pos.cur().text == "(") {
     // Scrape definition
     std::list<Lexer::Token> contents;
@@ -2429,7 +2423,7 @@ Parser::parse_macro(TokenStream &_pos,
     // Save executable
     CompiledMacro c;
     c.executable = executable_path;
-    out = c;
+    scope_manager.add(name, c);
   } else {
     throw std::runtime_error(
         "Malformed macro definition for " + name +
@@ -2441,8 +2435,6 @@ Parser::parse_macro(TokenStream &_pos,
   _pos.next();
   const auto first_after_range = _pos.tell();
   _pos.erase(range_start, first_after_range);
-
-  return out;
 }
 
 ASTNodes::Call Parser::resolve_fn_call(
@@ -2457,18 +2449,16 @@ ASTNodes::Call Parser::resolve_fn_call(
     args_in_disguise.push_back(arg);
   }
 
-  auto candidate =
-      scope_manager.get_fn(_name, args_in_disguise);
-  if (candidate.has_value()) {
-    // No templates needed
-    return candidate.value();
+  try {
+    return scope_manager.get_fn(_name, args_in_disguise);
+  } catch (std::runtime_error &) {
   }
 
   // Only used for error checking
   const auto raw = scope_manager.get(_name);
   if (!raw.has_value() ||
       !std::holds_alternative<ScopeManager::FnValue>(
-          raw.value().get())) {
+          raw.value())) {
     throw std::runtime_error(failure_msg);
   }
 
@@ -2505,24 +2495,19 @@ ASTNodes::Call Parser::resolve_fn_call(
     // template exactly matches the signature, do that
     for (auto &entry :
          scope_manager.at<ScopeManager::FnValue>(_name)) {
-      if (!std::holds_alternative<TemplateInfo>(entry)) {
+      if (!std::holds_alternative<
+              std::shared_ptr<TemplateInfo>>(entry)) {
         continue;
       }
-      TemplateInfo &t = std::get<TemplateInfo>(entry);
+      auto t = std::get<std::shared_ptr<TemplateInfo>>(entry);
 
       const auto substitutions =
-          t.find_substitutions(_name, signature);
+          t->find_substitutions(_name, signature);
       if (substitutions.has_value()) {
-        instantiate(t, substitutions.value());
+        instantiate(*t, substitutions.value());
 
         // Don't allow templates this time!
-        candidate =
-            scope_manager.get_fn(_name, args_in_disguise);
-        if (candidate.has_value()) {
-          return candidate.value();
-        } else {
-          throw std::runtime_error(failure_msg);
-        }
+        return scope_manager.get_fn(_name, args_in_disguise);
       }
     }
   } catch (std::runtime_error &_e) {
@@ -2706,6 +2691,13 @@ void Parser::syntax_check(const std::filesystem::path &_fp,
 
 void Parser::fix_math(TokenStream &_pos) {
   debug_print();
+  if (settings.debug) {
+    settings.ostream << __FUNCTION__ << " at "
+                     << _pos.cur().file.string() << ":"
+                     << _pos.cur().line << "." << _pos.cur().col
+                     << '\n';
+  }
+
   // Iterate through the token stream, replace all instances of
   // the given operator with the given op fn call name (EG '+'
   // -> 'Add'). Precedence is embedded in the order in which you
@@ -2981,6 +2973,13 @@ void Parser::fix_math(TokenStream &_pos) {
 
 uint64_t Parser::preprocess(TokenStream &_pos) {
   debug_print();
+  if (settings.debug) {
+    settings.ostream << __FUNCTION__ << " at "
+                     << _pos.cur().file.string() << ":"
+                     << _pos.cur().line << "." << _pos.cur().col
+                     << '\n';
+  }
+
   bool did_change = false;
   uint64_t passes = 0;
   auto &csettings = settings.compile_settings();
@@ -3092,9 +3091,9 @@ uint64_t Parser::preprocess(TokenStream &_pos) {
               // for (const auto &item : backup) {
               //   rules.add_entry_point(item);
               // }
-              std::cerr << __FILE__ << ":" << __LINE__
-                        << "> Unimplemented\n"
-                        << std::flush;
+              // std::cerr << __FILE__ << ":" << __LINE__
+              //           << "> Unimplemented\n"
+              //           << std::flush;
             }
           } catch (OutOfPPPLError &e) {
             throw OutOfPPPLError(
@@ -3249,9 +3248,9 @@ uint64_t Parser::preprocess(TokenStream &_pos) {
           //             engine);
 
           // rules.register_rule(name, to_add);
-          std::cerr << __FILE__ << ":" << __LINE__
-                    << "> Unimplemented\n"
-                    << std::flush;
+          // std::cerr << __FILE__ << ":" << __LINE__
+          //           << "> Unimplemented\n"
+          //           << std::flush;
         } else if (_pos.cur() == "rule_use!") {
           did_change = true;
           auto raw_args = Macros::get_macro_args(_pos);
@@ -3277,9 +3276,9 @@ uint64_t Parser::preprocess(TokenStream &_pos) {
           //             << "> Unimplemented\n"
           //             << std::flush;
           // }
-          std::cerr << __FILE__ << ":" << __LINE__
-                    << "> Unimplemented\n"
-                    << std::flush;
+          // std::cerr << __FILE__ << ":" << __LINE__
+          //           << "> Unimplemented\n"
+          //           << std::flush;
         } else if (_pos.cur() == "rule_remove!") {
           did_change = true;
           auto raw_args = Macros::get_macro_args(_pos);
@@ -3333,9 +3332,9 @@ uint64_t Parser::preprocess(TokenStream &_pos) {
           // rules.register_bundle(
           //     Macros::strip_string_literal(args.front()),
           //     entails);
-          std::cerr << __FILE__ << ":" << __LINE__
-                    << "> Unimplemented\n"
-                    << std::flush;
+          // std::cerr << __FILE__ << ":" << __LINE__
+          //           << "> Unimplemented\n"
+          //           << std::flush;
         } else if (_pos.cur() == "unstr!") {
           did_change = true;
           Lexer::Token to_add(_pos.cur());
@@ -3516,9 +3515,9 @@ uint64_t Parser::preprocess(TokenStream &_pos) {
     // if (rules.process_text(_pos)) {
     //   did_change = true;
     // }
-    std::cerr << __FILE__ << ":" << __LINE__
-              << "> Unimplemented\n"
-              << std::flush;
+    // std::cerr << __FILE__ << ":" << __LINE__
+    //           << "> Unimplemented\n"
+    //           << std::flush;
 
     if (log.has_value()) {
       **log << "\nAfter pass " << passes << ":\n";
@@ -3725,6 +3724,7 @@ void Parser::do_file(const std::string &_path,
   debug_print();
   parse_global(token_stream);
   token_stream.reset();
+  debug_print();
 
   // If requested, dump
   if (csettings.dump_file.has_value()) {
@@ -3738,6 +3738,12 @@ void Parser::do_file(const std::string &_path,
 
 void Parser::replace_macro(TokenStream &_pos) {
   debug_print();
+  if (settings.debug) {
+    settings.ostream << __FUNCTION__ << " at "
+                     << _pos.cur().file.string() << ":"
+                     << _pos.cur().line << "." << _pos.cur().col
+                     << '\n';
+  }
 
   const auto name_tok = _pos.cur();
   const std::string name =
@@ -3775,7 +3781,9 @@ void Parser::replace_macro(TokenStream &_pos) {
     return;
   }
 
+  debug_print();
   const auto res = scope_manager.get(name);
+  debug_print();
 
   if (!res.has_value()) {
     if (!nonexistence_replacement.empty()) {
@@ -3788,11 +3796,12 @@ void Parser::replace_macro(TokenStream &_pos) {
     }
   }
 
-  if (std::holds_alternative<InlineMacro>(res.value().get())) {
+  if (std::holds_alternative<InlineMacro>(res.value())) {
+    debug_print();
     // Inline
     const auto to_remove = _pos.tell();
     for (const auto &item :
-         std::get<InlineMacro>(res.value().get()).contents) {
+         std::get<InlineMacro>(res.value()).contents) {
       _pos.insert(to_remove, Lexer::Token(name_tok, item));
     }
     _pos.seek(std::prev(to_remove));
@@ -3803,7 +3812,7 @@ void Parser::replace_macro(TokenStream &_pos) {
     _pos.next();
 
     const auto exe =
-        std::get<CompiledMacro>(res.value().get()).executable;
+        std::get<CompiledMacro>(res.value()).executable;
 
     if (!std::filesystem::exists(exe)) {
       throw std::runtime_error("Compiled macro " +

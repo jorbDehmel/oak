@@ -27,8 +27,6 @@ const std::map<std::string, uint> Type::float_literals = {
     {"f128", 16},
     {"float", sizeof(double)}};
 
-/// Returns true iff the given type is atomic (EG i32, bool).
-/// If the type is an array or pointer, this is always false.
 bool Type::is_built_in_type(const Type &_what) noexcept {
   debug_print();
   if (_what.nodes.front().type != TypeNode::LITERAL) {
@@ -38,8 +36,6 @@ bool Type::is_built_in_type(const Type &_what) noexcept {
   }
 }
 
-/// Returns true iff the given type is atomic (EG i32, bool).
-/// If the type is an array or pointer, this is always false.
 bool Type::is_built_in_type(const std::string &_what) noexcept {
   debug_print();
   return int_literals.contains(_what) ||
@@ -48,7 +44,6 @@ bool Type::is_built_in_type(const std::string &_what) noexcept {
          _what == "void";
 }
 
-/// Process one token. This should be treated as consumptive.
 void Type::process_next(const std::string &_symbol) {
   debug_print();
   if (_symbol == "^") {
@@ -136,14 +131,12 @@ void Type::process_next(const std::string &_symbol) {
   debug_print();
 }
 
-/// Returns true iff the first node is of type FUNCTION
 bool Type::is_fn() const noexcept {
   debug_print();
   return (nodes.size() >= 1 &&
           nodes.front().type == TypeNode::FUNCTION);
 }
 
-/// Appends the entire other type (EG fn arg)
 void Type::append_type(const Type &_other) {
   debug_print();
   for (const auto &node : _other.nodes) {
@@ -151,7 +144,6 @@ void Type::append_type(const Type &_other) {
   }
 }
 
-/// Gets the arguments, given that this is a function
 std::vector<std::pair<std::string, Type>>
 Type::fn_args() const {
   debug_print();
@@ -210,7 +202,6 @@ Type::fn_args() const {
   return out;
 }
 
-/// Gets the fn return type, given that this is a function
 Type Type::fn_return_type() const {
   debug_print();
   if (!is_fn()) {
@@ -236,7 +227,6 @@ Type Type::fn_return_type() const {
   return out;
 }
 
-/// Return this type in Oak notation
 std::string Type::oak_repr(const std::string &_var_name) const {
   debug_print();
   std::string out;
@@ -280,8 +270,6 @@ std::string Type::oak_repr(const std::string &_var_name) const {
   return out;
 }
 
-/// Return this type in C notation, mangling if a raw function
-/// (not function pointers though)
 std::string Type::c_repr(const std::string &_var_name,
                          const bool &_no_mangle) const {
   debug_print();
@@ -359,8 +347,6 @@ std::string Type::c_repr(const std::string &_var_name,
   return repr;
 }
 
-/// If this is a function, mangle it.
-/// O(n)
 std::string Type::mangle(const std::string &_var_name) const {
   debug_print();
 
@@ -391,7 +377,6 @@ std::string Type::mangle(const std::string &_var_name) const {
   return name;
 }
 
-/// Returns true iff the other matches this at every node
 bool Type::exact_match(const Type &_other) const {
   debug_print();
   if (nodes.size() != _other.nodes.size()) {
@@ -421,7 +406,6 @@ bool Type::exact_match(const Type &_other) const {
   return true;
 }
 
-/// Returns true iff this type can be cast to match the other
 bool Type::cast_match(const Type &_other) const {
   debug_print();
   // Special case: Void pointer casting
@@ -489,10 +473,6 @@ bool Type::cast_match(const Type &_other) const {
   return mine == nodes.end() && theirs == _other.nodes.end();
 }
 
-/// Returns true iff the other matches this after only legal
-/// reference handling. We are allowed to deref ourselves any
-/// number of times, but we are only allowed to add one ref.
-/// No casting is allowed here!
 bool Type::ref_match(const Type &_other,
                      int &_num_deref) const {
   debug_print();
@@ -525,7 +505,6 @@ bool Type::ref_match(const Type &_other,
   return (-1 == _num_deref || _num_deref == 0);
 }
 
-/// Returns whether or not this type is valid to instantiate
 bool Type::valid() const noexcept {
   debug_print();
 
@@ -550,19 +529,16 @@ bool Type::valid() const noexcept {
   return depth == 0;
 }
 
-/// Appends a pointer node to this type
 void Type::append_ptr() {
   debug_print();
   nodes.push_back({TypeNode::POINTER});
 }
 
-/// Appends an unsized array node to this type
 void Type::append_arr() {
   debug_print();
   nodes.push_back({TypeNode::UNSIZED_ARRAY});
 }
 
-/// Appends a size array node to this type
 void Type::append_sized_arr(const uint64_t &_size) {
   debug_print();
   if (_size == 0) {
@@ -572,14 +548,11 @@ void Type::append_sized_arr(const uint64_t &_size) {
   nodes.push_back({TypeNode::SIZED_ARRAY, {}, _size});
 }
 
-/// Appends a literal node ot this type WITHOUT checking its
-/// existence or size.
 void Type::append_literal(const std::string &_name) {
   debug_print();
   nodes.push_back({TypeNode::LITERAL, _name});
 }
 
-/// Appends a function open node to this type
 void Type::append_fn() {
   debug_print();
   enclosure.push("(");
@@ -592,7 +565,6 @@ void Type::append_fn() {
   nodes.push_back({TypeNode::FUNCTION});
 }
 
-/// Appends a join node to this type
 void Type::append_join() {
   debug_print();
   while (!enclosure.empty() && enclosure.top() == "*") {
@@ -612,7 +584,6 @@ void Type::append_join() {
   enclosure.push("*");
 }
 
-/// Appends a function close node ("maps") to this type
 void Type::append_maps() {
   debug_print();
   if (nodes.back().type == TypeNode::JOIN) {
@@ -621,8 +592,6 @@ void Type::append_maps() {
   nodes.push_back({TypeNode::MAPS});
 }
 
-/// Returns a COPY of this type if it were to be dereferenced
-/// once
 Type Type::deref() const {
   debug_print();
   if (nodes.size() < 2 ||
@@ -638,16 +607,12 @@ Type Type::deref() const {
   return out;
 }
 
-/// Returns a COPY of this type if it were to be referenced
-/// once
 Type Type::ref() const {
   Type out = *this;
   out.nodes.push_front(Type::TypeNode(Type::TypeNode::POINTER));
   return out;
 }
 
-/// Returns the struct name of this type for parse-time
-/// lookup. Errors if not a direct instance of a struct
 std::string Type::struct_name() const {
   debug_print();
   if (nodes.empty() ||
@@ -659,9 +624,6 @@ std::string Type::struct_name() const {
   return nodes.front().literal_name;
 }
 
-/// Returns true iff the first node is of type POINTER and the
-/// second node is of type FUNCTION
-/// O(1)
 bool Type::is_fn_ptr() const noexcept {
   debug_print();
   return (nodes.size() >= 2 &&
@@ -669,7 +631,6 @@ bool Type::is_fn_ptr() const noexcept {
           std::next(nodes.begin())->type == TypeNode::FUNCTION);
 }
 
-/// Returns a destructor call
 std::string Type::get_destructor_call(
     const std::string &_to_destruct) const {
   if (is_fn_ptr() || is_fn() || is_built_in_type(*this)) {

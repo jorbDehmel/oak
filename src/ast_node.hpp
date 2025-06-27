@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "debug.hpp"
 #include "type.hpp"
 #include <optional>
 #include <ostream>
@@ -30,8 +31,11 @@ template <typename T> struct Box {
   }
 
   Box(const T &_other) {
-    _data = new T;
-    *_data = _other;
+    _data = new T(_other);
+  }
+
+  Box(const Box<T> &_other) {
+    _data = new T(_other.get());
   }
 
   Box<T> &operator=(const T &_other) {
@@ -40,10 +44,12 @@ template <typename T> struct Box {
   }
 
   ~Box() {
+    db_assert(_data != nullptr);
     delete _data;
   }
 
   T &get() const noexcept {
+    db_assert(_data != nullptr);
     return *_data;
   }
 
@@ -58,8 +64,13 @@ template <typename T> struct OptBox {
   }
 
   OptBox(const T &_other) {
-    _data = new T;
-    *_data = _other;
+    _data = new T(_other);
+  }
+
+  OptBox(const OptBox<T> &_other) {
+    if (_other.has_value()) {
+      _data = new T(_other.get());
+    }
   }
 
   OptBox<T> &operator=(const T &_other) {

@@ -5,3 +5,4 @@ AllowShortBlocksOnASingleLine:        false
 AllowShortFunctionsOnASingleLine:     false
 AllowShortIfStatementsOnASingleLine:  Never
 AllowShortLoopsOnASingleLine:         false
+AllowShortLambdasOnASingleLine:       false

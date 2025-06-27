@@ -159,19 +159,29 @@ PackageManager::load_package_spec(
   Settings::CompileSettings &settings =
       c.settings.compile_settings();
   settings = _settings.compile_settings();
-
+  c.settings.debug = _settings.debug;
   settings.mode = Settings::CompileSettings::NOTHING;
   settings.entry_point = _path / "spec.oak";
 
   c();
 
+  debug_print();
+
   for (const auto &name : c.p.scope_manager.names()) {
     if (name.starts_with(package_name + "_")) {
+      debug_print();
+      auto value = c.p.scope_manager.get(name).value();
+      debug_print();
+      if (!std::holds_alternative<InlineMacro>(value)) {
+        throw std::runtime_error(
+            "Expected package spec macro " + name +
+            " to be an inline macro, but it was not");
+      }
       TokenStream contents =
-          std::get<InlineMacro>(
-              c.p.scope_manager.get(name).value().get())
-              .contents;
+          std::get<InlineMacro>(value).contents;
+      debug_print();
       c.p.preprocess(contents);
+      debug_print();
 
       std::string to_add;
       for (const auto &tok : contents) {

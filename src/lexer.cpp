@@ -527,7 +527,6 @@ void Lexer::classify_type(Lexer::Token &_t) {
   }
 }
 
-/// Transmute a series of strings to tokens
 TokenStream Lexer::tokify(const std::list<std::string> &_what,
                           const std::filesystem::path &_where,
                           const uint64_t &_line,

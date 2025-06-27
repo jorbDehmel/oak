@@ -12,7 +12,9 @@
 #include <functional>
 #include <list>
 #include <map>
+#include <memory>
 #include <optional>
+#include <ostream>
 #include <stdexcept>
 #include <string>
 #include <variant>
@@ -202,13 +204,13 @@ public:
   ScopeManager();
 
   /// The results served by a fn query
-  using FnValue = std::list<std::variant<FnInfo, TemplateInfo>>;
+  using FnValue = std::list<
+      std::variant<FnInfo, std::shared_ptr<TemplateInfo>>>;
 
   /// A single value in the lookup table. `Type` is for
   /// variable instances.
-  using Value =
-      std::variant<FnValue, StructInfo, EnumInfo, TemplateInfo,
-                   InlineMacro, CompiledMacro, Type>;
+  using Value = std::variant<FnValue, StructInfo, EnumInfo,
+                             InlineMacro, CompiledMacro, Type>;
 
   /// An entry that is not type-overloadable (not
   /// fns/templates)
@@ -237,10 +239,11 @@ public:
   void add(const std::string &_key,
            const SingularValue &_value);
 
-  /// Inserts a (function or template) value into the current
-  /// scope
-  void add(const std::string &_key,
-           const std::variant<FnInfo, TemplateInfo> &_value);
+  /// Inserts a (function) value into the current scope
+  void add(const std::string &_key, const FnInfo &_value);
+
+  /// Inserts a (template) value into the current scope
+  void add(const std::string &_key, const TemplateInfo &_value);
 
   /// Resolve _thing_that_exists, then add an entry pointing
   /// to it. Note that aliases are not destructed.
@@ -262,14 +265,12 @@ public:
   contains_atomic_type(const std::string &_name) const noexcept;
 
   /// Find the closest instance and resolve aliases
-  std::optional<std::reference_wrapper<Value>>
-  get(const std::string &_name) noexcept;
+  std::optional<Value> get(const std::string &_name) noexcept;
 
   /// Retrieves the fn closest to the given call spec WITHOUT
   /// doing any templates (we don't have a parser!)
-  std::optional<ASTNodes::Call>
-  get_fn(const std::string &_name,
-         const std::list<ASTNodes::Node> &_args);
+  ASTNodes::Call get_fn(const std::string &_name,
+                        const std::list<ASTNodes::Node> &_args);
 
   /// Drops any fn/templates with given name, key, and value
   void drop_fn_with_tag(const std::string &_name,
@@ -284,15 +285,18 @@ public:
   /// Gets all valid names
   std::set<std::string> names() const noexcept;
 
+  /// Dumps everything
+  void dump(std::ostream &_into) const noexcept;
+
   ///
-  template <typename T> T &at(const std::string &_name) {
+  template <typename T> T at(const std::string &_name) {
     const auto gotten = get(_name);
     if (!gotten.has_value() ||
-        !std::holds_alternative<T>(gotten.value().get())) {
+        !std::holds_alternative<T>(gotten.value())) {
       throw std::runtime_error(
           "Unexpected meta-type for symbol '" + _name + "'");
     }
-    return std::get<T>(gotten.value().get());
+    return std::get<T>(gotten.value());
   }
 
   /// Used at reconstruction
@@ -305,8 +309,7 @@ protected:
       std::variant<Value, std::reference_wrapper<Value>>;
 
   /// Resolves aliases
-  static std::reference_wrapper<Value>
-  dealias(ValueOrAlias &_what);
+  static Value dealias(ValueOrAlias &_what);
 
   /// Back is most recent
   std::list<std::map<std::string, ValueOrAlias>> frames;

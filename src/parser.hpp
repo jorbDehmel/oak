@@ -194,9 +194,8 @@ public:
 
   /// Points to macro name after 'let'. Can be inline or
   /// functional. Erases all traces after done
-  std::variant<InlineMacro, CompiledMacro>
-  parse_macro(TokenStream &_pos,
-              const uint64_t &_preproc_passes_allowed);
+  void parse_macro(TokenStream &_pos,
+                   const uint64_t &_preproc_passes_allowed);
 
   /**
    * @brief Preprocess until a fixed point is reached. Expect

@@ -31,7 +31,7 @@ void ASTNodes::reconstruct(const ASTNodes::Node &_what,
 
     _where << "switch ((";
     reconstruct(d.upon.get(), _where);
-    _where << ").__info){\n";
+    _where << ").__info) {\n";
     for (const auto &branch : d.branches) {
       if (std::holds_alternative<ASTNodes::Statement>(
               branch.get())) {
@@ -118,13 +118,13 @@ void ASTNodes::reconstruct(const ASTNodes::Node &_what,
     // `New` calls
     for (const auto &call : d.new_calls) {
       reconstruct(call.get(), _where);
-      _where << ";\n";
+      _where << "\n";
     }
   }
 
   else if (std::holds_alternative<ASTNodes::Statement>(_what)) {
     const auto d = std::get<ASTNodes::Statement>(_what);
-    if (!d.children.empty()) {
+    if (d.children.size() > 1) {
       // Scope
       _where << "{\n";
       for (const auto &child : d.children) {
@@ -132,6 +132,10 @@ void ASTNodes::reconstruct(const ASTNodes::Node &_what,
         _where << ";\n";
       }
       _where << "}\n";
+    } else if (d.children.size() == 1) {
+      // Simple statement
+      reconstruct(d.children.front().get(), _where);
+      _where << ";\n";
     }
   }
 
@@ -141,6 +145,7 @@ void ASTNodes::reconstruct(const ASTNodes::Node &_what,
     if (d.value.has_value()) {
       reconstruct(d.value.get(), _where);
     }
+    _where << ";\n";
   }
 
   else if (std::holds_alternative<ASTNodes::ArrAccess>(_what)) {
