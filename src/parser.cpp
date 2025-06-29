@@ -755,7 +755,9 @@ Type Parser::parse_type(TokenStream &_pos) {
     }
     _pos.next();
 
+    debug_print();
     auto tmp = parse_object(_pos);
+    debug_print();
 
     _pos.next();
     if (_pos.cur() != ")") {
@@ -1056,7 +1058,7 @@ void Parser::parse_enum(const std::list<std::string> &_names,
           "{ self->__info = " + name + "_OPT_" + p.first +
           "; self->__data." + p.first + " = __data; }";
 
-      to_add.n.children = {ASTNodes::Box<ASTNodes::Node>(
+      to_add.n.children = {ASTNodes::OptBox<ASTNodes::Node>(
           ASTNodes::RawCFormat())};
       to_add.tags["autogen"] = "true";
 
@@ -1147,7 +1149,7 @@ Parser::parse_statement(TokenStream &_pos,
     _pos.next();
 
     return ASTNodes::Statement(
-        {ASTNodes::Box<ASTNodes::Node>(out)});
+        {ASTNodes::OptBox<ASTNodes::Node>(out)});
   }
 
   if (_pos.cur() == ";") {
@@ -1200,7 +1202,7 @@ Parser::parse_statement(TokenStream &_pos,
     }
 
     return ASTNodes::Statement(
-        {ASTNodes::Box<ASTNodes::Node>(out)});
+        {ASTNodes::OptBox<ASTNodes::Node>(out)});
   } else if (_pos.cur() == "{") {
     // Scope
     ASTNodes::Statement out;
@@ -1210,13 +1212,13 @@ Parser::parse_statement(TokenStream &_pos,
 
     _pos.next();
     while (_pos.cur() != "}") {
-      out.children.push_back(
-          ASTNodes::Box<ASTNodes::Node>(parse_statement(_pos)));
+      out.children.push_back(ASTNodes::OptBox<ASTNodes::Node>(
+          parse_statement(_pos)));
       _pos.next();
     }
 
     // Remove that scope frame
-    out.children.push_back(ASTNodes::Box<ASTNodes::Node>(
+    out.children.push_back(ASTNodes::OptBox<ASTNodes::Node>(
         scope_manager.pop_frame()));
     return out;
   } else if (_pos.cur() == "if") {
@@ -1231,7 +1233,10 @@ Parser::parse_statement(TokenStream &_pos,
 
     // Condition is a single boolean object
     ASTNodes::If out;
-    out.condition.get() = parse_object(_pos);
+
+    debug_print();
+    out.condition = parse_object(_pos);
+    debug_print();
 
     if (!ASTNodes::type(out.condition.get())
              .cast_match(Type({"bool"}))) {
@@ -1252,9 +1257,8 @@ Parser::parse_statement(TokenStream &_pos,
     }
 
     // Body
-    ASTNodes::Statement body = parse_statement(_pos);
-
-    out.then_body = ASTNodes::Box<ASTNodes::Node>(body);
+    out.then_body =
+        ASTNodes::OptBox<ASTNodes::Node>(parse_statement(_pos));
 
     // Optional else clause
     _pos.next();
@@ -1268,7 +1272,7 @@ Parser::parse_statement(TokenStream &_pos,
     }
 
     return ASTNodes::Statement(
-        {ASTNodes::Box<ASTNodes::Node>(out)});
+        {ASTNodes::OptBox<ASTNodes::Node>(out)});
   } else if (_pos.cur() == "while") {
     // While loop
     _pos.next();
@@ -1281,7 +1285,11 @@ Parser::parse_statement(TokenStream &_pos,
 
     // Condition is a single boolean object
     ASTNodes::While out;
-    out.condition.get() = parse_object(_pos);
+
+    debug_print();
+    out.condition = parse_object(_pos);
+    debug_print();
+
     if (!ASTNodes::type(out.condition.get())
              .cast_match(Type({"bool"}))) {
       throw std::runtime_error(
@@ -1305,7 +1313,7 @@ Parser::parse_statement(TokenStream &_pos,
 
     out.body = body;
     return ASTNodes::Statement(
-        {ASTNodes::Box<ASTNodes::Node>(out)});
+        {ASTNodes::OptBox<ASTNodes::Node>(out)});
   } else if (_pos.cur() == "match") {
     // Match statement
     /*
@@ -1324,7 +1332,10 @@ Parser::parse_statement(TokenStream &_pos,
     }
 
     // Target is an enum
+    debug_print();
     auto target = parse_object(_pos);
+    debug_print();
+
     Type target_type = ASTNodes::type(target);
 
     const bool is_mutable = (target_type.nodes.front().type ==
@@ -1368,23 +1379,25 @@ Parser::parse_statement(TokenStream &_pos,
     while (_pos.cur() != "}") {
       const auto res = parse_case(info, _pos, is_mutable);
       if (std::holds_alternative<ASTNodes::Case>(res)) {
-        out.branches.push_back(ASTNodes::Box<ASTNodes::Node>(
+        out.branches.push_back(ASTNodes::OptBox<ASTNodes::Node>(
             std::get<ASTNodes::Case>(res)));
       } else {
-        out.branches.push_back(ASTNodes::Box<ASTNodes::Node>(
+        out.branches.push_back(ASTNodes::OptBox<ASTNodes::Node>(
             std::get<ASTNodes::Statement>(res)));
       }
       _pos.next();
     }
 
     return ASTNodes::Statement(
-        {ASTNodes::Box<ASTNodes::Node>(out)});
+        {ASTNodes::OptBox<ASTNodes::Node>(out)});
   } else if (_pos.cur() == "return") {
     // Return statement
     ASTNodes::Return out;
     _pos.next();
     if (_pos.cur() != ";") {
+      debug_print();
       out.value = parse_object(_pos);
+      debug_print();
 
       if (!settings.compile_settings()
                .cur_return_type.exact_match(
@@ -1407,7 +1420,7 @@ Parser::parse_statement(TokenStream &_pos,
           "'");
     }
     return ASTNodes::Statement(
-        {ASTNodes::Box<ASTNodes::Node>(out)});
+        {ASTNodes::OptBox<ASTNodes::Node>(out)});
   } else {
     // Function call
     auto ret = parse_function_call(_pos);
@@ -1513,8 +1526,9 @@ Parser::parse_case(const EnumInfo &_enum_type,
     auto statement = parse_statement(_pos);
 
     // Pop frame, calling destructors
-    statement.children.push_back(ASTNodes::Box<ASTNodes::Node>(
-        scope_manager.pop_frame()));
+    statement.children.push_back(
+        ASTNodes::OptBox<ASTNodes::Node>(
+            scope_manager.pop_frame()));
     out.body = statement;
 
     // Pop from locals stack WITHOUT CALLING DESTRUCTOR ON
@@ -1526,8 +1540,8 @@ Parser::parse_case(const EnumInfo &_enum_type,
     // Statement
     _pos.next();
     ASTNodes::Statement out;
-    out.children = {
-        ASTNodes::Box<ASTNodes::Node>(parse_statement(_pos))};
+    out.children = {ASTNodes::OptBox<ASTNodes::Node>(
+        parse_statement(_pos))};
     return out;
   } else {
     throw std::runtime_error(
@@ -1584,7 +1598,9 @@ ASTNodes::Node Parser::parse_function_call(TokenStream &_pos) {
   std::list<ASTNodes::Node> args;
   while (_pos.cur() != ")") {
     if (_pos.cur() != ",") {
+      debug_print();
       args.push_back(parse_object(_pos));
+      debug_print();
     }
     _pos.next();
   }
@@ -1603,8 +1619,8 @@ ASTNodes::Node Parser::parse_function_call(TokenStream &_pos) {
            Type::TypeNode::UNSIZED_ARRAY)) {
     // Only resolvable at reconstruction-time
     ASTNodes::ArrAccess out;
-    out.upon = ASTNodes::Box<ASTNodes::Node>(args.front());
-    out.index = ASTNodes::Box<ASTNodes::Node>(args.back());
+    out.upon = ASTNodes::OptBox<ASTNodes::Node>(args.front());
+    out.index = ASTNodes::OptBox<ASTNodes::Node>(args.back());
     return out;
   }
 

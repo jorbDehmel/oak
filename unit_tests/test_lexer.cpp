@@ -4,7 +4,7 @@
  */
 
 #include "../src/lexer.hpp"
-#include "../src/macro.hpp"
+#include "../src/parser.hpp"
 #include <cassert>
 #include <iostream>
 #include <stdexcept>
@@ -92,21 +92,20 @@ int main() {
   }
 
   { // Test string literal operations
+    assert_match(Macros::make_string_literal("Hello, world!"),
+                 "\"Hello, world!\"");
     assert_match(
-        MacroManager::make_string_literal("Hello, world!"),
-        "\"Hello, world!\"");
-    assert_match(
-        MacroManager::make_string_literal("Hello, \"world\"!"),
+        Macros::make_string_literal("Hello, \"world\"!"),
         "\"Hello, \\\"world\\\"!\"");
-    assert_match(MacroManager::make_string_literal(
+    assert_match(Macros::make_string_literal(
                      "\"Hello, \\\"world\\\"!\""),
                  "\"\\\"Hello, \\\\\\\"world\\\\\\\"!\\\"\"");
 
     assert_match(
-        MacroManager::strip_string_literal("Hello, \"world\"!"),
+        Macros::strip_string_literal("Hello, \"world\"!"),
         "Hello, \"world\"!");
     assert_match(
-        MacroManager::strip_string_literal(
+        Macros::strip_string_literal(
             "\"\\\"Hello, \\\\\\\"hamburger\\\\\\\"!\\\"\""),
         "Hello, \"hamburger\"!");
   }
@@ -116,9 +115,8 @@ int main() {
                       "\"lazy \\\"dogs\\\"\"";
 
     for (uint i = 1; i < 8; ++i) {
-      std::string next = MacroManager::make_string_literal(cur);
-      assert_match(MacroManager::strip_string_literal(next),
-                   cur);
+      std::string next = Macros::make_string_literal(cur);
+      assert_match(Macros::strip_string_literal(next), cur);
       std::cout << "Passed iteration " << i << " w/ string:\n"
                 << next << "\n"
                 << std::flush;

@@ -48,31 +48,31 @@ int main() {
   OakCompiler oc;
 
   auto lexed = lex("1 + 2");
-  oc.preprocess(lexed);
+  oc.p.preprocess(lexed);
   assert(lexed == lex("Add(1, 2)"));
 
   lexed = lex("1 + 2 / 3.0 * 4");
-  oc.preprocess(lexed);
+  oc.p.preprocess(lexed);
   assert(lexed == lex("Add(1, Mult(Div(2, 3.0), 4))"));
 
   lexed = lex("1 + 2 / (3.0 * 4)");
-  oc.preprocess(lexed);
+  oc.p.preprocess(lexed);
   assert(lexed == lex("Add(1, Div(2, Mult(3.0, 4)))"));
 
   lexed = lex("a = b");
-  oc.preprocess(lexed);
+  oc.p.preprocess(lexed);
   assert(lexed == lex("Copy(a, b)"));
 
   lexed = lex("a = b, c");
-  oc.preprocess(lexed);
+  oc.p.preprocess(lexed);
   assert(lexed == lex("Copy(a, b), c"));
 
   lexed = lex("a = (b, c)");
-  oc.preprocess(lexed);
+  oc.p.preprocess(lexed);
   assert(lexed == lex("Copy(a, b, c)"));
 
   lexed = lex("a = (b, c + d / (e * f))");
-  oc.preprocess(lexed);
+  oc.p.preprocess(lexed);
   assert(lexed ==
          lex("Copy(a, b, Add(c, Div(d, Mult(e, f))))"));
 

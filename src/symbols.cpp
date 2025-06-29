@@ -46,10 +46,17 @@ ASTNodes::Statement ScopeManager::pop_frame() {
   } else {
     ASTNodes::Statement destructors;
 
+    debug_print();
     const auto popped = frames.back();
+
+    debug_print();
+    db_assert(barrier_captures.size() == frames.size());
     frames.pop_back();
+
+    debug_print();
     barrier_captures.pop_back();
 
+    debug_print();
     for (const auto &entry : popped) {
       if (std::holds_alternative<Value>(entry.second)) {
         const auto non_ref_value =
@@ -57,11 +64,13 @@ ASTNodes::Statement ScopeManager::pop_frame() {
         if (std::holds_alternative<Type>(non_ref_value)) {
           const auto instance = std::get<Type>(non_ref_value);
           destructors.children.push_back(
-              ASTNodes::Box<ASTNodes::Node>(ASTNodes::Object(
+              ASTNodes::OptBox<ASTNodes::Node>(ASTNodes::Object(
                   instance.get_destructor_call(entry.first))));
         }
       }
     }
+
+    debug_print();
 
     return destructors;
   }

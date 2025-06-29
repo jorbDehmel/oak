@@ -418,9 +418,14 @@ bool Type::cast_match(const Type &_other) const {
     return true;
   }
 
+  debug_print();
+
   if (nodes.size() != _other.nodes.size()) {
     return false;
   }
+
+  debug_print();
+
   auto mine = nodes.begin();
   auto theirs = _other.nodes.begin();
   while (mine != nodes.end() && theirs != _other.nodes.end()) {
@@ -469,6 +474,8 @@ bool Type::cast_match(const Type &_other) const {
     }
     ++mine, ++theirs;
   }
+
+  debug_print();
 
   return mine == nodes.end() && theirs == _other.nodes.end();
 }

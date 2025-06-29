@@ -15,7 +15,8 @@ int main() {
   std::cout << "Running test #" << ++test_num << "...\n"
             << std::flush;
   { // Test 1: Functions
-    Parser p;
+    Settings s(std::cout);
+    Parser p(s);
     Lexer l;
     uint64_t line = __LINE__, col = 0;
     const std::string file = "foo.oak";
@@ -27,26 +28,27 @@ int main() {
 
     auto lexed = l.lex(text, file, line, col);
 
-    p.parse_global(lexed, settings);
+    p.parse_global(lexed);
     // p.reconstruct(std::cout, settings.compile_settings());
 
-    assert(!p.fetch_symbol("var").has_value());
-    assert(!p.fetch_symbol("var2").has_value());
+    assert(!p.scope_manager.contains("var"));
+    assert(!p.scope_manager.contains("var2"));
 
     { // Test main fn info
-      const auto main_fn = p.fetch_symbol("main");
+      const auto main_fn = p.scope_manager.get("main");
 
       assert(main_fn.has_value());
       const auto main_fn_value = main_fn.value();
 
-      assert(std::holds_alternative<std::list<Parser::FnInfo>>(
+      assert(std::holds_alternative<ScopeManager::FnValue>(
           main_fn_value));
       const auto main_fn_info_list =
-          std::get<std::list<Parser::FnInfo>>(main_fn_value);
+          std::get<ScopeManager::FnValue>(main_fn_value);
 
       assert(main_fn_info_list.size() == 1);
+      auto value = std::get<FnInfo>(main_fn_info_list.front());
 
-      const auto main_fn_type = main_fn_info_list.front().t;
+      const auto main_fn_type = value.t;
       assert(main_fn_type.is_fn());
       assert(main_fn_type.fn_return_type().exact_match(
           Type({"i32"})));
@@ -56,19 +58,20 @@ int main() {
     }
 
     { // Test "a" fn info
-      const auto fn = p.fetch_symbol("a");
+      const auto fn = p.scope_manager.get("a");
 
       assert(fn.has_value());
       const auto fn_value = fn.value();
 
-      assert(std::holds_alternative<std::list<Parser::FnInfo>>(
+      assert(std::holds_alternative<ScopeManager::FnValue>(
           fn_value));
       const auto fn_info_list =
-          std::get<std::list<Parser::FnInfo>>(fn_value);
+          std::get<ScopeManager::FnValue>(fn_value);
 
       assert(fn_info_list.size() == 1);
 
-      const auto fn_type = fn_info_list.front().t;
+      const auto fn_type =
+          std::get<FnInfo>(fn_info_list.front()).t;
       assert(fn_type.is_fn());
       assert(
           fn_type.fn_return_type().exact_match(Type({"void"})));
@@ -88,7 +91,8 @@ int main() {
   std::cout << "Running test #" << ++test_num << "...\n"
             << std::flush;
   { // Test 2: Structs
-    Parser p;
+    Settings s(std::cout);
+    Parser p(s);
     Lexer l;
     uint64_t line = __LINE__, col = 0;
     const std::string file = "fizz.oak";
@@ -99,14 +103,15 @@ int main() {
 
     auto lexed = l.lex(text, file, line, col);
 
-    p.parse_global(lexed, settings);
+    p.parse_global(lexed);
     // p.reconstruct(std::cout, settings.compile_settings());
   }
 
   std::cout << "Running test #" << ++test_num << "...\n"
             << std::flush;
   { // Test 3: Enums
-    Parser p;
+    Settings s(std::cout);
+    Parser p(s);
     Lexer l;
     uint64_t line = __LINE__, col;
     const std::string file = "fizz.oak";
@@ -116,14 +121,15 @@ int main() {
 
     auto lexed = l.lex(text, file, line, col);
 
-    p.parse_global(lexed, settings);
+    p.parse_global(lexed);
     // p.reconstruct(std::cout, settings.compile_settings());
   }
 
   std::cout << "Running test #" << ++test_num << "...\n"
             << std::flush;
   { // Test 4: Nonexistant structs
-    Parser p;
+    Settings s(std::cout);
+    Parser p(s);
     Lexer l;
     uint64_t line = __LINE__, col;
     const std::string file = "fizz.oak";
@@ -134,7 +140,7 @@ int main() {
 
     bool did_throw = false;
     try {
-      p.parse_global(lexed, settings);
+      p.parse_global(lexed);
     } catch (...) {
       did_throw = true;
     }
@@ -144,7 +150,8 @@ int main() {
   std::cout << "Running test #" << ++test_num << "...\n"
             << std::flush;
   { // Test 5: No-arg function calls
-    Parser p;
+    Settings s(std::cout);
+    Parser p(s);
     Lexer l;
     uint64_t line = __LINE__, col;
     const std::string file = "fizz.oak";
@@ -159,14 +166,15 @@ int main() {
 
     auto lexed = l.lex(text, file, line, col);
 
-    p.parse_global(lexed, settings);
+    p.parse_global(lexed);
     // p.reconstruct(std::cout, settings.compile_settings());
   }
 
   std::cout << "Running test #" << ++test_num << "...\n"
             << std::flush;
   { // Test 6: Arg function calls
-    Parser p;
+    Settings s(std::cout);
+    Parser p(s);
     Lexer l;
     uint64_t line = __LINE__, col;
     const std::string file = "fizz.oak";
@@ -185,14 +193,15 @@ int main() {
 
     auto lexed = l.lex(text, file, line, col);
 
-    p.parse_global(lexed, settings);
+    p.parse_global(lexed);
     // p.reconstruct(std::cout, settings.compile_settings());
   }
 
   std::cout << "Running test #" << ++test_num << "...\n"
             << std::flush;
   { // Test 7: Overloaded function calls
-    Parser p;
+    Settings s(std::cout);
+    Parser p(s);
     Lexer l;
     uint64_t line = __LINE__, col;
     const std::string file = "fizz.oak";
@@ -213,7 +222,7 @@ int main() {
 
     auto lexed = l.lex(text, file, line, col);
 
-    p.parse_global(lexed, settings);
+    p.parse_global(lexed);
     // p.reconstruct(std::cout, settings.compile_settings());
   }
 

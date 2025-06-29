@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include "debug.hpp"
 #include "type.hpp"
 #include <optional>
 #include <ostream>
@@ -25,70 +24,45 @@ using Node =
                  class While, class Match, class Case>;
 
 /// Custom implementation that is just an indirection
-template <typename T> struct Box {
-  Box() {
-    _data = new T;
+template <typename T> class OptBox {
+public:
+  OptBox() : data(nullptr) {
   }
 
-  Box(const T &_other) {
-    _data = new T(_other);
+  OptBox(const T &_other) : data(new T(_other)) {
   }
 
-  Box(const Box<T> &_other) {
-    _data = new T(_other.get());
+  OptBox(const OptBox<T> &_other)
+      : data(_other.has_value() ? new T(_other.get())
+                                : nullptr) {
   }
 
-  Box<T> &operator=(const T &_other) {
-    *_data = _other;
+  OptBox<T> &operator=(const T &_other) noexcept {
+    if (!has_value()) {
+      data = new T;
+    }
+    *data = _other;
     return *this;
   }
 
-  ~Box() {
-    db_assert(_data != nullptr);
-    delete _data;
-  }
-
-  T &get() const noexcept {
-    db_assert(_data != nullptr);
-    return *_data;
-  }
-
-private:
-  T *_data;
-};
-
-/// Custom implementation that is just an indirection
-template <typename T> struct OptBox {
-  OptBox() {
-    _data = nullptr;
-  }
-
-  OptBox(const T &_other) {
-    _data = new T(_other);
-  }
-
-  OptBox(const OptBox<T> &_other) {
+  OptBox<T> &operator=(const OptBox<T> &_other) {
     if (_other.has_value()) {
-      _data = new T(_other.get());
+      if (!has_value()) {
+        data = new T;
+      }
+      *data = _other.get();
     }
-  }
-
-  OptBox<T> &operator=(const T &_other) {
-    if (!has_value()) {
-      _data = new T;
-    }
-    *_data = _other;
     return *this;
   }
 
   ~OptBox() {
     if (has_value()) {
-      delete _data;
+      delete data;
     }
   }
 
-  bool has_value() const noexcept {
-    return _data != nullptr;
+  inline bool has_value() const noexcept {
+    return data != nullptr;
   }
 
   T &get() const {
@@ -96,11 +70,11 @@ template <typename T> struct OptBox {
       throw std::runtime_error(
           "Cannot get value from empty OptBox");
     }
-    return *_data;
+    return *data;
   }
 
 private:
-  T *_data;
+  T *data;
 };
 
 /// A resolved object in the form of a string
@@ -123,7 +97,7 @@ struct Call {
   /// A single argument in the call
   struct Arg {
     /// The identifier of this arg
-    Box<Node> name;
+    OptBox<Node> name;
 
     /// The type of this arg
     Type type;
@@ -146,7 +120,7 @@ struct Call {
 /// Zero or more sequential statements
 struct Statement {
   /// The children, in order
-  std::vector<Box<Node>> children;
+  std::vector<OptBox<Node>> children;
 };
 
 /// A branch of a match
@@ -161,19 +135,19 @@ struct Case {
   Type type;
 
   /// The body of the case
-  Box<Node> body;
+  OptBox<Node> body;
 };
 
 /// A Rust-style match
 struct Match {
   /// The enum instance we are looking at
-  Box<Node> upon;
+  OptBox<Node> upon;
 
   /// The enum root name (of which is option is a part)
   std::string enum_name;
 
   /// The tines of the match statement
-  std::list<Box<Node>> branches;
+  std::list<OptBox<Node>> branches;
 
   /// If true, all the cases will be references
   bool is_mutable = false;
@@ -182,19 +156,19 @@ struct Match {
 /// A while statement
 struct While {
   /// The condition
-  Box<Node> condition;
+  OptBox<Node> condition;
 
   /// What is executed within the loop
-  Box<Node> body;
+  OptBox<Node> body;
 };
 
 /// An if-then-else statement where the else block is optional
 struct If {
   /// The condition
-  Box<Node> condition;
+  OptBox<Node> condition;
 
   /// What is executed if the condition is true
-  Box<Node> then_body;
+  OptBox<Node> then_body;
 
   /// If provided, the else block
   OptBox<Node> else_body;
@@ -210,16 +184,16 @@ struct Declaration {
   std::list<std::string> names;
 
   /// Constructors
-  std::list<Box<Node>> new_calls;
+  std::list<OptBox<Node>> new_calls;
 };
 
 /// A low-level array access object
 struct ArrAccess {
   /// The thing being accessed
-  Box<Node> upon;
+  OptBox<Node> upon;
 
   /// The index into `upon`
-  Box<Node> index;
+  OptBox<Node> index;
 
   ///
   Type return_type;
@@ -232,7 +206,7 @@ struct RawCFormat {
   std::string format_string;
 
   /// The arguments to be inserted at '%'
-  std::vector<Box<Node>> args;
+  std::vector<OptBox<Node>> args;
 
   /// If provided, the return type
   std::optional<Type> type;

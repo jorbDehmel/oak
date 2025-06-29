@@ -1,0 +1,17 @@
+/**
+ * @brief Tests nested functions in Oak
+ */
+
+include!("std/io.oak");
+
+let main() -> i32 {
+  let print_hi() -> void {
+    print("Hi!\n");
+  }
+
+  print_hi();
+
+  return 0i32;
+}
+
+// print_hi() would not be valid out here
