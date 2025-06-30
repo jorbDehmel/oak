@@ -86,11 +86,13 @@ std::string make_string_literal(const std::string &_contents);
  */
 class Parser {
 public:
-  ///
+  /// Construct from some settings
   Parser(Settings &_s) : settings(_s) {
   }
 
-  ///
+  /// A REFERENCE to externally-controlled settings. This is so
+  /// that you can centralize the settings for the compiler, I
+  /// guess? Seems suboptimal to do it this way.
   Settings &settings;
 
   /**
@@ -229,12 +231,19 @@ public:
   void syntax_check(const std::filesystem::path &_fp,
                     const std::string &_text) const;
 
-  ///
+  /**
+   * @brief Attempt to instantiate a template
+   * @param _what Information about the template blocks
+   * @param _substitutions The values to plug in in place of the
+   * generics
+   * @returns True iff the blocks were successfully parsed
+   */
   bool instantiate(
       TemplateInfo &_what,
       const std::list<std::list<std::string>> &_substitutions);
 
-  ///
+  /// Replace a macro CALL (not definition) at the given token
+  /// stream location.
   void replace_macro(TokenStream &_pos);
 
   friend class OakCompiler;

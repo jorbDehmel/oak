@@ -23,20 +23,28 @@ using Node =
                  class Statement, class RawCFormat, class If,
                  class While, class Match, class Case>;
 
-/// Custom implementation that is just an indirection
+/// An optional box: Contains either nothing or one dynamically
+/// allocated value owned by this instance. This is similar to
+/// std::unique_ptr or std::indirect (C++26), but is custom for
+/// trait satisfaction reasons.
 template <typename T> class OptBox {
 public:
+  /// Construct with no contents
   OptBox() : data(nullptr) {
   }
 
+  /// Construct with contents
   OptBox(const T &_other) : data(new T(_other)) {
   }
 
+  /// DEEP COPY another optional box
   OptBox(const OptBox<T> &_other)
       : data(_other.has_value() ? new T(_other.get())
                                 : nullptr) {
   }
 
+  /// Copy the value, making that copy the value held by this
+  /// box
   OptBox<T> &operator=(const T &_other) noexcept {
     if (!has_value()) {
       data = new T;
@@ -45,6 +53,7 @@ public:
     return *this;
   }
 
+  /// DEEP COPY from another box
   OptBox<T> &operator=(const OptBox<T> &_other) {
     if (_other.has_value()) {
       if (!has_value()) {
@@ -55,16 +64,19 @@ public:
     return *this;
   }
 
+  /// Free any owned memory
   ~OptBox() {
     if (has_value()) {
       delete data;
     }
   }
 
+  /// Returns true iff this box has been assigned a value
   inline bool has_value() const noexcept {
     return data != nullptr;
   }
 
+  /// Returns the value owned, throwing if none exists
   T &get() const {
     if (!has_value()) {
       throw std::runtime_error(
@@ -74,6 +86,7 @@ public:
   }
 
 private:
+  /// The internal data, or nullptr if empty
   T *data;
 };
 
@@ -195,7 +208,8 @@ struct ArrAccess {
   /// The index into `upon`
   OptBox<Node> index;
 
-  ///
+  /// The type returned: Almost always the type of which `upon`
+  /// is an array
   Type return_type;
 };
 
@@ -215,7 +229,7 @@ struct RawCFormat {
 /// Recursively reconstruct AST in C
 void reconstruct(const Node &_what, std::ostream &_where);
 
-///
+/// Extracts the type from any node, throwing if it is untyped
 Type type(const Node &_what);
 
 } // namespace ASTNodes

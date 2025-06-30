@@ -2127,6 +2127,12 @@ void Parser::validate_type(const Type &_t) {
   }
 }
 
+/**
+ * @brief Runs a command (asserting that it succeeded), logging
+ * cout to the returned string
+ * @param _cmd The system command to execute
+ * @returns The output of that command, given that it succeeded
+ */
 std::string get_cmd_output(const std::string &_cmd) {
   debug_print();
   char buffer[128];

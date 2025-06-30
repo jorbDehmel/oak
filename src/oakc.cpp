@@ -222,6 +222,9 @@ void OakCompiler::print_size() noexcept {
   print_bytes(total_size);
 }
 
+/// A small wrapper that asks for confirmation before
+/// uninstalling. This can safely be run after object deletion
+/// (e.g. CLI closing)
 void internal_uninstall() {
   debug_print();
   char choice = 'n';

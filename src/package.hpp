@@ -45,7 +45,7 @@ struct Version {
  * via the `include!` macro.
  * @param _package The path to the local version of the
  * package.
- * @param _csettings The settings for all of oak.
+ * @param _settings The settings for all of oak.
  * NOTE: The version will be derived from the spec file.
  */
 void install_package(const std::filesystem::path &_package,
@@ -55,6 +55,7 @@ void install_package(const std::filesystem::path &_package,
  * @brief Erases some package from the system
  * @param _name The package name
  * @param _oak_include The dir where all oak packages are
+ * @param _settings The compiler settings
  * @param _version The version to uninstall
  * NOTE: Version {} will uninstall everything, version {0} will
  * uninstall all 0*, version {0, 1} will uninstall all 0.1*, etc
@@ -73,6 +74,8 @@ void list_packages(std::ostream &_to,
 /**
  * @brief Loads the `dir/spec.oak` file
  * @param _path The DIRECTORY of the package
+ * @param _settings The settings, which include the paths to
+ * search
  */
 std::map<std::string, std::string>
 load_package_spec(const std::filesystem::path &_path,

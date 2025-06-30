@@ -14,15 +14,22 @@
 #include <set>
 #include <string>
 
-/// Interfacial struct
+/// Interfacial struct: DO NOT FREE THIS DATA!!!! All C-strings
+/// are null terminated
 extern "C" struct OakToken {
-  /// Points to parser-owned C-strings: DO NOT DESTROY!
+  /// Points to parser-owned C-string for the text
   uint8_t *text;
+
+  /// Points to parser-owned C-string for the token type
   uint8_t *type;
+
+  /// Points to parser-owned C-string for the token origin file
   uint8_t *file;
 
-  /// Points to parser-owned ints
+  /// Points to parser-owned int for the token line
   uint64_t *line;
+
+  /// Points to parser-owned int for the token column
   uint64_t *col;
 };
 

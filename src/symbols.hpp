@@ -89,7 +89,7 @@ public:
 /// Information about a single template block
 class TemplateInfo {
 public:
-  ///
+  /// The values to substitute in place of generics
   using Substitution = std::list<std::list<std::string>>;
 
   /// Initialize with the info needed to reconstruct (since
@@ -109,7 +109,8 @@ public:
   /// The column it came from
   const uint64_t col;
 
-  ///
+  /// Given some name and signature, return the generics which
+  /// would satisfy them (if such substitutions exist)
   std::optional<Substitution>
   find_substitutions(const std::string &_name,
                      const std::list<std::string>
@@ -178,7 +179,8 @@ public:
   using DeltaFn = bool (*)(OakToken input[], OakToken output[],
                            uint *output_size);
 
-  ///
+  /// The delta function for the quasi-FST, probably externally
+  /// loaded
   const DeltaFn delta_fn;
 
   /// Rules that must be done first: Externally handled
@@ -225,7 +227,8 @@ public:
   /// frame will be flagged as a capture.
   void push_capture_frame() noexcept;
 
-  ///
+  /// Given that this frame is a capture frame, returns any
+  /// captures which have been caught
   std::list<std::string> get_captures() const noexcept;
 
   /// Pops a scope off the stack and returns destructors
@@ -288,7 +291,11 @@ public:
   /// Dumps everything
   void dump(std::ostream &_into) const noexcept;
 
-  ///
+  /// Finds the given value, asserts that it exists, asserts
+  /// that it is the right type (the template parameter) and
+  /// returns a COPY of it. This is not mutable because it is
+  /// meant to be an external function, and references to
+  /// variants get weird.
   template <typename T> T at(const std::string &_name) {
     const auto gotten = get(_name);
     if (!gotten.has_value() ||
@@ -311,8 +318,12 @@ protected:
   /// Resolves aliases
   static Value dealias(ValueOrAlias &_what);
 
-  /// Back is most recent
+  /// A stack of frames: Back is most recent
   std::list<std::map<std::string, ValueOrAlias>> frames;
+
+  /// Either the empty option (not a capture frame) or a list of
+  /// all the variables which had to be located from above this
+  /// frame.
   std::list<std::optional<std::list<std::string>>>
       barrier_captures;
 };
