@@ -23,7 +23,11 @@ void ScopeManager::push_capture_frame() noexcept {
 std::list<std::string>
 ScopeManager::get_captures() const noexcept {
   debug_print();
-  return barrier_captures.back().value_or({});
+  if (barrier_captures.back().has_value()) {
+    return barrier_captures.back().value();
+  } else {
+    return std::list<std::string>{};
+  }
 }
 
 void ScopeManager::push_frame() noexcept {
