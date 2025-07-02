@@ -2,7 +2,7 @@
  * @file
  */
 
-#include "oakc.hpp"
+#include "compiler.hpp"
 #include "debug.hpp"
 #include "parser.hpp"
 #include "settings.hpp"

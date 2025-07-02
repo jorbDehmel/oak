@@ -11,6 +11,7 @@ include!(
   "std/c_str.oak",
   "std/rules.oak"
 );
+link!("std/string.o");
 rule::use!("std");
 
 ////////////////////////////////////////////////////////////////
@@ -21,23 +22,22 @@ rule::use!("std");
  */
 let String: struct {
   __c_str: []i8,
-  __size: uint,
-  __max_size: uint
+  __size: uint
 }
 
 ////////////////////////////////////////////////////////////////
 // Signatures
 
-/// Create an empty string
+/// Create an empty string. EXTERN
 let New(self: ^String) -> void;
 
-/// Delete a string's memory if it has any
+/// Delete a string's memory if it has any. EXTERN
 let Del(self: ^String) -> void;
 
-/// Deep copy of another string
+/// Deep copy of another string. EXTERN
 let Copy(self: ^String, other: String) -> ^String;
 
-/// Initialize from a null-terminated C-string
+/// Initialize from a null-terminated C-string. EXTERN
 let Copy(self: ^String, other: []i8) -> ^String;
 
 /// Get the i-th BYTE (not unicode codepoint) of the string
@@ -60,35 +60,6 @@ let print(what: String) -> void;
 
 ////////////////////////////////////////////////////////////////
 // Implementations
-
-let New(self: ^String) -> void {
-  self.__size = 0uint;
-  self.__max_size = 0uint;
-}
-
-let Del(self: ^String) -> void {
-  if (self.__max_size != 0uint) {
-    free!(self.__c_str);
-    self.__max_size = 0uint;
-    self.__size = 0uint;
-  }
-}
-
-let Copy(self: ^String, other: String) -> ^String {
-  reserve(self, other.__size);
-  strcpy(self.__c_str, other.__c_str);
-  self.__size = other.__size;
-  Get(self.__c_str, self.__size) = 0i8;
-  return self;
-}
-
-let Copy(self: ^String, other: []i8) -> ^String {
-  self.__size = strlen(other);
-  reserve(self, self.__size);
-  strcpy(self.__c_str, other);
-  Get(self.__c_str, self.__size) = 0i8;
-  return self;
-}
 
 let Copy(self: ^String, c: i8) -> ^String {
   reserve(self, 1uint);
@@ -135,13 +106,12 @@ let Neq(lhs: String, rhs: String) -> bool {
 }
 
 let reserve(self: ^String, size: uint) -> void {
-  if (self.__max_size < size + 1uint) {
-    if (self.__max_size != 0uint) {
+  if (self.__size < size + 1uint) {
+    if (self.__size != 0uint) {
       free!(self.__c_str);
     }
-    self.__max_size = size + 1uint;
-    self.__size = 0uint;
-    alloc!(self.__c_str, self.__max_size);
+    self.__size = size + 1uint;
+    alloc!(self.__c_str, self.__size);
   }
 }
 

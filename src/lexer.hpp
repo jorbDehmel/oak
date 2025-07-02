@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "../std/token.h"
 #include "type.hpp"
 #include <cstdint>
 #include <filesystem>
@@ -13,25 +14,6 @@
 #include <optional>
 #include <set>
 #include <string>
-
-/// Interfacial struct: DO NOT FREE THIS DATA!!!! All C-strings
-/// are null terminated
-extern "C" struct OakToken {
-  /// Points to parser-owned C-string for the text
-  uint8_t *text;
-
-  /// Points to parser-owned C-string for the token type
-  uint8_t *type;
-
-  /// Points to parser-owned C-string for the token origin file
-  uint8_t *file;
-
-  /// Points to parser-owned int for the token line
-  uint64_t *line;
-
-  /// Points to parser-owned int for the token column
-  uint64_t *col;
-};
 
 /**
  * @brief Takes a block of text and yields a token stream
@@ -57,13 +39,20 @@ public:
    */
   struct Token {
     /// Returns the Oak interfacial version
-    inline OakToken as_oak() {
-      OakToken out;
-      out.text = (uint8_t *)text.c_str();
-      out.type = (uint8_t *)type.c_str();
-      out.file = (uint8_t *)file.c_str();
-      out.line = &line;
-      out.col = &col;
+    inline ::TokenList as_oak() {
+      ::TokenList out;
+
+      // Deep copies
+      Copy_FN_PTR_String_JOIN_ARR_i8_MAPS_PTR_String(
+          &out.text, (i8 *)text.c_str());
+      Copy_FN_PTR_String_JOIN_ARR_i8_MAPS_PTR_String(
+          &out.type, (i8 *)type.c_str());
+      Copy_FN_PTR_String_JOIN_ARR_i8_MAPS_PTR_String(
+          &out.file, (i8 *)file.c_str());
+
+      out.line = line;
+      out.col = col;
+
       return out;
     }
 
@@ -93,14 +82,16 @@ public:
 
     /// Construct with the other as a 'template', but with some
     /// new text
-    Token(const Token &_other, const std::string &_new_text)
+    Token(const Lexer::Token &_other,
+          const std::string &_new_text)
         : text(_new_text), file(_other.file), line(_other.line),
           col(_other.col) {
     }
 
     /// Construct with the other as a 'template', but with some
     /// new text
-    Token(const Token &_other, const Lexer::Token &_new_text)
+    Token(const Lexer::Token &_other,
+          const Lexer::Token &_new_text)
         : text(_new_text), type(_new_text.type),
           file(_other.file), line(_other.line),
           col(_other.col) {
@@ -127,9 +118,10 @@ public:
    * without merging or removing comments. Still does type
    * classification.
    */
-  std::list<Token> raw_lex(const std::string &_text,
-                           const std::filesystem::path &_path,
-                           uint64_t &_line, uint64_t &_col);
+  std::list<Lexer::Token>
+  raw_lex(const std::string &_text,
+          const std::filesystem::path &_path, uint64_t &_line,
+          uint64_t &_col);
 
   /**
    * @brief Breaks some input file text
@@ -146,14 +138,14 @@ public:
    * UL).
    * @param _t The possible literal to examine.
    */
-  static std::optional<Type> get_literal_type(Token &_t);
+  static std::optional<Type> get_literal_type(Lexer::Token &_t);
 
   /**
    * @brief Set `_t.type` according to its contents. If it
    * already has a type, overwrites it.
    * @param _t The type to reclassify
    */
-  static void classify_type(Token &_t);
+  static void classify_type(Lexer::Token &_t);
 
   /// Transmute a series of strings to tokens
   static TokenStream tokify(const std::list<std::string> &_what,

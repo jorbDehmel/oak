@@ -2,8 +2,8 @@
  * @brief Frontend for the Acorn compiler.
  */
 
+#include "compiler.hpp"
 #include "debug.hpp"
-#include "oakc.hpp"
 #include "package.hpp"
 #include <chrono>
 #include <filesystem>
@@ -475,7 +475,12 @@ bool parse_args(const int _c, const char *const _v[],
       // Regular arg
       if (_oakc.settings.is_compile()) {
         // Input file
-        _oakc.settings.compile_settings().entry_point = arg;
+        // Note on resolution: The second argument must always
+        // be a FILE, not a directory: To search the local
+        // directory, we must use a dummy file within it.
+        _oakc.settings.compile_settings().entry_point =
+            _oakc.p.resolve_path(
+                arg, std::filesystem::current_path() / "foo");
       } else {
         // Dir to run tests in
         _oakc.settings.test_settings().dirs.push_back(arg);

@@ -1,0 +1,40 @@
+/**
+ * @brief Interface to the internal lexer/parser Token object.
+ * Used for rules.
+ */
+
+pragma!("no_dialect");
+include!("std/string.oak");
+link!("std/token.o");
+
+/// An Oak token (toaken)
+let TokenList: struct {
+  text: String,
+  type: String,
+  file: String,
+  line: u64,
+  col: u64,
+
+  /// Internal: Don't mess with
+  _: ^void,
+}
+
+/// External linked-list deletion
+let Del(self: ^TokenList) -> void;
+
+/// COPIES a SINGLE token, inserting it after self
+let push(self: ^TokenList, other: TokenList) -> void;
+
+/// COPIES a SINGLE string, inserting it after self with the
+/// same line, column, path, and type
+let push(self: ^TokenList, other: String) -> void;
+
+/// COPIES a SINGLE string, inserting it after self with the
+/// same line, column, path, using the given type
+let push(self: ^TokenList, other: String, type: String) -> void;
+
+/// Returns true iff this token has none following it
+let done(self: ^TokenList) -> bool;
+
+/// Advances self to the next token, asserting that one exists
+let next(self: ^^TokenList) -> void;

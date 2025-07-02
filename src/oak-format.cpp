@@ -6,8 +6,8 @@ Many valid Oak files -> 1 token stream
 1 token stream -> 1 valid Oak file
 */
 
+#include "compiler.hpp"
 #include "lexer.hpp"
-#include "oakc.hpp"
 #include "settings.hpp"
 #include <cstdint>
 #include <cstring>

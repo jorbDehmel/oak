@@ -176,7 +176,8 @@ public:
   /// If returns false, write the input. Else if output_size
   /// is 0 (default), don't write anything. If output_size is
   /// nonzero, put the first `output_size` items of `output`.
-  using DeltaFn = bool (*)(OakToken input[], OakToken output[],
+  using DeltaFn = bool (*)(::TokenList input[],
+                           ::TokenList output[],
                            uint *output_size);
 
   /// The delta function for the quasi-FST, probably externally

@@ -117,9 +117,9 @@ Lexer::raw_lex(const std::string &_text,
              _text.at(pos + 1) != '\n') {
         ++pos, ++_col;
       }
-      out.push_back(
-          Token(_text.substr(start_pos, pos - start_pos + 1),
-                _path, _line, _col, "COMMENT"));
+      out.push_back(Lexer::Token(
+          _text.substr(start_pos, pos - start_pos + 1), _path,
+          _line, _col, "COMMENT"));
       if (_text.at(pos) == '\n') {
         next_line();
       }
@@ -131,18 +131,18 @@ Lexer::raw_lex(const std::string &_text,
           pos + 1 < _text.size() &&
           !(_text.at(pos) == '*' && _text.at(pos + 1) == '/')) {
         if (_text.at(pos) == '\n') {
-          out.push_back(
-              Token(_text.substr(start_pos, pos - start_pos),
-                    _path, _line, _col, "COMMENT"));
+          out.push_back(Lexer::Token(
+              _text.substr(start_pos, pos - start_pos), _path,
+              _line, _col, "COMMENT"));
           start_pos = pos + 1;
           next_line();
         }
         ++pos, ++_col;
       }
       ++pos, ++_col;
-      out.push_back(
-          Token(_text.substr(start_pos, pos - start_pos + 1),
-                _path, _line, _col, "COMMENT"));
+      out.push_back(Lexer::Token(
+          _text.substr(start_pos, pos - start_pos + 1), _path,
+          _line, _col, "COMMENT"));
     }
 
     // Multi-character non-IDs
@@ -170,7 +170,8 @@ Lexer::raw_lex(const std::string &_text,
       out.push_back(to_append);
     } else if (_text.at(pos) == '\'') {
       // Single string literal
-      Token to_append = Token("", _path, _line, _col);
+      Lexer::Token to_append =
+          Lexer::Token("", _path, _line, _col);
       bool skip = false;
       ++pos, ++_col;
       while (pos < _text.size()) {
@@ -205,7 +206,8 @@ Lexer::raw_lex(const std::string &_text,
       out.push_back(to_append);
     } else if (_text.at(pos) == '"') {
       // Double string literal
-      Token to_append = Token("", _path, _line, _col);
+      Lexer::Token to_append =
+          Lexer::Token("", _path, _line, _col);
       bool skip = false;
       ++pos, ++_col;
       while (pos < _text.size()) {
@@ -247,7 +249,8 @@ Lexer::raw_lex(const std::string &_text,
                                  "> UNIMPLEMENTED");
       } else {
         // Single backtick string
-        Token to_append = Token("", _path, _line, _col);
+        Lexer::Token to_append =
+            Lexer::Token("", _path, _line, _col);
         bool skip = false;
         ++pos, ++_col;
         while (pos < _text.size()) {
@@ -444,7 +447,7 @@ const static bool replace_suffix(std::string &_what,
  * one. If not, returns nothing.
  * @param _t The possible literal to examine.
  */
-std::optional<Type> Lexer::get_literal_type(Token &_t) {
+std::optional<Type> Lexer::get_literal_type(Lexer::Token &_t) {
   debug_print();
   if (_t.type == "STRING") {
     return Type({"[", "]", "i8"});

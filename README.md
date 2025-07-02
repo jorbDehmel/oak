@@ -1,6 +1,7 @@
 
 # The `Oak` Programming Language and `acorn` Compiler
-J Dehmel, Colorado Mesa University
+
+J Dehmel
 
 ![The `Oak` logo: A pixelated tree](logo.png)
 

@@ -4,9 +4,9 @@
 
 #include "parser.hpp"
 #include "ast_node.hpp"
+#include "compiler.hpp"
 #include "debug.hpp"
 #include "lexer.hpp"
-#include "oakc.hpp"
 #include "settings.hpp"
 #include "symbols.hpp"
 #include "type.hpp"
