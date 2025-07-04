@@ -6,7 +6,8 @@ include!("std/std.oak");
 rule::use!("std");
 
 let indicize(arr: []i32, size: uint) -> void {
-  let i = 0u64;
+  let i: u64;
+  i = 0u64;
   while (i < size) {
     Get(arr, i) = to_i32(i);
     ++i;
@@ -14,7 +15,8 @@ let indicize(arr: []i32, size: uint) -> void {
 }
 
 let print(arr: []i32, size: uint) -> void {
-  let i = 0uint;
+  let i: uint;
+  i = 0uint;
   while (i < size) {
     print(Get(arr, i));
     endl();

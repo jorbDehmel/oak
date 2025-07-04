@@ -276,8 +276,10 @@ public:
   ASTNodes::Call get_fn(const std::string &_name,
                         const std::list<ASTNodes::Node> &_args);
 
-  /// Drops any fn/templates with given name, key, and value
+  /// Drops any fn/templates with given name, type, key, and
+  /// value
   void drop_fn_with_tag(const std::string &_name,
+                        const Type &_to_match,
                         const std::string &_key,
                         const std::string &_value) noexcept;
 

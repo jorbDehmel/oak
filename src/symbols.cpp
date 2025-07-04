@@ -6,6 +6,7 @@
 #include <memory>
 #include <optional>
 #include <stdexcept>
+#include <string>
 #include <variant>
 
 ScopeManager::ScopeManager() {
@@ -85,8 +86,8 @@ void ScopeManager::add(const std::string &_key,
   debug_print();
   if (frames.back().contains(_key)) {
     throw std::runtime_error(
-        "Cannot name function '" + _key +
-        "': A non-function entry with the same name "
+        "Cannot name entry '" + _key +
+        "': A non-overloadable local entry with the same name "
         "already exists");
   } else {
     if (std::holds_alternative<StructInfo>(_value)) {
@@ -101,6 +102,13 @@ void ScopeManager::add(const std::string &_key,
 
     else if (std::holds_alternative<Type>(_value)) {
       debug_print();
+
+      // No globals allowed
+      if (frames.size() == 1) {
+        throw std::runtime_error(
+            "Global variables are not allowed.");
+      }
+
       frames.back()[_key] = std::get<Type>(_value);
     } else if (std::holds_alternative<InlineMacro>(_value)) {
       debug_print();
@@ -123,28 +131,37 @@ void ScopeManager::add(const std::string &_key,
 void ScopeManager::add(const std::string &_key,
                        const FnInfo &_value) {
   debug_print();
-  if (frames.back().contains(_key) &&
-      std::holds_alternative<Value>(frames.back().at(_key)) &&
-      std::holds_alternative<FnValue>(
-          dealias(frames.back().at(_key)))) {
-    // Already exists and is of right type
-    debug_print();
-    std::get<FnValue>(std::get<Value>(frames.back().at(_key)))
-        .push_back(_value);
-    in_order.push_back(_value);
-  } else if (!frames.back().contains(_key)) {
+
+  if (!frames.back().contains(_key)) {
     // Does not exist yet
     frames.back()[_key] = FnValue({});
-    std::get<FnValue>(std::get<Value>(frames.back().at(_key)))
-        .push_back(_value);
-    in_order.push_back(_value);
-  } else {
+  } else if (!std::holds_alternative<Value>(
+                 frames.back().at(_key)) ||
+             !std::holds_alternative<FnValue>(
+                 dealias(frames.back().at(_key)))) {
     // Exists, but as wrong type
     throw std::runtime_error(
         "Cannot name function '" + _key +
         "': A non-function or alias entry with the same name "
         "already exists");
   }
+
+  // Clean as needed
+  // explicit beats casual and autogen
+  // casual beats autogen
+  if (_value.tags.contains("casual") &&
+      _value.tags.at("casual") == "true") {
+    drop_fn_with_tag(_value.name, _value.t, "autogen", "true");
+  } else if (!_value.tags.contains("autogen") ||
+             _value.tags.at("autogen") != "true") {
+    drop_fn_with_tag(_value.name, _value.t, "casual", "true");
+    drop_fn_with_tag(_value.name, _value.t, "autogen", "true");
+  }
+
+  // Add
+  std::get<FnValue>(std::get<Value>(frames.back().at(_key)))
+      .push_back(_value);
+  in_order.push_back(_value);
 }
 
 void ScopeManager::add(const std::string &_key,
@@ -194,13 +211,15 @@ void ScopeManager::alias(
 void ScopeManager::remove_prefix(const std::string &_prefix) {
   debug_print();
   // Find anything (in any scope) that has this prefix
+  const auto real_prefix = _prefix + "_";
   for (auto scope_iter = frames.rbegin();
        scope_iter != frames.rend(); ++scope_iter) {
     for (const auto &entry : *scope_iter) {
-      if (entry.first.starts_with(_prefix) &&
-          entry.first != _prefix) {
+      if (entry.first.starts_with(real_prefix) &&
+          entry.first != real_prefix) {
         // Match: Add alias
-        alias(entry.first.substr(_prefix.size()), entry.first);
+        alias(entry.first.substr(real_prefix.size()),
+              entry.first);
       }
     }
   }
@@ -378,18 +397,16 @@ ScopeManager::get_fn(const std::string &_name,
     }
 
     // Attempt existing instances
-    for (uint i = 0; i < fn_candidates.size(); ++i) {
-      const auto instance_args =
-          fn_candidates.at(i).t.fn_args();
+    for (const auto &instance : fn_candidates) {
+      const auto instance_args = instance.t.fn_args();
       if (instance_args.size() != _args.size()) {
         continue;
       }
 
       ASTNodes::Call out;
       bool exact = true, ref = true, cast = true;
-      out.mangled_c_fn_name = fn_candidates.at(i).t.mangle(
-          fn_candidates.at(i).name);
-      out.return_type = fn_candidates.at(i).t.fn_return_type();
+      out.mangled_c_fn_name = instance.t.mangle(instance.name);
+      out.return_type = instance.t.fn_return_type();
 
       auto args_at_j = _args.begin();
       for (uint j = 0;
@@ -423,8 +440,8 @@ ScopeManager::get_fn(const std::string &_name,
       if (exact) {
         if (exact_matches.empty()) {
           exact_matches.push_back(out);
-        } else if (fn_candidates.at(i).tags["casual"] !=
-                   "true") {
+        } else if (!instance.tags.contains("casual") ||
+                   instance.tags.at("casual") != "true") {
           exact_matches.push_back(out);
         }
       } else if (ref) {
@@ -435,26 +452,34 @@ ScopeManager::get_fn(const std::string &_name,
     }
 
     if (exact_matches.empty()) {
+      // No exact: Use ref or cast matches
       if (ref_matches.empty()) {
+        // No exact or refs: Use casts
         if (!cast_matches.empty()) {
-          // Use casting matches
           if (cast_matches.size() != 1) {
+            // Too many!
             throw std::runtime_error(
                 "Multiple castable matches were "
                 "found for function call '" +
                 fn_call_str(_name, _args) + "'");
           } else {
+            // Use casting match
             return cast_matches.front();
           }
         }
+        // Falls through to empty case
       } else {
-        // Use ref matches
+        // Has ref matches: Use them
         if (ref_matches.size() != 1) {
+          // Too many!
           throw std::runtime_error(
-              "Multiple reference matches were "
+              "Multiple (" +
+              std::to_string(ref_matches.size()) +
+              ") reference matches were "
               "found for function call '" +
               fn_call_str(_name, _args) + "'");
         } else {
+          // Use ref match
           return ref_matches.front();
         }
       }
@@ -473,22 +498,31 @@ ScopeManager::get_fn(const std::string &_name,
         std::holds_alternative<FnValue>(
             all_candidates.value()) &&
         !std::get<FnValue>(all_candidates.value()).empty()) {
-      std::string msg = "Candidates:\n";
+      std::string msg = "\nCandidates:\n\n";
       const auto c = std::get<FnValue>(all_candidates.value());
       for (const auto &entry : c) {
         if (std::holds_alternative<
                 std::shared_ptr<TemplateInfo>>(entry)) {
           auto val =
               std::get<std::shared_ptr<TemplateInfo>>(entry);
-          msg += val->path.string() + ":" +
-                 std::to_string(val->line) + "> Template\n";
+          msg += "Template from " + val->path.string() + ":" +
+                 std::to_string(val->line);
         } else {
           auto val = std::get<FnInfo>(entry);
-          msg += val.tags["file"] + ":" + val.tags["line"] +
-                 "> " + val.t.oak_repr(_name) + '\n';
+          msg += val.t.oak_repr(_name) + "\n\tlocation:\t" +
+                 val.tags["file"] + ":" + val.tags["line"] +
+                 "." + val.tags["col"];
+          for (const auto &p : val.tags) {
+            if (p.first == "file" || p.first == "line" ||
+                p.first == "col") {
+              continue;
+            }
+            msg += "\n\t" + p.first + ":\t" + p.second;
+          }
         }
+        msg += "\n\n";
       }
-      throw std::runtime_error(msg + e.what());
+      throw std::runtime_error(msg + "\n" + e.what());
     } else {
       throw e;
     }
@@ -507,41 +541,126 @@ std::set<std::string> ScopeManager::names() const noexcept {
 }
 
 void ScopeManager::drop_fn_with_tag(
-    const std::string &_name, const std::string &_key,
+    const std::string &_name, const Type &_to_match,
+    const std::string &_key,
     const std::string &_value) noexcept {
   debug_print();
-  auto val = get(_name);
-  if (!val.has_value()) {
-    return;
-  } else if (!std::holds_alternative<FnValue>(val.value())) {
+
+  // Locate
+  auto frame = frames.rbegin();
+  for (; frame != frames.rend(); ++frame) {
+    if (frame->contains(_name)) {
+      break;
+    }
+  }
+
+  // No results!
+  if (frame == frames.rend() || !frame->contains(_name)) {
     return;
   }
 
-  std::erase_if(
-      std::get<FnValue>(val.value()),
-      [&](const std::variant<
-          FnInfo, std::shared_ptr<TemplateInfo>> &_entry) {
-        if (std::holds_alternative<
-                std::shared_ptr<TemplateInfo>>(_entry)) {
-          return false;
-        } else {
-          const FnInfo unwrapped = std::get<FnInfo>(_entry);
-          if (unwrapped.tags.contains(_key)) {
-            return unwrapped.tags.at(_key) == _value;
+  auto &entry = frame->at(_name);
+  if (std::holds_alternative<Value>(entry)) { // Value
+    if (!std::holds_alternative<FnValue>(
+            std::get<Value>(entry))) {
+      return;
+    }
+    std::erase_if(
+        std::get<FnValue>(std::get<Value>(entry)),
+        [&](const std::variant<
+            FnInfo, std::shared_ptr<TemplateInfo>> &_entry) {
+          if (std::holds_alternative<
+                  std::shared_ptr<TemplateInfo>>(_entry)) {
+            return false;
+          } else {
+            const FnInfo unwrapped = std::get<FnInfo>(_entry);
+            if (!_to_match.exact_match(unwrapped.t)) {
+              return false;
+            }
+            if (unwrapped.tags.contains(_key)) {
+              return unwrapped.tags.at(_key) == _value;
+            }
+            return _value == "";
           }
-          return _value == "";
-        }
-      });
+        });
+  } else { // Alias
+    if (!std::holds_alternative<FnValue>(
+            std::get<std::reference_wrapper<Value>>(entry)
+                .get())) {
+      return;
+    }
+    std::erase_if(
+        std::get<FnValue>(
+            std::get<std::reference_wrapper<Value>>(entry)
+                .get()),
+        [&](const std::variant<
+            FnInfo, std::shared_ptr<TemplateInfo>> &_entry) {
+          if (std::holds_alternative<
+                  std::shared_ptr<TemplateInfo>>(_entry)) {
+            return false;
+          } else {
+            const FnInfo unwrapped = std::get<FnInfo>(_entry);
+            if (unwrapped.tags.contains(_key)) {
+              return unwrapped.tags.at(_key) == _value;
+            }
+            return _value == "";
+          }
+        });
+  }
 }
 
 void ScopeManager::tag_fn(const std::string &_name,
                           const std::string &_key,
                           const std::string &_value) noexcept {
   debug_print();
-  std::get<FnInfo>(
-      std::get<ScopeManager::FnValue>(get(_name).value())
-          .back())
-      .tags[_key] = _value;
+
+  // Locate
+  auto frame = frames.rbegin();
+  for (; frame != frames.rend(); ++frame) {
+    if (frame->contains(_name)) {
+      break;
+    }
+  }
+
+  // No results!
+  if (frame == frames.rend() || !frame->contains(_name)) {
+    return;
+  }
+
+  auto &entry = frame->at(_name);
+  if (std::holds_alternative<Value>(entry)) { // Value
+    if (!std::holds_alternative<FnValue>(
+            std::get<Value>(entry))) {
+      return;
+    }
+    if (std::holds_alternative<FnInfo>(
+            std::get<ScopeManager::FnValue>(
+                std::get<Value>(entry))
+                .back())) {
+      std::get<FnInfo>(std::get<ScopeManager::FnValue>(
+                           std::get<Value>(entry))
+                           .back())
+          .tags[_key] = _value;
+    }
+  } else { // Alias
+    if (!std::holds_alternative<FnValue>(
+            std::get<std::reference_wrapper<Value>>(entry)
+                .get())) {
+      return;
+    }
+    if (std::holds_alternative<FnInfo>(
+            std::get<ScopeManager::FnValue>(
+                std::get<std::reference_wrapper<Value>>(entry)
+                    .get())
+                .back())) {
+      std::get<FnInfo>(
+          std::get<ScopeManager::FnValue>(
+              std::get<std::reference_wrapper<Value>>(entry)
+                  .get())
+              .back())
+          .tags[_key] = _value;
+    }
+  }
 }
 
 bool ScopeManager::contains_atomic_type(

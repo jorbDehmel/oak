@@ -41,6 +41,8 @@ std::string get_cmd_output(const std::string &_cmd);
 /// Internal oak macros which are deferred to parse time
 /// (EG size!, type!)
 const static std::set<std::string> reserved_macro_names = {
+    "alias!",
+    "namespace_use!",
     "size!",
     "type!",
     "c!",
@@ -49,6 +51,9 @@ const static std::set<std::string> reserved_macro_names = {
     "compile_time_error!",
     "compile_time_warning!",
     "compile_time_print!",
+    "rules_use!",
+    "rules_new!",
+    "rules_bundle!",
     "str!",
     "unstr!"};
 
@@ -167,6 +172,11 @@ public:
 
   /// Return the type spec at the specified location
   Type parse_type(TokenStream &_pos);
+
+  /// Called by parse_function_call
+  ASTNodes::Node get_function_call_node(
+      const std::string &_unmangled_name,
+      const std::list<ASTNodes::Node> &_args);
 
   /// Parses a single function call
   ASTNodes::Node parse_function_call(TokenStream &_pos);

@@ -450,6 +450,7 @@ const static bool replace_suffix(std::string &_what,
 std::optional<Type> Lexer::get_literal_type(Lexer::Token &_t) {
   debug_print();
   if (_t.type == "STRING") {
+    _t.text = "((i8 *)" + _t.text + ")";
     return Type({"[", "]", "i8"});
   } else if (_t.text == "true" || _t.text == "false") {
     return Type({"bool"});

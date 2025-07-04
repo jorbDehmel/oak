@@ -4,7 +4,6 @@
 
 void ASTNodes::reconstruct(const ASTNodes::Node &_what,
                            std::ostream &_where) {
-
   if (std::holds_alternative<ASTNodes::If>(_what)) {
     const auto d = std::get<ASTNodes::If>(_what);
 
@@ -129,7 +128,6 @@ void ASTNodes::reconstruct(const ASTNodes::Node &_what,
       _where << "{\n";
       for (const auto &child : d.children) {
         reconstruct(child.get(), _where);
-        _where << ";\n";
       }
       _where << "}\n";
     } else if (d.children.size() == 1) {

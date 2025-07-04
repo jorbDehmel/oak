@@ -630,6 +630,31 @@ elsewhere.
 These macros manage the rule subsystem. Their usage is detailed
 elsewhere.
 
+### `alias!` and `namespace::use!`
+
+In `C++`, you can say `using A = B;` to alias an entry at
+compile time. Similarly, in `Oak` you say `alias!(A, B);`. In
+`C++`, you can say `using namespace C;`. In `Oak`, you say
+`namespace::use!(C);`.
+
+```rust
+include!("std/io.oak");
+
+let hamburger::cheeseburger::long::fn() -> void {
+  print("Hello!\n");
+}
+
+namespace::use!(hamburger::cheeseburger::long);
+namespace::use!(hamburger);
+
+let main() -> i32 {
+  fn();
+  cheeseburger::long::fn();
+  return 0i32;
+}
+
+```
+
 ### `compile_time::system!`
 
 When parsed, this macro attempts to execute its string argument

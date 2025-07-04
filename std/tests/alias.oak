@@ -8,7 +8,7 @@ let foo() -> void {
   print("Hello from foo!\n");
 }
 
-let fizz = foo;
+alias!(fizz, foo);
 
 let main() -> i32 {
   foo();

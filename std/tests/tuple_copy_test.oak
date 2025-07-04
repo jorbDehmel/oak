@@ -9,6 +9,7 @@ let Pair: struct {
   second: u64
 }
 
+// Should erase autogen
 let New(self: ^Pair) -> void {}
 
 let Copy(self: ^Pair, first: i32, second: u64) -> Pair {

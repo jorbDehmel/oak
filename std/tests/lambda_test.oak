@@ -11,9 +11,8 @@ let call_on_zero(fn: ^(_: i32) -> i32) -> i32 {
 }
 
 let main() -> i32 {
-  let expected = 123i32;
-  let observed: i32;
-
+  let expected, observed: i32;
+  expected = 123i32;
   observed = call_on_zero(
     (arg: i32) -> i32 {
       print("Hello from within a lambda!\n");

@@ -17,7 +17,6 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
-#include <functional>
 #include <iostream>
 #include <iterator>
 #include <memory>
@@ -69,261 +68,9 @@ void Parser::parse_global(TokenStream &_pos) {
   // Iterate and delegate. No macros remain.
   while (!_pos.done()) {
     try {
-      if (_pos.cur() == "let") {
+      parse_statement(_pos);
+      while (!_pos.done() && _pos.cur().text == ";") {
         _pos.next();
-        std::list<std::string> names;
-        names.push_back(_pos.cur());
-        _pos.next();
-
-        // Plural instantiation
-        while (_pos.cur() == ",") {
-          _pos.next();
-          names.push_back(_pos.cur());
-          _pos.next();
-        }
-
-        // Generics
-        std::list<std::string> generics;
-        if (_pos.cur() == "<") {
-          // Zero or more comma-separated generics
-          do {
-            _pos.next();
-            if (!is_valid_struct_name(_pos.cur())) {
-              settings.warn(
-                  "Generic '" + _pos.cur().text + "' at " +
-                  _pos.cur().file.string() + ":" +
-                  std::to_string(_pos.cur().line) + "." +
-                  std::to_string(_pos.cur().col) +
-                  " does not appear to be camelcase");
-            }
-            generics.push_back(_pos.cur());
-            _pos.next();
-          } while (_pos.cur() == ",");
-
-          if (_pos.cur() != ">") {
-            throw std::runtime_error(
-                "Malformed generic: Expected '>', but saw '" +
-                _pos.cur().text + "'");
-          }
-          _pos.next();
-        }
-
-        if (_pos.cur() == ":") {
-          // Struct, enum, or invalid global definition
-          _pos.next();
-          if (_pos.cur() == "struct") {
-            _pos.next(); // Now pointing at body
-
-            if (generics.empty()) {
-              parse_struct(names, _pos);
-            } else if (_pos.cur() == ";") {
-              throw std::runtime_error(
-                  "Generic struct signatures are illegal");
-            } else {
-              // Add definition for generic struct(s)
-              TemplateInfo info(_pos.cur().file,
-                                _pos.cur().line,
-                                _pos.cur().col);
-              info.generics = generics;
-
-              // Grab body here
-              int count = 0;
-              do {
-                if (_pos.done()) {
-                  throw std::runtime_error(
-                      "Generic struct signature must be "
-                      "defined");
-                } else if (_pos.cur() == "{") {
-                  ++count;
-                } else if (_pos.cur() == "}") {
-                  --count;
-                }
-                info.instantiate_block.push_back(_pos.cur());
-                _pos.next();
-              } while (count != 0);
-              _pos.prev();
-
-              const auto p = parse_template_pre_post(_pos);
-              for (const auto &item : p.second) {
-                info.instantiate_block.push_back(item);
-              }
-              info.validate_block = p.first;
-
-              for (const auto &name : names) {
-                TemplateInfo specific_info = info;
-                specific_info.provides_block = {"struct"};
-                specific_info.instantiate_block.push_front(
-                    "struct");
-                specific_info.instantiate_block.push_front(":");
-                specific_info.instantiate_block.push_front(
-                    name);
-                specific_info.instantiate_block.push_front(
-                    "let");
-                scope_manager.add(name, specific_info);
-              }
-            }
-
-            _pos.next();
-          } else if (_pos.cur() == "enum") {
-            _pos.next();
-
-            if (generics.empty()) {
-              parse_enum(names, _pos);
-            } else {
-              throw std::runtime_error(
-                  "Generic enums are unimplemented");
-            }
-
-            _pos.next();
-          } else {
-            throw std::runtime_error(
-                "Global scope 'let' error: Expected 'struct' "
-                "or 'enum', saw '" +
-                _pos.cur().text + "'");
-          }
-        } else if (_pos.cur() == "(") {
-          // Function
-          if (generics.empty()) {
-            parse_function(names, _pos);
-          } else {
-            // Grab rest of signature
-            TemplateInfo info(_pos.cur().file, _pos.cur().line,
-                              _pos.cur().col);
-            info.generics = generics;
-
-            // Finish parsing type
-            while (!_pos.done() && _pos.cur() != "{") {
-              if (_pos.peek(1) != ":") {
-                info.provides_block.push_back(_pos.cur());
-              } else {
-                info.provides_block.push_back("_");
-              }
-
-              info.instantiate_block.push_back(_pos.cur());
-
-              _pos.next();
-              if (_pos.cur() == ";") {
-                // Generic signature
-                throw std::runtime_error(
-                    "Generic function signatures are illegal");
-              }
-            }
-
-            // Grab body
-            int count = 0;
-            do {
-              if (_pos.done()) {
-                throw std::runtime_error(
-                    "Generic function signatures must be "
-                    "defined");
-              } else if (_pos.cur() == "{") {
-                ++count;
-              } else if (_pos.cur() == "}") {
-                --count;
-              }
-              info.instantiate_block.push_back(_pos.cur());
-              _pos.next();
-            } while (count != 0);
-            _pos.prev();
-
-            // Parse pre and post blocks
-            const auto p = parse_template_pre_post(_pos);
-            info.validate_block = p.first;
-            for (const auto &item : p.second) {
-              info.instantiate_block.push_back(item);
-            }
-
-            // Add to template table
-            for (const auto &name : names) {
-              TemplateInfo instance_info = info;
-
-              instance_info.provides_block.push_front(name);
-              instance_info.provides_block.push_front("let");
-
-              instance_info.instantiate_block.push_front(name);
-              instance_info.instantiate_block.push_front("let");
-
-              scope_manager.add(name, instance_info);
-            }
-          }
-
-          _pos.next();
-        } else if (_pos.cur() == "=") {
-          // In Oak: let to = from;
-          // In C++: using to = from;
-          _pos.next();
-          const auto from_name = _pos.cur().text;
-
-          for (const auto &to_name : names) {
-            scope_manager.alias(to_name, from_name);
-          }
-
-          _pos.next();
-        } else {
-          throw std::runtime_error(
-              "Global scope 'let' error: "
-              "Expected '(', '=' or ':', saw '" +
-              _pos.cur().text + "'");
-        }
-      } else if (_pos.cur() == ";") {
-        _pos.next();
-      }
-
-      else if (_pos.cur() == "compile_time_error!") {
-        settings.ostream
-            << _pos.cur().file.string() << ":"
-            << _pos.cur().line << "." << _pos.cur().col << ">"
-            << _pos.cur().text << " Compile-time error:\n";
-
-        // Note: This is after all preprocessing
-        const auto args = Macros::get_macro_args_no_erase(_pos);
-        std::string msg;
-        for (const auto &arg : args) {
-          msg += arg.text + " ";
-        }
-        settings.ostream << msg << '\n';
-        throw std::runtime_error(msg);
-      } else if (_pos.cur() == "compile_time_warning!") {
-        std::stringstream msg_strm;
-        msg_strm << _pos.cur().file.string() << ":"
-                 << _pos.cur().line << "." << _pos.cur().col
-                 << ">" << _pos.cur().text
-                 << " Compile-time warning:\n";
-
-        // Note: This is after all preprocessing
-        const auto args = Macros::get_macro_args_no_erase(_pos);
-        for (const auto &arg : args) {
-          msg_strm << arg.text << " ";
-        }
-        msg_strm << '\n';
-        settings.warn(msg_strm.str());
-
-        while (_pos.cur() != ";") {
-          _pos.next();
-        }
-      } else if (_pos.cur() == "compile_time_print!") {
-        settings.ostream
-            << _pos.cur().file.string() << ":"
-            << _pos.cur().line << "." << _pos.cur().col << ">"
-            << _pos.cur().text << " Compile-time print:\n";
-
-        // Note: This is after all preprocessing
-        const auto args = Macros::get_macro_args_no_erase(_pos);
-        std::string msg;
-        for (const auto &arg : args) {
-          msg += arg.text + " ";
-        }
-        settings.ostream << msg << '\n';
-
-        while (_pos.cur() != ";") {
-          _pos.next();
-        }
-      }
-
-      else {
-        throw std::runtime_error(
-            "Global scope parse error: Unexpected token '" +
-            _pos.cur().text + "'");
       }
     } catch (OutOfPPPLError &) {
       throw;
@@ -377,14 +124,22 @@ void Parser::reconstruct(std::ostream &_where) const noexcept {
   // Struct, fn, and enum definitions
   for (const auto &data : scope_manager.in_order) {
     if (std::holds_alternative<StructInfo>(data)) {
-      const auto info = std::get<StructInfo>(data);
+      auto info = std::get<StructInfo>(data);
+
+      _where << "// #line " << info.tags["line"] << " \""
+             << info.tags["file"] << "\"\n";
+
       _where << "struct " << info.name << " {\n";
       for (const auto &item : info.member_order) {
         _where << info.members.at(item).c_repr(item) << ";\n";
       }
       _where << "};\n";
     } else if (std::holds_alternative<EnumInfo>(data)) {
-      const auto info = std::get<EnumInfo>(data);
+      auto info = std::get<EnumInfo>(data);
+
+      _where << "// " << info.tags["file"] << ":"
+             << info.tags["line"] << "\n";
+
       _where << "struct " << info.name << " {\nenum {\n";
       for (const auto &item : info.option_order) {
         _where << info.name << "_OPT_" << item << ",\n";
@@ -395,7 +150,7 @@ void Parser::reconstruct(std::ostream &_where) const noexcept {
       }
       _where << "} __data;\n};\n";
     } else if (std::holds_alternative<FnInfo>(data)) {
-      const auto info = std::get<FnInfo>(data);
+      auto info = std::get<FnInfo>(data);
       if (info.tags.contains("casual") &&
           info.tags.at("casual") == "true") {
         continue;
@@ -403,6 +158,9 @@ void Parser::reconstruct(std::ostream &_where) const noexcept {
                  info.tags.at("autogen") == "true") {
         _where << "// autogen\n";
       }
+
+      _where << "// " << info.tags["file"] << ":"
+             << info.tags["line"] << "\n";
 
       if (info.name == "main") {
         if (!info.tags.contains("file") ||
@@ -566,18 +324,13 @@ void Parser::parse_function(
 
   if (_pos.cur() == ";") {
     // Signature
-    to_add.tags = {{"casual", "true"}};
-
-    // Erase autogen
-    for (const auto &name : _names) {
-      scope_manager.drop_fn_with_tag(name, "autogen", "true");
-    }
+    to_add.tags["casual"] = "true";
   } else {
     // Implementation
 
     // Add some signatures for recursion
     FnInfo temp_info = to_add;
-    temp_info.tags = {{"casual", "true"}};
+    temp_info.tags["casual"] = "true";
     for (const auto &name : _names) {
       temp_info.name = name;
       scope_manager.add(name, temp_info);
@@ -602,12 +355,6 @@ void Parser::parse_function(
 
     // Pop stack frame WITHOUT CALLING ARGUMENT DESTRUCTORS
     scope_manager.pop_frame();
-
-    // Erase signatures
-    for (const auto &name : _names) {
-      scope_manager.drop_fn_with_tag(name, "casual", "true");
-      scope_manager.drop_fn_with_tag(name, "autogen", "true");
-    }
   }
 
   for (const auto &name : _names) {
@@ -944,6 +691,7 @@ void Parser::parse_struct(const std::list<std::string> &_names,
                     "\" does not seem to be camelcase");
     }
 
+    to_add.name = name;
     scope_manager.add(name, to_add);
 
     // Constructor and destructor autogen go here
@@ -961,6 +709,7 @@ void Parser::parse_struct(const std::list<std::string> &_names,
     auto to_parse =
         lexer.lex(to_lex, _pos.cur().file, line, col);
     parse_function({"New"}, to_parse);
+
     scope_manager.tag_fn("New", "autogen", "true");
 
     // Reset, create destructor
@@ -974,6 +723,7 @@ void Parser::parse_struct(const std::list<std::string> &_names,
     // Parse and mark
     to_parse = lexer.lex(to_lex, _pos.cur().file, line, col);
     parse_function({"Del"}, to_parse);
+
     scope_manager.tag_fn("Del", "autogen", "true");
   }
 }
@@ -1027,6 +777,7 @@ void Parser::parse_enum(const std::list<std::string> &_names,
                     "\" does not seem to be camelcase");
     }
 
+    to_add.name = name;
     scope_manager.add(name, to_add);
 
     // Wrappers
@@ -1122,10 +873,6 @@ Parser::parse_statement(TokenStream &_pos,
                      << '\n';
   }
 
-  // A statement can be a function call, a (possibly compound)
-  // if statement, a match statement, nothing, a variable
-  // declaration, or a while statement
-
   if (_pos.cur() == "c!") {
     _pos.next();
     if (_pos.cur() != "(") {
@@ -1150,59 +897,298 @@ Parser::parse_statement(TokenStream &_pos,
 
     return ASTNodes::Statement(
         {ASTNodes::OptBox<ASTNodes::Node>(out)});
+  } else if (_pos.cur() == "compile_time_error!") {
+    settings.ostream << _pos.cur().file.string() << ":"
+                     << _pos.cur().line << "." << _pos.cur().col
+                     << ">" << _pos.cur().text
+                     << " Compile-time error:\n";
+
+    // Note: This is after all preprocessing
+    const auto args = Macros::get_macro_args_no_erase(_pos);
+    std::string msg;
+    for (const auto &arg : args) {
+      msg += arg.text + " ";
+    }
+    settings.ostream << msg << '\n';
+    throw std::runtime_error(msg);
+  } else if (_pos.cur() == "compile_time_warning!") {
+    std::stringstream msg_strm;
+    msg_strm << _pos.cur().file.string() << ":"
+             << _pos.cur().line << "." << _pos.cur().col << ">"
+             << _pos.cur().text << " Compile-time warning:\n";
+
+    // Note: This is after all preprocessing
+    const auto args = Macros::get_macro_args_no_erase(_pos);
+    for (const auto &arg : args) {
+      msg_strm << arg.text << " ";
+    }
+    msg_strm << '\n';
+    settings.warn(msg_strm.str());
+
+    while (_pos.cur() != ";") {
+      _pos.next();
+    }
+  } else if (_pos.cur() == "compile_time_print!") {
+    settings.ostream << _pos.cur().file.string() << ":"
+                     << _pos.cur().line << "." << _pos.cur().col
+                     << ">" << _pos.cur().text
+                     << " Compile-time print:\n";
+
+    // Note: This is after all preprocessing
+    const auto args = Macros::get_macro_args_no_erase(_pos);
+    std::string msg;
+    for (const auto &arg : args) {
+      msg += arg.text + " ";
+    }
+    settings.ostream << msg << '\n';
+
+    while (_pos.cur() != ";") {
+      _pos.next();
+    }
+  } else if (_pos.cur() == "alias!") {
+    // In Oak: alias!(to, from);
+    // In C++: using to = from;
+
+    const auto args = Macros::get_macro_args_no_erase(_pos);
+    while (_pos.cur() != ";") {
+      _pos.next();
+    }
+
+    if (args.size() != 2) {
+      throw std::runtime_error(
+          "'alias!' takes two arguments: to and from");
+    }
+    scope_manager.alias(args.front(), args.back());
+  } else if (_pos.cur() == "namespace_use!") {
+    // In Oak: namespace::use!("std");
+    // In C++: using namespace std;
+
+    const auto args = Macros::get_macro_args_no_erase(_pos);
+    while (_pos.cur() != ";") {
+      _pos.next();
+    }
+
+    if (args.size() != 1) {
+      throw std::runtime_error(
+          "'use!' takes one string argument: The prefix to "
+          "remove");
+    }
+    scope_manager.remove_prefix(args.front());
   }
 
-  if (_pos.cur() == ";") {
+  else if (_pos.cur() == ";") {
     // Unit statement
     return ASTNodes::Statement();
   } else if (_pos.cur() == "let") {
     // Variable declaration
     // Collect names
-    std::set<std::string> names;
+    std::list<std::string> names;
 
     do {
       // Fluff
       _pos.next();
 
       // Name
-      names.insert(_pos.cur());
+      names.push_back(_pos.cur());
       _pos.next();
     } while (_pos.cur() == ",");
 
-    if (_pos.cur() != ":") {
-      throw std::runtime_error(
-          "Expected ':' after 'let' statement. Instead saw '" +
-          _pos.cur().text + "'");
-    }
-    _pos.next();
+    // Generics
+    std::list<std::string> generics;
+    if (_pos.cur() == "<") {
+      // Zero or more comma-separated generics
+      do {
+        _pos.next();
+        if (!is_valid_struct_name(_pos.cur())) {
+          settings.warn("Generic '" + _pos.cur().text +
+                        "' at " + _pos.cur().file.string() +
+                        ":" + std::to_string(_pos.cur().line) +
+                        "." + std::to_string(_pos.cur().col) +
+                        " does not appear to be camelcase");
+        }
+        generics.push_back(_pos.cur());
+        _pos.next();
+      } while (_pos.cur() == ",");
 
-    // Get type
-    Type t = parse_type(_pos);
-    validate_type(t);
-
-    ASTNodes::Declaration out;
-    out.type = t;
-
-    for (const auto &name : names) {
-      out.names.push_back(name);
-      scope_manager.add(name, t);
-
-      // Literal `New` call
-      const auto tok = _pos.cur();
-      TokenStream new_call(
-          {Lexer::Token("New", tok.file, tok.line, tok.col,
-                        "ID"),
-           Lexer::Token("(", tok.file, tok.line, tok.col,
-                        "OPERATOR"),
-           Lexer::Token(name, tok.file, tok.line, tok.col,
-                        "ID"),
-           Lexer::Token(")", tok.file, tok.line, tok.col,
-                        "OPERATOR")});
-      out.new_calls.push_back(parse_function_call(new_call));
+      if (_pos.cur() != ">") {
+        throw std::runtime_error(
+            "Malformed generic: Expected '>', but saw '" +
+            _pos.cur().text + "'");
+      }
+      _pos.next();
     }
 
-    return ASTNodes::Statement(
-        {ASTNodes::OptBox<ASTNodes::Node>(out)});
+    if (_pos.cur() == ":") {
+      // Variables, structs, and enums
+      _pos.next();
+      if (_pos.cur() == "struct") {
+        // Struct
+        _pos.next(); // Now pointing at body
+
+        if (generics.empty()) {
+          parse_struct(names, _pos);
+        } else if (_pos.cur() == ";") {
+          throw std::runtime_error(
+              "Generic struct signatures are illegal");
+        } else {
+          // Add definition for generic struct(s)
+          TemplateInfo info(_pos.cur().file, _pos.cur().line,
+                            _pos.cur().col);
+          info.generics = generics;
+
+          // Grab body here
+          int count = 0;
+          do {
+            if (_pos.done()) {
+              throw std::runtime_error(
+                  "Generic struct signature must be "
+                  "defined");
+            } else if (_pos.cur() == "{") {
+              ++count;
+            } else if (_pos.cur() == "}") {
+              --count;
+            }
+            info.instantiate_block.push_back(_pos.cur());
+            _pos.next();
+          } while (count != 0);
+          _pos.prev();
+
+          const auto p = parse_template_pre_post(_pos);
+          for (const auto &item : p.second) {
+            info.instantiate_block.push_back(item);
+          }
+          info.validate_block = p.first;
+
+          for (const auto &name : names) {
+            TemplateInfo specific_info = info;
+            specific_info.provides_block = {"struct"};
+            specific_info.instantiate_block.push_front(
+                "struct");
+            specific_info.instantiate_block.push_front(":");
+            specific_info.instantiate_block.push_front(name);
+            specific_info.instantiate_block.push_front("let");
+            scope_manager.add(name, specific_info);
+          }
+        }
+
+        _pos.next();
+        return ASTNodes::Statement({});
+      } else if (_pos.cur() == "enum") {
+        // enum
+        _pos.next();
+
+        if (generics.empty()) {
+          parse_enum(names, _pos);
+        } else {
+          throw std::runtime_error(
+              "Generic enums are unimplemented");
+        }
+
+        _pos.next();
+        return ASTNodes::Statement({});
+      } else {
+        // Variable
+
+        // Get type
+        Type t = parse_type(_pos);
+        validate_type(t);
+
+        ASTNodes::Declaration out;
+        out.type = t;
+
+        for (const auto &name : names) {
+          out.names.push_back(name);
+          scope_manager.add(name, t);
+
+          // Literal `New` call
+          const auto tok = _pos.cur();
+          TokenStream new_call(
+              {Lexer::Token("New", tok.file, tok.line, tok.col,
+                            "ID"),
+               Lexer::Token("(", tok.file, tok.line, tok.col,
+                            "OPERATOR"),
+               Lexer::Token(name, tok.file, tok.line, tok.col,
+                            "ID"),
+               Lexer::Token(")", tok.file, tok.line, tok.col,
+                            "OPERATOR")});
+          out.new_calls.push_back(
+              parse_function_call(new_call));
+        }
+
+        return ASTNodes::Statement(
+            {ASTNodes::OptBox<ASTNodes::Node>(out)});
+      }
+      return ASTNodes::Statement({});
+    } else if (_pos.cur() == "(") {
+      // Function
+      if (generics.empty()) {
+        parse_function(names, _pos);
+      } else {
+        // Grab rest of signature
+        TemplateInfo info(_pos.cur().file, _pos.cur().line,
+                          _pos.cur().col);
+        info.generics = generics;
+
+        // Finish parsing type
+        while (!_pos.done() && _pos.cur() != "{") {
+          if (_pos.peek(1) != ":") {
+            info.provides_block.push_back(_pos.cur());
+          } else {
+            info.provides_block.push_back("_");
+          }
+
+          info.instantiate_block.push_back(_pos.cur());
+
+          _pos.next();
+          if (_pos.cur() == ";") {
+            // Generic signature
+            throw std::runtime_error(
+                "Generic function signatures are illegal");
+          }
+        }
+
+        // Grab body
+        int count = 0;
+        do {
+          if (_pos.done()) {
+            throw std::runtime_error(
+                "Generic function signatures must be "
+                "defined");
+          } else if (_pos.cur() == "{") {
+            ++count;
+          } else if (_pos.cur() == "}") {
+            --count;
+          }
+          info.instantiate_block.push_back(_pos.cur());
+          _pos.next();
+        } while (count != 0);
+        _pos.prev();
+
+        // Parse pre and post blocks
+        const auto p = parse_template_pre_post(_pos);
+        info.validate_block = p.first;
+        for (const auto &item : p.second) {
+          info.instantiate_block.push_back(item);
+        }
+
+        // Add to template table
+        for (const auto &name : names) {
+          TemplateInfo instance_info = info;
+
+          instance_info.provides_block.push_front(name);
+          instance_info.provides_block.push_front("let");
+
+          instance_info.instantiate_block.push_front(name);
+          instance_info.instantiate_block.push_front("let");
+
+          scope_manager.add(name, instance_info);
+        }
+      }
+
+      _pos.next();
+      return ASTNodes::Statement({});
+    }
+    return ASTNodes::Statement({});
   } else if (_pos.cur() == "{") {
     // Scope
     ASTNodes::Statement out;
@@ -1424,13 +1410,9 @@ Parser::parse_statement(TokenStream &_pos,
   } else {
     // Function call
     auto ret = parse_function_call(_pos);
-    _pos.next();
-    if (_pos.cur() != ";") {
-      throw std::runtime_error(
-          "Missing semicolon after function call.");
-    }
     return ASTNodes::Statement({ret});
   }
+  return ASTNodes::Statement({});
 }
 
 std::variant<ASTNodes::Case, ASTNodes::Statement>
@@ -1551,6 +1533,281 @@ Parser::parse_case(const EnumInfo &_enum_type,
   }
 }
 
+ASTNodes::Node Parser::get_function_call_node(
+    const std::string &_unmangled_name,
+    const std::list<ASTNodes::Node> &_args) {
+  //////////////////////////////////////////////////////////////
+  // Special cases here
+
+  // Array access via the 'Get' operator
+  if (_unmangled_name == "Get" && _args.size() == 2 &&
+      (ASTNodes::type(_args.back())
+           .cast_match(Type({"u128"})) ||
+       ASTNodes::type(_args.back())
+           .cast_match(Type({"i128"}))) &&
+      (ASTNodes::type(_args.front()).nodes.front().type ==
+           Type::TypeNode::SIZED_ARRAY ||
+       ASTNodes::type(_args.front()).nodes.front().type ==
+           Type::TypeNode::UNSIZED_ARRAY)) {
+    // Only resolvable at reconstruction-time
+    ASTNodes::ArrAccess out;
+    out.upon = ASTNodes::OptBox<ASTNodes::Node>(_args.front());
+    out.index = ASTNodes::OptBox<ASTNodes::Node>(_args.back());
+    out.return_type = ASTNodes::type(out.upon.get());
+    out.return_type.nodes.pop_front();
+    return out;
+  }
+
+  // alloc!
+  else if (_unmangled_name == "alloc!") {
+    // 1-arg
+    if (_args.size() == 1) {
+      if (ASTNodes::type(_args.front()).nodes.empty() ||
+          ASTNodes::type(_args.front()).nodes.front().type !=
+              Type::TypeNode::POINTER) {
+        throw std::runtime_error(
+            "Expected pointer type for alloc!(into), instead "
+            "saw '" +
+            ASTNodes::type(_args.front()).oak_repr() + "'");
+      }
+
+      ASTNodes::RawCFormat out;
+      out.type = Type({"void"});
+      out.args = {_args.front(), _args.front()};
+      out.format_string =
+          "% = (" +
+          ASTNodes::type(out.args.front().get()).c_repr() +
+          ") malloc(sizeof(" +
+          ASTNodes::type(out.args.front().get())
+              .deref()
+              .c_repr() +
+          ")); assert(% != NULL)";
+      return out;
+    }
+
+    // 2-arg
+    else if (_args.size() == 2) {
+      if (ASTNodes::type(_args.front()).nodes.empty() ||
+          ASTNodes::type(_args.front()).nodes.front().type !=
+              Type::TypeNode::UNSIZED_ARRAY) {
+        throw std::runtime_error(
+            "Expected unsized array type for alloc!(into, "
+            "size), instead saw '" +
+            ASTNodes::type(_args.front()).oak_repr() + "'");
+      }
+
+      ASTNodes::RawCFormat out;
+      out.type = Type({"void"});
+      out.args = {_args.front(), _args.back()};
+      out.args.push_back(_args.front());
+      out.format_string =
+          "% = (" +
+          ASTNodes::type(out.args.front().get()).c_repr() +
+          ") calloc(%, sizeof(" +
+          ASTNodes::type(out.args.front().get()).c_repr() +
+          ")); assert(% != NULL)";
+      return out;
+    }
+
+    // Error case
+    else {
+      throw std::runtime_error("alloc! takes 1 or 2 args.");
+    }
+  }
+
+  // free!
+  else if (_unmangled_name == "free!") {
+    if (_args.size() != 1 ||
+        ASTNodes::type(_args.front()).nodes.empty() ||
+        (ASTNodes::type(_args.front()).nodes.front().type !=
+             Type::TypeNode::POINTER &&
+         ASTNodes::type(_args.front()).nodes.front().type !=
+             Type::TypeNode::UNSIZED_ARRAY)) {
+      throw std::runtime_error(
+          "Expected pointer or unsized array type for "
+          "free!(to_free), instead saw '" +
+          ASTNodes::type(_args.front()).oak_repr() + "'");
+    }
+
+    ASTNodes::RawCFormat out;
+    out.args = {_args.front()};
+    out.type = Type({"void"});
+    out.format_string = "free((void *)(%))";
+    return out;
+  }
+
+  // New on pointer or unsized array types
+  else if (_unmangled_name == "New" && _args.size() == 1 &&
+           (ASTNodes::type(_args.front()).nodes.front().type ==
+                Type::TypeNode::POINTER ||
+            ASTNodes::type(_args.front()).nodes.front().type ==
+                Type::TypeNode::UNSIZED_ARRAY)) {
+    ASTNodes::RawCFormat out;
+    out.args = {_args.front()};
+    out.type = Type({"void"});
+    out.format_string = "% = 0";
+    return out;
+  }
+
+  // New on sized array types
+  else if (_unmangled_name == "New" && _args.size() == 1 &&
+           ASTNodes::type(_args.front()).nodes.front().type ==
+               Type::TypeNode::SIZED_ARRAY) {
+    const auto size = ASTNodes::type(_args.front())
+                          .nodes.front()
+                          .sized_array_size;
+
+    ASTNodes::Statement out;
+    for (uint i = 0; i < size; ++i) {
+      ASTNodes::RawCFormat arg;
+      arg.format_string = "(%)[" + std::to_string(i) + "]";
+      arg.args = {_args.front()};
+
+      arg.type = ASTNodes::type(_args.front());
+      arg.type->nodes.pop_front();
+
+      out.children.push_back(
+          get_function_call_node("New", {arg}));
+    }
+    return out;
+  }
+
+  // New on atomic types
+  else if (_unmangled_name == "New" && _args.size() == 1 &&
+           Type::is_built_in_type(
+               ASTNodes::type(_args.front()))) {
+    ASTNodes::RawCFormat out;
+    out.args = {_args.front()};
+    out.type = Type({"void"});
+    out.format_string = "% = 0;";
+    return out;
+  }
+
+  // Del on atomic types
+  else if (_unmangled_name == "Del" && _args.size() == 1 &&
+           Type::is_built_in_type(
+               ASTNodes::type(_args.front()))) {
+    return ASTNodes::Statement();
+  }
+
+  // Del on pointer or unsized array types
+  else if (_unmangled_name == "Del" && _args.size() == 1 &&
+           (ASTNodes::type(_args.front()).nodes.front().type ==
+                Type::TypeNode::POINTER ||
+            ASTNodes::type(_args.front()).nodes.front().type ==
+                Type::TypeNode::UNSIZED_ARRAY)) {
+    return ASTNodes::Statement();
+  }
+
+  // New on sized array types
+  else if (_unmangled_name == "Del" && _args.size() == 1 &&
+           ASTNodes::type(_args.front()).nodes.front().type ==
+               Type::TypeNode::SIZED_ARRAY) {
+    const auto size = ASTNodes::type(_args.front())
+                          .nodes.front()
+                          .sized_array_size;
+
+    ASTNodes::Statement out;
+    for (uint i = 0; i < size; ++i) {
+      ASTNodes::RawCFormat arg;
+      arg.format_string = "(%)[" + std::to_string(i) + "]";
+      arg.args = {_args.front()};
+
+      arg.type = ASTNodes::type(_args.front());
+      arg.type->nodes.pop_front();
+
+      out.children.push_back(
+          get_function_call_node("Del", {arg}));
+    }
+    return out;
+  }
+
+  // Pointer copy
+  else if (_unmangled_name == "Copy" && _args.size() == 2 &&
+           ASTNodes::type(_args.back()).nodes.front().type ==
+               Type::TypeNode::POINTER &&
+           ASTNodes::type(_args.front())
+               .cast_match(ASTNodes::type(_args.back()))) {
+    ASTNodes::RawCFormat out;
+    out.args = {_args.front(), _args.back()};
+    out.type = Type({"void"});
+    out.format_string = "% = %";
+    return out;
+  }
+
+  // Special case: Local fn pointer
+  else if (scope_manager.contains(_unmangled_name) &&
+           std::holds_alternative<Type>(
+               scope_manager.get(_unmangled_name).value())) {
+    const Type local_var_type =
+        scope_manager.at<Type>(_unmangled_name);
+
+    if (local_var_type.is_fn_ptr()) {
+      const auto fn_type = local_var_type.deref();
+      const auto needed_args = fn_type.fn_args();
+
+      if (_args.size() != needed_args.size()) {
+        throw std::runtime_error(
+            "Expected " + std::to_string(needed_args.size()) +
+            " args in fn pointer call, but saw " +
+            std::to_string(_args.size()));
+      }
+
+      auto args_at_i = _args.begin();
+      for (uint i = 0;
+           i < needed_args.size() && args_at_i != _args.end();
+           ++i, ++args_at_i) {
+        if (!needed_args[i].second.exact_match(
+                ASTNodes::type(*args_at_i))) {
+          throw std::runtime_error(
+              "Expected type '" +
+              needed_args[i].second.oak_repr() + "' for arg " +
+              std::to_string(i) +
+              " of fn pointer call, but saw type '" +
+              ASTNodes::type(*args_at_i).oak_repr() + "'");
+        }
+      }
+
+      ASTNodes::Call out;
+      out.return_type = fn_type.fn_return_type();
+      out.mangled_c_fn_name = _unmangled_name;
+
+      auto needed_arg = needed_args.begin();
+      for (const auto &arg : _args) {
+        ASTNodes::Call::Arg to_add;
+
+        to_add.name = ASTNodes::OptBox(arg);
+        to_add.type = ASTNodes::type(arg);
+        to_add.derefs = 0;
+
+        if (!to_add.type.cast_match(needed_arg->second)) {
+          to_add.derefs = -1;
+          for (Type t = to_add.type.ref();
+               !t.exact_match(needed_arg->second);
+               t = t.deref()) {
+            ++to_add.derefs;
+          }
+        }
+
+        out.args.push_back(to_add);
+        ++needed_arg;
+      }
+
+      return out;
+    } else {
+      throw std::runtime_error(
+          "Cannot call variable with non-function-pointer "
+          "type '" +
+          local_var_type.oak_repr(_unmangled_name) + "'");
+    }
+  }
+
+  // End special cases
+  //////////////////////////////////////////////////////////////
+
+  return scope_manager.get_fn(_unmangled_name, _args);
+}
+
 ASTNodes::Node Parser::parse_function_call(TokenStream &_pos) {
   debug_print();
   if (settings.debug) {
@@ -1591,7 +1848,8 @@ ASTNodes::Node Parser::parse_function_call(TokenStream &_pos) {
 
   _pos.next();
   if (_pos.cur() != "(") {
-    throw std::runtime_error("Expected function call");
+    throw std::runtime_error("Expected function call: Saw '" +
+                             _pos.cur().text + "'");
   }
   _pos.next();
 
@@ -1605,205 +1863,7 @@ ASTNodes::Node Parser::parse_function_call(TokenStream &_pos) {
     _pos.next();
   }
 
-  //////////////////////////////////////////////////////////////
-  // Special cases here
-
-  // Array access via the 'Get' operator
-  if (unmangled_name == "Get" && args.size() == 2 &&
-      (ASTNodes::type(args.back()).cast_match(Type({"u128"})) ||
-       ASTNodes::type(args.back())
-           .cast_match(Type({"i128"}))) &&
-      (ASTNodes::type(args.front()).nodes.front().type ==
-           Type::TypeNode::SIZED_ARRAY ||
-       ASTNodes::type(args.front()).nodes.front().type ==
-           Type::TypeNode::UNSIZED_ARRAY)) {
-    // Only resolvable at reconstruction-time
-    ASTNodes::ArrAccess out;
-    out.upon = ASTNodes::OptBox<ASTNodes::Node>(args.front());
-    out.index = ASTNodes::OptBox<ASTNodes::Node>(args.back());
-    return out;
-  }
-
-  // alloc!
-  else if (unmangled_name == "alloc!") {
-    // 1-arg
-    if (args.size() == 1) {
-      if (ASTNodes::type(args.front()).nodes.empty() ||
-          ASTNodes::type(args.front()).nodes.front().type !=
-              Type::TypeNode::POINTER) {
-        throw std::runtime_error(
-            "Expected pointer type for alloc!(into), instead "
-            "saw '" +
-            ASTNodes::type(args.front()).oak_repr() + "'");
-      }
-
-      ASTNodes::RawCFormat out;
-      out.type = Type({"void"});
-      out.args = {args.front(), args.front()};
-      out.format_string =
-          "% = (" +
-          ASTNodes::type(out.args.front().get()).c_repr() +
-          ") malloc(sizeof(" +
-          ASTNodes::type(out.args.front().get())
-              .deref()
-              .c_repr() +
-          ")); assert(% != NULL)";
-      return out;
-    }
-
-    // 2-arg
-    else if (args.size() == 2) {
-      if (ASTNodes::type(args.front()).nodes.empty() ||
-          ASTNodes::type(args.front()).nodes.front().type !=
-              Type::TypeNode::UNSIZED_ARRAY) {
-        throw std::runtime_error(
-            "Expected unsized array type for alloc!(into, "
-            "size), instead saw '" +
-            ASTNodes::type(args.front()).oak_repr() + "'");
-      }
-
-      ASTNodes::RawCFormat out;
-      out.type = Type({"void"});
-      out.args = {args.front(), args.back()};
-      out.args.push_back(args.front());
-      out.format_string =
-          "% = (" +
-          ASTNodes::type(out.args.front().get()).c_repr() +
-          ") calloc(%, sizeof(" +
-          ASTNodes::type(out.args.front().get()).c_repr() +
-          ")); assert(% != NULL)";
-      return out;
-    }
-
-    // Error case
-    else {
-      throw std::runtime_error("alloc! takes 1 or 2 args.");
-    }
-  }
-
-  // free!
-  else if (unmangled_name == "free!") {
-    if (args.size() != 1 ||
-        ASTNodes::type(args.front()).nodes.empty() ||
-        (ASTNodes::type(args.front()).nodes.front().type !=
-             Type::TypeNode::POINTER &&
-         ASTNodes::type(args.front()).nodes.front().type !=
-             Type::TypeNode::UNSIZED_ARRAY)) {
-      throw std::runtime_error(
-          "Expected pointer or unsized array type for "
-          "free!(to_free), instead saw '" +
-          ASTNodes::type(args.front()).oak_repr() + "'");
-    }
-
-    ASTNodes::RawCFormat out;
-    out.args = {args.front()};
-    out.type = Type({"void"});
-    out.format_string = "free((void *)(%))";
-    return out;
-  }
-
-  // New on pointer or unsized array types
-  else if (unmangled_name == "New" && args.size() == 1 &&
-           (ASTNodes::type(args.front()).nodes.front().type ==
-                Type::TypeNode::POINTER ||
-            ASTNodes::type(args.front()).nodes.front().type ==
-                Type::TypeNode::UNSIZED_ARRAY)) {
-    ASTNodes::RawCFormat out;
-    out.args = {args.front()};
-    out.type = Type({"void"});
-    out.format_string = "% = 0;";
-    return out;
-  }
-
-  // New on atomic types
-  else if (unmangled_name == "New" && args.size() == 1 &&
-           Type::is_built_in_type(
-               ASTNodes::type(args.front()))) {
-    ASTNodes::RawCFormat out;
-    out.args = {args.front()};
-    out.type = Type({"void"});
-    out.format_string = "% = 0;";
-    return out;
-  }
-
-  // Del on atomic types
-  else if (unmangled_name == "Del" && args.size() == 1 &&
-           Type::is_built_in_type(
-               ASTNodes::type(args.front()))) {
-    return ASTNodes::Statement();
-  }
-
-  // Del on pointer or unsized array types
-  else if (unmangled_name == "Del" && args.size() == 1 &&
-           (ASTNodes::type(args.front()).nodes.front().type ==
-                Type::TypeNode::POINTER ||
-            ASTNodes::type(args.front()).nodes.front().type ==
-                Type::TypeNode::UNSIZED_ARRAY)) {
-    return ASTNodes::Statement();
-  }
-
-  // Pointer copy
-  else if (unmangled_name == "Copy" && args.size() == 2 &&
-           ASTNodes::type(args.back()).nodes.front().type ==
-               Type::TypeNode::POINTER &&
-           ASTNodes::type(args.front())
-               .cast_match(ASTNodes::type(args.back()))) {
-    ASTNodes::RawCFormat out;
-    out.args = {args.front(), args.back()};
-    out.type = Type({"void"});
-    out.format_string = "% = %;";
-    return out;
-  }
-
-  // Special case: Local fn pointer
-  else if (scope_manager.contains(unmangled_name) &&
-           std::holds_alternative<Type>(
-               scope_manager.get(unmangled_name).value())) {
-    const Type local_var_type =
-        scope_manager.at<Type>(unmangled_name);
-
-    if (local_var_type.is_fn_ptr()) {
-      const auto fn_type = local_var_type.deref();
-      const auto needed_args = fn_type.fn_args();
-
-      if (args.size() != needed_args.size()) {
-        throw std::runtime_error(
-            "Expected " + std::to_string(needed_args.size()) +
-            " args in fn pointer call, but saw " +
-            std::to_string(args.size()));
-      }
-
-      auto args_at_i = args.begin();
-      for (uint i = 0;
-           i < needed_args.size() && args_at_i != args.end();
-           ++i, ++args_at_i) {
-        if (!needed_args[i].second.exact_match(
-                ASTNodes::type(*args_at_i))) {
-          throw std::runtime_error(
-              "Expected type '" +
-              needed_args[i].second.oak_repr() + "' for arg " +
-              std::to_string(i) +
-              " of fn pointer call, but saw type '" +
-              ASTNodes::type(*args_at_i).oak_repr() + "'");
-        }
-      }
-
-      ASTNodes::Object out;
-      out.type = fn_type.fn_return_type();
-      out.raw_text = unmangled_name;
-      return out;
-    } else {
-      throw std::runtime_error(
-          "Cannot call variable with non-function-pointer "
-          "type '" +
-          local_var_type.oak_repr(unmangled_name) + "'");
-    }
-  }
-
-  // End special cases
-  //////////////////////////////////////////////////////////////
-
-  return scope_manager.get_fn(unmangled_name, args);
+  return get_function_call_node(unmangled_name, args);
 }
 
 ASTNodes::Node Parser::parse_object(TokenStream &_pos) {
@@ -1854,6 +1914,7 @@ ASTNodes::Node Parser::parse_object(TokenStream &_pos) {
     return parse_function_call(_pos);
   }
 
+  // Var instance
   auto cur = _pos.cur();
   const auto literal_type = Lexer::get_literal_type(cur);
   if (literal_type.has_value()) {
@@ -1862,21 +1923,29 @@ ASTNodes::Node Parser::parse_object(TokenStream &_pos) {
     out.raw_text = cur;
     out.type = literal_type.value();
     return out;
-  } else {
-    // Name
-    uint derefs = 0;
-    while (!_pos.done() && _pos.cur() == "^") {
-      ++derefs;
-      _pos.next();
-    }
+  }
+  // Name
+  uint derefs = 0;
+  while (!_pos.done() && _pos.cur() == "^") {
+    ++derefs;
+    _pos.next();
+  }
 
-    if (_pos.done()) {
-      throw std::runtime_error(
-          "'^' operator must operate on a variable.");
-    }
+  if (_pos.done()) {
+    throw std::runtime_error(
+        "'^' operator must operate on a variable.");
+  }
 
-    std::string name = _pos.cur();
-    Type t = scope_manager.at<Type>(name);
+  std::string name = _pos.cur();
+  auto value = scope_manager.get(name);
+  if (!value.has_value()) {
+    throw std::runtime_error("Failed to resolve object '" +
+                             name + "'");
+  }
+
+  // Variable instance: Not fn ptr
+  if (std::holds_alternative<Type>(value.value())) {
+    Type t = std::get<Type>(value.value());
 
     // Derefs
     if (derefs > 0) {
@@ -1941,6 +2010,31 @@ ASTNodes::Node Parser::parse_object(TokenStream &_pos) {
     out.type = t;
     return out;
   }
+
+  // If we're out here, it should be a fn ptr
+  if (!std::holds_alternative<ScopeManager::FnValue>(
+          value.value())) {
+    throw std::runtime_error(
+        "Symbol '" + name +
+        "' is neither a variable instance nor a function");
+  }
+
+  auto l = std::get<ScopeManager::FnValue>(value.value());
+  if (l.size() != 1) {
+    throw std::runtime_error(
+        "Function pointers can only be taken when the target "
+        "function name has no type overloads");
+  } else if (!std::holds_alternative<FnInfo>(l.front())) {
+    throw std::runtime_error(
+        "Cannot use template as an object");
+  }
+
+  // Fn ptr
+  auto instance = std::get<FnInfo>(l.front());
+  ASTNodes::Object out;
+  out.raw_text = "(&" + instance.t.mangle(name) + ")";
+  out.type = instance.t.ref();
+  return out;
 }
 
 bool TemplateInfo::does_provide(
