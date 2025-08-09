@@ -321,6 +321,13 @@ expected and a zero exit code should be treated as an error.
 
 # Part 3: Future Features
 
+Given a block:
+1. For as long as the block is unclosed
+  1. Parse a statement
+    1. If preprocessor statement, delegate. Else if declaration,
+      delegate. Else, fix math and process normal statement.
+  2. Append the processes statement, if necessary
+
 ## Internal Rule Engines
 
 There is no reason why rule engines must be external: In the

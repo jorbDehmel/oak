@@ -5,7 +5,7 @@
 #ifndef __OAK_STRING_H
 #define __OAK_STRING_H
 
-#include <oak/std/std_oak_header.h>
+#include "std_oak_header.h"
 
 #ifdef __cplusplus
 extern "C" {

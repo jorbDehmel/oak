@@ -14,5 +14,12 @@ let main() -> i32 {
     endl();
   }
 
+  let to_flip: bool;
+  to_flip = false;
+  ~to_flip;
+  if (!to_flip) {
+    return 123i32;
+  }
+
   return 0i32;
 }

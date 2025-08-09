@@ -5,6 +5,10 @@ J Dehmel
 
 ![The `Oak` logo: A pixelated tree](logo.png)
 
+## Manual
+
+[](docs/manual.md)
+
 ## Overview
 
 The `Oak` programming language. `Oak` translates to `C`, and
@@ -71,6 +75,8 @@ let main() -> i32 {
     return 0i32;
 }
 ```
+
+Infinite compile-time reflection, self-modification
 
 ## Installation
 

@@ -69,8 +69,8 @@ void OakCompiler::print_help_text() noexcept {
   debug_print();
 
   /*
-  Used:   AcCdDeEghilnoOpqrRsStTuUvwxy
-  Unused: abBfFGHIjJkKLmMNPQVWXYzZ
+  Used:   AcCdDeEghilnoOpPqrRsStTuUvwxy
+  Unused: abBfFGHIjJkKLmMNQVWXYzZ
   */
 
   // clang-format off
@@ -112,6 +112,7 @@ void OakCompiler::print_help_text() noexcept {
          " -o | --output     | 1 | Set output file\n"
          " -O | --optimize   |   | Use optimization flag at compile\n"
          " -p | --prettify   |   | Use clang-format on the produced C\n"
+         " -P | --pppl       | 1 | Set the PreProcessor Pass Limit\n"
          " -q | --quit       |   | Quit without error immediately\n"
          " -Q | --query      |   | List all installed packages\n"
          " -r | --reinstall  | 1 | Reinstall some package\n"
@@ -448,6 +449,29 @@ void OakCompiler::do_compilation() {
                      << "\nTarget:     " << translated_file
                      << "\nObject:     " << compiled_file
                      << "\nExecutable: " << linked_file << "\n";
+
+    switch (csettings.mode) {
+    case Settings::CompileSettings::NOTHING:
+      settings.ostream << "Parsing, then halting\n";
+      break;
+    case Settings::CompileSettings::TRANSLATE_ONLY:
+      settings.ostream
+          << "Parsing, translating, then halting\n";
+      break;
+    case Settings::CompileSettings::TRANSLATE_AND_COMPILE:
+      settings.ostream
+          << "Parsing, translating, compiling, then halting\n";
+      break;
+    case Settings::CompileSettings::TRANSLATE_COMPILE_AND_LINK:
+      settings.ostream << "Parsing, translating, compiling, "
+                          "linking, then halting\n";
+      break;
+    case Settings::CompileSettings::
+        TRANSLATE_COMPILE_LINK_AND_EXECUTE:
+      settings.ostream << "Parsing, translating, compiling, "
+                          "linking, executing, then halting\n";
+      break;
+    }
   }
 
   if (settings.debug) {

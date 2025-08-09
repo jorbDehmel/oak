@@ -132,7 +132,14 @@ public:
   std::string
   get_destructor_call(const std::string &_to_destruct) const;
 
-protected:
+  /// Returns a COPY of this type if it were to be dereferenced
+  /// once
+  Type deref() const;
+
+  /// Returns a COPY of this type if it were to be referenced
+  /// once
+  Type ref() const;
+
   /// Appends a pointer node to this type
   void append_ptr();
 
@@ -157,14 +164,6 @@ protected:
 
   /// Appends the entire other type (EG fn arg)
   void append_type(const Type &_other);
-
-  /// Returns a COPY of this type if it were to be dereferenced
-  /// once
-  Type deref() const;
-
-  /// Returns a COPY of this type if it were to be referenced
-  /// once
-  Type ref() const;
 
   /**
    * @struct TypeNode
@@ -200,9 +199,10 @@ protected:
     std::string following_arg_name = "";
   };
 
-  /// Used for parsing types from token streams
-  std::stack<std::string> enclosure;
-
   /// Internal type representation
   std::list<TypeNode> nodes;
+
+protected:
+  /// Used for parsing types from token streams
+  std::stack<std::string> enclosure;
 };

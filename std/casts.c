@@ -1,8 +1,13 @@
-/*
-Casts for Oak
-*/
+/**
+ * @brief Casts for Oak: Autogen
+ */
 
 #include "std_oak_header.h"
+
+// to_i8(what: i8) -> i8
+i8 to_i8_FN_i8_MAPS_i8(i8 what) {
+  return what;
+}
 
 // to_u8(what: i8) -> u8
 u8 to_u8_FN_i8_MAPS_u8(i8 what) {
@@ -56,6 +61,11 @@ bool to_bool_FN_i8_MAPS_bool(i8 what) {
 
 // to_i8(what: u8) -> i8
 i8 to_i8_FN_u8_MAPS_i8(u8 what) {
+  return what;
+}
+
+// to_u8(what: u8) -> u8
+u8 to_u8_FN_u8_MAPS_u8(u8 what) {
   return what;
 }
 
@@ -114,6 +124,11 @@ u8 to_u8_FN_i16_MAPS_u8(i16 what) {
   return what;
 }
 
+// to_i16(what: i16) -> i16
+i16 to_i16_FN_i16_MAPS_i16(i16 what) {
+  return what;
+}
+
 // to_u16(what: i16) -> u16
 u16 to_u16_FN_i16_MAPS_u16(i16 what) {
   return what;
@@ -166,6 +181,11 @@ u8 to_u8_FN_u16_MAPS_u8(u16 what) {
 
 // to_i16(what: u16) -> i16
 i16 to_i16_FN_u16_MAPS_i16(u16 what) {
+  return what;
+}
+
+// to_u16(what: u16) -> u16
+u16 to_u16_FN_u16_MAPS_u16(u16 what) {
   return what;
 }
 
@@ -224,6 +244,11 @@ u16 to_u16_FN_i32_MAPS_u16(i32 what) {
   return what;
 }
 
+// to_i32(what: i32) -> i32
+i32 to_i32_FN_i32_MAPS_i32(i32 what) {
+  return what;
+}
+
 // to_u32(what: i32) -> u32
 u32 to_u32_FN_i32_MAPS_u32(i32 what) {
   return what;
@@ -276,6 +301,11 @@ u16 to_u16_FN_u32_MAPS_u16(u32 what) {
 
 // to_i32(what: u32) -> i32
 i32 to_i32_FN_u32_MAPS_i32(u32 what) {
+  return what;
+}
+
+// to_u32(what: u32) -> u32
+u32 to_u32_FN_u32_MAPS_u32(u32 what) {
   return what;
 }
 
@@ -334,6 +364,11 @@ u32 to_u32_FN_i64_MAPS_u32(i64 what) {
   return what;
 }
 
+// to_i64(what: i64) -> i64
+i64 to_i64_FN_i64_MAPS_i64(i64 what) {
+  return what;
+}
+
 // to_u64(what: i64) -> u64
 u64 to_u64_FN_i64_MAPS_u64(i64 what) {
   return what;
@@ -386,6 +421,11 @@ u32 to_u32_FN_u64_MAPS_u32(u64 what) {
 
 // to_i64(what: u64) -> i64
 i64 to_i64_FN_u64_MAPS_i64(u64 what) {
+  return what;
+}
+
+// to_u64(what: u64) -> u64
+u64 to_u64_FN_u64_MAPS_u64(u64 what) {
   return what;
 }
 
@@ -444,6 +484,11 @@ u64 to_u64_FN_f32_MAPS_u64(f32 what) {
   return what;
 }
 
+// to_f32(what: f32) -> f32
+f32 to_f32_FN_f32_MAPS_f32(f32 what) {
+  return what;
+}
+
 // to_f64(what: f32) -> f64
 f64 to_f64_FN_f32_MAPS_f64(f32 what) {
   return what;
@@ -496,6 +541,11 @@ u64 to_u64_FN_f64_MAPS_u64(f64 what) {
 
 // to_f32(what: f64) -> f32
 f32 to_f32_FN_f64_MAPS_f32(f64 what) {
+  return what;
+}
+
+// to_f64(what: f64) -> f64
+f64 to_f64_FN_f64_MAPS_f64(f64 what) {
   return what;
 }
 
@@ -553,3 +603,9 @@ f32 to_f32_FN_bool_MAPS_f32(bool what) {
 f64 to_f64_FN_bool_MAPS_f64(bool what) {
   return what;
 }
+
+// to_bool(what: bool) -> bool
+bool to_bool_FN_bool_MAPS_bool(bool what) {
+  return what;
+}
+

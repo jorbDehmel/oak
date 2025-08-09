@@ -1,13 +1,11 @@
 /**
- * @file
- * @brief Casts in Oak. These all interface to corresponding C
- * functions. This file is procedurally generated, so no
- * function-level documentation will be attempted.
+ * @brief Casts in Oak: Autogen
  */
 
 pragma!("no_dialect");
 link!("std/casts.o");
 
+let to_i8(what: i8) -> i8;
 let to_u8(what: i8) -> u8;
 let to_i16(what: i8) -> i16;
 let to_u16(what: i8) -> u16;
@@ -19,6 +17,7 @@ let to_f32(what: i8) -> f32;
 let to_f64(what: i8) -> f64;
 let to_bool(what: i8) -> bool;
 let to_i8(what: u8) -> i8;
+let to_u8(what: u8) -> u8;
 let to_i16(what: u8) -> i16;
 let to_u16(what: u8) -> u16;
 let to_i32(what: u8) -> i32;
@@ -30,6 +29,7 @@ let to_f64(what: u8) -> f64;
 let to_bool(what: u8) -> bool;
 let to_i8(what: i16) -> i8;
 let to_u8(what: i16) -> u8;
+let to_i16(what: i16) -> i16;
 let to_u16(what: i16) -> u16;
 let to_i32(what: i16) -> i32;
 let to_u32(what: i16) -> u32;
@@ -41,6 +41,7 @@ let to_bool(what: i16) -> bool;
 let to_i8(what: u16) -> i8;
 let to_u8(what: u16) -> u8;
 let to_i16(what: u16) -> i16;
+let to_u16(what: u16) -> u16;
 let to_i32(what: u16) -> i32;
 let to_u32(what: u16) -> u32;
 let to_i64(what: u16) -> i64;
@@ -52,6 +53,7 @@ let to_i8(what: i32) -> i8;
 let to_u8(what: i32) -> u8;
 let to_i16(what: i32) -> i16;
 let to_u16(what: i32) -> u16;
+let to_i32(what: i32) -> i32;
 let to_u32(what: i32) -> u32;
 let to_i64(what: i32) -> i64;
 let to_u64(what: i32) -> u64;
@@ -63,6 +65,7 @@ let to_u8(what: u32) -> u8;
 let to_i16(what: u32) -> i16;
 let to_u16(what: u32) -> u16;
 let to_i32(what: u32) -> i32;
+let to_u32(what: u32) -> u32;
 let to_i64(what: u32) -> i64;
 let to_u64(what: u32) -> u64;
 let to_f32(what: u32) -> f32;
@@ -74,6 +77,7 @@ let to_i16(what: i64) -> i16;
 let to_u16(what: i64) -> u16;
 let to_i32(what: i64) -> i32;
 let to_u32(what: i64) -> u32;
+let to_i64(what: i64) -> i64;
 let to_u64(what: i64) -> u64;
 let to_f32(what: i64) -> f32;
 let to_f64(what: i64) -> f64;
@@ -85,6 +89,7 @@ let to_u16(what: u64) -> u16;
 let to_i32(what: u64) -> i32;
 let to_u32(what: u64) -> u32;
 let to_i64(what: u64) -> i64;
+let to_u64(what: u64) -> u64;
 let to_f32(what: u64) -> f32;
 let to_f64(what: u64) -> f64;
 let to_bool(what: u64) -> bool;
@@ -96,6 +101,7 @@ let to_i32(what: f32) -> i32;
 let to_u32(what: f32) -> u32;
 let to_i64(what: f32) -> i64;
 let to_u64(what: f32) -> u64;
+let to_f32(what: f32) -> f32;
 let to_f64(what: f32) -> f64;
 let to_bool(what: f32) -> bool;
 let to_i8(what: f64) -> i8;
@@ -107,6 +113,7 @@ let to_u32(what: f64) -> u32;
 let to_i64(what: f64) -> i64;
 let to_u64(what: f64) -> u64;
 let to_f32(what: f64) -> f32;
+let to_f64(what: f64) -> f64;
 let to_bool(what: f64) -> bool;
 let to_i8(what: bool) -> i8;
 let to_u8(what: bool) -> u8;
@@ -118,3 +125,4 @@ let to_i64(what: bool) -> i64;
 let to_u64(what: bool) -> u64;
 let to_f32(what: bool) -> f32;
 let to_f64(what: bool) -> f64;
+let to_bool(what: bool) -> bool;

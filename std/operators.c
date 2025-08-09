@@ -1,6 +1,6 @@
-/*
-Standard operators for Oak: C binding
-*/
+/**
+ * @brief Standard operators for Oak: C binding. Autogen
+ */
 
 #include "std_oak_header.h"
 #include <string.h>
@@ -1280,4 +1280,9 @@ bool OrrEq_FN_PTR_bool_JOIN_bool_MAPS_bool(bool *self,
 // Not(x: bool) -> bool
 bool Not_FN_bool_MAPS_bool(bool x) {
   return !x;
+}
+
+// Flip(x: ^bool) -> void
+void Flip_FN_PTR_bool_MAPS_void(bool *x) {
+  *x = !(*x);
 }

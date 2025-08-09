@@ -26,6 +26,92 @@
 #include <string>
 #include <variant>
 
+/// Prints the previous _n lines, followed by the current line
+/// and an indicator to the current token
+void print_region(TokenStream &_pos, std::ostream &_where,
+                  const uint &_n = 1) {
+  debug_print();
+  auto start_pos = _pos.tell();
+
+  const auto start_line = _pos.cur().line;
+  const auto start_col = _pos.cur().col;
+
+  // Go to first token BEFORE our region
+  while (!_pos.at_beg() && _pos.cur().line + _n >= start_line) {
+    _pos.prev();
+  }
+
+  // Go to first token OF our region
+  _pos.next();
+
+  // Top delim
+  _where << "v";
+  for (uint i = 0; i < 64 - 2; ++i) {
+    _where << '~';
+  }
+  _where << "v\n";
+
+  // Print lines
+  uint line = _pos.cur().line, col = 0;
+  while (!_pos.done() && _pos.cur().line <= start_line) {
+    if (!_pos.cur().original) {
+      _pos.next();
+      continue;
+    }
+
+    // Get to correct line
+    if (_pos.cur().line != line) {
+      _where << '\n';
+      line = _pos.cur().line;
+      col = 0;
+    }
+
+    // Get to correct column
+    while (col < _pos.cur().col) {
+      _where << ' ';
+      ++col;
+    }
+
+    // Print text
+    _where << _pos.cur().text;
+
+    // Advance
+    col = _pos.cur().col + _pos.cur().text.size();
+    _pos.next();
+  }
+
+  // Print indicator
+  _where << '\n';
+  for (uint i = 0; i < start_col; ++i) {
+    _where << ' ';
+  }
+  _where << "^\n";
+
+  // Bottom indicator
+  _where << "^";
+  for (uint i = 0; i < 64 - 2; ++i) {
+    _where << '~';
+  }
+  _where << "^\n";
+
+  _pos.seek(start_pos);
+}
+
+/// Concatenates a token list to a string
+std::string concat(const std::list<Lexer::Token> &_what) {
+  std::string out = "";
+  bool first = true;
+  for (const auto &tok : _what) {
+    if (first) {
+      first = false;
+    } else {
+      out += " ";
+    }
+    out += tok.text;
+  }
+  return out;
+}
+
 /**
  * @brief Determines if a name is valid for a struct/enum
  * @param _name The name to analyze
@@ -55,7 +141,6 @@ is_valid_struct_name(const std::string &_name) noexcept {
   return true;
 }
 
-// Parse a global scope
 void Parser::parse_global(TokenStream &_pos) {
   debug_print();
   if (settings.debug) {
@@ -75,14 +160,13 @@ void Parser::parse_global(TokenStream &_pos) {
     } catch (OutOfPPPLError &) {
       throw;
     } catch (std::runtime_error &e) {
+      print_region(_pos, settings.ostream, 3);
       throw std::runtime_error(
           "At " + _pos.cur().file.string() + ":" +
           std::to_string(_pos.cur().line) + "." +
           std::to_string(_pos.cur().col) + "\n" + e.what());
     } catch (...) {
-      if (_pos.done()) {
-        throw;
-      }
+      print_region(_pos, settings.ostream, 3);
       throw std::runtime_error(
           "At " + _pos.cur().file.string() + ":" +
           std::to_string(_pos.cur().line) + "." +
@@ -502,9 +586,11 @@ Type Parser::parse_type(TokenStream &_pos) {
     }
     _pos.next();
 
-    debug_print();
+    // Fix math
+    fix_math(_pos);
+
+    // Do the thing
     auto tmp = parse_object(_pos);
-    debug_print();
 
     _pos.next();
     if (_pos.cur() != ")") {
@@ -695,35 +781,16 @@ void Parser::parse_struct(const std::list<std::string> &_names,
     scope_manager.add(name, to_add);
 
     // Constructor and destructor autogen go here
-    uint64_t line = _pos.cur().line, col = _pos.cur().col;
-    Lexer lexer;
-
     // Create a constructor to parse
-    std::string to_lex = "(self: ^" + name + ") -> void { ";
-    for (const auto &member : to_add.member_order) {
-      to_lex += "New(self." + member + "); ";
-    }
-    to_lex += "}";
-
-    // Parse and mark as autogen
-    auto to_parse =
-        lexer.lex(to_lex, _pos.cur().file, line, col);
-    parse_function({"New"}, to_parse);
-
+    auto default_constructor =
+        to_add.get_default_constructor(_pos.cur());
+    parse_function({"New"}, default_constructor);
     scope_manager.tag_fn("New", "autogen", "true");
 
     // Reset, create destructor
-    to_lex = "(self: ^" + name + ") -> void {";
-    for (auto it = to_add.member_order.rbegin();
-         it != to_add.member_order.rend(); ++it) {
-      to_lex += "Del(self." + *it + ");";
-    }
-    to_lex += "}";
-
-    // Parse and mark
-    to_parse = lexer.lex(to_lex, _pos.cur().file, line, col);
-    parse_function({"Del"}, to_parse);
-
+    auto default_destructor =
+        to_add.get_default_destructor(_pos.cur());
+    parse_function({"Del"}, default_destructor);
     scope_manager.tag_fn("Del", "autogen", "true");
   }
 }
@@ -782,82 +849,19 @@ void Parser::parse_enum(const std::list<std::string> &_names,
 
     // Wrappers
     // wrap_a(self, what)
-    for (const auto &p : to_add.options) {
-      const auto wrapper_name = "wrap_" + p.first;
-      FnInfo to_add;
-      to_add.name = wrapper_name;
-
-      to_add.tags["file"] = _pos.cur().file;
-      to_add.tags["line"] = std::to_string(_pos.cur().line);
-      to_add.tags["col"] = std::to_string(_pos.cur().col);
-
-      // Construct wrapper type
-      to_add.t.append_fn();
-      to_add.t.nodes.back().following_arg_name = "self";
-      to_add.t.append_ptr();
-      to_add.t.append_literal(name); // Enum name
-      to_add.t.append_join();
-      to_add.t.nodes.back().following_arg_name = "__data";
-      to_add.t.append_type(p.second);
-      to_add.t.append_maps();
-      to_add.t.append_literal("void");
-
-      // Node
-      ASTNodes::RawCFormat child;
-
-      child.format_string =
-          "{ self->__info = " + name + "_OPT_" + p.first +
-          "; self->__data." + p.first + " = __data; }";
-
-      to_add.n.children = {ASTNodes::OptBox<ASTNodes::Node>(
-          ASTNodes::RawCFormat())};
-      to_add.tags["autogen"] = "true";
-
-      // Insert fn
-      scope_manager.add(wrapper_name, to_add);
+    for (const auto &p : to_add.get_wrappers(_pos.cur())) {
+      scope_manager.add(p.name, p);
     }
 
-    // Constructor, destructor here
-    uint64_t line = _pos.cur().line, col = _pos.cur().col;
-    Lexer lexer;
-
-    // Create a constructor to parse
-    const std::string op = to_add.option_order.front();
-    const std::string text = "(self: ^" + name +
-                             ") -> void {"
-                             "let __data: " +
-                             to_add.options.at(op).oak_repr() +
-                             "; wrap_" + op +
-                             "(self, __data);"
-                             "}";
-    auto to_parse = lexer.lex(text, _pos.cur().file, line, col);
-
-    // Parse and mark as autogen
-    parse_function({"New"}, to_parse);
-    scope_manager.tag_fn("New", "autogen", "true");
+    // Constructor
+    auto default_constructor =
+        to_add.get_default_constructor(_pos.cur());
+    parse_function({"New"}, default_constructor);
 
     // Create destructor
-    // NOTE: Enum destructors are not override-able
-    std::string to_lex = "(self: ^" + name +
-                         ") -> void {\n"
-                         "match (self) {\n";
-
-    for (const auto &option : to_add.option_order) {
-      to_lex +=
-          "case " + option + "(" +
-          to_add.options.at(option).ref().oak_repr("data") +
-          ") {\n"
-          "Del(data);\n"
-          "}\n";
-    }
-    to_lex.append("}\n}");
-
-    line = _pos.cur().line;
-    col = _pos.cur().col;
-
-    debug_print();
-    to_parse = lexer.lex(to_lex, _pos.cur().file, line, col);
-    parse_function({"Del"}, to_parse);
+    auto default_destructor =
+        to_add.get_default_destructor(_pos.cur());
+    parse_function({"Del"}, default_destructor);
   }
 }
 
@@ -898,82 +902,449 @@ Parser::parse_statement(TokenStream &_pos,
     return ASTNodes::Statement(
         {ASTNodes::OptBox<ASTNodes::Node>(out)});
   } else if (_pos.cur() == "compile_time_error!") {
-    settings.ostream << _pos.cur().file.string() << ":"
-                     << _pos.cur().line << "." << _pos.cur().col
-                     << ">" << _pos.cur().text
-                     << " Compile-time error:\n";
-
-    // Note: This is after all preprocessing
-    const auto args = Macros::get_macro_args_no_erase(_pos);
-    std::string msg;
+    std::stringstream msg_strm;
+    msg_strm << _pos.cur().file.string() << ":"
+             << _pos.cur().line << "." << _pos.cur().col << ">"
+             << _pos.cur().text << " Compile-time error:\n";
+    const auto args = Macros::get_macro_args(_pos);
     for (const auto &arg : args) {
-      msg += arg.text + " ";
+      for (const auto &tok : arg) {
+        msg_strm << tok.text + " ";
+      }
+      msg_strm << " ";
     }
-    settings.ostream << msg << '\n';
-    throw std::runtime_error(msg);
+    msg_strm << '\n';
+
+    settings.ostream << msg_strm.str();
+    throw std::runtime_error(msg_strm.str());
   } else if (_pos.cur() == "compile_time_warning!") {
     std::stringstream msg_strm;
     msg_strm << _pos.cur().file.string() << ":"
              << _pos.cur().line << "." << _pos.cur().col << ">"
              << _pos.cur().text << " Compile-time warning:\n";
-
-    // Note: This is after all preprocessing
-    const auto args = Macros::get_macro_args_no_erase(_pos);
+    const auto args = Macros::get_macro_args(_pos);
     for (const auto &arg : args) {
-      msg_strm << arg.text << " ";
+      for (const auto &tok : arg) {
+        msg_strm << tok.text + " ";
+      }
+      msg_strm << " ";
     }
     msg_strm << '\n';
-    settings.warn(msg_strm.str());
 
-    while (_pos.cur() != ";") {
-      _pos.next();
-    }
+    settings.warn(msg_strm.str());
   } else if (_pos.cur() == "compile_time_print!") {
     settings.ostream << _pos.cur().file.string() << ":"
                      << _pos.cur().line << "." << _pos.cur().col
                      << ">" << _pos.cur().text
                      << " Compile-time print:\n";
-
-    // Note: This is after all preprocessing
-    const auto args = Macros::get_macro_args_no_erase(_pos);
-    std::string msg;
+    const auto args = Macros::get_macro_args(_pos);
     for (const auto &arg : args) {
-      msg += arg.text + " ";
+      for (const auto &tok : arg) {
+        settings.ostream << tok.text + " ";
+      }
+      settings.ostream << " ";
     }
-    settings.ostream << msg << '\n';
-
-    while (_pos.cur() != ";") {
-      _pos.next();
-    }
+    settings.ostream << '\n';
   } else if (_pos.cur() == "alias!") {
     // In Oak: alias!(to, from);
     // In C++: using to = from;
-
-    const auto args = Macros::get_macro_args_no_erase(_pos);
-    while (_pos.cur() != ";") {
-      _pos.next();
-    }
-
+    const auto args = Macros::get_macro_args(_pos);
     if (args.size() != 2) {
       throw std::runtime_error(
           "'alias!' takes two arguments: to and from");
     }
-    scope_manager.alias(args.front(), args.back());
+    scope_manager.alias(concat(args.front()),
+                        concat(args.back()));
+  } else if (_pos.cur() == "erase!") {
+    const auto args = Macros::get_macro_args(_pos);
+    for (const auto &entry : args) {
+      scope_manager.erase(concat(entry));
+    }
   } else if (_pos.cur() == "namespace_use!") {
     // In Oak: namespace::use!("std");
     // In C++: using namespace std;
 
-    const auto args = Macros::get_macro_args_no_erase(_pos);
-    while (_pos.cur() != ";") {
-      _pos.next();
+    const auto args = Macros::get_macro_args(_pos);
+    if (args.size() != 1) {
+      throw std::runtime_error("'namespace::use!' takes one "
+                               "string argument: The prefix to "
+                               "remove");
+    }
+    scope_manager.remove_prefix(concat(args.front()));
+  } else if (_pos.cur() == "include!") {
+    auto raw_args = Macros::get_macro_args(_pos);
+
+    std::list<Lexer::Token> args;
+    for (auto it = raw_args.begin(); it != raw_args.end();
+         ++it) {
+      TokenStream cur_arg(*it);
+      Lexer::Token to_add = cur_arg.cur();
+      for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
+        to_add.text += ' ';
+        to_add.text += cur_arg.cur().text;
+      }
+      to_add.text = Macros::strip_string_literal(to_add.text);
+      args.push_back(to_add);
     }
 
-    if (args.size() != 1) {
+    try {
+      for (const auto &f : args) {
+        // const auto backup = rules.purge_entry_points();
+        do_file(f.text, f.file);
+        // rules.purge_entry_points();
+        // for (const auto &item : backup) {
+        //   rules.add_entry_point(item);
+        // }
+        // std::cerr << __FILE__ << ":" << __LINE__
+        //           << "> Unimplemented\n"
+        //           << std::flush;
+      }
+    } catch (OutOfPPPLError &e) {
+      throw OutOfPPPLError(
+          "In file included from " + _pos.cur().file.string() +
+          ":" + std::to_string(_pos.cur().line) + "." +
+          std::to_string(_pos.cur().col) + "\n" + e.what());
+    } catch (std::runtime_error &e) {
       throw std::runtime_error(
-          "'use!' takes one string argument: The prefix to "
-          "remove");
+          "In file included from " + _pos.cur().file.string() +
+          ":" + std::to_string(_pos.cur().line) + "." +
+          std::to_string(_pos.cur().col) + "\n" + e.what());
+    } catch (...) {
+      throw std::runtime_error(
+          "In file included from " + _pos.cur().file.string() +
+          ":" + std::to_string(_pos.cur().line) + "." +
+          std::to_string(_pos.cur().col) + "\nUnknown error");
     }
-    scope_manager.remove_prefix(args.front());
+  } else if (_pos.cur() == "link!") {
+
+    auto raw_args = Macros::get_macro_args(_pos);
+
+    std::list<Lexer::Token> args;
+    for (auto it = raw_args.begin(); it != raw_args.end();
+         ++it) {
+      TokenStream cur_arg(*it);
+      Lexer::Token to_add = cur_arg.cur();
+      for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
+        to_add.text += ' ';
+        to_add.text += cur_arg.cur().text;
+      }
+      args.push_back(to_add);
+    }
+
+    for (auto it = args.begin(); it != args.end(); ++it) {
+      it->text = Macros::strip_string_literal(it->text);
+    }
+
+    for (const auto &f : args) {
+      settings.compile_settings().objects.push_back(
+          resolve_path(f.text, f.file));
+    }
+  } else if (_pos.cur() == "flag!") {
+
+    auto raw_args = Macros::get_macro_args(_pos);
+
+    std::list<Lexer::Token> args;
+    for (auto it = raw_args.begin(); it != raw_args.end();
+         ++it) {
+      TokenStream cur_arg(*it);
+      Lexer::Token to_add = cur_arg.cur();
+      for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
+        to_add.text += ' ';
+        to_add.text += cur_arg.cur().text;
+      }
+      args.push_back(to_add);
+    }
+
+    for (auto it = args.begin(); it != args.end(); ++it) {
+      it->text = Macros::strip_string_literal(it->text);
+    }
+
+    for (const auto &f : args) {
+      settings.compile_settings().link_flags.push_back(f.text);
+    }
+  } else if (_pos.cur() == "pragma!") {
+
+    auto raw_args = Macros::get_macro_args(_pos);
+
+    std::list<Lexer::Token> args;
+    for (auto it = raw_args.begin(); it != raw_args.end();
+         ++it) {
+      TokenStream cur_arg(*it);
+      Lexer::Token to_add = cur_arg.cur();
+      for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
+        to_add.text += ' ';
+        to_add.text += cur_arg.cur().text;
+      }
+      args.push_back(to_add);
+    }
+
+    for (auto it = args.begin(); it != args.end(); ++it) {
+      it->text = Macros::strip_string_literal(it->text);
+    }
+
+    if (args.size() == 1) {
+      args.push_back(Lexer::Token(args.front(), ""));
+    }
+
+    settings.compile_settings()
+        .pragmas[_pos.cur().file][args.front().text] =
+        std::next(args.begin())->text;
+  } else if (_pos.cur() == "rule_new!") {
+
+    auto raw_args = Macros::get_macro_args(_pos);
+
+    std::list<Lexer::Token> args;
+    for (auto it = raw_args.begin(); it != raw_args.end();
+         ++it) {
+      TokenStream cur_arg(*it);
+
+      Lexer::Token to_add = cur_arg.cur();
+      for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
+        to_add.text += ' ';
+        to_add.text += cur_arg.cur().text;
+      }
+      args.push_back(to_add);
+    }
+
+    for (auto it = args.begin(); it != args.end(); ++it) {
+      it->text = Macros::strip_string_literal(it->text);
+    }
+
+    if (args.size() < 3) {
+      throw std::runtime_error(
+          "Malformed rule::new! call: Arguments must "
+          "be "
+          "rule_name, input_rule, output_rule, "
+          "[engine_name], [prerequisites...]");
+    }
+
+    // Name, input, output (using sapling engine)
+    std::string name = args.front();
+    std::string engine = "sapling";
+    std::list<std::string> prereqs;
+    if (args.size() == 4) {
+      // Name, input, output, engine
+      engine = *std::next(args.begin(), 3);
+    } else if (args.size() > 4) {
+      // Name, input, output, engine, prerequisites
+      engine = *std::next(args.begin(), 3);
+      for (auto it = std::next(args.begin(), 4);
+           it != args.end(); ++it) {
+        prereqs.push_back(_pos.cur());
+      }
+    }
+
+    // Rule to_add(*std::next(args.begin()),
+    //             *std::next(args.begin(), 2), prereqs,
+    //             engine);
+
+    // rules.register_rule(name, to_add);
+    // std::cerr << __FILE__ << ":" << __LINE__
+    //           << "> Unimplemented\n"
+    //           << std::flush;
+  } else if (_pos.cur() == "rule_use!") {
+
+    auto raw_args = Macros::get_macro_args(_pos);
+
+    std::list<Lexer::Token> args;
+    for (auto it = raw_args.begin(); it != raw_args.end();
+         ++it) {
+      TokenStream cur_arg(*it);
+
+      Lexer::Token to_add = cur_arg.cur();
+      for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
+        to_add.text += ' ';
+        to_add.text += cur_arg.cur().text;
+      }
+      args.push_back(to_add);
+    }
+
+    // for (const auto &_ : args) {
+    //   rules.add_entry_point(
+    //       Macros::strip_string_literal(arg));
+    //   std::cerr << __FILE__ << ":" << __LINE__
+    //             << "> Unimplemented\n"
+    //             << std::flush;
+    // }
+    // std::cerr << __FILE__ << ":" << __LINE__
+    //           << "> Unimplemented\n"
+    //           << std::flush;
+  } else if (_pos.cur() == "rule_remove!") {
+
+    auto raw_args = Macros::get_macro_args(_pos);
+
+    std::list<Lexer::Token> args;
+    for (auto it = raw_args.begin(); it != raw_args.end();
+         ++it) {
+      TokenStream cur_arg(*it);
+
+      Lexer::Token to_add = cur_arg.cur();
+      for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
+        to_add.text += ' ';
+        to_add.text += cur_arg.cur().text;
+      }
+      args.push_back(to_add);
+    }
+
+    for (const auto &_ : args) {
+      // rules.remove_entry_point(
+      //     Macros::strip_string_literal(arg));
+      std::cerr << __FILE__ << ":" << __LINE__
+                << "> Unimplemented\n"
+                << std::flush;
+    }
+  } else if (_pos.cur() == "rule_bundle!") {
+
+    auto raw_args = Macros::get_macro_args(_pos);
+
+    std::list<Lexer::Token> args;
+    for (auto it = raw_args.begin(); it != raw_args.end();
+         ++it) {
+      TokenStream cur_arg(*it);
+
+      Lexer::Token to_add = cur_arg.cur();
+      for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
+        to_add.text += ' ';
+        to_add.text += cur_arg.cur().text;
+      }
+      args.push_back(to_add);
+    }
+
+    std::list<std::string> entails;
+    for (auto it = std::next(args.begin()); it != args.end();
+         ++it) {
+      entails.push_back(Macros::strip_string_literal(it->text));
+    }
+
+    // rules.register_bundle(
+    //     Macros::strip_string_literal(args.front()),
+    //     entails);
+    // std::cerr << __FILE__ << ":" << __LINE__
+    //           << "> Unimplemented\n"
+    //           << std::flush;
+  } else if (_pos.cur() == "unstr!") {
+
+    Lexer::Token to_add(_pos.cur());
+    auto raw_args = Macros::get_macro_args(_pos);
+    to_add.text.clear();
+
+    for (auto it = raw_args.begin(); it != raw_args.end();
+         ++it) {
+      for (auto inner_it = it->begin(); inner_it != it->end();
+           ++inner_it) {
+        if (!to_add.text.empty()) {
+          to_add.text += ' ';
+        }
+        to_add.text += inner_it->text;
+      }
+    }
+
+    to_add.text = Macros::strip_string_literal(to_add.text);
+
+    uint64_t dummy_line = to_add.line, dummy_col = to_add.col;
+    auto to_insert = Lexer::lex(to_add.text, to_add.file,
+                                dummy_line, dummy_col);
+    _pos.insert(_pos.tell(), to_insert);
+  } else if (_pos.cur() == "str!") {
+
+    Lexer::Token to_add(_pos.cur());
+    auto raw_args = Macros::get_macro_args(_pos);
+    to_add.text.clear();
+
+    for (auto it = raw_args.begin(); it != raw_args.end();
+         ++it) {
+      for (auto inner_it = it->begin(); inner_it != it->end();
+           ++inner_it) {
+        if (!to_add.text.empty()) {
+          to_add.text += ' ';
+        }
+        to_add.text += inner_it->text;
+      }
+    }
+
+    // Ensure exactly one set of enclosing quotes
+    to_add.text = Macros::make_string_literal(
+        Macros::strip_string_literal(to_add.text));
+    Lexer::classify_type(to_add);
+    _pos.insert(_pos.tell(), to_add);
+  } else if (_pos.cur() == "compile_time_system!") {
+
+    settings.ostream
+        << _pos.cur().file.string() << ":" << _pos.cur().line
+        << "." << _pos.cur().col
+        << ">\ncompile_time::system! asks to run `";
+
+    auto raw_args = Macros::get_macro_args(_pos);
+
+    std::list<Lexer::Token> args;
+    for (auto it = raw_args.begin(); it != raw_args.end();
+         ++it) {
+      TokenStream cur_arg(*it);
+
+      Lexer::Token to_add = cur_arg.cur();
+      for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
+        to_add.text += ' ';
+        to_add.text += cur_arg.cur().text;
+      }
+      args.push_back(to_add);
+    }
+
+    for (auto it = args.begin(); it != args.end(); ++it) {
+      it->text = Macros::strip_string_literal(it->text);
+    }
+
+    std::string cmd;
+    for (const auto &arg : args) {
+      if (!cmd.empty()) {
+        cmd.push_back(' ');
+      }
+      cmd += arg.text;
+    }
+
+    settings.ostream << cmd << "` at "
+                     << _pos.cur().file.parent_path() << "\n"
+                     << std::flush;
+
+    if (!settings.compile_settings().no_confirm) {
+      settings.ostream << "Allow? [N/y/a] ";
+      char choice = std::cin.get();
+
+      switch (choice) {
+      default:
+        throw std::runtime_error("Abort!");
+      case 'a':
+      case 'A':
+        settings.ostream << "Not asking again!\n";
+        settings.compile_settings().no_confirm = true;
+      case 'y':
+      case 'Y':
+        break;
+      }
+    } else {
+      settings.ostream << "(no_confirm is enabled, so running "
+                          "without asking)\n";
+    }
+
+    const auto old_cwd = std::filesystem::current_path();
+    std::filesystem::current_path(
+        _pos.cur().file.parent_path());
+
+    auto result = system(cmd.c_str());
+
+    std::filesystem::current_path(old_cwd);
+
+    if (result != 0) {
+      throw std::runtime_error(
+          "System call '" + cmd +
+          "' exited with nonzero exit code " +
+          std::to_string(result));
+    }
+  }
+
+  // Delegate for macro calls
+  else if (_pos.cur().text.ends_with("!")) {
+    replace_macro(_pos);
+    return ASTNodes::Statement();
   }
 
   else if (_pos.cur() == ";") {
@@ -983,6 +1354,7 @@ Parser::parse_statement(TokenStream &_pos,
     // Variable declaration
     // Collect names
     std::list<std::string> names;
+    bool is_macro = false;
 
     do {
       // Fluff
@@ -990,6 +1362,9 @@ Parser::parse_statement(TokenStream &_pos,
 
       // Name
       names.push_back(_pos.cur());
+      if (names.back().ends_with("!")) {
+        is_macro = true;
+      }
       _pos.next();
     } while (_pos.cur() == ",");
 
@@ -997,6 +1372,10 @@ Parser::parse_statement(TokenStream &_pos,
     std::list<std::string> generics;
     if (_pos.cur() == "<") {
       // Zero or more comma-separated generics
+      if (is_macro) {
+        throw std::runtime_error("Macros cannot be templated");
+      }
+
       do {
         _pos.next();
         if (!is_valid_struct_name(_pos.cur())) {
@@ -1102,91 +1481,112 @@ Parser::parse_statement(TokenStream &_pos,
 
           // Literal `New` call
           const auto tok = _pos.cur();
-          TokenStream new_call(
-              {Lexer::Token("New", tok.file, tok.line, tok.col,
-                            "ID"),
-               Lexer::Token("(", tok.file, tok.line, tok.col,
-                            "OPERATOR"),
-               Lexer::Token(name, tok.file, tok.line, tok.col,
-                            "ID"),
-               Lexer::Token(")", tok.file, tok.line, tok.col,
-                            "OPERATOR")});
+          TokenStream new_call({Lexer::Token(tok, "New"),
+                                Lexer::Token(tok, "("),
+                                Lexer::Token(tok, name),
+                                Lexer::Token(tok, ")")});
           out.new_calls.push_back(
               parse_function_call(new_call));
         }
 
-        return ASTNodes::Statement(
+        ASTNodes::Statement stmt_out(
             {ASTNodes::OptBox<ASTNodes::Node>(out)});
+
+        if (_pos.cur() == "=") {
+          // Instantiation-assignment copy
+          throw std::runtime_error(
+              "Instantiation-assignment combination operator "
+              "(let A: B = C;) is unimplemented");
+        }
+
+        return stmt_out;
       }
       return ASTNodes::Statement({});
     } else if (_pos.cur() == "(") {
-      // Function
-      if (generics.empty()) {
-        parse_function(names, _pos);
-      } else {
-        // Grab rest of signature
-        TemplateInfo info(_pos.cur().file, _pos.cur().line,
-                          _pos.cur().col);
-        info.generics = generics;
-
-        // Finish parsing type
-        while (!_pos.done() && _pos.cur() != "{") {
-          if (_pos.peek(1) != ":") {
-            info.provides_block.push_back(_pos.cur());
-          } else {
-            info.provides_block.push_back("_");
-          }
-
-          info.instantiate_block.push_back(_pos.cur());
-
-          _pos.next();
-          if (_pos.cur() == ";") {
-            // Generic signature
-            throw std::runtime_error(
-                "Generic function signatures are illegal");
-          }
-        }
-
-        // Grab body
-        int count = 0;
-        do {
-          if (_pos.done()) {
-            throw std::runtime_error(
-                "Generic function signatures must be "
-                "defined");
-          } else if (_pos.cur() == "{") {
-            ++count;
-          } else if (_pos.cur() == "}") {
-            --count;
-          }
-          info.instantiate_block.push_back(_pos.cur());
-          _pos.next();
-        } while (count != 0);
+      if (is_macro) {
+        parse_macro(
+            _pos,
+            settings.compile_settings().preprocess_pass_limit,
+            names);
         _pos.prev();
+        return ASTNodes::Statement();
+      } else {
+        // Function
+        if (generics.empty()) {
+          parse_function(names, _pos);
+        } else {
+          // Grab rest of signature
+          TemplateInfo info(_pos.cur().file, _pos.cur().line,
+                            _pos.cur().col);
+          info.generics = generics;
 
-        // Parse pre and post blocks
-        const auto p = parse_template_pre_post(_pos);
-        info.validate_block = p.first;
-        for (const auto &item : p.second) {
-          info.instantiate_block.push_back(item);
+          // Finish parsing type
+          while (!_pos.done() && _pos.cur() != "{") {
+            if (_pos.peek(1) != ":") {
+              info.provides_block.push_back(_pos.cur());
+            } else {
+              info.provides_block.push_back("_");
+            }
+
+            info.instantiate_block.push_back(_pos.cur());
+
+            _pos.next();
+            if (_pos.cur() == ";") {
+              // Generic signature
+              throw std::runtime_error(
+                  "Generic function signatures are illegal");
+            }
+          }
+
+          // Grab body
+          int count = 0;
+          do {
+            if (_pos.done()) {
+              throw std::runtime_error(
+                  "Generic function signatures must be "
+                  "defined");
+            } else if (_pos.cur() == "{") {
+              ++count;
+            } else if (_pos.cur() == "}") {
+              --count;
+            }
+            info.instantiate_block.push_back(_pos.cur());
+            _pos.next();
+          } while (count != 0);
+          _pos.prev();
+
+          // Parse pre and post blocks
+          const auto p = parse_template_pre_post(_pos);
+          info.validate_block = p.first;
+          for (const auto &item : p.second) {
+            info.instantiate_block.push_back(item);
+          }
+
+          // Add to template table
+          for (const auto &name : names) {
+            TemplateInfo instance_info = info;
+
+            instance_info.provides_block.push_front(name);
+            instance_info.provides_block.push_front("let");
+
+            instance_info.instantiate_block.push_front(name);
+            instance_info.instantiate_block.push_front("let");
+
+            scope_manager.add(name, instance_info);
+          }
         }
 
-        // Add to template table
-        for (const auto &name : names) {
-          TemplateInfo instance_info = info;
-
-          instance_info.provides_block.push_front(name);
-          instance_info.provides_block.push_front("let");
-
-          instance_info.instantiate_block.push_front(name);
-          instance_info.instantiate_block.push_front("let");
-
-          scope_manager.add(name, instance_info);
-        }
+        _pos.next();
+        return ASTNodes::Statement({});
       }
-
-      _pos.next();
-      return ASTNodes::Statement({});
+    } else if (is_macro && _pos.cur().text == "=") {
+      // Inline macro definition
+      parse_macro(
+          _pos,
+          settings.compile_settings().preprocess_pass_limit,
+          names);
+      _pos.prev();
+      return ASTNodes::Statement();
     }
     return ASTNodes::Statement({});
   } else if (_pos.cur() == "{") {
@@ -1220,9 +1620,7 @@ Parser::parse_statement(TokenStream &_pos,
     // Condition is a single boolean object
     ASTNodes::If out;
 
-    debug_print();
     out.condition = parse_object(_pos);
-    debug_print();
 
     if (!ASTNodes::type(out.condition.get())
              .cast_match(Type({"bool"}))) {
@@ -1272,9 +1670,7 @@ Parser::parse_statement(TokenStream &_pos,
     // Condition is a single boolean object
     ASTNodes::While out;
 
-    debug_print();
     out.condition = parse_object(_pos);
-    debug_print();
 
     if (!ASTNodes::type(out.condition.get())
              .cast_match(Type({"bool"}))) {
@@ -1318,9 +1714,7 @@ Parser::parse_statement(TokenStream &_pos,
     }
 
     // Target is an enum
-    debug_print();
     auto target = parse_object(_pos);
-    debug_print();
 
     Type target_type = ASTNodes::type(target);
 
@@ -1381,9 +1775,7 @@ Parser::parse_statement(TokenStream &_pos,
     ASTNodes::Return out;
     _pos.next();
     if (_pos.cur() != ";") {
-      debug_print();
       out.value = parse_object(_pos);
-      debug_print();
 
       if (!settings.compile_settings()
                .cur_return_type.exact_match(
@@ -1856,9 +2248,7 @@ ASTNodes::Node Parser::parse_function_call(TokenStream &_pos) {
   std::list<ASTNodes::Node> args;
   while (_pos.cur() != ")") {
     if (_pos.cur() != ",") {
-      debug_print();
       args.push_back(parse_object(_pos));
-      debug_print();
     }
     _pos.next();
   }
@@ -1895,6 +2285,9 @@ ASTNodes::Node Parser::parse_object(TokenStream &_pos) {
     parse_function({lambda_name}, _pos);
 
     const auto captures = scope_manager.get_captures();
+    for (const auto &capture : captures) {
+      settings.warn("Illegal capture " + capture);
+    }
 
     scope_manager.pop_frame();
 
@@ -2290,53 +2683,8 @@ Macros::make_string_literal(const std::string &_contents) {
   return out;
 }
 
-std::list<Lexer::Token>
-Macros::get_macro_args_no_erase(TokenStream &_pos) {
-  debug_print();
-
-  // Points to name
-  uint depth = 0;
-  std::list<Lexer::Token> out;
-  auto it = _pos.tell();
-  Lexer::Token cur(_pos.cur(), "");
-  cur.text.clear();
-
-  do {
-    ++it;
-
-    if (*it == "(") {
-      ++depth;
-      if (depth == 1) {
-        continue;
-      }
-    } else if (*it == ")") {
-      --depth;
-      if (depth == 0) {
-        break;
-      }
-    }
-
-    if (depth == 1 && *it == ",") {
-      if (!cur.text.empty()) {
-        out.push_back(cur);
-        cur = Lexer::Token(*it, "");
-      }
-    } else {
-      if (!cur.text.empty()) {
-        cur.text.push_back(' ');
-      }
-      cur.text += it->text;
-    }
-  } while (!_pos.done());
-  if (!cur.text.empty()) {
-    out.push_back(cur);
-  }
-
-  return out;
-}
-
 std::list<std::list<Lexer::Token>>
-Macros::get_macro_args(TokenStream &_pos) {
+Macros::get_macro_args(TokenStream &_pos, const bool &_erase) {
   debug_print();
 
   // Points to name
@@ -2373,21 +2721,23 @@ Macros::get_macro_args(TokenStream &_pos) {
   if (!cur.empty()) {
     out.push_back(cur);
   }
-
   _pos.next();
-  const auto first_after_range = _pos.tell();
 
-  // Delete everything related to macro call, leave pointing to
-  // item after call
-  _pos.erase(range_start, first_after_range);
+  if (_erase) {
+    // Delete everything related to macro call
+    const auto first_after_range = _pos.tell();
+    _pos.erase(range_start, first_after_range);
+  }
+
+  // Leave pointing to item after call
   return out;
 }
 
 // Points to macro name after 'let'. Can be inline or
 // functional. Erases all traces after done
 void Parser::parse_macro(
-    TokenStream &_pos,
-    const uint64_t &_preproc_passes_allowed) {
+    TokenStream &_pos, const uint64_t &_preproc_passes_allowed,
+    const std::list<std::string> &_names) {
   debug_print();
   if (settings.debug) {
     settings.ostream << __FUNCTION__ << " at "
@@ -2395,14 +2745,6 @@ void Parser::parse_macro(
                      << _pos.cur().line << "." << _pos.cur().col
                      << '\n';
   }
-
-  // let
-  const auto range_start = std::prev(_pos.tell());
-
-  // name!
-  const auto name = _pos.cur().text;
-
-  _pos.next();
 
   // Either '=' or '('
   if (_pos.cur().text == "=") {
@@ -2415,142 +2757,147 @@ void Parser::parse_macro(
       _pos.next();
     }
 
-    scope_manager.add(name, info);
+    for (const auto &name : _names) {
+      scope_manager.add(name, info);
+    }
   } else if (_pos.cur().text == "(") {
-    // Scrape definition
-    std::list<Lexer::Token> contents;
-    contents.push_back(Lexer::Token(_pos.cur(), "let"));
-    contents.push_back(Lexer::Token(_pos.cur(), "main"));
+    for (const auto &name : _names) {
+      // Scrape definition
+      std::list<Lexer::Token> contents;
+      contents.push_back(Lexer::Token(_pos.cur(), "let"));
+      contents.push_back(Lexer::Token(_pos.cur(), "main"));
 
-    // Until first "{"
-    while (_pos.cur().text != "{") {
-      contents.push_back(_pos.cur());
-      _pos.next();
+      // Until first "{"
+      while (_pos.cur().text != "{") {
+        contents.push_back(_pos.cur());
+        _pos.next();
 
-      if (_pos.done()) {
-        throw std::runtime_error(
-            "Functional macro definition '" + name +
-            "' must be followed by body");
-      }
-    }
-
-    contents.push_back(_pos.cur());
-    _pos.next();
-
-    uint count = 1;
-    while (count != 0) {
-      if (_pos.cur().text == "{") {
-        ++count;
-      } else if (_pos.cur().text == "}") {
-        --count;
-      }
-
-      contents.push_back(_pos.cur());
-      if (_pos.done()) {
-        throw std::runtime_error("Functional macro '" + name +
-                                 "' has no ending curly brace");
-      }
-
-      _pos.next();
-    }
-    _pos.prev();
-
-    // Write to file
-    const std::filesystem::path source_path =
-        _pos.cur().file.string() + "." +
-        name.substr(0, name.size() - 1) + ".macro.oak";
-    const std::filesystem::path executable_path =
-        source_path.string() + ".out";
-
-    // Skip compilation if possible
-    bool do_compile = true;
-    if (std::filesystem::exists(executable_path)) {
-      const auto src_last_write =
-          std::filesystem::last_write_time(_pos.cur().file);
-      const auto exe_last_write =
-          std::filesystem::last_write_time(executable_path);
-
-      if (src_last_write < exe_last_write) {
-        do_compile = false;
-      }
-    }
-
-    if (do_compile) {
-      std::ofstream f(source_path);
-      if (!f.is_open()) {
-        throw std::runtime_error(
-            "Failed to write macro source file '" +
-            source_path.string() + "'");
-      }
-
-      uint64_t cur_line = 1;
-
-      for (const auto &item : contents) {
-        if (item.line != cur_line) {
-          f << '\n';
-          cur_line = item.line;
-        } else {
-          f << ' ';
+        if (_pos.done()) {
+          throw std::runtime_error(
+              "Functional macro definition '" + _names.front() +
+              "' must be followed by body");
         }
-        f << item.text;
-      }
-      f.close();
-
-      // Compile to executable
-      std::stringstream macro_compilation_log;
-      OakCompiler oc(macro_compilation_log);
-      oc.settings.compile_settings().preprocess_pass_limit =
-          _preproc_passes_allowed;
-      oc.settings.compile_settings().do_syntax_check = false;
-      oc.settings.compile_settings().mode =
-          Settings::CompileSettings::TRANSLATE_COMPILE_AND_LINK;
-      oc.settings.compile_settings().entry_point = source_path;
-      oc.settings.compile_settings().target = executable_path;
-
-      if (oc.settings.debug) {
-        oc.settings.ostream
-            << "Compiling macro '" << name << "' from "
-            << source_path << " to " << executable_path << '\n';
       }
 
-      try {
-        oc();
-      } catch (OutOfPPPLError &e) {
-        throw OutOfPPPLError(
-            "During compilation of macro '" + name +
-            "': Surpassed preprocessor pass limit! "
-            "Self-referential macro is likely");
-      } catch (std::runtime_error &e) {
-        throw std::runtime_error(
-            "From macro compiler:\n" +
-            macro_compilation_log.str() +
-            "\nDuring compilation of macro '" + name + "':\n" +
-            e.what());
-      } catch (...) {
-        throw std::runtime_error(
-            "From macro compiler:\n" +
-            macro_compilation_log.str() +
-            "\nUnknown error occurred during "
-            "compilation of macro '" +
-            name + "'");
+      contents.push_back(_pos.cur());
+      _pos.next();
+
+      uint count = 1;
+      while (count != 0) {
+        if (_pos.cur().text == "{") {
+          ++count;
+        } else if (_pos.cur().text == "}") {
+          --count;
+        }
+
+        contents.push_back(_pos.cur());
+        if (_pos.done()) {
+          throw std::runtime_error(
+              "Functional macro '" + _names.front() +
+              "' has no ending curly brace");
+        }
+
+        _pos.next();
       }
+      _pos.prev();
+
+      // Write to file
+      const std::filesystem::path source_path =
+          _pos.cur().file.string() + "." +
+          name.substr(0, name.size() - 1) + ".macro.oak";
+      const std::filesystem::path executable_path =
+          source_path.string() + ".out";
+
+      // Skip compilation if possible
+      bool do_compile = true;
+      if (std::filesystem::exists(executable_path)) {
+        const auto src_last_write =
+            std::filesystem::last_write_time(_pos.cur().file);
+        const auto exe_last_write =
+            std::filesystem::last_write_time(executable_path);
+
+        if (src_last_write < exe_last_write) {
+          do_compile = false;
+        }
+      }
+
+      if (do_compile) {
+        std::ofstream f(source_path);
+        if (!f.is_open()) {
+          throw std::runtime_error(
+              "Failed to write macro source file '" +
+              source_path.string() + "'");
+        }
+
+        uint64_t cur_line = 1;
+
+        for (const auto &item : contents) {
+          if (item.line != cur_line) {
+            f << '\n';
+            cur_line = item.line;
+          } else {
+            f << ' ';
+          }
+          f << item.text;
+        }
+        f.close();
+
+        // Compile to executable
+        std::stringstream macro_compilation_log;
+        OakCompiler oc(macro_compilation_log);
+        oc.settings.compile_settings().preprocess_pass_limit =
+            _preproc_passes_allowed;
+        oc.settings.compile_settings().do_syntax_check = false;
+        oc.settings.compile_settings().mode = Settings::
+            CompileSettings::TRANSLATE_COMPILE_AND_LINK;
+        oc.settings.compile_settings().entry_point =
+            source_path;
+        oc.settings.compile_settings().target = executable_path;
+
+        if (oc.settings.debug) {
+          oc.settings.ostream << "Compiling macro '" << name
+                              << "' from " << source_path
+                              << " to " << executable_path
+                              << '\n';
+        }
+
+        try {
+          oc();
+        } catch (OutOfPPPLError &e) {
+          throw OutOfPPPLError(
+              "During compilation of macro '" + name +
+              "': Surpassed preprocessor pass limit! "
+              "Self-referential macro is likely");
+        } catch (std::runtime_error &e) {
+          throw std::runtime_error(
+              "From macro compiler:\n" +
+              macro_compilation_log.str() +
+              "\nDuring compilation of macro '" + name +
+              "':\n" + e.what());
+        } catch (...) {
+          throw std::runtime_error(
+              "From macro compiler:\n" +
+              macro_compilation_log.str() +
+              "\nUnknown error occurred during "
+              "compilation of macro '" +
+              name + "'");
+        }
+      }
+
+      // Save executable
+      CompiledMacro c;
+      c.executable = executable_path;
+      scope_manager.add(name, c);
     }
-
-    // Save executable
-    CompiledMacro c;
-    c.executable = executable_path;
-    scope_manager.add(name, c);
   } else {
     throw std::runtime_error(
-        "Malformed macro definition for " + name +
+        "Malformed macro definition for " + _names.front() +
         ": Expected '=' or '(', but saw '" + _pos.cur().text +
         "'");
   }
 
-  // Erase range
+  // Leave pointing to first after
   _pos.next();
-  const auto first_after_range = _pos.tell();
-  _pos.erase(range_start, first_after_range);
 }
 
 ASTNodes::Call Parser::resolve_fn_call(
@@ -2585,7 +2932,6 @@ ASTNodes::Call Parser::resolve_fn_call(
     // TODO: Make this suck less
     // Note: This is immediately converted to std::string,
     // so the file, line, and col don't matter
-    Lexer l;
     uint64_t junk_line = 0, junk_col = 0;
     std::list<std::string> signature = {"let", _name, "("};
     for (const auto &arg : _args) {
@@ -2599,8 +2945,9 @@ ASTNodes::Call Parser::resolve_fn_call(
       signature.push_back(":");
 
       // Arg type
-      for (const auto &tok : l.lex(arg.type.oak_repr(), "NULL",
-                                   junk_line, junk_col)) {
+      for (const auto &tok :
+           Lexer::lex(arg.type.oak_repr(), "NULL", junk_line,
+                      junk_col)) {
         signature.push_back(tok.text);
       }
     }
@@ -2821,16 +3168,9 @@ void Parser::fix_math(TokenStream &_pos) {
   const auto resolve_binary_operator =
       [&](const std::map<std::string, std::string> &_ops) {
         // Scan stream
-        for (_pos.reset(); !_pos.done(); _pos.next()) {
-          // Special case: skip anything of the form
-          // `let . = .* ;`
-          if (_pos.cur() == "let" && _pos.peek(2) == "=") {
-            while (!_pos.done() && _pos.cur() != ";") {
-              _pos.next();
-            }
-            continue;
-          }
-
+        for (_pos.reset();
+             !_pos.done() && _pos.cur().text != ";";
+             _pos.next()) {
           // On match
           if (_pos.cur().type == "OPERATOR" &&
               _ops.contains(_pos.cur().text)) {
@@ -2936,14 +3276,10 @@ void Parser::fix_math(TokenStream &_pos) {
             // "lhs _operator (...)" -> "_op_name ( lhs , ... )"
             _pos.insert(
                 first_of_lhs,
-                Lexer::Token(_ops.at(first_after_lhs->text),
-                             _pos.cur().file, _pos.cur().line,
-                             _pos.cur().col, "ID"));
+                Lexer::Token(_pos.cur(),
+                             _ops.at(first_after_lhs->text)));
             _pos.insert(first_of_lhs,
-                        Lexer::Token("(", _pos.cur().file,
-                                     _pos.cur().line,
-                                     _pos.cur().col,
-                                     "OPERATOR"));
+                        Lexer::Token(_pos.cur(), "("));
 
             // Separating comma
             first_after_lhs->text = ",";
@@ -2951,10 +3287,7 @@ void Parser::fix_math(TokenStream &_pos) {
 
             // End parenthesis
             _pos.insert(first_after_rhs,
-                        Lexer::Token(")", _pos.cur().file,
-                                     _pos.cur().line,
-                                     _pos.cur().col,
-                                     "OPERATOR"));
+                        Lexer::Token(_pos.cur(), ")"));
           }
         }
       };
@@ -2966,7 +3299,9 @@ void Parser::fix_math(TokenStream &_pos) {
       [&](const std::string &_operator,
           const std::string &_op_name) {
         // Scan stream
-        for (_pos.reset(); !_pos.done(); _pos.next()) {
+        for (_pos.reset();
+             !_pos.done() && _pos.cur().text != ";";
+             _pos.next()) {
           // On match
           if (_pos.cur().type == "OPERATOR" &&
               _pos.cur().text == _operator) {
@@ -3009,33 +3344,24 @@ void Parser::fix_math(TokenStream &_pos) {
 
             // Operate
             // "_operator rhs" -> "_op_name ( rhs )"
-            // Beginning of call: "Name ("
             _pos.insert(first_after_lhs,
-                        Lexer::Token(_op_name, _pos.cur().file,
-                                     _pos.cur().line,
-                                     _pos.cur().col, "ID"));
-            first_after_lhs->text = "(";
-            first_after_lhs->type = "OPERATOR";
-
-            // End parenthesis
+                        Lexer::Token(_pos.cur(), _op_name));
+            *first_after_lhs = Lexer::Token(_pos.cur(), "(");
             _pos.insert(first_after_rhs,
-                        Lexer::Token(")", _pos.cur().file,
-                                     _pos.cur().line,
-                                     _pos.cur().col,
-                                     "OPERATOR"));
+                        Lexer::Token(_pos.cur(), ")"));
           }
         }
       };
 
   // Unary operator precedence
-  const std::list<std::pair<std::string, std::string>>
+  const static std::list<std::pair<std::string, std::string>>
       unary_precedence = {{"!", "Not"},
                           {"++", "Incr"},
                           {"--", "Decr"},
                           {"~", "Flip"}};
 
   // Binary operator precedence
-  const std::list<std::map<std::string, std::string>>
+  const static std::list<std::map<std::string, std::string>>
       binary_precedence = {
           {
               {"&", "And"},
@@ -3085,598 +3411,6 @@ void Parser::fix_math(TokenStream &_pos) {
   for (const auto &i : binary_precedence) {
     resolve_binary_operator(i);
   }
-}
-
-uint64_t Parser::preprocess(TokenStream &_pos) {
-  debug_print();
-  if (settings.debug) {
-    settings.ostream << __FUNCTION__ << " at "
-                     << _pos.cur().file.string() << ":"
-                     << _pos.cur().line << "." << _pos.cur().col
-                     << '\n';
-  }
-
-  bool did_change = false;
-  uint64_t passes = 0;
-  auto &csettings = settings.compile_settings();
-
-  std::optional<std::shared_ptr<std::ostream>> log;
-  if (csettings.rule_logs) {
-    if (csettings.dump_file.has_value()) {
-      log = csettings.dump_file.value();
-    } else {
-      log = std::make_shared<std::ofstream>("acorn_rules.log",
-                                            std::ios::app);
-    }
-
-    **log << "Raw lexed :\n ";
-    uint64_t prev_line = 0;
-    std::filesystem::path prev_path;
-    for (const auto &tok : _pos) {
-      if (tok.file != prev_path) {
-        **log << '\n' << tok.file << ":\n";
-        prev_path = tok.file;
-      }
-      if (tok.line != prev_line) {
-        **log << "\n" << tok.line << "\t|";
-        prev_line = tok.line;
-      }
-      **log << ' ' << tok.text;
-    }
-    **log << '\n';
-  }
-
-  do {
-    ++passes;
-    if (passes >= csettings.preprocess_pass_limit) {
-      throw OutOfPPPLError(
-          "Ruleset failed to converge in " +
-          std::to_string(csettings.preprocess_pass_limit) +
-          " passes");
-    }
-
-    did_change = false;
-
-    // Macro definitions
-    bool saw_let = false;
-    for (_pos.reset(); !_pos.done(); _pos.next()) {
-      try {
-        if (_pos.cur() == "let") {
-          saw_let = true;
-        } else if (saw_let && _pos.cur() != "!" &&
-                   _pos.cur().text.find('!') !=
-                       std::string::npos) {
-          parse_macro(_pos, settings.compile_settings()
-                                    .preprocess_pass_limit -
-                                passes);
-          saw_let = false;
-          did_change = true;
-          _pos.prev();
-        } else {
-          saw_let = false;
-        }
-      } catch (OutOfPPPLError &e) {
-        throw OutOfPPPLError(
-            "At " + _pos.cur().file.string() + ":" +
-            std::to_string(_pos.cur().line) + "." +
-            std::to_string(_pos.cur().col) + "\n" + e.what());
-      } catch (std::runtime_error &e) {
-        throw std::runtime_error(
-            "At " + _pos.cur().file.string() + ":" +
-            std::to_string(_pos.cur().line) + "." +
-            std::to_string(_pos.cur().col) + "\n" + e.what());
-      } catch (...) {
-        if (_pos.done()) {
-          throw;
-        }
-        throw std::runtime_error(
-            "At " + _pos.cur().file.string() + ":" +
-            std::to_string(_pos.cur().line) + "." +
-            std::to_string(_pos.cur().col) + "\nUnknown error");
-      }
-    }
-
-    // Resolve includes and packages
-    for (_pos.reset(); !_pos.done(); _pos.next()) {
-      try {
-        if (_pos.cur() == "include!") {
-          did_change = true;
-          auto raw_args = Macros::get_macro_args(_pos);
-
-          std::list<Lexer::Token> args;
-          for (auto it = raw_args.begin(); it != raw_args.end();
-               ++it) {
-            TokenStream cur_arg(*it);
-            preprocess(cur_arg);
-            Lexer::Token to_add = cur_arg.cur();
-            for (cur_arg.next(); !cur_arg.done();
-                 cur_arg.next()) {
-              to_add.text += ' ';
-              to_add.text += cur_arg.cur().text;
-            }
-            to_add.text =
-                Macros::strip_string_literal(to_add.text);
-            args.push_back(to_add);
-          }
-
-          try {
-            for (const auto &f : args) {
-              // const auto backup = rules.purge_entry_points();
-              do_file(f.text, f.file);
-              // rules.purge_entry_points();
-              // for (const auto &item : backup) {
-              //   rules.add_entry_point(item);
-              // }
-              // std::cerr << __FILE__ << ":" << __LINE__
-              //           << "> Unimplemented\n"
-              //           << std::flush;
-            }
-          } catch (OutOfPPPLError &e) {
-            throw OutOfPPPLError(
-                "In file included from " +
-                _pos.cur().file.string() + ":" +
-                std::to_string(_pos.cur().line) + "." +
-                std::to_string(_pos.cur().col) + "\n" +
-                e.what());
-          } catch (std::runtime_error &e) {
-            throw std::runtime_error(
-                "In file included from " +
-                _pos.cur().file.string() + ":" +
-                std::to_string(_pos.cur().line) + "." +
-                std::to_string(_pos.cur().col) + "\n" +
-                e.what());
-          } catch (...) {
-            throw std::runtime_error(
-                "In file included from " +
-                _pos.cur().file.string() + ":" +
-                std::to_string(_pos.cur().line) + "." +
-                std::to_string(_pos.cur().col) +
-                "\nUnknown error");
-          }
-        } else if (_pos.cur() == "link!") {
-          did_change = true;
-          auto raw_args = Macros::get_macro_args(_pos);
-
-          std::list<Lexer::Token> args;
-          for (auto it = raw_args.begin(); it != raw_args.end();
-               ++it) {
-            TokenStream cur_arg(*it);
-            preprocess(cur_arg);
-            Lexer::Token to_add = cur_arg.cur();
-            for (cur_arg.next(); !cur_arg.done();
-                 cur_arg.next()) {
-              to_add.text += ' ';
-              to_add.text += cur_arg.cur().text;
-            }
-            args.push_back(to_add);
-          }
-
-          for (auto it = args.begin(); it != args.end(); ++it) {
-            it->text = Macros::strip_string_literal(it->text);
-          }
-
-          for (const auto &f : args) {
-            csettings.objects.push_back(
-                resolve_path(f.text, f.file));
-          }
-        } else if (_pos.cur() == "flag!") {
-          did_change = true;
-          auto raw_args = Macros::get_macro_args(_pos);
-
-          std::list<Lexer::Token> args;
-          for (auto it = raw_args.begin(); it != raw_args.end();
-               ++it) {
-            TokenStream cur_arg(*it);
-            preprocess(cur_arg);
-            Lexer::Token to_add = cur_arg.cur();
-            for (cur_arg.next(); !cur_arg.done();
-                 cur_arg.next()) {
-              to_add.text += ' ';
-              to_add.text += cur_arg.cur().text;
-            }
-            args.push_back(to_add);
-          }
-
-          for (auto it = args.begin(); it != args.end(); ++it) {
-            it->text = Macros::strip_string_literal(it->text);
-          }
-
-          for (const auto &f : args) {
-            csettings.link_flags.push_back(f.text);
-          }
-        } else if (_pos.cur() == "pragma!") {
-          did_change = true;
-          auto raw_args = Macros::get_macro_args(_pos);
-
-          std::list<Lexer::Token> args;
-          for (auto it = raw_args.begin(); it != raw_args.end();
-               ++it) {
-            TokenStream cur_arg(*it);
-            preprocess(cur_arg);
-            Lexer::Token to_add = cur_arg.cur();
-            for (cur_arg.next(); !cur_arg.done();
-                 cur_arg.next()) {
-              to_add.text += ' ';
-              to_add.text += cur_arg.cur().text;
-            }
-            args.push_back(to_add);
-          }
-
-          for (auto it = args.begin(); it != args.end(); ++it) {
-            it->text = Macros::strip_string_literal(it->text);
-          }
-
-          if (args.size() == 1) {
-            args.push_back(Lexer::Token(args.front(), ""));
-          }
-
-          csettings
-              .pragmas[_pos.cur().file][args.front().text] =
-              std::next(args.begin())->text;
-        } else if (_pos.cur() == "rule_new!") {
-          did_change = true;
-          auto raw_args = Macros::get_macro_args(_pos);
-
-          std::list<Lexer::Token> args;
-          for (auto it = raw_args.begin(); it != raw_args.end();
-               ++it) {
-            TokenStream cur_arg(*it);
-            preprocess(cur_arg);
-            Lexer::Token to_add = cur_arg.cur();
-            for (cur_arg.next(); !cur_arg.done();
-                 cur_arg.next()) {
-              to_add.text += ' ';
-              to_add.text += cur_arg.cur().text;
-            }
-            args.push_back(to_add);
-          }
-
-          for (auto it = args.begin(); it != args.end(); ++it) {
-            it->text = Macros::strip_string_literal(it->text);
-          }
-
-          if (args.size() < 3) {
-            throw std::runtime_error(
-                "Malformed rule::new! call: Arguments must "
-                "be "
-                "rule_name, input_rule, output_rule, "
-                "[engine_name], [prerequisites...]");
-          }
-
-          // Name, input, output (using sapling engine)
-          std::string name = args.front();
-          std::string engine = "sapling";
-          std::list<std::string> prereqs;
-          if (args.size() == 4) {
-            // Name, input, output, engine
-            engine = *std::next(args.begin(), 3);
-          } else if (args.size() > 4) {
-            // Name, input, output, engine, prerequisites
-            engine = *std::next(args.begin(), 3);
-            for (auto it = std::next(args.begin(), 4);
-                 it != args.end(); ++it) {
-              prereqs.push_back(_pos.cur());
-            }
-          }
-
-          // Rule to_add(*std::next(args.begin()),
-          //             *std::next(args.begin(), 2), prereqs,
-          //             engine);
-
-          // rules.register_rule(name, to_add);
-          // std::cerr << __FILE__ << ":" << __LINE__
-          //           << "> Unimplemented\n"
-          //           << std::flush;
-        } else if (_pos.cur() == "rule_use!") {
-          did_change = true;
-          auto raw_args = Macros::get_macro_args(_pos);
-
-          std::list<Lexer::Token> args;
-          for (auto it = raw_args.begin(); it != raw_args.end();
-               ++it) {
-            TokenStream cur_arg(*it);
-            preprocess(cur_arg);
-            Lexer::Token to_add = cur_arg.cur();
-            for (cur_arg.next(); !cur_arg.done();
-                 cur_arg.next()) {
-              to_add.text += ' ';
-              to_add.text += cur_arg.cur().text;
-            }
-            args.push_back(to_add);
-          }
-
-          // for (const auto &_ : args) {
-          //   rules.add_entry_point(
-          //       Macros::strip_string_literal(arg));
-          //   std::cerr << __FILE__ << ":" << __LINE__
-          //             << "> Unimplemented\n"
-          //             << std::flush;
-          // }
-          // std::cerr << __FILE__ << ":" << __LINE__
-          //           << "> Unimplemented\n"
-          //           << std::flush;
-        } else if (_pos.cur() == "rule_remove!") {
-          did_change = true;
-          auto raw_args = Macros::get_macro_args(_pos);
-
-          std::list<Lexer::Token> args;
-          for (auto it = raw_args.begin(); it != raw_args.end();
-               ++it) {
-            TokenStream cur_arg(*it);
-            preprocess(cur_arg);
-            Lexer::Token to_add = cur_arg.cur();
-            for (cur_arg.next(); !cur_arg.done();
-                 cur_arg.next()) {
-              to_add.text += ' ';
-              to_add.text += cur_arg.cur().text;
-            }
-            args.push_back(to_add);
-          }
-
-          for (const auto &_ : args) {
-            // rules.remove_entry_point(
-            //     Macros::strip_string_literal(arg));
-            std::cerr << __FILE__ << ":" << __LINE__
-                      << "> Unimplemented\n"
-                      << std::flush;
-          }
-        } else if (_pos.cur() == "rule_bundle!") {
-          did_change = true;
-          auto raw_args = Macros::get_macro_args(_pos);
-
-          std::list<Lexer::Token> args;
-          for (auto it = raw_args.begin(); it != raw_args.end();
-               ++it) {
-            TokenStream cur_arg(*it);
-            preprocess(cur_arg);
-            Lexer::Token to_add = cur_arg.cur();
-            for (cur_arg.next(); !cur_arg.done();
-                 cur_arg.next()) {
-              to_add.text += ' ';
-              to_add.text += cur_arg.cur().text;
-            }
-            args.push_back(to_add);
-          }
-
-          std::list<std::string> entails;
-          for (auto it = std::next(args.begin());
-               it != args.end(); ++it) {
-            entails.push_back(
-                Macros::strip_string_literal(it->text));
-          }
-
-          // rules.register_bundle(
-          //     Macros::strip_string_literal(args.front()),
-          //     entails);
-          // std::cerr << __FILE__ << ":" << __LINE__
-          //           << "> Unimplemented\n"
-          //           << std::flush;
-        } else if (_pos.cur() == "unstr!") {
-          did_change = true;
-          Lexer::Token to_add(_pos.cur());
-          auto raw_args = Macros::get_macro_args(_pos);
-          to_add.text.clear();
-
-          for (auto it = raw_args.begin(); it != raw_args.end();
-               ++it) {
-            for (auto inner_it = it->begin();
-                 inner_it != it->end(); ++inner_it) {
-              if (!to_add.text.empty()) {
-                to_add.text += ' ';
-              }
-              to_add.text += inner_it->text;
-            }
-          }
-
-          to_add.text =
-              Macros::strip_string_literal(to_add.text);
-
-          Lexer lexer;
-          uint64_t dummy_line = to_add.line,
-                   dummy_col = to_add.col;
-          auto to_insert = lexer.lex(to_add.text, to_add.file,
-                                     dummy_line, dummy_col);
-          _pos.insert(_pos.tell(), to_insert);
-        } else if (_pos.cur() == "str!") {
-          did_change = true;
-          Lexer::Token to_add(_pos.cur());
-          auto raw_args = Macros::get_macro_args(_pos);
-          to_add.text.clear();
-
-          for (auto it = raw_args.begin(); it != raw_args.end();
-               ++it) {
-            for (auto inner_it = it->begin();
-                 inner_it != it->end(); ++inner_it) {
-              if (!to_add.text.empty()) {
-                to_add.text += ' ';
-              }
-              to_add.text += inner_it->text;
-            }
-          }
-
-          // Ensure exactly one set of enclosing quotes
-          to_add.text = Macros::make_string_literal(
-              Macros::strip_string_literal(to_add.text));
-          Lexer::classify_type(to_add);
-          _pos.insert(_pos.tell(), to_add);
-        } else if (_pos.cur() == "compile_time_system!") {
-          did_change = true;
-          settings.ostream
-              << _pos.cur().file.string() << ":"
-              << _pos.cur().line << "." << _pos.cur().col
-              << ">\ncompile_time::system! asks to run `";
-
-          auto raw_args = Macros::get_macro_args(_pos);
-
-          std::list<Lexer::Token> args;
-          for (auto it = raw_args.begin(); it != raw_args.end();
-               ++it) {
-            TokenStream cur_arg(*it);
-            preprocess(cur_arg);
-            Lexer::Token to_add = cur_arg.cur();
-            for (cur_arg.next(); !cur_arg.done();
-                 cur_arg.next()) {
-              to_add.text += ' ';
-              to_add.text += cur_arg.cur().text;
-            }
-            args.push_back(to_add);
-          }
-
-          for (auto it = args.begin(); it != args.end(); ++it) {
-            it->text = Macros::strip_string_literal(it->text);
-          }
-
-          std::string cmd;
-          for (const auto &arg : args) {
-            if (!cmd.empty()) {
-              cmd.push_back(' ');
-            }
-            cmd += arg.text;
-          }
-
-          settings.ostream << cmd << "` at "
-                           << _pos.cur().file.parent_path()
-                           << "\n"
-                           << std::flush;
-
-          if (!csettings.no_confirm) {
-            settings.ostream << "Allow? [N/y/a] ";
-            char choice = std::cin.get();
-
-            switch (choice) {
-            default:
-              throw std::runtime_error("Abort!");
-            case 'a':
-            case 'A':
-              settings.ostream << "Not asking again!\n";
-              csettings.no_confirm = true;
-            case 'y':
-            case 'Y':
-              break;
-            }
-          } else {
-            settings.ostream
-                << "(no_confirm is enabled, so running "
-                   "without asking)\n";
-          }
-
-          const auto old_cwd = std::filesystem::current_path();
-          std::filesystem::current_path(
-              _pos.cur().file.parent_path());
-
-          auto result = system(cmd.c_str());
-
-          std::filesystem::current_path(old_cwd);
-
-          if (result != 0) {
-            throw std::runtime_error(
-                "System call '" + cmd +
-                "' exited with nonzero exit code " +
-                std::to_string(result));
-          }
-        }
-      } catch (OutOfPPPLError &e) {
-        throw std::runtime_error(
-            "At " + _pos.cur().file.string() + ":" +
-            std::to_string(_pos.cur().line) + "." +
-            std::to_string(_pos.cur().col) + "\n" + e.what());
-      } catch (std::runtime_error &e) {
-        throw std::runtime_error(
-            "At " + _pos.cur().file.string() + ":" +
-            std::to_string(_pos.cur().line) + "." +
-            std::to_string(_pos.cur().col) + "\n" + e.what());
-      } catch (...) {
-        if (_pos.done()) {
-          throw;
-        }
-        throw std::runtime_error(
-            "At " + _pos.cur().file.string() + ":" +
-            std::to_string(_pos.cur().line) + "." +
-            std::to_string(_pos.cur().col) + "\nUnknown error");
-      }
-    }
-
-    // Resolve macros (functional and inline)
-    for (_pos.reset(); !_pos.done(); _pos.next()) {
-      try {
-        if (_pos.cur() != "!" && _pos.cur().type == "ID" &&
-            _pos.cur().text.find('!') != std::string::npos &&
-            !Macros::reserved_macro_names.contains(
-                _pos.cur().text)) {
-          did_change = true;
-          replace_macro(_pos);
-        }
-      } catch (OutOfPPPLError &e) {
-        throw OutOfPPPLError(
-            "At " + _pos.cur().file.string() + ":" +
-            std::to_string(_pos.cur().line) + "." +
-            std::to_string(_pos.cur().col) + "\n" + e.what());
-      } catch (std::runtime_error &e) {
-        throw std::runtime_error(
-            "At " + _pos.cur().file.string() + ":" +
-            std::to_string(_pos.cur().line) + "." +
-            std::to_string(_pos.cur().col) + "\n" + e.what());
-      } catch (...) {
-        if (_pos.done()) {
-          throw;
-        }
-        throw std::runtime_error(
-            "At " + _pos.cur().file.string() + ":" +
-            std::to_string(_pos.cur().line) + "." +
-            std::to_string(_pos.cur().col) + "\nUnknown error");
-      }
-    }
-
-    // Apply ruleset
-    // if (rules.process_text(_pos)) {
-    //   did_change = true;
-    // }
-    // std::cerr << __FILE__ << ":" << __LINE__
-    //           << "> Unimplemented\n"
-    //           << std::flush;
-
-    if (log.has_value()) {
-      **log << "\nAfter pass " << passes << ":\n";
-      uint64_t prev_line = 0;
-      std::filesystem::path prev_path;
-      for (const auto &tok : _pos) {
-        if (tok.file != prev_path) {
-          **log << '\n' << tok.file << ":\n";
-          prev_path = tok.file;
-        }
-        if (tok.line != prev_line) {
-          **log << "\n" << tok.line << "\t|";
-          prev_line = tok.line;
-        }
-        **log << ' ' << tok.text;
-      }
-      **log << '\n';
-    }
-  } while (did_change);
-
-  // Fix math
-  fix_math(_pos);
-
-  if (log.has_value()) {
-    **log << "\nAfter operator substitution:\n";
-    uint64_t prev_line = 0;
-    std::filesystem::path prev_path;
-    for (const auto &tok : _pos) {
-      if (tok.file != prev_path) {
-        **log << '\n' << tok.file << ":\n";
-        prev_path = tok.file;
-      }
-      if (tok.line != prev_line) {
-        **log << "\n" << tok.line << "\t|";
-        prev_line = tok.line;
-      }
-      **log << ' ' << tok.text;
-    }
-    **log << '\n';
-  }
-
-  _pos.reset();
-  return passes;
 }
 
 void Parser::load_dialect_file(
@@ -3787,12 +3521,11 @@ void Parser::do_file(const std::string &_path,
               std::istreambuf_iterator<char>());
   source.close();
 
-  Lexer l;
   uint64_t line = 1, col = 0;
   TokenStream token_stream({});
 
   try {
-    token_stream = l.lex(text, path, line, col);
+    token_stream = Lexer::lex(text, path, line, col, true);
   } catch (OutOfPPPLError &e) {
     // If requested, dump
     if (csettings.dump_file.has_value()) {
@@ -3820,16 +3553,6 @@ void Parser::do_file(const std::string &_path,
         path.string() + "");
   }
 
-  // Preprocess (including includes)
-  if (settings.dialect.has_value()) {
-    // rules.add_entry_point(settings.dialect.value());
-    std::cerr << __FILE__ << ":" << __LINE__
-              << "> Unimplemented\n"
-              << std::flush;
-  }
-  preprocess(token_stream);
-  token_stream.reset();
-
   // If requested, syntax check
   if (csettings.do_syntax_check) {
     syntax_check(path, text);
@@ -3837,10 +3560,8 @@ void Parser::do_file(const std::string &_path,
   }
 
   // Do actual parsing here
-  debug_print();
   parse_global(token_stream);
   token_stream.reset();
-  debug_print();
 
   // If requested, dump
   if (csettings.dump_file.has_value()) {
@@ -3852,7 +3573,7 @@ void Parser::do_file(const std::string &_path,
   }
 }
 
-void Parser::replace_macro(TokenStream &_pos) {
+bool Parser::replace_macro(TokenStream &_pos) {
   debug_print();
   if (settings.debug) {
     settings.ostream << __FUNCTION__ << " at "
@@ -3868,21 +3589,21 @@ void Parser::replace_macro(TokenStream &_pos) {
       _pos.cur().text.substr(_pos.cur().text.find('!') + 1);
 
   if (name == "LINE!") {
-    _pos.tell()->type = "NUMBER";
     _pos.tell()->text = std::to_string(_pos.cur().line) + "u64";
-    return;
+    Lexer::classify_type(*_pos.tell());
+    return true;
   } else if (name == "COL!") {
-    _pos.tell()->type = "NUMBER";
     _pos.tell()->text = std::to_string(_pos.cur().col) + "u64";
-    return;
+    Lexer::classify_type(*_pos.tell());
+    return true;
   } else if (name == "FILE!") {
-    _pos.tell()->type = "STRING";
     _pos.tell()->text = '"' + _pos.cur().file.string() + '"';
-    return;
+    Lexer::classify_type(*_pos.tell());
+    return true;
   } else if (name == "oak_VERSION!") {
-    _pos.tell()->type = "STRING";
     _pos.tell()->text = '"' + acorn_version + '"';
-    return;
+    Lexer::classify_type(*_pos.tell());
+    return true;
   } else if (name == "SYSTEM!") {
     _pos.tell()->type = "STRING";
 #if (defined(WIN32) || defined(WINNT))
@@ -3894,26 +3615,26 @@ void Parser::replace_macro(TokenStream &_pos) {
 #else
     _pos.tell()->text = "\"OTHER\"";
 #endif
-    return;
+    Lexer::classify_type(*_pos.tell());
+    return true;
   }
 
-  debug_print();
-  const auto res = scope_manager.get(name);
-  debug_print();
+  if (Macros::reserved_macro_names.contains(name)) {
+    // Just skip it
+    Macros::get_macro_args(_pos);
+    return false;
+  }
 
+  const auto res = scope_manager.get(name);
   if (!res.has_value()) {
     if (!nonexistence_replacement.empty()) {
       _pos.tell()->text = nonexistence_replacement;
       Lexer::classify_type(*_pos.tell());
-      return;
     } else {
       throw std::runtime_error("Macro '" + name +
                                "' has no definition");
     }
-  }
-
-  if (std::holds_alternative<InlineMacro>(res.value())) {
-    debug_print();
+  } else if (std::holds_alternative<InlineMacro>(res.value())) {
     // Inline
     const auto to_remove = _pos.tell();
     for (const auto &item :
@@ -3924,8 +3645,7 @@ void Parser::replace_macro(TokenStream &_pos) {
     _pos.erase(to_remove);
   } else if (_pos.peek(1).text == "(") {
     // Functional
-    auto args = Macros::get_macro_args(_pos);
-    _pos.next();
+    auto args = Macros::get_macro_args(_pos, true);
 
     const auto exe =
         std::get<CompiledMacro>(res.value()).executable;
@@ -3939,8 +3659,6 @@ void Parser::replace_macro(TokenStream &_pos) {
     // Prepare call
     std::string command = exe;
     for (const auto &arg : args) {
-      TokenStream stream = arg;
-      preprocess(stream);
       std::string arg_text;
       for (const auto &tok : arg) {
         if (!arg_text.empty()) {
@@ -3965,10 +3683,9 @@ void Parser::replace_macro(TokenStream &_pos) {
     }
 
     // Lex replacement
-    Lexer l;
     uint64_t junk_line = 0, junk_col = 0;
-    auto lexed_replacement =
-        l.lex(replacement, name_tok.file, junk_line, junk_col);
+    auto lexed_replacement = Lexer::lex(
+        replacement, name_tok.file, junk_line, junk_col);
 
     // Do replacement
     for (const auto &t : lexed_replacement) {
@@ -3987,4 +3704,5 @@ void Parser::replace_macro(TokenStream &_pos) {
         "Compiled macro '" + name +
         "' must be invoked as a function call.");
   }
+  return true;
 }

@@ -1,6 +1,7 @@
 /**
  * @file
- * @brief C-string operations in oak
+ * @brief C-string operations in Oak. For operations on Oak, see
+ * std/oak_string.h, std/string.oak, and std/string.c
  */
 
 pragma!("no_dialect");

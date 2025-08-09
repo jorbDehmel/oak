@@ -20,7 +20,8 @@
  */
 class Lexer {
 public:
-  /// Statics for lexing
+  /// Disallow normal instantation: This is a static class
+  Lexer() = delete;
 
   /// Whitespace characters for lexing
   const static std::set<char> whitespace;
@@ -71,13 +72,16 @@ public:
     /// The column it started in
     uint64_t col;
 
+    /// If true, sourced directly from lexing a file. Else, was
+    /// inserted some other way (e.g. macro)
+    bool original = false;
+
     /// Construct with all parameters specified
     Token(const std::string &_text,
           const std::filesystem::path &_file,
-          const uint64_t &_line, const uint64_t &_col,
-          const std::string &_type = "ID")
-        : text(_text), type(_type), file(_file), line(_line),
-          col(_col) {
+          const uint64_t &_line, const uint64_t &_col)
+        : text(_text), file(_file), line(_line), col(_col) {
+      classify_type(*this);
     }
 
     /// Construct with the other as a 'template', but with some
@@ -86,15 +90,16 @@ public:
           const std::string &_new_text)
         : text(_new_text), file(_other.file), line(_other.line),
           col(_other.col) {
+      classify_type(*this);
     }
 
     /// Construct with the other as a 'template', but with some
     /// new text
     Token(const Lexer::Token &_other,
           const Lexer::Token &_new_text)
-        : text(_new_text), type(_new_text.type),
-          file(_other.file), line(_other.line),
+        : text(_new_text), file(_other.file), line(_other.line),
           col(_other.col) {
+      classify_type(*this);
     }
 
     /// Returns true iff the texts match
@@ -118,18 +123,19 @@ public:
    * without merging or removing comments. Still does type
    * classification.
    */
-  std::list<Lexer::Token>
+  static std::list<Lexer::Token>
   raw_lex(const std::string &_text,
           const std::filesystem::path &_path, uint64_t &_line,
-          uint64_t &_col);
+          uint64_t &_col, const bool &_is_original = false);
 
   /**
    * @brief Breaks some input file text
    * into a token stream
    */
-  class TokenStream lex(const std::string &_text,
-                        const std::filesystem::path &_path,
-                        uint64_t &_line, uint64_t &_col);
+  static class TokenStream
+  lex(const std::string &_text,
+      const std::filesystem::path &_path, uint64_t &_line,
+      uint64_t &_col, const bool &_is_original = false);
 
   /**
    * @brief Gets the type of a given literal, given that it is

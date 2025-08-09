@@ -138,12 +138,11 @@ void print_help() {
 
 bool validate(const std::string &_original_text,
               const std::string &_transformed_text) {
-  static Lexer lexer;
   uint64_t dummy_line = 1, dummy_col = 0;
-  auto l = lexer.lex(_original_text, __FILE__, dummy_line,
-                     dummy_col);
-  auto r = lexer.lex(_transformed_text, __FILE__, dummy_line,
-                     dummy_col);
+  auto l = Lexer::lex(_original_text, __FILE__, dummy_line,
+                      dummy_col, true);
+  auto r = Lexer::lex(_transformed_text, __FILE__, dummy_line,
+                      dummy_col, true);
 
   for (; !(l.done() && r.done());) {
     if (l.done() || r.done()) {
@@ -275,7 +274,6 @@ int main(int c, char *v[]) {
   }
 
   // Open and lex file
-  Lexer lexer;
   std::string text;
   uint64_t line = 1, col = 0;
 
@@ -287,7 +285,7 @@ int main(int c, char *v[]) {
   }
   text.assign(std::istreambuf_iterator<char>(input_file),
               std::istreambuf_iterator<char>());
-  auto lexed = lexer.raw_lex(text, file, line, col);
+  auto lexed = Lexer::raw_lex(text, file, line, col, true);
   input_file.close();
 
   // Create canonical text

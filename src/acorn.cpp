@@ -130,6 +130,16 @@ bool parse_args(const int _c, const char *const _v[],
         _oakc.settings.compile_settings().prettify = true;
       }
 
+      // PreProcessor Pass Limit
+      else if (arg == "--pppl") {
+        if (i + 1 >= _c) {
+          throw std::runtime_error(
+              "'-" + arg + "' must be followed by an argument");
+        }
+        _oakc.settings.compile_settings()
+            .preprocess_pass_limit = std::stoi(_v[++i]);
+      }
+
       // Quit immediately
       else if (arg == "--quit") {
         return false;
@@ -359,6 +369,15 @@ bool parse_args(const int _c, const char *const _v[],
         case 'p': // Use clang-format on C
           _oakc.settings.compile_settings().prettify =
               !_oakc.settings.compile_settings().prettify;
+          break;
+        case 'P':
+          if (i + 1 >= _c) {
+            throw std::runtime_error(
+                "'-" + std::string{flag} +
+                "' must be followed by an argument");
+          }
+          _oakc.settings.compile_settings()
+              .preprocess_pass_limit = std::stoi(_v[++i]);
           break;
         case 'q': // Quit immediately
           return false;

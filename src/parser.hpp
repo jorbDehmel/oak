@@ -39,34 +39,39 @@ namespace Macros {
 std::string get_cmd_output(const std::string &_cmd);
 
 /// Internal oak macros which are deferred to parse time
-/// (EG size!, type!)
 const static std::set<std::string> reserved_macro_names = {
     "alias!",
-    "namespace_use!",
-    "size!",
-    "type!",
-    "c!",
     "alloc!",
-    "free!",
+    "c!",
     "compile_time_error!",
-    "compile_time_warning!",
     "compile_time_print!",
-    "rules_use!",
-    "rules_new!",
-    "rules_bundle!",
+    "compile_time_system!",
+    "compile_time_warning!",
+    "erase!",
+    "flag!",
+    "free!",
+    "include!",
+    "link!",
+    "namespace_use!",
+    "pragma!",
+    "rule_bundle!",
+    "rule_new!",
+    "rule_remove!",
+    "rule_use!",
+    "size!",
     "str!",
-    "unstr!"};
+    "type!",
+    "unstr!",
+    "LINE!",
+    "COL!",
+    "FILE!",
+    "oak_VERSION!",
+    "SYSTEM!",
+};
 
-/// Erases and returns a macro occurrence's args.
+/// Goes past and returns a macro occurrence's arguments
 std::list<std::list<Lexer::Token>>
-get_macro_args(TokenStream &_pos);
-
-/// STRIPS QUOTES OFF OF a macro occurrence's
-/// args. Then returns those args WITHOUT ERASURE and
-/// WITHOUT recursion! This should only be used after all
-/// preprocessing!
-std::list<Lexer::Token>
-get_macro_args_no_erase(TokenStream &_pos);
+get_macro_args(TokenStream &_pos, const bool &_erase = false);
 
 /**
  * @brief Strips string literal delimiters off a string
@@ -207,13 +212,8 @@ public:
   /// Points to macro name after 'let'. Can be inline or
   /// functional. Erases all traces after done
   void parse_macro(TokenStream &_pos,
-                   const uint64_t &_preproc_passes_allowed);
-
-  /**
-   * @brief Preprocess until a fixed point is reached. Expect
-   * the token stream position to be undefined after.
-   */
-  uint64_t preprocess(TokenStream &_token_stream);
+                   const uint64_t &_preproc_passes_allowed,
+                   const std::list<std::string> &_names);
 
   /**
    * @brief Load a given dialect file and register it as the
@@ -253,8 +253,8 @@ public:
       const std::list<std::list<std::string>> &_substitutions);
 
   /// Replace a macro CALL (not definition) at the given token
-  /// stream location.
-  void replace_macro(TokenStream &_pos);
+  /// stream location. Returns whether or not anything changed
+  bool replace_macro(TokenStream &_pos);
 
   friend class OakCompiler;
 };

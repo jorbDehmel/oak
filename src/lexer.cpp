@@ -2,9 +2,9 @@
 #include "debug.hpp"
 #include <cstdint>
 #include <cstring>
+#include <iostream>
 #include <optional>
 #include <stdexcept>
-#include <vector>
 
 /**
  * @brief Avoid C keywords
@@ -89,7 +89,8 @@ const std::set<char> Lexer::singleton_operators = {
 std::list<Lexer::Token>
 Lexer::raw_lex(const std::string &_text,
                const std::filesystem::path &_path,
-               uint64_t &_line, uint64_t &_col) {
+               uint64_t &_line, uint64_t &_col,
+               const bool &_is_original) {
   debug_print();
 
   const auto next_line = [&]() {
@@ -119,7 +120,7 @@ Lexer::raw_lex(const std::string &_text,
       }
       out.push_back(Lexer::Token(
           _text.substr(start_pos, pos - start_pos + 1), _path,
-          _line, _col, "COMMENT"));
+          _line, _col));
       if (_text.at(pos) == '\n') {
         next_line();
       }
@@ -133,7 +134,8 @@ Lexer::raw_lex(const std::string &_text,
         if (_text.at(pos) == '\n') {
           out.push_back(Lexer::Token(
               _text.substr(start_pos, pos - start_pos), _path,
-              _line, _col, "COMMENT"));
+              _line, _col));
+          out.back().type = "COMMENT";
           start_pos = pos + 1;
           next_line();
         }
@@ -142,7 +144,8 @@ Lexer::raw_lex(const std::string &_text,
       ++pos, ++_col;
       out.push_back(Lexer::Token(
           _text.substr(start_pos, pos - start_pos + 1), _path,
-          _line, _col, "COMMENT"));
+          _line, _col));
+      out.back().type = "COMMENT";
     }
 
     // Multi-character non-IDs
@@ -152,8 +155,7 @@ Lexer::raw_lex(const std::string &_text,
                _text.at(pos + 1) <= '9')) {
 
       // Regular operators
-      Lexer::Token to_append =
-          Lexer::Token("", _path, _line, _col);
+      std::string to_append;
       while (pos + 1 < _text.size() &&
              operators.contains(_text.at(pos + 1))) {
         if (pos + 2 < _text.size() &&
@@ -163,15 +165,15 @@ Lexer::raw_lex(const std::string &_text,
           break;
         }
 
-        to_append.text.push_back(_text.at(pos));
+        to_append.push_back(_text.at(pos));
         ++pos, ++_col;
       }
-      to_append.text.push_back(_text.at(pos));
-      out.push_back(to_append);
+      to_append.push_back(_text.at(pos));
+      out.push_back(
+          Lexer::Token(to_append, _path, _line, _col));
     } else if (_text.at(pos) == '\'') {
       // Single string literal
-      Lexer::Token to_append =
-          Lexer::Token("", _path, _line, _col);
+      std::string to_append;
       bool skip = false;
       ++pos, ++_col;
       while (pos < _text.size()) {
@@ -184,7 +186,7 @@ Lexer::raw_lex(const std::string &_text,
           case 't':
           case 'n':
           case '0':
-            to_append.text.push_back('\\');
+            to_append.push_back('\\');
             break;
           default:
             break;
@@ -197,17 +199,16 @@ Lexer::raw_lex(const std::string &_text,
                    _text.at(pos) == '\n') {
           break;
         } else if (_text.at(pos) == '"') {
-          to_append.text.push_back('\\');
+          to_append.push_back('\\');
         }
-        to_append.text.push_back(_text.at(pos));
+        to_append.push_back(_text.at(pos));
         ++pos, ++_col;
       }
-      to_append.text = '"' + to_append.text + '"';
-      out.push_back(to_append);
+      out.push_back(Lexer::Token('"' + to_append + '"', _path,
+                                 _line, _col));
     } else if (_text.at(pos) == '"') {
       // Double string literal
-      Lexer::Token to_append =
-          Lexer::Token("", _path, _line, _col);
+      std::string to_append;
       bool skip = false;
       ++pos, ++_col;
       while (pos < _text.size()) {
@@ -220,7 +221,7 @@ Lexer::raw_lex(const std::string &_text,
           case 't':
           case 'n':
           case '0':
-            to_append.text.push_back('\\');
+            to_append.push_back('\\');
             break;
           default:
             break;
@@ -233,11 +234,11 @@ Lexer::raw_lex(const std::string &_text,
                    _text.at(pos) == '\n') {
           break;
         }
-        to_append.text.push_back(_text.at(pos));
+        to_append.push_back(_text.at(pos));
         ++pos, ++_col;
       }
-      to_append.text = '"' + to_append.text + '"';
-      out.push_back(to_append);
+      out.push_back(Lexer::Token('"' + to_append + '"', _path,
+                                 _line, _col));
     } else if (_text.at(pos) == '`') {
       // Backtick string: Can be single or triple
       if (pos + 2 < _text.size() && _text.at(pos + 1) == '`' &&
@@ -249,8 +250,7 @@ Lexer::raw_lex(const std::string &_text,
                                  "> UNIMPLEMENTED");
       } else {
         // Single backtick string
-        Lexer::Token to_append =
-            Lexer::Token("", _path, _line, _col);
+        std::string to_append;
         bool skip = false;
         ++pos, ++_col;
         while (pos < _text.size()) {
@@ -262,7 +262,7 @@ Lexer::raw_lex(const std::string &_text,
             case 't':
             case 'n':
             case '0':
-              to_append.text.push_back('\\');
+              to_append.push_back('\\');
               break;
             default:
               break;
@@ -275,13 +275,13 @@ Lexer::raw_lex(const std::string &_text,
                      _text.at(pos) == '\n') {
             break;
           } else if (_text.at(pos) == '"') {
-            to_append.text.push_back('\\');
+            to_append.push_back('\\');
           }
-          to_append.text.push_back(_text.at(pos));
+          to_append.push_back(_text.at(pos));
           ++pos, ++_col;
         }
-        to_append.text = '"' + to_append.text + '"';
-        out.push_back(to_append);
+        out.push_back(Lexer::Token('"' + to_append + '"', _path,
+                                   _line, _col));
       }
     }
 
@@ -293,8 +293,7 @@ Lexer::raw_lex(const std::string &_text,
 
     // Everything else: IDs and numbers
     else {
-      Lexer::Token to_append =
-          Lexer::Token("", _path, _line, _col);
+      std::string to_append;
       while (pos + 1 < _text.size() &&
              !whitespace.contains(_text.at(pos + 1)) &&
              (!operators.contains(_text.at(pos + 1)) ||
@@ -303,11 +302,12 @@ Lexer::raw_lex(const std::string &_text,
              _text.at(pos + 1) != '\'' &&
              _text.at(pos + 1) != '"' &&
              _text.at(pos + 1) != '`') {
-        to_append.text.push_back(_text.at(pos));
+        to_append.push_back(_text.at(pos));
         ++pos, ++_col;
       }
-      to_append.text.push_back(_text.at(pos));
-      out.push_back(to_append);
+      to_append.push_back(_text.at(pos));
+      out.push_back(
+          Lexer::Token(to_append, _path, _line, _col));
     }
   } // End main loop
 
@@ -326,10 +326,10 @@ Lexer::raw_lex(const std::string &_text,
     }
   }
 
-  // Classify types and avoid C keywords
+  // Avoid C keywords and mark originality
   for (auto it = out.begin(); it != out.end(); ++it) {
-    classify_type(*it);
     it->text = kwa_mangle(it->text);
+    it->original = _is_original;
   }
 
   // Merge '.'s in float literals
@@ -376,10 +376,11 @@ Lexer::raw_lex(const std::string &_text,
   return out;
 }
 
-TokenStream Lexer::lex(const std::string &_text,
-                       const std::filesystem::path &_path,
-                       uint64_t &_line, uint64_t &_col) {
-  auto out = raw_lex(_text, _path, _line, _col);
+class TokenStream Lexer::lex(const std::string &_text,
+                             const std::filesystem::path &_path,
+                             uint64_t &_line, uint64_t &_col,
+                             const bool &_is_original) {
+  auto out = raw_lex(_text, _path, _line, _col, _is_original);
 
   // Merge successive literals
   for (auto it = out.begin(); it != out.end(); ++it) {
@@ -504,8 +505,8 @@ std::optional<Type> Lexer::get_literal_type(Lexer::Token &_t) {
 
 void Lexer::classify_type(Lexer::Token &_t) {
   if (_t.type == "COMMENT") {
-    return;
-  } else if (_t.text.starts_with("//") ||
+    ;
+  } else if (_t.text.empty() || _t.text.starts_with("//") ||
              _t.text.starts_with("/*") ||
              _t.text.starts_with("#")) {
     _t.type = "COMMENT";
@@ -526,6 +527,9 @@ void Lexer::classify_type(Lexer::Token &_t) {
              Type::int_literals.contains(_t.text) ||
              Type::uint_literals.contains(_t.text)) {
     _t.type = "NUMBER";
+  } else if (_t.text == "EOF" && _t.file == "N/A" &&
+             _t.line == 0 && _t.col == 0) {
+    _t.type = "EOF";
   } else {
     _t.type = "ID";
   }
@@ -561,7 +565,7 @@ bool TokenStream::done() const noexcept {
 
 const Lexer::Token TokenStream::cur() const noexcept {
   if (done()) {
-    return Lexer::Token("EOF", "N/A", 0, 0, "EOF");
+    return Lexer::Token("EOF", "N/A", 0, 0);
   } else {
     return *cur_pos;
   }
@@ -599,7 +603,7 @@ void TokenStream::replace(
 Lexer::Token TokenStream::peek(const uint &_n) const noexcept {
   const auto out = std::next(cur_pos, _n);
   if (out == raw_stream.end()) {
-    return Lexer::Token("EOF", "N/A", 0, 0, "EOF");
+    return Lexer::Token("EOF", "N/A", 0, 0);
   } else {
     return *out;
   }

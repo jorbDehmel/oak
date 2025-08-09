@@ -285,6 +285,28 @@ ScopeManager::get(const std::string &_name) noexcept {
   return {};
 }
 
+void ScopeManager::erase(const std::string &_name) noexcept {
+  debug_print();
+  auto frame_it = frames.rbegin();
+  auto capture_it = barrier_captures.rbegin();
+  for (; frame_it != frames.rend() &&
+         capture_it != barrier_captures.rend();
+       ++frame_it, ++capture_it) {
+    if (frame_it->contains(_name)) {
+      // Resolve any aliasing
+      debug_print();
+      auto cur = frame_it->at(_name);
+      frame_it->erase(_name);
+      return;
+    }
+
+    // Log any captures
+    if (capture_it->has_value()) {
+      return;
+    }
+  }
+}
+
 bool ScopeManager::contains(
     const std::string &_name) const noexcept {
   debug_print();
@@ -790,4 +812,99 @@ void ScopeManager::dump(std::ostream &_into) const noexcept {
   }
 
   _into << "^--------------End--------------^\n";
+}
+
+TokenStream StructInfo::get_default_constructor(
+    const Lexer::Token &_where) const {
+  std::string to_lex = "(self: ^" + name + ") -> void { ";
+  for (const auto &member : member_order) {
+    to_lex += "New(self." + member + "); ";
+  }
+  to_lex += "}";
+  uint64_t line = _where.line, col = _where.col;
+  return Lexer::lex(to_lex, _where.file, line, col);
+}
+
+TokenStream StructInfo::get_default_destructor(
+    const Lexer::Token &_where) const {
+  std::string to_lex = "(self: ^" + name + ") -> void {";
+  for (auto it = member_order.rbegin();
+       it != member_order.rend(); ++it) {
+    to_lex += "Del(self." + *it + ");";
+  }
+  to_lex += "}";
+  uint64_t line = _where.line, col = _where.col;
+  return Lexer::lex(to_lex, _where.file, line, col);
+}
+
+/// Returns a constructor definition, ready to be parsed
+TokenStream EnumInfo::get_default_constructor(
+    const Lexer::Token &_where) const {
+  const std::string op = option_order.front();
+  const std::string text = "(self: ^" + name +
+                           ") -> void {"
+                           "let __data: " +
+                           options.at(op).oak_repr() +
+                           "; wrap_" + op +
+                           "(self, __data);"
+                           "}";
+  uint64_t line = _where.line, col = _where.col;
+  return Lexer::lex(text, _where.file, line, col);
+}
+
+TokenStream EnumInfo::get_default_destructor(
+    const Lexer::Token &_where) const {
+  std::string to_lex = "(self: ^" + name +
+                       ") -> void {\n"
+                       "match (self) {\n";
+  for (const auto &option : option_order) {
+    to_lex += "case " + option + "(" +
+              options.at(option).ref().oak_repr("data") +
+              ") {\n"
+              "Del(data);\n"
+              "}\n";
+  }
+  to_lex.append("}\n}");
+  uint64_t line = _where.line, col = _where.col;
+  return Lexer::lex(to_lex, _where.file, line, col);
+}
+
+std::list<FnInfo>
+EnumInfo::get_wrappers(const Lexer::Token &_where) const {
+  std::list<FnInfo> out;
+  for (const auto &p : options) {
+    const auto wrapper_name = "wrap_" + p.first;
+    FnInfo to_add;
+    to_add.name = wrapper_name;
+
+    to_add.tags["file"] = _where.file;
+    to_add.tags["line"] = std::to_string(_where.line);
+    to_add.tags["col"] = std::to_string(_where.col);
+
+    // Construct wrapper type
+    to_add.t.append_fn();
+    to_add.t.nodes.back().following_arg_name = "self";
+    to_add.t.append_ptr();
+    to_add.t.append_literal(name); // Enum name
+    to_add.t.append_join();
+    to_add.t.nodes.back().following_arg_name = "__data";
+    to_add.t.append_type(p.second);
+    to_add.t.append_maps();
+    to_add.t.append_literal("void");
+
+    // Node
+    ASTNodes::RawCFormat child;
+
+    child.format_string = "{ self->__info = " + name + "_OPT_" +
+                          p.first + "; self->__data." +
+                          p.first + " = __data; }";
+
+    to_add.n.children = {ASTNodes::OptBox<ASTNodes::Node>(
+        ASTNodes::RawCFormat())};
+    to_add.tags["autogen"] = "true";
+
+    // Insert fn
+    out.push_back(to_add);
+  }
+  return out;
 }

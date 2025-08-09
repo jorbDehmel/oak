@@ -179,9 +179,6 @@ PackageManager::load_package_spec(
       }
       TokenStream contents =
           std::get<InlineMacro>(value).contents;
-      debug_print();
-      c.p.preprocess(contents);
-      debug_print();
 
       std::string to_add;
       for (const auto &tok : contents) {

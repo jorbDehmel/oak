@@ -1,8 +1,5 @@
 /**
- * @file
- * @brief Operators in Oak. These all interface to corresponding
- * C functions. This file is procedurally generated, so no
- * function-level documentation will be attempted.
+ * @brief Standard operators for Oak: Oak binding. Autogen
  */
 
 pragma!("no_dialect");
@@ -73,3 +70,4 @@ let Eq, Neq(l: []i8, r: []i8) -> bool;
 let Orr, Andd(l: bool, r: bool) -> bool;
 let AnddEq, OrrEq(self: ^bool, other: bool) -> bool;
 let Not(x: bool) -> bool;
+let Flip(x: ^bool) -> void;

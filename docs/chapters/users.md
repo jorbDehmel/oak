@@ -571,8 +571,9 @@ let name::thats::absurdly::long::probably::from::a::package(
 
 // Make an alias named "short_name" which actually refers to the
 // previous fn
-let short_name =
-  name::thats::absurdly::long::probably::from::a::package;
+alias!(short_name,
+  name::thats::absurdly::long::probably::from::a::package
+);
 ```
 
 This is similar to `C++`'s `using a = b;` statement.

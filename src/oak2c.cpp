@@ -65,9 +65,8 @@ int main(int _c, char *_v[]) {
   }
 
   // Run through lexer
-  Lexer l;
   uint64_t line = 0, col = 0;
-  auto lexed = l.lex(text, _v[0], line, col);
+  auto lexed = Lexer::lex(text, _v[0], line, col, true);
 
   // Output mangled input
   if (fancy) {

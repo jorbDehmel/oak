@@ -8,6 +8,7 @@
 
 #include "ast_node.hpp"
 #include "lexer.hpp"
+#include <cstdint>
 #include <filesystem>
 #include <functional>
 #include <list>
@@ -52,13 +53,14 @@ public:
   /// The types of the members
   std::map<std::string, Type> members;
 
-  /// Returns a constructor definition (struct-name-agnostic)
-  ASTNodes::Statement
-  get_default_constructor(const std::string &_self_name) const;
+  /// Returns a constructor definition (struct-name-agnostic),
+  /// with _where being a sample to copy file/line/col from
+  TokenStream
+  get_default_constructor(const Lexer::Token &_where) const;
 
   /// Returns a destructor definition (struct-name-agnostic)
-  ASTNodes::Statement
-  get_default_destructor(const std::string &_self_name) const;
+  TokenStream
+  get_default_destructor(const Lexer::Token &_where) const;
 };
 
 /// Information about a single enum definition
@@ -77,13 +79,18 @@ public:
   /// The types of the options
   std::map<std::string, Type> options;
 
-  /// Returns a constructor definition (struct-name-agnostic)
-  ASTNodes::Statement
-  get_default_constructor(const std::string &_self_name) const;
+  /// Returns a constructor definition, ready to be parsed
+  TokenStream
+  get_default_constructor(const Lexer::Token &_where) const;
 
-  /// Returns a destructor definition (struct-name-agnostic)
-  ASTNodes::Statement
-  get_default_destructor(const std::string &_self_name) const;
+  /// Returns a destructor definition, ready to be parsed
+  TokenStream
+  get_default_destructor(const Lexer::Token &_where) const;
+
+  /// Returns a list of implementations for each of the wrap_*
+  /// functions.
+  std::list<FnInfo>
+  get_wrappers(const Lexer::Token &_where) const;
 };
 
 /// Information about a single template block
@@ -270,6 +277,9 @@ public:
 
   /// Find the closest instance and resolve aliases
   std::optional<Value> get(const std::string &_name) noexcept;
+
+  /// Find the closest instance, resolve aliases, and murder it
+  void erase(const std::string &_name) noexcept;
 
   /// Retrieves the fn closest to the given call spec WITHOUT
   /// doing any templates (we don't have a parser!)

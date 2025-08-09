@@ -1,0 +1,18 @@
+/**
+ * @brief Ensures that erase! works
+ */
+
+pragma!("compile_should_fail");
+
+let to_be_erased() -> void {}
+
+let main() -> i32 {
+  to_be_erased();
+
+  erase!(to_be_erased);
+
+  // Should fail
+  to_be_erased();
+
+  return 0i32;
+}

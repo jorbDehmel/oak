@@ -101,16 +101,18 @@ def main() -> int:
 
         # Headers
         oak.write(
-            '/*\n'
-            'Standard operators for Oak: Oak binding\n'
-            '*/\n\n'
+            '/**\n'
+            ' * @brief Standard operators for Oak: Oak '
+            'binding. Autogen\n'
+            ' */\n\n'
             'pragma!(\"no_dialect\");\n'
             'link!(\"std/operators.o\");\n\n'
         )
         c.write(
-            '/*\n'
-            'Standard operators for Oak: C binding\n'
-            '*/\n\n'
+            '/**\n'
+            ' * @brief Standard operators for Oak: C '
+            'binding. Autogen\n'
+            ' */\n\n'
             '#include "std_oak_header.h"\n'
             '#include <string.h>\n\n'
         )
@@ -249,7 +251,8 @@ def main() -> int:
             'let Orr, Andd(l: bool, r: bool) -> bool;\n'
             'let AnddEq, OrrEq(self: ^bool, other: bool'
             ') -> bool;\n'
-            'let Not(x: bool) -> bool;\n')
+            'let Not(x: bool) -> bool;\n'
+            'let Flip(x: ^bool) -> void;\n')
 
         c.write(
             oak2c('let Eq(l: []i8, r: []i8) -> bool;')[:-2]
@@ -279,6 +282,9 @@ def main() -> int:
         c.write(
             oak2c('let Not(x: bool) -> bool;')[:-2]
             + '{\n  return !x;\n}\n\n')
+        c.write(
+            oak2c('let Flip(x: ^bool) -> void;')[:-2]
+            + '{\n  *x = !(*x);\n}\n\n')
 
     run(['clang-format', '-i', target_c], check=True)
 
