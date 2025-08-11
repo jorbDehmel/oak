@@ -128,6 +128,7 @@ void ASTNodes::reconstruct(const ASTNodes::Node &_what,
       _where << "{\n";
       for (const auto &child : d.children) {
         reconstruct(child.get(), _where);
+        _where << ";\n";
       }
       _where << "}\n";
     } else if (d.children.size() == 1) {

@@ -25,7 +25,7 @@ struct Version {
   std::list<uintmax_t> version;
 
   /// Parse from a version string (e.g. "0.1.2.3")
-  static Version from(const std::string &_text);
+  Version(const std::string &_text = "");
 
   /// Return the thing that should be appended to the package
   /// name in order for it to be valid. For instance, package

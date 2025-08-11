@@ -45,11 +45,8 @@ void print_region(TokenStream &_pos, std::ostream &_where,
   _pos.next();
 
   // Top delim
-  _where << "v";
-  for (uint i = 0; i < 64 - 2; ++i) {
-    _where << '~';
-  }
-  _where << "v\n";
+  _where << "////////////////////////// In region: "
+            "//////////////////////////\n";
 
   // Print lines
   uint line = _pos.cur().line, col = 0;
@@ -60,9 +57,9 @@ void print_region(TokenStream &_pos, std::ostream &_where,
     }
 
     // Get to correct line
-    if (_pos.cur().line != line) {
+    while (line < _pos.cur().line) {
       _where << '\n';
-      line = _pos.cur().line;
+      ++line;
       col = 0;
     }
 
@@ -88,11 +85,10 @@ void print_region(TokenStream &_pos, std::ostream &_where,
   _where << "^\n";
 
   // Bottom indicator
-  _where << "^";
-  for (uint i = 0; i < 64 - 2; ++i) {
-    _where << '~';
+  for (uint i = 0; i < 64; ++i) {
+    _where << '/';
   }
-  _where << "^\n";
+  _where << '\n';
 
   _pos.seek(start_pos);
 }
@@ -150,7 +146,6 @@ void Parser::parse_global(TokenStream &_pos) {
                      << '\n';
   }
 
-  // Iterate and delegate. No macros remain.
   while (!_pos.done()) {
     try {
       parse_statement(_pos);
@@ -176,7 +171,6 @@ void Parser::parse_global(TokenStream &_pos) {
   }
 }
 
-// Constructs the equivalent C program at the given path
 void Parser::reconstruct(std::ostream &_where) const noexcept {
   debug_print();
 
@@ -334,9 +328,6 @@ void Parser::dump(std::ostream &_where,
   }
 }
 
-// Parse a single function declaration
-// Assumes we have just seen "let NAME (" and are pointing to
-// "("
 void Parser::parse_function(
     const std::list<std::string> &_names, TokenStream &_pos) {
   debug_print();
@@ -451,7 +442,6 @@ void Parser::parse_function(
   }
 }
 
-// Parses a struct/enum's guts
 std::list<std::pair<std::string, Type>>
 Parser::parse_members(TokenStream &_pos) {
   debug_print();
@@ -566,7 +556,6 @@ Parser::parse_template_pre_post(TokenStream &_pos) {
   return out;
 }
 
-// Return the type spec at the specified location
 Type Parser::parse_type(TokenStream &_pos) {
   debug_print();
   if (settings.debug) {
@@ -728,9 +717,6 @@ Type Parser::parse_type(TokenStream &_pos) {
   return out;
 }
 
-// Parse a single struct declaration
-// Assumes we have just seen "let NAME : struct" and are
-// pointing to the next token.
 void Parser::parse_struct(const std::list<std::string> &_names,
                           TokenStream &_pos) {
   debug_print();
@@ -795,9 +781,6 @@ void Parser::parse_struct(const std::list<std::string> &_names,
   }
 }
 
-// Parse a single enum declaration
-// Assumes we have just seen "let NAME : enum" and are
-// pointing to the next token.
 void Parser::parse_enum(const std::list<std::string> &_names,
                         TokenStream &_pos) {
   debug_print();
@@ -865,7 +848,6 @@ void Parser::parse_enum(const std::list<std::string> &_names,
   }
 }
 
-// Assumes we are pointing to the first token in the statement
 ASTNodes::Statement
 Parser::parse_statement(TokenStream &_pos,
                         const Type &_return_type) {
@@ -2733,8 +2715,6 @@ Macros::get_macro_args(TokenStream &_pos, const bool &_erase) {
   return out;
 }
 
-// Points to macro name after 'let'. Can be inline or
-// functional. Erases all traces after done
 void Parser::parse_macro(
     TokenStream &_pos, const uint64_t &_preproc_passes_allowed,
     const std::list<std::string> &_names) {
@@ -3524,16 +3504,9 @@ void Parser::do_file(const std::string &_path,
   uint64_t line = 1, col = 0;
   TokenStream token_stream({});
 
+  // Lex
   try {
     token_stream = Lexer::lex(text, path, line, col, true);
-  } catch (OutOfPPPLError &e) {
-    // If requested, dump
-    if (csettings.dump_file.has_value()) {
-      dump(*csettings.dump_file.value(), token_stream);
-    }
-
-    throw OutOfPPPLError("Error occurred while lexing " +
-                         path.string() + ":\n" + e.what());
   } catch (std::runtime_error &e) {
     // If requested, dump
     if (csettings.dump_file.has_value()) {
@@ -3583,6 +3556,10 @@ bool Parser::replace_macro(TokenStream &_pos) {
   }
 
   const auto name_tok = _pos.cur();
+  if (name_tok.text.find("!") == std::string::npos) {
+    return false;
+  }
+
   const std::string name =
       _pos.cur().text.substr(0, _pos.cur().text.find('!') + 1);
   const std::string nonexistence_replacement =

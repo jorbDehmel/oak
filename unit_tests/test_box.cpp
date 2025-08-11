@@ -1,5 +1,5 @@
 /**
- * @brief Tests the ASTNodes::Box and OptBox classes
+ * @brief Tests the OptBox class
  */
 
 #include "../src/ast_node.hpp"

@@ -38,7 +38,7 @@ namespace Macros {
  */
 std::string get_cmd_output(const std::string &_cmd);
 
-/// Internal oak macros which are deferred to parse time
+/// Internal oak macros
 const static std::set<std::string> reserved_macro_names = {
     "alias!",
     "alloc!",

@@ -326,8 +326,9 @@ Lexer::raw_lex(const std::string &_text,
     }
   }
 
-  // Avoid C keywords and mark originality
+  // Avoid C keywords, fix columns, and mark originality
   for (auto it = out.begin(); it != out.end(); ++it) {
+    it->col -= it->text.size();
     it->text = kwa_mangle(it->text);
     it->original = _is_original;
   }

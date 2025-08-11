@@ -44,9 +44,8 @@ void add_symlinks(const std::string &_name,
       }
 
       const auto candidate_version =
-          PackageManager::Version::from(
-              d.path().string().substr(
-                  d.path().string().find(".") + 1));
+          PackageManager::Version(d.path().string().substr(
+              d.path().string().find(".") + 1));
 
       // If it is larger than the symlink's target,
       // don't symlink and break
@@ -101,9 +100,7 @@ std::strong_ordering PackageManager::Version::operator<=>(
   return std::strong_ordering::equal;
 }
 
-PackageManager::Version
-PackageManager::Version::from(const std::string &from) {
-  PackageManager::Version v;
+PackageManager::Version::Version(const std::string &from) {
   for (unsigned long pos = 0, next = from.find(".", pos + 1);
        pos != std::string::npos;
        pos = next, next = from.find(".", pos + 1)) {
@@ -125,9 +122,8 @@ PackageManager::Version::from(const std::string &from) {
       }
     }
 
-    v.version.push_back(std::stoull(segment));
+    version.push_back(std::stoull(segment));
   }
-  return v;
 }
 
 std::map<std::string, std::string>
@@ -165,20 +161,17 @@ PackageManager::load_package_spec(
 
   c();
 
-  debug_print();
-
   for (const auto &name : c.p.scope_manager.names()) {
-    if (name.starts_with(package_name + "_")) {
-      debug_print();
-      auto value = c.p.scope_manager.get(name).value();
-      debug_print();
-      if (!std::holds_alternative<InlineMacro>(value)) {
-        throw std::runtime_error(
-            "Expected package spec macro " + name +
-            " to be an inline macro, but it was not");
+    if (name.starts_with(package_name + "_") &&
+        name.ends_with("!")) {
+
+      TokenStream contents(
+          {Lexer::Token(name, spec_file, 0, 0)});
+
+      bool keep_going = true;
+      while (keep_going) {
+        keep_going = c.p.replace_macro(contents);
       }
-      TokenStream contents =
-          std::get<InlineMacro>(value).contents;
 
       std::string to_add;
       for (const auto &tok : contents) {
@@ -260,7 +253,7 @@ void PackageManager::install_package(
   }
 
   const auto raw = spec.at("VERSION!");
-  const Version full_version = Version::from(raw);
+  const Version full_version = Version(raw);
   const auto name = spec.at("name");
   const auto real_path =
       _settings.compile_settings().include_path /
@@ -308,8 +301,7 @@ void PackageManager::uninstall_package(
         throw std::runtime_error("Package '" + spec.at("name") +
                                  "' has no version!");
       }
-      const Version full_version =
-          Version::from(spec.at("VERSION!"));
+      const Version full_version = Version(spec.at("VERSION!"));
       const auto name = spec.at("name");
       const auto real_path =
           _oak_include / (name + full_version.package_suffix());
