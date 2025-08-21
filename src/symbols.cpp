@@ -81,22 +81,23 @@ ASTNodes::Statement ScopeManager::pop_frame() {
   }
 }
 
-void ScopeManager::add(const std::string &_key,
+void ScopeManager::add(const std::string &_name,
                        const SingularValue &_value) {
   debug_print();
-  if (frames.back().contains(_key)) {
+  const auto real_name = add_prefix(_name);
+  if (frames.back().contains(real_name)) {
     throw std::runtime_error(
-        "Cannot name entry '" + _key +
+        "Cannot name entry '" + real_name +
         "': A non-overloadable local entry with the same name "
         "already exists");
   } else {
     if (std::holds_alternative<StructInfo>(_value)) {
       debug_print();
-      frames.back()[_key] = std::get<StructInfo>(_value);
+      frames.back()[real_name] = std::get<StructInfo>(_value);
       in_order.push_back(std::get<StructInfo>(_value));
     } else if (std::holds_alternative<EnumInfo>(_value)) {
       debug_print();
-      frames.back()[_key] = std::get<EnumInfo>(_value);
+      frames.back()[real_name] = std::get<EnumInfo>(_value);
       in_order.push_back(std::get<EnumInfo>(_value));
     }
 
@@ -109,13 +110,14 @@ void ScopeManager::add(const std::string &_key,
             "Global variables are not allowed.");
       }
 
-      frames.back()[_key] = std::get<Type>(_value);
+      frames.back()[real_name] = std::get<Type>(_value);
     } else if (std::holds_alternative<InlineMacro>(_value)) {
       debug_print();
-      frames.back()[_key] = std::get<InlineMacro>(_value);
+      frames.back()[real_name] = std::get<InlineMacro>(_value);
     } else if (std::holds_alternative<CompiledMacro>(_value)) {
       debug_print();
-      frames.back()[_key] = std::get<CompiledMacro>(_value);
+      frames.back()[real_name] =
+          std::get<CompiledMacro>(_value);
     }
 
     else {
@@ -128,20 +130,21 @@ void ScopeManager::add(const std::string &_key,
   }
 }
 
-void ScopeManager::add(const std::string &_key,
+void ScopeManager::add(const std::string &_name,
                        const FnInfo &_value) {
   debug_print();
+  const auto real_name = add_prefix(_name);
 
-  if (!frames.back().contains(_key)) {
+  if (!frames.back().contains(real_name)) {
     // Does not exist yet
-    frames.back()[_key] = FnValue({});
+    frames.back()[real_name] = FnValue({});
   } else if (!std::holds_alternative<Value>(
-                 frames.back().at(_key)) ||
+                 frames.back().at(real_name)) ||
              !std::holds_alternative<FnValue>(
-                 dealias(frames.back().at(_key)))) {
+                 dealias(frames.back().at(real_name)))) {
     // Exists, but as wrong type
     throw std::runtime_error(
-        "Cannot name function '" + _key +
+        "Cannot name function '" + real_name +
         "': A non-function or alias entry with the same name "
         "already exists");
   }
@@ -159,34 +162,63 @@ void ScopeManager::add(const std::string &_key,
   }
 
   // Add
-  std::get<FnValue>(std::get<Value>(frames.back().at(_key)))
+  std::get<FnValue>(
+      std::get<Value>(frames.back().at(real_name)))
       .push_back(_value);
   in_order.push_back(_value);
+}
+
+void ScopeManager::push_prefix(const std::string &_prefix) {
+  prefixes.push_back(_prefix);
+}
+
+void ScopeManager::pop_prefix() {
+  prefixes.pop_back();
+}
+
+std::string
+ScopeManager::add_prefix(const std::string &_raw_name) const {
+  debug_print();
+  std::string out = "";
+  bool first = true;
+  for (const auto &prefix : prefixes) {
+    if (first) {
+      first = false;
+    } else {
+      out.push_back('_');
+    }
+    out += prefix;
+  }
+  return out + _raw_name;
 }
 
 void ScopeManager::add(const std::string &_key,
                        const TemplateInfo &_value) {
   debug_print();
-  if (frames.back().contains(_key) &&
-      std::holds_alternative<Value>(frames.back().at(_key)) &&
-      std::holds_alternative<FnValue>(
-          dealias(frames.back().at(_key)))) {
+  const auto real_key = add_prefix(_key);
+  if (frames.back().contains(real_key) &&
+      std::holds_alternative<Value>(
+          frames.back().at(real_key)) &&
+      std::holds_alternative<TemplValue>(
+          dealias(frames.back().at(real_key)))) {
     // Already exists and is of right type
     debug_print();
-    std::get<FnValue>(std::get<Value>(frames.back().at(_key)))
+    std::get<TemplValue>(
+        std::get<Value>(frames.back().at(real_key)))
         .push_back(std::shared_ptr<TemplateInfo>(
             new TemplateInfo(_value)));
-  } else if (!frames.back().contains(_key)) {
+  } else if (!frames.back().contains(real_key)) {
     // Does not exist yet
-    frames.back()[_key] = FnValue({});
-    std::get<FnValue>(std::get<Value>(frames.back().at(_key)))
+    frames.back()[real_key] = TemplValue({});
+    std::get<TemplValue>(
+        std::get<Value>(frames.back().at(real_key)))
         .push_back(std::shared_ptr<TemplateInfo>(
             new TemplateInfo(_value)));
   } else {
     // Exists, but as wrong type
     throw std::runtime_error(
-        "Cannot name function '" + _key +
-        "': A non-function or alias entry with the same name "
+        "Cannot name template '" + real_key +
+        "': A non-template or alias entry with the same name "
         "already exists");
   }
 }
@@ -195,6 +227,7 @@ void ScopeManager::alias(
     const std::string &_name_of_alias,
     const std::string &_thing_that_exists) {
   debug_print();
+  const auto real_name_of_alias = add_prefix(_name_of_alias);
   // Resolve
   const auto target = get(_thing_that_exists);
 
@@ -204,7 +237,7 @@ void ScopeManager::alias(
   }
 
   // Add pointer
-  frames.back().insert_or_assign(_name_of_alias,
+  frames.back().insert_or_assign(real_name_of_alias,
                                  std::ref(target.value()));
 }
 
@@ -333,93 +366,81 @@ ScopeManager::Value ScopeManager::dealias(ValueOrAlias &_what) {
   }
 }
 
-std::optional<TemplateInfo::Substitution>
-TemplateInfo::find_substitutions(
-    const std::string &_name,
-    const std::list<std::string> &_signature_to_provide) const {
-  debug_print();
+// std::optional<TemplateInfo::Substitution>
+// TemplateInfo::find_substitutions(
+//     const std::string &_name,
+//     const std::list<std::string> &_signature_to_provide)
+//     const {
+//   debug_print();
 
-  // Check instance
-  // For as long as we haven't finished the template
-  // If literal on both sides that matches, advance
-  // Else if template has generic, log what that template
-  // needs to be
-  std::map<std::string, uint> generic_indices;
-  std::vector<std::list<std::string>> substitutions;
-  for (const auto &item : generics) {
-    generic_indices[item] = substitutions.size();
-    substitutions.push_back({});
-  }
+//   // Check instance
+//   // For as long as we haven't finished the template
+//   // If literal on both sides that matches, advance
+//   // Else if template has generic, log what that template
+//   // needs to be
+//   std::map<std::string, uint> generic_indices;
+//   std::vector<std::list<std::string>> substitutions;
+//   for (const auto &item : generics) {
+//     generic_indices[item] = substitutions.size();
+//     substitutions.push_back({});
+//   }
 
-  auto desired_it = _signature_to_provide.begin();
-  auto templ_it = provides_block.begin();
+//   auto desired_it = _signature_to_provide.begin();
+//   auto templ_it = provides_block.begin();
 
-  while (desired_it != _signature_to_provide.end() &&
-         templ_it != provides_block.end()) {
-    if (generic_indices.contains(*templ_it)) {
-      do {
-        substitutions.at(generic_indices.at(*templ_it))
-            .push_back(*desired_it);
-        ++desired_it;
-      } while (desired_it != _signature_to_provide.end() &&
-               *desired_it != *std::next(templ_it));
-      ++templ_it;
-    } else if (*desired_it == *templ_it) {
-      ++desired_it;
-      ++templ_it;
-    } else {
-      return {};
-    }
-  }
+//   while (desired_it != _signature_to_provide.end() &&
+//          templ_it != provides_block.end()) {
+//     if (generic_indices.contains(*templ_it)) {
+//       do {
+//         substitutions.at(generic_indices.at(*templ_it))
+//             .push_back(*desired_it);
+//         ++desired_it;
+//       } while (desired_it != _signature_to_provide.end() &&
+//                *desired_it != *std::next(templ_it));
+//       ++templ_it;
+//     } else if (*desired_it == *templ_it) {
+//       ++desired_it;
+//       ++templ_it;
+//     } else {
+//       return {};
+//     }
+//   }
 
-  TemplateInfo::Substitution out;
-  for (uint j = 0; j < substitutions.size(); ++j) {
-    out.push_back(substitutions.at(j));
-  }
-  return out;
-}
+//   TemplateInfo::Substitution out;
+//   for (uint j = 0; j < substitutions.size(); ++j) {
+//     out.push_back(substitutions.at(j));
+//   }
+//   return out;
+// }
 
 ASTNodes::Call
 ScopeManager::get_fn(const std::string &_name,
                      const std::list<ASTNodes::Node> &_args) {
   debug_print();
 
-  std::vector<FnInfo> fn_candidates;
   std::list<ASTNodes::Call> exact_matches, cast_matches,
       ref_matches;
 
-  const auto all_candidates = get(_name);
+  const auto fn_candidates = get(_name);
 
   try {
-    if (!all_candidates.has_value()) {
+    if (!fn_candidates.has_value()) {
       throw std::runtime_error("No entries for '" + _name +
                                "' exist");
     } else if (!std::holds_alternative<FnValue>(
-                   all_candidates.value())) {
+                   fn_candidates.value())) {
       throw std::runtime_error(
           "Entries for '" + _name +
           "' exist, but are not of callable type");
-    } else if (std::get<FnValue>(all_candidates.value())
+    } else if (std::get<FnValue>(fn_candidates.value())
                    .empty()) {
       throw std::runtime_error("No entries for '" + _name +
                                "' exist");
     }
 
-    for (auto &cand :
-         std::get<FnValue>(all_candidates.value())) {
-      if (std::holds_alternative<FnInfo>(cand)) {
-        fn_candidates.push_back(std::get<FnInfo>(cand));
-      }
-    }
-
-    if (fn_candidates.empty()) {
-      throw std::runtime_error(
-          "No non-template candidates exist for function '" +
-          _name + "'");
-    }
-
     // Attempt existing instances
-    for (const auto &instance : fn_candidates) {
+    for (const auto &instance :
+         std::get<FnValue>(fn_candidates.value())) {
       const auto instance_args = instance.t.fn_args();
       if (instance_args.size() != _args.size()) {
         continue;
@@ -511,37 +532,29 @@ ScopeManager::get_fn(const std::string &_name,
     }
 
     // Throw error if it couldn't be resolved
-    throw std::runtime_error("No existing candidate nor "
-                             "providing template could be "
+    throw std::runtime_error("No existing candidate could be "
                              "found for function call '" +
                              fn_call_str(_name, _args) + "'");
   } catch (std::runtime_error &e) {
-    if (all_candidates.has_value() &&
+    if (fn_candidates.has_value() &&
         std::holds_alternative<FnValue>(
-            all_candidates.value()) &&
-        !std::get<FnValue>(all_candidates.value()).empty()) {
+            fn_candidates.value()) &&
+        !std::get<FnValue>(fn_candidates.value()).empty()) {
       std::string msg = "\nCandidates:\n\n";
-      const auto c = std::get<FnValue>(all_candidates.value());
+      const auto c = std::get<FnValue>(fn_candidates.value());
       for (const auto &entry : c) {
-        if (std::holds_alternative<
-                std::shared_ptr<TemplateInfo>>(entry)) {
-          auto val =
-              std::get<std::shared_ptr<TemplateInfo>>(entry);
-          msg += "Template from " + val->path.string() + ":" +
-                 std::to_string(val->line);
-        } else {
-          auto val = std::get<FnInfo>(entry);
-          msg += val.t.oak_repr(_name) + "\n\tlocation:\t" +
-                 val.tags["file"] + ":" + val.tags["line"] +
-                 "." + val.tags["col"];
-          for (const auto &p : val.tags) {
-            if (p.first == "file" || p.first == "line" ||
-                p.first == "col") {
-              continue;
-            }
-            msg += "\n\t" + p.first + ":\t" + p.second;
+        auto val = entry;
+        msg += val.t.oak_repr(_name) + "\n\tlocation:\t" +
+               val.tags["file"] + ":" + val.tags["line"] + "." +
+               val.tags["col"];
+        for (const auto &p : val.tags) {
+          if (p.first == "file" || p.first == "line" ||
+              p.first == "col") {
+            continue;
           }
+          msg += "\n\t" + p.first + ":\t" + p.second;
         }
+
         msg += "\n\n";
       }
       throw std::runtime_error(msg + "\n" + e.what());
@@ -655,33 +668,19 @@ void ScopeManager::tag_fn(const std::string &_name,
             std::get<Value>(entry))) {
       return;
     }
-    if (std::holds_alternative<FnInfo>(
-            std::get<ScopeManager::FnValue>(
-                std::get<Value>(entry))
-                .back())) {
-      std::get<FnInfo>(std::get<ScopeManager::FnValue>(
-                           std::get<Value>(entry))
-                           .back())
-          .tags[_key] = _value;
-    }
+    std::get<ScopeManager::FnValue>(std::get<Value>(entry))
+        .back()
+        .tags[_key] = _value;
   } else { // Alias
     if (!std::holds_alternative<FnValue>(
             std::get<std::reference_wrapper<Value>>(entry)
                 .get())) {
       return;
     }
-    if (std::holds_alternative<FnInfo>(
-            std::get<ScopeManager::FnValue>(
-                std::get<std::reference_wrapper<Value>>(entry)
-                    .get())
-                .back())) {
-      std::get<FnInfo>(
-          std::get<ScopeManager::FnValue>(
-              std::get<std::reference_wrapper<Value>>(entry)
-                  .get())
-              .back())
-          .tags[_key] = _value;
-    }
+    std::get<ScopeManager::FnValue>(
+        std::get<std::reference_wrapper<Value>>(entry).get())
+        .back()
+        .tags[_key] = _value;
   }
 }
 
@@ -721,9 +720,9 @@ void ScopeManager::dump(std::ostream &_into) const noexcept {
       // FnValue, StructInfo, EnumInfo, InlineMacro,
       // CompiledMacro, Type
       if (std::holds_alternative<FnValue>(d)) {
-        // Name-overloadables: Functions and templates
+        // Name-overloadables functions
         const auto info = std::get<FnValue>(d);
-        _into << "Name-overloadable with entries [";
+        _into << "Name-overloadable function with entries [";
         bool first = true;
         for (const auto &entry : info) {
           if (first) {
@@ -731,16 +730,8 @@ void ScopeManager::dump(std::ostream &_into) const noexcept {
           } else {
             _into << ", ";
           }
-          if (std::holds_alternative<FnInfo>(entry)) {
-            const auto instance_info = std::get<FnInfo>(entry);
-            _into << instance_info.t.oak_repr(
-                instance_info.name);
-          } else {
-            const auto instance_info =
-                std::get<std::shared_ptr<TemplateInfo>>(entry);
-            _into << "template from " << instance_info->path
-                  << ":" << instance_info->line;
-          }
+          const auto instance_info = entry;
+          _into << instance_info.t.oak_repr(instance_info.name);
         }
         _into << "]";
       } else if (std::holds_alternative<StructInfo>(d)) {
@@ -789,9 +780,16 @@ void ScopeManager::dump(std::ostream &_into) const noexcept {
         // Compiled macro
         _into << "Compiled macro at "
               << std::get<CompiledMacro>(d).executable;
-      } else {
+      } else if (std::holds_alternative<Type>(d)) {
         // Instance
         _into << "Instance of " << std::get<Type>(d).oak_repr();
+      } else if (std::holds_alternative<TemplValue>(d)) {
+        // Name-overloadables templates
+        const auto info = std::get<TemplValue>(d);
+        _into << "Name-overloadable template with "
+              << info.size() << " entries\n";
+      } else {
+        _into << "Unknown value\n";
       }
     }
 

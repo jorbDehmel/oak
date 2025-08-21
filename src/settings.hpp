@@ -96,9 +96,6 @@ public:
     /// A list of object files ('.o') to include at link time
     std::list<std::filesystem::path> objects;
 
-    /// Libraries requested for inclusion via g++ at link time
-    std::list<std::string> libs;
-
     /// Maps filepaths to their pragma mappings
     std::map<std::filesystem::path,
              std::map<std::string, std::string>>

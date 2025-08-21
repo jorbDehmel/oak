@@ -37,8 +37,8 @@ void assert_match(const std::string &_path,
       std::cerr << item << ' ';
     }
     std::cerr << "\nObserved: ";
-    for (r.reset(); !r.done(); r.next()) {
-      std::cerr << r.cur().text << ' ';
+    for (const auto &tok : r) {
+      std::cerr << tok.text << ' ';
     }
     std::cerr << '\n';
 
@@ -59,7 +59,6 @@ void assert_match(const std::string &_observed,
 }
 
 int main() {
-  Lexer l;
   uintmax_t line = 1, col = 0;
 
   { // Test case 1
@@ -74,7 +73,7 @@ int main() {
         "    0\n"
         "}\n";
 
-    const auto observed = l.lex(text, path, line, col);
+    const auto observed = Lexer::lex(text, path, line, col);
     assert(line == 9);
   }
 
@@ -84,7 +83,7 @@ int main() {
         "include!(/*fizz buzz*/\"std/io.oak\");\n"
         "let main() -> i32//hi there\n";
 
-    const auto observed = l.lex(text, path, line, col);
+    const auto observed = Lexer::lex(text, path, line, col);
     assert_match(path,
                  {"include!", "(", "\"std/io.oak\"", ")", ";",
                   "let", "main", "(", ")", "->", "i32"},

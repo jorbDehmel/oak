@@ -27,28 +27,3 @@ let join(self: ^Thread) -> ^void;
 
 /// Signal that this thread is no longer under our control
 let detach(self: ^Thread) -> void;
-
-////////////////////////////////////////////////////////////////
-// Templated version
-
-let Thread<ArgType, RetType>: struct {
-  __data: Thread,
-}
-
-/// Launch the thread from some function and some data
-let Copy<ArgType, RetType>(self: ^Thread<ArgType, RetType>,
-  fn: ^(ArgType) -> RetType, data: ArgType) -> void {
-  Copy(self.__data, fn, data);
-}
-
-/// Await the function's return, yielding some void pointer
-let join<ArgType, RetType>(self: ^Thread<ArgType, RetType>
-  ) -> RetType {
-  return join(self.__data);
-}
-
-/// Signal that this thread is no longer under our control
-let detach<ArgType, RetType>(self: ^Thread<ArgType, RetType>
-  ) -> void {
-  detach(self.__data);
-}

@@ -17,7 +17,6 @@ int main() {
   { // Test 1: Functions
     Settings s(std::cout);
     Parser p(s);
-    Lexer l;
     uint64_t line = __LINE__, col = 0;
     const std::string file = "foo.oak";
 
@@ -26,7 +25,7 @@ int main() {
         "let var, var2: int; } "
         "let a(b: i32, c: []^bool) -> void;";
 
-    auto lexed = l.lex(text, file, line, col);
+    auto lexed = Lexer::lex(text, file, line, col);
 
     p.parse_global(lexed);
     // p.reconstruct(std::cout, settings.compile_settings());
@@ -46,7 +45,7 @@ int main() {
           std::get<ScopeManager::FnValue>(main_fn_value);
 
       assert(main_fn_info_list.size() == 1);
-      auto value = std::get<FnInfo>(main_fn_info_list.front());
+      auto value = main_fn_info_list.front();
 
       const auto main_fn_type = value.t;
       assert(main_fn_type.is_fn());
@@ -70,8 +69,7 @@ int main() {
 
       assert(fn_info_list.size() == 1);
 
-      const auto fn_type =
-          std::get<FnInfo>(fn_info_list.front()).t;
+      const auto fn_type = fn_info_list.front().t;
       assert(fn_type.is_fn());
       assert(
           fn_type.fn_return_type().exact_match(Type({"void"})));
@@ -93,7 +91,6 @@ int main() {
   { // Test 2: Structs
     Settings s(std::cout);
     Parser p(s);
-    Lexer l;
     uint64_t line = __LINE__, col = 0;
     const std::string file = "fizz.oak";
 
@@ -101,7 +98,7 @@ int main() {
                              "let main()->i32{let "
                              "a:foo;}";
 
-    auto lexed = l.lex(text, file, line, col);
+    auto lexed = Lexer::lex(text, file, line, col);
 
     p.parse_global(lexed);
     // p.reconstruct(std::cout, settings.compile_settings());
@@ -112,14 +109,13 @@ int main() {
   { // Test 3: Enums
     Settings s(std::cout);
     Parser p(s);
-    Lexer l;
     uint64_t line = __LINE__, col;
     const std::string file = "fizz.oak";
 
     const std::string text = "let fizz:enum{a:int,b,c:bool,}"
                              "let main()->i32{let a: fizz;}";
 
-    auto lexed = l.lex(text, file, line, col);
+    auto lexed = Lexer::lex(text, file, line, col);
 
     p.parse_global(lexed);
     // p.reconstruct(std::cout, settings.compile_settings());
@@ -130,13 +126,12 @@ int main() {
   { // Test 4: Nonexistant structs
     Settings s(std::cout);
     Parser p(s);
-    Lexer l;
     uint64_t line = __LINE__, col;
     const std::string file = "fizz.oak";
 
     const std::string text = "let main()->i32{let a:foo;}";
 
-    auto lexed = l.lex(text, file, line, col);
+    auto lexed = Lexer::lex(text, file, line, col);
 
     bool did_throw = false;
     try {
@@ -152,7 +147,6 @@ int main() {
   { // Test 5: No-arg function calls
     Settings s(std::cout);
     Parser p(s);
-    Lexer l;
     uint64_t line = __LINE__, col;
     const std::string file = "fizz.oak";
 
@@ -164,7 +158,7 @@ int main() {
         "}\n";
     // clang-format on
 
-    auto lexed = l.lex(text, file, line, col);
+    auto lexed = Lexer::lex(text, file, line, col);
 
     p.parse_global(lexed);
     // p.reconstruct(std::cout, settings.compile_settings());
@@ -175,7 +169,6 @@ int main() {
   { // Test 6: Arg function calls
     Settings s(std::cout);
     Parser p(s);
-    Lexer l;
     uint64_t line = __LINE__, col;
     const std::string file = "fizz.oak";
 
@@ -191,7 +184,7 @@ int main() {
         "}\n";
     // clang-format on
 
-    auto lexed = l.lex(text, file, line, col);
+    auto lexed = Lexer::lex(text, file, line, col);
 
     p.parse_global(lexed);
     // p.reconstruct(std::cout, settings.compile_settings());
@@ -202,7 +195,6 @@ int main() {
   { // Test 7: Overloaded function calls
     Settings s(std::cout);
     Parser p(s);
-    Lexer l;
     uint64_t line = __LINE__, col;
     const std::string file = "fizz.oak";
 
@@ -220,7 +212,7 @@ int main() {
         "}\n";
     // clang-format on
 
-    auto lexed = l.lex(text, file, line, col);
+    auto lexed = Lexer::lex(text, file, line, col);
 
     p.parse_global(lexed);
     // p.reconstruct(std::cout, settings.compile_settings());

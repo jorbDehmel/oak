@@ -15,9 +15,14 @@
 #include "type.hpp"
 #include <list>
 
+/// Prints the previous _n lines, followed by the current line
+/// and an indicator to the current token
+void print_region(TokenStream &_pos, std::ostream &_where,
+                  const uint &_n = 1);
+
 /**
- * @brief An error class thrown when we surpass the PreProcessor
- * Pass limit.
+ * @brief An error class thrown when we surpass the
+ * PreProcessor Pass limit.
  */
 class OutOfPPPLError : public std::runtime_error {
 public:
@@ -91,8 +96,8 @@ std::string make_string_literal(const std::string &_contents);
 }; // namespace Macros
 
 /**
- * @brief Parses the text once it has been brought to Oak normal
- * form by the rules.
+ * @brief Parses the text once it has been brought to Oak
+ * normal form by the rules.
  */
 class Parser {
 public:
@@ -100,9 +105,9 @@ public:
   Parser(Settings &_s) : settings(_s) {
   }
 
-  /// A REFERENCE to externally-controlled settings. This is so
-  /// that you can centralize the settings for the compiler, I
-  /// guess? Seems suboptimal to do it this way.
+  /// A REFERENCE to externally-controlled settings. This is
+  /// so that you can centralize the settings for the
+  /// compiler, I guess? Seems suboptimal to do it this way.
   Settings &settings;
 
   /**
@@ -118,8 +123,8 @@ public:
   resolve_path(const std::string &_requested,
                const std::filesystem::path &_cur_file);
 
-  /// Parse a global scope. NOTE: All includes should have been
-  /// handled already!
+  /// Parse a global scope. NOTE: All includes should have
+  /// been handled already!
   void parse_global(TokenStream &_file_contents);
 
   /// Constructs the equivalent C program in the given
@@ -158,10 +163,13 @@ public:
   std::list<std::pair<std::string, Type>>
   parse_members(TokenStream &_pos);
 
-  /// Parses the (pre, post) regions of a template if they
-  /// exist. This should be called after any generic body
-  std::pair<std::list<std::string>, std::list<std::string>>
-  parse_template_pre_post(TokenStream &_pos);
+  /// Parses a template and saves it.
+  /// Assumes we just saw "let NAMES < SUSPENSIONS >"
+  /// and are pointing to the next token ("{")
+  void
+  parse_template(const std::list<std::string> &_names,
+                 const std::list<std::string> &_suspensions,
+                 TokenStream &_pos);
 
   /// Assumes we are pointing to the first token in the
   /// statement Non-global (inside functions)
@@ -190,11 +198,10 @@ public:
   /// this
   ASTNodes::Node parse_object(TokenStream &_pos);
 
-  /// Resolves a function call through any means necessary.
-  /// This may involve templates!
-  ASTNodes::Call
-  resolve_fn_call(const std::string &_name,
-                  const std::list<ASTNodes::Object> &_args);
+  /// Parses a single or multi-token identifier, handling any
+  /// template instantiations therein. Returns an UNMANGLED
+  /// and unresolved string. Leaves pointing to first after.
+  std::string parse_id(TokenStream &_pos);
 
   /// Throws an error on invalid type (EG undefined struct
   /// name)
@@ -244,13 +251,16 @@ public:
   /**
    * @brief Attempt to instantiate a template
    * @param _what Information about the template blocks
-   * @param _substitutions The values to plug in in place of the
-   * generics
+   * @param _substitutions The values to plug in in place of
+   * the generics
+   * @param _err_msg If false is returned, this will hold the
+   * reason why
    * @returns True iff the blocks were successfully parsed
    */
   bool instantiate(
       TemplateInfo &_what,
-      const std::list<std::list<std::string>> &_substitutions);
+      const std::list<std::list<std::string>> &_substitutions,
+      std::string &_err_msg);
 
   /// Replace a macro CALL (not definition) at the given token
   /// stream location. Returns whether or not anything changed

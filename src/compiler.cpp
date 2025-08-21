@@ -535,11 +535,6 @@ void OakCompiler::do_compilation() {
       }
     }
 
-    // Append flags
-    for (const auto &flag : csettings.compile_flags) {
-      command += " " + flag;
-    }
-
     // Run command
     int compilation_result = system(command.c_str());
     if (compilation_result != 0) {
@@ -561,20 +556,14 @@ void OakCompiler::do_compilation() {
     bool saw_main = false;
     const auto res = p.scope_manager.get("main");
     if (res.has_value() &&
-        std::holds_alternative<std::list<std::variant<
-            FnInfo, std::shared_ptr<TemplateInfo>>>>(
+        std::holds_alternative<ScopeManager::FnValue>(
             res.value())) {
-      for (const auto &def : std::get<std::list<std::variant<
-               FnInfo, std::shared_ptr<TemplateInfo>>>>(
-               res.value())) {
-        if (std::holds_alternative<FnInfo>(def)) {
-          const auto candidate = std::get<FnInfo>(def);
-          if (!candidate.tags.contains("casual") &&
-              candidate.tags.at("file") ==
-                  csettings.entry_point) {
-            saw_main = true;
-            break;
-          }
+      for (const auto &def :
+           std::get<ScopeManager::FnValue>(res.value())) {
+        if (!def.tags.contains("casual") &&
+            def.tags.at("file") == csettings.entry_point) {
+          saw_main = true;
+          break;
         }
       }
     }
@@ -609,9 +598,6 @@ void OakCompiler::do_compilation() {
     // Append flags and libraries
     for (const auto &flag : csettings.link_flags) {
       command += " " + flag;
-    }
-    for (const auto &lib : csettings.libs) {
-      command += " " + lib;
     }
 
     // Run command

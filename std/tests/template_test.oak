@@ -4,21 +4,32 @@ A basic test of templates in oak
 
 include!("std/std.oak");
 
-let println<T>(what: T) -> void {
+let println_str(what: []i8) -> void {
   print(what);
   endl();
 }
 
-let printtwo<A, B>(a: A, b: B) -> void {
-  println(a);
-  println(b);
+let println<T> {
+  let println(what: T) -> void {
+    print(what);
+    endl();
+  }
+}
+
+let printtwo<A, B> {
+  let printtwo(a: A, b: B) -> void {
+    println<A>::println(a);
+    println<B>::println(b);
+  }
 }
 
 let main() -> i32 {
-  println(123 i32);
-  println(2.0 f64);
+  println_str("Hello!");
 
-  printtwo(432u64, "hi there");
+  println<i32>::println(123 i32);
+  println<f64>::println(2.0 f64);
+
+  printtwo<u64, []i8>::printtwo(432 u64, "hi there");
 
   return 0i32;
 }

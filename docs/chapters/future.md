@@ -25,7 +25,7 @@ This is easier for bundling purposes: No pre/post blocks are
 needed.
 
 ```rust
-let s<T>: template {
+let s<T> {
   // Stuff failing here will just eliminate a candidate
   is_type!(T);
   is!(T, i32);

@@ -326,11 +326,10 @@ Lexer::raw_lex(const std::string &_text,
     }
   }
 
-  // Avoid C keywords, fix columns, and mark originality
+  // Avoid C keywords and fix columns
   for (auto it = out.begin(); it != out.end(); ++it) {
     it->col -= it->text.size();
     it->text = kwa_mangle(it->text);
-    it->original = _is_original;
   }
 
   // Merge '.'s in float literals
@@ -411,6 +410,16 @@ class TokenStream Lexer::lex(const std::string &_text,
            std::next(it, 2)->type == "ID") {
       it->text += "_" + std::next(it, 2)->text;
       out.erase(std::next(it));
+      out.erase(std::next(it));
+    }
+  }
+
+  // For good measure
+  for (auto it = out.begin(); it != out.end(); ++it) {
+    while (it->text == "::" && std::next(it) != out.end() &&
+           std::next(it)->type == "ID") {
+      it->text = "_" + std::next(it)->text;
+      it->type = "ID";
       out.erase(std::next(it));
     }
   }
@@ -536,18 +545,6 @@ void Lexer::classify_type(Lexer::Token &_t) {
   }
 }
 
-TokenStream Lexer::tokify(const std::list<std::string> &_what,
-                          const std::filesystem::path &_where,
-                          const uint64_t &_line,
-                          const uint64_t &_col) {
-  std::list<Lexer::Token> out;
-  for (const auto &item : _what) {
-    out.push_back(Lexer::Token(item, _where, _line, _col));
-    Lexer::classify_type(out.back());
-  }
-  return out;
-}
-
 void TokenStream::next() noexcept {
   if (!done()) {
     ++cur_pos;
@@ -555,74 +552,91 @@ void TokenStream::next() noexcept {
 }
 
 void TokenStream::prev() noexcept {
-  if (cur_pos != raw_stream.begin()) {
+  if (cur_pos != 0) {
     --cur_pos;
   }
 }
 
 bool TokenStream::done() const noexcept {
-  return cur_pos == raw_stream.cend();
+  try {
+    // In some cases, forces checking for invalidated iterator
+    if (raw_stream.at(cur_pos).type == "EOF") {
+      return true;
+    }
+  } catch (...) {
+    // Invalid iterator
+    return true;
+  }
+  return cur_pos >= raw_stream.size();
 }
 
 const Lexer::Token TokenStream::cur() const noexcept {
   if (done()) {
     return Lexer::Token("EOF", "N/A", 0, 0);
   } else {
-    return *cur_pos;
+    return raw_stream.at(cur_pos);
   }
 }
 
-std::list<Lexer::Token>::iterator TokenStream::tell() noexcept {
+Lexer::Token &TokenStream::cur_mut() {
+  if (done()) {
+    throw std::runtime_error(
+        "Cannot set token on overrun token stream");
+  } else {
+    return raw_stream.at(cur_pos);
+  }
+}
+
+size_t TokenStream::tell() noexcept {
   return cur_pos;
 }
 
-void TokenStream::seek(
-    const std::list<Lexer::Token>::iterator &_where) noexcept {
+void TokenStream::seek(const size_t &_where) noexcept {
   cur_pos = _where;
 }
 
-std::list<Lexer::Token>::iterator TokenStream::erase(
-    const std::list<Lexer::Token>::iterator &_end) {
-  return raw_stream.erase(_end);
+size_t TokenStream::erase(const size_t &_end) {
+  return std::distance(
+      raw_stream.begin(),
+      raw_stream.erase(raw_stream.begin() + _end));
 }
 
-void TokenStream::erase(
-    const std::list<Lexer::Token>::iterator &_begin,
-    const std::list<Lexer::Token>::iterator &_end) {
-  raw_stream.erase(_begin, _end);
+void TokenStream::erase(const size_t &_begin,
+                        const size_t &_end) {
+  raw_stream.erase(raw_stream.begin() + _begin,
+                   raw_stream.begin() + _end);
 }
 
-void TokenStream::replace(
-    const std::list<Lexer::Token>::iterator &_begin,
-    const std::list<Lexer::Token>::iterator &_end,
-    const TokenStream &_with) {
-  raw_stream.erase(_begin, _end);
-  raw_stream.insert(_end, _with.raw_stream.begin(),
+void TokenStream::replace(const size_t &_begin,
+                          const size_t &_end,
+                          const TokenStream &_with) {
+  raw_stream.erase(raw_stream.begin() + _begin,
+                   raw_stream.begin() + _end);
+  raw_stream.insert(raw_stream.begin() + _end,
+                    _with.raw_stream.begin(),
                     _with.raw_stream.end());
 }
 
 Lexer::Token TokenStream::peek(const uint &_n) const noexcept {
-  const auto out = std::next(cur_pos, _n);
-  if (out == raw_stream.end()) {
+  if (cur_pos + _n >= raw_stream.size()) {
     return Lexer::Token("EOF", "N/A", 0, 0);
   } else {
-    return *out;
+    return raw_stream.at(cur_pos + _n);
   }
 }
 
 bool TokenStream::at_beg() const noexcept {
-  return cur_pos == raw_stream.begin();
+  return cur_pos == 0;
 }
 
-void TokenStream::insert(
-    const std::list<Lexer::Token>::iterator &_end,
-    const TokenStream &_with) {
-  raw_stream.insert(_end, _with.raw_stream.begin(),
+void TokenStream::insert(const size_t &_end,
+                         const TokenStream &_with) {
+  raw_stream.insert(raw_stream.begin() + _end,
+                    _with.raw_stream.begin(),
                     _with.raw_stream.end());
 }
 
-void TokenStream::insert(
-    const std::list<Lexer::Token>::iterator &_end,
-    const Lexer::Token &_what) {
-  raw_stream.insert(_end, _what);
+void TokenStream::insert(const size_t &_end,
+                         const Lexer::Token &_what) {
+  raw_stream.insert(raw_stream.begin() + _end, _what);
 }

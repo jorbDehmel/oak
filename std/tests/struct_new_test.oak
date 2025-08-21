@@ -2,7 +2,7 @@
 Tests implicit generation of `New` and `Del`
 */
 
-include!("std/std.oak");
+include!("std/io.oak");
 
 let ExampleStruct: struct {
   data: i32,

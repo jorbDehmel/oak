@@ -103,8 +103,9 @@ public:
   /// instantiated templates take the region of their source,
   /// not their instantiator)
   TemplateInfo(const std::filesystem::path &_p,
-               const uint64_t &_l, const uint64_t &_c)
-      : path(_p), line(_l), col(_c) {
+               const uint64_t &_l, const uint64_t &_c,
+               const std::string &_name)
+      : path(_p), line(_l), col(_c), name(_name) {
   }
 
   /// The filepath it came from
@@ -116,41 +117,22 @@ public:
   /// The column it came from
   const uint64_t col;
 
-  /// Given some name and signature, return the generics which
-  /// would satisfy them (if such substitutions exist)
-  std::optional<Substitution>
-  find_substitutions(const std::string &_name,
-                     const std::list<std::string>
-                         &_signature_to_provide) const;
-
-  /// Returns whether the given substitutions would cause the
-  /// `provides` list to match the given list
-  bool
-  does_provide(const Substitution &_substitutions,
-               const std::list<std::string> &_desired) const;
+  /// The birth name
+  const std::string name;
 
   /// Returns a list of tokens based on _to_augment wherein
   /// all occurrences of generics are replaced with their
   /// corresponding replacements
-  static std::list<std::string>
-  replace(const std::list<std::string> &_to_augment,
+  static std::list<Lexer::Token>
+  replace(const std::list<Lexer::Token> &_to_augment,
           const std::list<std::string> &_generics,
           const Substitution &_replacements);
 
   /// The things to replace
   std::list<std::string> generics;
 
-  /// "Sample" of body used for auto-instantiation.
-  /// "enum"
-  /// "struct"
-  /// "( whatever : T )"
-  std::list<std::string> provides_block;
-
-  /// Run beforehand: If fail, no error
-  std::list<std::string> validate_block;
-
-  /// Run if valid
-  std::list<std::string> instantiate_block;
+  /// The body of the template
+  std::list<Lexer::Token> instantiate_block;
 
   /// Instances which already exist
   std::set<Substitution> existing_instances;
@@ -214,13 +196,16 @@ public:
   ScopeManager();
 
   /// The results served by a fn query
-  using FnValue = std::list<
-      std::variant<FnInfo, std::shared_ptr<TemplateInfo>>>;
+  using FnValue = std::list<FnInfo>;
+
+  /// A list of overloadable template entries
+  using TemplValue = std::list<std::shared_ptr<TemplateInfo>>;
 
   /// A single value in the lookup table. `Type` is for
   /// variable instances.
-  using Value = std::variant<FnValue, StructInfo, EnumInfo,
-                             InlineMacro, CompiledMacro, Type>;
+  using Value =
+      std::variant<FnValue, TemplValue, StructInfo, EnumInfo,
+                   InlineMacro, CompiledMacro, Type>;
 
   /// An entry that is not type-overloadable (not
   /// fns/templates)
@@ -244,6 +229,17 @@ public:
 
   /// Returns whether there are no frames remaining
   bool empty() const noexcept;
+
+  /// Pushes a namespace prefix which will be prepended to all
+  /// additions
+  void push_prefix(const std::string &_prefix);
+
+  /// Pops the most recent prefix
+  void pop_prefix();
+
+  /// Adds all the prefixes which have been pushed to some raw
+  /// name. This is used internally upon addition
+  std::string add_prefix(const std::string &_raw_name) const;
 
   /// Inserts a (non-function) value into the current scope,
   /// throwing if duplicate
@@ -333,6 +329,9 @@ protected:
 
   /// A stack of frames: Back is most recent
   std::list<std::map<std::string, ValueOrAlias>> frames;
+
+  /// The namespaces to prepend upon addition
+  std::list<std::string> prefixes;
 
   /// Either the empty option (not a capture frame) or a list of
   /// all the variables which had to be located from above this

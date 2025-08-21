@@ -4,23 +4,25 @@ Tests templated structs
 
 include!("std/std.oak");
 
-let Foo<T>: struct {
-  data: T,
+let foo<T> {
+  let Foo<T>: struct {
+    data: T,
+  }
 }
 
-let New(self: ^Foo<i32>) -> void {
+let New(self: ^foo<i32>::Foo) -> void {
   self.data = 0i32;
   print("Hi!\n");
 }
 
-let New(self: ^Foo<bool>) -> void {
+let New(self: ^foo<bool>::Foo) -> void {
   self.data = false;
   print("Hello!\n");
 }
 
 let main() -> i32 {
-  let inst_1: Foo<i32>;
-  let inst_2: Foo<bool>;
+  let inst_1: foo<i32>::Foo;
+  let inst_2: foo<bool>::Foo;
 
   return 0i32;
 }
