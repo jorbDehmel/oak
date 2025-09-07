@@ -663,10 +663,7 @@ void Parser::parse_struct(const std::list<std::string> &_names,
 
   // Add these entries
   for (const auto &name : _names) {
-    if (!is_valid_struct_name(name)) {
-      settings.warn("Struct name \"" + name +
-                    "\" does not seem to be camelcase");
-    }
+    check_camelcase(settings, "Struct", name, _pos.cur());
 
     to_add.name = name;
     scope_manager.add(name, to_add);
@@ -848,10 +845,7 @@ void Parser::parse_enum(const std::list<std::string> &_names,
 
   // Add these entries
   for (const auto &name : _names) {
-    if (!is_valid_struct_name(name)) {
-      settings.warn("Enum name \"" + name +
-                    "\" does not seem to be camelcase");
-    }
+    check_camelcase(settings, "Enum", name, _pos.cur());
 
     // Add the enum part
     to_add.name = name;
@@ -962,7 +956,9 @@ ASTNodes::Node Parser::parse_object(TokenStream &_pos) {
 
     const auto captures = scope_manager.get_captures();
     for (const auto &capture : captures) {
-      settings.warn("Illegal capture " + capture);
+      const auto l = _pos.cur();
+      settings.warn(l.file, l.line, l.col,
+                    "Illegal capture " + capture);
     }
 
     scope_manager.pop_frame();
@@ -1158,10 +1154,7 @@ Parser::parse_statement(TokenStream &_pos,
       throw std::runtime_error(msg_strm.str());
     } else if (_pos.cur() == "compile_time_warning!") {
       std::stringstream msg_strm;
-      msg_strm << _pos.cur().file.string() << ":"
-               << _pos.cur().line << "." << _pos.cur().col
-               << ">" << _pos.cur().text
-               << " Compile-time warning:\n";
+      msg_strm << " Compile-time warning:\n";
       const auto args = Macros::get_macro_args(_pos);
       for (const auto &arg : args) {
         for (const auto &tok : arg) {
@@ -1170,8 +1163,8 @@ Parser::parse_statement(TokenStream &_pos,
         msg_strm << " ";
       }
       msg_strm << '\n';
-
-      settings.warn(msg_strm.str());
+      settings.warn(_pos.cur().file, _pos.cur().line,
+                    _pos.cur().col, msg_strm.str());
     } else if (_pos.cur() == "compile_time_print!") {
       settings.ostream
           << _pos.cur().file.string() << ":" << _pos.cur().line
@@ -1229,15 +1222,7 @@ Parser::parse_statement(TokenStream &_pos,
       }
 
       for (const auto &f : args) {
-        // const auto backup = rules.purge_entry_points();
         do_file(f.text, f.file);
-        // rules.purge_entry_points();
-        // for (const auto &item : backup) {
-        //   rules.add_entry_point(item);
-        // }
-        // std::cerr << __FILE__ << ":" << __LINE__
-        //           << "> Unimplemented\n"
-        //           << std::flush;
       }
     } else if (_pos.cur() == "link!") {
       auto raw_args = Macros::get_macro_args(_pos);
@@ -1351,14 +1336,9 @@ Parser::parse_statement(TokenStream &_pos,
         }
       }
 
-      // Rule to_add(*std::next(args.begin()),
-      //             *std::next(args.begin(), 2), prereqs,
-      //             engine);
-
-      // rules.register_rule(name, to_add);
-      // std::cerr << __FILE__ << ":" << __LINE__
-      //           << "> Unimplemented\n"
-      //           << std::flush;
+      std::cerr << __FILE__ << ":" << __LINE__
+                << "> Unimplemented\n"
+                << std::flush;
     } else if (_pos.cur() == "rule_use!") {
       auto raw_args = Macros::get_macro_args(_pos);
       std::list<Lexer::Token> args;
@@ -1374,16 +1354,9 @@ Parser::parse_statement(TokenStream &_pos,
         args.push_back(to_add);
       }
 
-      // for (const auto &_ : args) {
-      //   rules.add_entry_point(
-      //       Macros::strip_string_literal(arg));
-      //   std::cerr << __FILE__ << ":" << __LINE__
-      //             << "> Unimplemented\n"
-      //             << std::flush;
-      // }
-      // std::cerr << __FILE__ << ":" << __LINE__
-      //           << "> Unimplemented\n"
-      //           << std::flush;
+      std::cerr << __FILE__ << ":" << __LINE__
+                << "> Unimplemented\n"
+                << std::flush;
     } else if (_pos.cur() == "rule_remove!") {
       auto raw_args = Macros::get_macro_args(_pos);
       std::list<Lexer::Token> args;
@@ -1400,8 +1373,6 @@ Parser::parse_statement(TokenStream &_pos,
       }
 
       for (const auto &_ : args) {
-        // rules.remove_entry_point(
-        //     Macros::strip_string_literal(arg));
         std::cerr << __FILE__ << ":" << __LINE__
                   << "> Unimplemented\n"
                   << std::flush;
@@ -1428,12 +1399,9 @@ Parser::parse_statement(TokenStream &_pos,
             Macros::strip_string_literal(it->text));
       }
 
-      // rules.register_bundle(
-      //     Macros::strip_string_literal(args.front()),
-      //     entails);
-      // std::cerr << __FILE__ << ":" << __LINE__
-      //           << "> Unimplemented\n"
-      //           << std::flush;
+      std::cerr << __FILE__ << ":" << __LINE__
+                << "> Unimplemented\n"
+                << std::flush;
     } else if (_pos.cur() == "unstr!") {
       Lexer::Token to_add(_pos.cur());
       auto raw_args = Macros::get_macro_args(_pos);
@@ -1551,8 +1519,8 @@ Parser::parse_statement(TokenStream &_pos,
     // Delegate for macro calls
     else {
       replace_macro(_pos);
-      return ASTNodes::Statement();
     }
+    return ASTNodes::Statement();
   }
 
   else if (_pos.done() || _pos.cur() == ";") {
@@ -1587,13 +1555,8 @@ Parser::parse_statement(TokenStream &_pos,
 
       do {
         _pos.next();
-        if (!is_valid_struct_name(_pos.cur())) {
-          settings.warn("Generic '" + _pos.cur().text +
-                        "' at " + _pos.cur().file.string() +
-                        ":" + std::to_string(_pos.cur().line) +
-                        "." + std::to_string(_pos.cur().col) +
-                        " does not appear to be camelcase");
-        }
+        check_camelcase(settings, "Generic", _pos.cur().text,
+                        _pos.cur());
         generics.push_back(_pos.cur());
         _pos.next();
       } while (_pos.cur() == ",");
@@ -2641,246 +2604,6 @@ void Parser::syntax_check(const std::filesystem::path &_fp,
   }
 }
 
-/*
-// This fn has been suspended on a trial basis
-void Parser::fix_math(TokenStream &_pos) {
-  debug_print();
-  if (settings.debug) {
-    settings.ostream << __FUNCTION__ << " at "
-                     << _pos.cur().file.string() << ":"
-                     << _pos.cur().line << "." << _pos.cur().col
-                     << '\n';
-  }
-
-  const auto starting_pos = _pos.tell();
-
-  // Iterate through the token stream, replace all instances
-  // of the given operator with the given op fn call name (EG
-  // '+'
-  // -> 'Add'). Precedence is embedded in the order in which
-  // you call this lambda
-  const auto resolve_binary_operator =
-      [&](const std::map<std::string, std::string> &_ops) {
-        // Scan stream
-        for (_pos.seek(starting_pos);
-             !_pos.done() && _pos.cur().text != ";" &&
-             _pos.cur().text != "{";
-             _pos.next()) {
-          // On match
-          if (_pos.cur().type == "OPERATOR" &&
-              _ops.contains(_pos.cur().text)) {
-            const size_t first_after_lhs =
-                _pos.tell(); // The single-token op
-            const Lexer::Token op = _pos.cur();
-
-            // Find lhs
-            _pos.prev();
-            if (_pos.at_beg() || _pos.cur() == "(") {
-              throw std::runtime_error(
-                  "At " + _pos.cur().file.string() + ":" +
-                  std::to_string(_pos.cur().line) + "." +
-                  std::to_string(_pos.cur().col) +
-                  "> Malformed operator '" + op.text + "' LHS");
-            } else if (_pos.cur().text == ")") {
-              int depth = 0;
-              do {
-                if (_pos.cur().text == "(") {
-                  ++depth;
-                } else if (_pos.cur().text == ")") {
-                  --depth;
-                }
-                _pos.prev();
-              } while (depth != 0);
-              if (_pos.cur().type != "ID") {
-                _pos.next();
-              }
-            }
-            while (_pos.peek(-1).text == ".") {
-              _pos.prev();
-              _pos.prev();
-            }
-            const size_t first_of_lhs = _pos.tell();
-            _pos.seek(first_after_lhs);
-
-            // Find rhs
-            _pos.next();
-            if (_pos.cur().type == "EOF" ||
-                _pos.cur().text == ")") {
-              throw std::runtime_error(
-                  "At " + _pos.cur().file.string() + ":" +
-                  std::to_string(_pos.cur().line) + "." +
-                  std::to_string(_pos.cur().col) +
-                  "> Malformed operator '" + op.text + "' LHS");
-            } else if (_pos.peek().text == "(") {
-              // Function call
-              int depth = 0;
-              do {
-                _pos.next();
-                if (_pos.cur().text == "(") {
-                  ++depth;
-                } else if (_pos.cur().text == ")") {
-                  --depth;
-
-                  if (depth == 0) {
-                    _pos.next();
-                  }
-                }
-              } while (depth != 0);
-            } else {
-              _pos.next();
-            }
-
-            while (_pos.cur().text == ".") {
-              _pos.next();
-              _pos.next();
-            }
-            const auto first_after_rhs = _pos.tell();
-
-            // End parenthesis
-            _pos.insert(first_after_rhs,
-                        Lexer::Token(_pos.cur(), ")"));
-
-            // Separating comma
-            _pos.cur_mut().text = ",";
-            _pos.cur_mut().type = "OPERATOR";
-
-            _pos.insert(first_of_lhs,
-                        Lexer::Token(_pos.cur(), _ops.at(op)));
-            _pos.insert(first_of_lhs,
-                        Lexer::Token(_pos.cur(), "("));
-          }
-        }
-      };
-
-  // Same, but for prefix unary operators
-  // Note: There are no suffix unary operators in oak, and all
-  // prefix unary operators have the same precendence
-  const auto resolve_unary_operator =
-      [&](const std::string &_operator,
-          const std::string &_op_name) {
-        // Scan stream
-        for (_pos.seek(starting_pos);
-             !_pos.done() && _pos.cur().text != ";" &&
-             _pos.cur().text != "{";
-             _pos.next()) {
-          // On match
-          if (_pos.cur().type == "OPERATOR" &&
-              _pos.cur().text == _operator) {
-            const size_t first_after_lhs =
-                _pos.tell(); // The single-token op
-
-            // Find rhs
-            _pos.next();
-            if (_pos.at_beg() || _pos.cur().text == ")") {
-              throw std::runtime_error(
-                  "At " + _pos.cur().file.string() + ":" +
-                  std::to_string(_pos.cur().line) + "." +
-                  std::to_string(_pos.cur().col) +
-                  "> Malformed operator '" + _operator +
-                  "' LHS");
-            } else if (_pos.peek().text == "(") {
-              int depth = 0;
-              do {
-                _pos.next();
-                if (_pos.cur().text == "(") {
-                  ++depth;
-                } else if (_pos.cur().text == ")") {
-                  --depth;
-
-                  if (depth == 0) {
-                    _pos.next();
-                  }
-                }
-              } while (depth != 0);
-            } else {
-              _pos.next();
-            }
-
-            while (_pos.cur().text == ".") {
-              _pos.next();
-              _pos.next();
-            }
-
-            const size_t first_after_rhs =
-                _pos.tell(); // First tok after rhs
-
-            // Operate
-            // "_operator rhs" -> "_op_name ( rhs )"
-            _pos.insert(first_after_rhs,
-                        Lexer::Token(_pos.cur(), ")"));
-
-            _pos.seek(first_after_lhs);
-            _pos.cur_mut() = Lexer::Token(_pos.cur(), "(");
-
-            _pos.insert(first_after_lhs,
-                        Lexer::Token(_pos.cur(), _op_name));
-          }
-        }
-      };
-
-  // Unary operator precedence
-  const static std::list<std::pair<std::string, std::string>>
-      unary_precedence = {{"!", "Not"},
-                          {"++", "Incr"},
-                          {"--", "Decr"},
-                          {"~", "Flip"}};
-
-  // Binary operator precedence
-  const static std::list<std::map<std::string, std::string>>
-      binary_precedence = {
-          {
-              {"&", "And"},
-              {"|", "Or"},
-          },
-          {
-              {"*", "Mult"},
-              {"/", "Div"},
-              {"%", "Mod"},
-          },
-          {
-              {"+", "Add"},
-              {"-", "Sub"},
-          },
-          {
-              {"==", "Eq"},
-              {"!=", "Neq"},
-          },
-          {{"<", "Less"},
-           {">", "Great"},
-           {"<=", "Leq"},
-           {">=", "Greq"}},
-          {
-              {"&&", "Andd"},
-              {"||", "Orr"},
-          },
-          {
-              {"=", "Copy"},
-              {"&=", "AndEq"},
-              {"|=", "OrEq"},
-              {"<<=", "LBSEq"},
-              {">>=", "RBSEq"},
-              {"*=", "MultEq"},
-              {"/=", "DivEq"},
-              {"%=", "ModEq"},
-              {"+=", "AddEq"},
-              {"-=", "SubEq"},
-              {"&&=", "AnddEq"},
-              {"||=", "OrrEq"},
-          },
-      };
-
-  for (const auto &i : unary_precedence) {
-    resolve_unary_operator(i.first, i.second);
-  }
-
-  for (const auto &i : binary_precedence) {
-    resolve_binary_operator(i);
-  }
-
-  _pos.seek(starting_pos);
-}
-*/
-
 void Parser::load_dialect_file(
     const std::filesystem::path &_path) {
   debug_print();
@@ -2928,8 +2651,9 @@ Parser::resolve_path(const std::string &_requested,
     if (global_exists &&
         std::filesystem::canonical(global) !=
             std::filesystem::canonical(local)) {
-      settings.warn("Choosing local file " + _requested +
-                    " over package file of same name");
+      settings.warn(_cur_file, 0, 0,
+                    "Choosing local file " + _requested +
+                        " over package file of same name");
     }
     return std::filesystem::canonical(local);
   } else if (global_exists) {

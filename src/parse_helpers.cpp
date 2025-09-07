@@ -101,7 +101,10 @@ std::string concat(const std::list<Lexer::Token> &_what) {
   return out;
 }
 
-bool is_valid_struct_name(const std::string &_name) noexcept {
+void check_camelcase(Settings &_warn_into,
+                     const std::string &_type_str,
+                     const std::string &_name,
+                     const Lexer::Token &_where) noexcept {
   // The final chunk after any underscores/namespace operators
   const auto end = std::min(_name.find("_GEN"), _name.size());
   const auto pos = _name.find_last_of('_', end);
@@ -117,11 +120,14 @@ bool is_valid_struct_name(const std::string &_name) noexcept {
         ++i;
       }
     } else {
-      return false;
+      // Do warning
+      _warn_into.warn(_where.file, _where.line, _where.col,
+                      _type_str + " name \"" + _name +
+                          "\" does not seem to be camelcase");
+
+      return;
     }
   }
-
-  return true;
 }
 
 std::string get_cmd_output(const std::string &_cmd) {

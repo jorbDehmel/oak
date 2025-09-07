@@ -6,6 +6,7 @@
 #pragma once
 
 #include "lexer.hpp"
+#include "settings.hpp"
 #include "symbols.hpp"
 
 /// Prints the previous _n lines, followed by the current line
@@ -27,10 +28,14 @@ std::string concat(const std::list<Lexer::Token> &_what);
 
 /**
  * @brief Determines if a name is valid for a struct/enum
+ * @param _warn_info Where to write a warning if invalid
+ * @param _type_str EG "Struct", "Enum", "Generic", etc
  * @param _name The name to analyze
- * @returns True iff _name is a valid struct name
  */
-bool is_valid_struct_name(const std::string &_name) noexcept;
+void check_camelcase(Settings &_warn_into,
+                     const std::string &_type_str,
+                     const std::string &_name,
+                     const Lexer::Token &_where) noexcept;
 
 /**
  * @brief Runs a command (asserting that it succeeded),

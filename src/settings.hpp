@@ -6,6 +6,7 @@
 #pragma once
 
 #include "type.hpp"
+#include <cstdint>
 #include <filesystem>
 #include <list>
 #include <map>
@@ -218,12 +219,15 @@ public:
 
   /// Raise a warning according to our warning mode. The text
   /// under normal circumstances will be "Warning: _msg"
-  inline void warn(const std::string &_msg) const {
+  inline void warn(const std::filesystem::path &_f,
+                   const uint64_t &_line, const uint64_t &_col,
+                   const std::string &_msg) const {
     switch (warning_mode) {
     case NO_WARNINGS:
       break;
     case NORMAL_WARNINGS:
-      ostream << "Warning: " << _msg << '\n';
+      ostream << _f.string() << ":" << _line << "." << _col
+              << "> Warning: " << _msg << '\n';
       break;
     case ERROR_WARNINGS:
       throw std::runtime_error("Warning: " + _msg +
