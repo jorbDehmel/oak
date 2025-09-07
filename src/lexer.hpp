@@ -163,8 +163,8 @@ private:
 
 public:
   /// @param _binding The Lexer::Token iterable to bind to
-  template <typename T = std::list<Lexer::Token>>
-  TokenStream(const T &_binding) : cur_pos(0) {
+  TokenStream(const std::list<Lexer::Token> &_binding)
+      : cur_pos(0) {
     for (const auto &tok : _binding) {
       raw_stream.push_back(tok);
     }
@@ -178,7 +178,7 @@ public:
   void next() noexcept;
 
   /// Get the token _n ahead (.cur() is 0, default is 1)
-  Lexer::Token peek(const uint &_n = 1) const noexcept;
+  Lexer::Token peek(const int &_n = 1) const noexcept;
 
   /// Go to the previous token, never advancing past the
   /// beginning
@@ -203,26 +203,35 @@ public:
    */
   Lexer::Token &cur_mut();
 
-  /// Low-level position access
+  /// Low-level position access. Be very careful with these!
+  /// They are indices into the internal array, so you won't end
+  /// up on a discarded section of linked list, but you may
+  /// not end up in the place you expect! If you delete or add
+  /// anything before a told position it will be invalidated!
   size_t tell() noexcept;
 
-  /// Low-level position control
+  /// Low-level position control. Be very careful! See `tell`
+  /// for more details.
   void seek(const size_t &_where) noexcept;
 
-  /// Erases [_begin, _end)
+  /// Erases [_begin, _end). Invalidates all positions after
+  /// _begin!
   void erase(const size_t &_begin, const size_t &_end);
 
-  /// Erases _end
+  /// Erases _end. Invalidates all positions after!
   size_t erase(const size_t &_end);
 
-  /// Inserts the given stream BEFORE _end
+  /// Inserts the given stream BEFORE _end. Invalidates all
+  /// positions after _end - 1!
   void insert(const size_t &_end, const TokenStream &_what);
 
-  /// Inserts the given token BEFORE _end
+  /// Inserts the given token BEFORE _end. Invalidates all
+  /// positions after _end - 1!
   void insert(const size_t &_end, const Lexer::Token &_what);
 
   /// Replace some range with some other token stream
-  /// Erases [_begin, _end)
+  /// Erases [_begin, _end). Invalidates all positions after
+  /// _end - 1!
   void replace(const size_t &_begin, const size_t &_end,
                const TokenStream &_with);
 

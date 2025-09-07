@@ -1,9 +1,8 @@
 /**
  * @file
  * @brief Outlines the Parser class used by the Oak compiler.
- * This operates on ALREADY preprocessed symbols. It is
- * responsible for loading the symbol table and collating that
- * which is used for target reconstruction.
+ * It is responsible for loading the symbol table and collating
+ * that which is used for target reconstruction.
  */
 
 #pragma once
@@ -14,86 +13,6 @@
 #include "symbols.hpp"
 #include "type.hpp"
 #include <list>
-
-/// Prints the previous _n lines, followed by the current line
-/// and an indicator to the current token
-void print_region(TokenStream &_pos, std::ostream &_where,
-                  const uint &_n = 1);
-
-/**
- * @brief An error class thrown when we surpass the
- * PreProcessor Pass limit.
- */
-class OutOfPPPLError : public std::runtime_error {
-public:
-  /// Initialize
-  OutOfPPPLError(const std::string &_what)
-      : std::runtime_error(_what) {
-  }
-};
-
-/// Static functions for macro operations
-namespace Macros {
-
-/**
- * @brief Runs a command, asserts it succeeded, and captures
- * its stdout.
- * @param _cmd The command to run
- * @returns The string output of the command
- */
-std::string get_cmd_output(const std::string &_cmd);
-
-/// Internal oak macros
-const static std::set<std::string> reserved_macro_names = {
-    "alias!",
-    "alloc!",
-    "c!",
-    "compile_time_error!",
-    "compile_time_print!",
-    "compile_time_system!",
-    "compile_time_warning!",
-    "erase!",
-    "flag!",
-    "free!",
-    "include!",
-    "link!",
-    "namespace_use!",
-    "pragma!",
-    "rule_bundle!",
-    "rule_new!",
-    "rule_remove!",
-    "rule_use!",
-    "size!",
-    "str!",
-    "type!",
-    "unstr!",
-    "LINE!",
-    "COL!",
-    "FILE!",
-    "oak_VERSION!",
-    "SYSTEM!",
-};
-
-/// Goes past and returns a macro occurrence's arguments
-std::list<std::list<Lexer::Token>>
-get_macro_args(TokenStream &_pos, const bool &_erase = false);
-
-/**
- * @brief Strips string literal delimiters off a string
- * literal. For example: "fizz" -> fizz, 'buzz' -> buzz.
- * @param _str_lit The string literal to strip
- * @returns The stripped string literal
- */
-std::string strip_string_literal(const std::string &_str_lit);
-
-/**
- * @brief Inverse of strip_string_literal.
- * @param _contents The contents to embed in double quotes
- * @returns The string literal
- */
-std::string make_string_literal(const std::string &_contents);
-
-}; // namespace Macros
 
 /**
  * @brief Parses the text once it has been brought to Oak
@@ -228,10 +147,10 @@ public:
    */
   void load_dialect_file(const std::filesystem::path &_file);
 
-  /**
-   * @brief Parse and turn all math into operator calls
-   */
-  void fix_math(TokenStream &_token_stream);
+  //   /**
+  //    * @brief Parse and turn all math into operator calls
+  //    */
+  //   void fix_math(TokenStream &_token_stream);
 
   /**
    * @brief Load the given file, following any includes found

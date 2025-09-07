@@ -48,7 +48,7 @@ public:
 
     /// The current return type (default void) for fn-parsing
     /// type checking. Must be an exact match.
-    Type cur_return_type = Type({"void"});
+    std::list<Type> cur_return_type = {Type({"void"})};
 
     /// If true, allows unmonitored use of the
     /// compile_time::system! macro

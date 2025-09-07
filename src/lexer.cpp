@@ -617,8 +617,8 @@ void TokenStream::replace(const size_t &_begin,
                     _with.raw_stream.end());
 }
 
-Lexer::Token TokenStream::peek(const uint &_n) const noexcept {
-  if (cur_pos + _n >= raw_stream.size()) {
+Lexer::Token TokenStream::peek(const int &_n) const noexcept {
+  if (cur_pos + _n < 0 || cur_pos + _n >= raw_stream.size()) {
     return Lexer::Token("EOF", "N/A", 0, 0);
   } else {
     return raw_stream.at(cur_pos + _n);

@@ -2,13 +2,13 @@
 #include "compiler.hpp"
 #include "debug.hpp"
 #include "lexer.hpp"
+#include "parse_helpers.hpp"
 #include "symbols.hpp"
 #include <compare>
 #include <filesystem>
 #include <map>
 #include <stdexcept>
 #include <string>
-#include <variant>
 
 /**
  * @brief Given some package information, add internal

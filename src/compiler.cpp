@@ -4,6 +4,7 @@
 
 #include "compiler.hpp"
 #include "debug.hpp"
+#include "parse_helpers.hpp"
 #include "parser.hpp"
 #include "settings.hpp"
 #include "symbols.hpp"
