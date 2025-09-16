@@ -63,11 +63,6 @@ hierarchy. Recursive type math should be accessible within an
 improper language: There should be a way to describe the rules
 by which arbitrary flags are propagated and type-restricted.
 
-## Better Internal Token Stream Operations
-
-Imposing substitution patterns upon the token stream would be
-more maintainable then whatever we have going on right now.
-
 ## Universal Programming Language / UPL
 
 A kernel-style programming language which can add, remove, and
@@ -103,4 +98,19 @@ if (module::loaded("varman")) {
   module::remove("varman");
 }
 module::add("better_varman", bvm);
+```
+
+upl --used in-> module code --compiles to-> module obj
+--loaded into-> upl
+
+The input source code would be a weave of runtime and
+compile time statements which would be parsed simultaneously.
+
+```rust
+modules::invoke("packages::install", "std");
+modules::invoke("parser::include", "std");
+
+packages::install("std");
+parser::include("std");
+rules::bind("");
 ```

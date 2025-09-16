@@ -14,6 +14,7 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <variant>
 
 /**
  * @brief Takes a block of text and yields a token stream
@@ -170,9 +171,12 @@ public:
     }
   }
 
-  /// Don't allow copies of iterator: Literal copies would cause
-  /// issues
-  TokenStream(const TokenStream &_other) = delete;
+  /// @param _binding The Lexer::Token iterable to bind to
+  TokenStream(const TokenStream &_binding) : cur_pos(0) {
+    for (const auto &tok : _binding) {
+      raw_stream.push_back(tok);
+    }
+  }
 
   /// Go to the next token, never advancing past the end
   void next() noexcept;
@@ -210,38 +214,36 @@ public:
   /// anything before a told position it will be invalidated!
   size_t tell() noexcept;
 
+  /// Create a COPY of the given range.
+  TokenStream
+  copy_snippet(const size_t &_start,
+               const size_t &_first_after) const noexcept;
+
+  /// Replaces a range with some formatted data, then moves to
+  /// point to the first after. The new length will be given by
+  /// tell() - _start. If an entry in _fmt is a token, that
+  /// token will be inserted. Otherwise if it is a token stream,
+  /// that entire range will be copied and inserted. These token
+  /// streams will probably come from copy_snippet, but they
+  /// don't have to. In the case of a token stream, the line and
+  /// col will be overwritten with the most recent values.
+  void rangef(
+      const size_t &_start, const size_t &_first_after,
+      const std::list<std::variant<Lexer::Token, TokenStream>>
+          &_fmt);
+
   /// Low-level position control. Be very careful! See `tell`
   /// for more details.
   void seek(const size_t &_where) noexcept;
 
-  /// Erases [_begin, _end). Invalidates all positions after
-  /// _begin!
-  void erase(const size_t &_begin, const size_t &_end);
-
-  /// Erases _end. Invalidates all positions after!
-  size_t erase(const size_t &_end);
-
-  /// Inserts the given stream BEFORE _end. Invalidates all
-  /// positions after _end - 1!
-  void insert(const size_t &_end, const TokenStream &_what);
-
-  /// Inserts the given token BEFORE _end. Invalidates all
-  /// positions after _end - 1!
-  void insert(const size_t &_end, const Lexer::Token &_what);
-
-  /// Replace some range with some other token stream
-  /// Erases [_begin, _end). Invalidates all positions after
-  /// _end - 1!
-  void replace(const size_t &_begin, const size_t &_end,
-               const TokenStream &_with);
-
   /// Begin iteration
-  inline std::vector<Lexer::Token>::const_iterator begin() {
+  inline std::vector<Lexer::Token>::const_iterator
+  begin() const {
     return raw_stream.begin();
   }
 
   /// End iteration
-  inline std::vector<Lexer::Token>::const_iterator end() {
+  inline std::vector<Lexer::Token>::const_iterator end() const {
     return raw_stream.end();
   }
 };

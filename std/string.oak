@@ -9,7 +9,7 @@ include!(
   "std/io.oak",
   "std/panic.oak",
   "std/c_str.oak",
-  "std/rules.oak"
+  // "std/rules.oak"
 );
 link!("std/string.o");
 rule::use!("std");

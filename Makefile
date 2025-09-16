@@ -38,7 +38,7 @@ install-debug: check
 	$(MAKE) -C src $@
 
 	@echo "Installing default Oak libraries..."
-	acorn-debug -yS ./std
+	acorn-debug --debug -yS ./std
 
 .PHONY:	uninstall
 uninstall:

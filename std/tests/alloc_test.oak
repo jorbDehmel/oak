@@ -11,11 +11,11 @@ let main() -> i32 {
   let ptr: ^i32;
   let arr: []i32;
 
-  alloc!(ptr);
-  alloc!(arr, 32i32);
+  alloc(ptr);
+  alloc(arr, 32i32);
 
-  free!(ptr);
-  free!(arr);
+  free(ptr);
+  free(arr);
 
   return 0i32;
 }

@@ -37,9 +37,6 @@ void Parser::parse_global(TokenStream &_pos) {
   while (!_pos.done()) {
     try {
       parse_statement(_pos);
-      while (!_pos.done() && _pos.cur().text == ";") {
-        _pos.next();
-      }
     } catch (OutOfPPPLError &) {
       throw;
     } catch (std::runtime_error &e) {
@@ -880,33 +877,7 @@ ASTNodes::Node Parser::parse_function_call(TokenStream &_pos) {
                      << '\n';
   }
 
-  // Special case: size!
-  if (_pos.cur() == "size!") {
-    _pos.next();
-    if (_pos.cur() != "(") {
-      throw std::runtime_error(
-          "Invalid size! macro: Expected '(', but saw '" +
-          _pos.cur().text + "'");
-    }
-    _pos.next();
-
-    // One type argument
-    ASTNodes::RawCFormat out;
-    out.type = Type({"uint"});
-    out.format_string =
-        "sizeof(" + parse_type(_pos).c_repr() + ")";
-
-    _pos.next();
-    if (_pos.cur() != ")") {
-      throw std::runtime_error(
-          "Invalid size! macro: Expected ')', but saw '" +
-          _pos.cur().text + "'");
-    }
-
-    return out;
-  }
-
-  // Function to be called
+  // Function to be called: Leaves pointing to first after
   const std::string unmangled_name = parse_id(_pos);
 
   // Opening paren for args
@@ -917,6 +888,22 @@ ASTNodes::Node Parser::parse_function_call(TokenStream &_pos) {
   }
   _pos.next();
 
+  // Special case: size!
+  if (unmangled_name == "size!") {
+    // One type argument
+    ASTNodes::RawCFormat out;
+    out.type = Type({"uint"});
+    out.format_string =
+        "sizeof(" + parse_type(_pos).c_repr() + ")";
+    _pos.next();
+    if (_pos.cur() != ")") {
+      throw std::runtime_error(
+          "Invalid size! macro: Expected ')', but saw '" +
+          _pos.cur().text + "'");
+    }
+    return out;
+  }
+
   // Args
   std::list<ASTNodes::Node> args;
   while (_pos.cur() != ")") {
@@ -925,6 +912,7 @@ ASTNodes::Node Parser::parse_function_call(TokenStream &_pos) {
     }
     _pos.next();
   }
+  _pos.next();
 
   // Return resolved fn node
   return get_function_call_node(unmangled_name, args);
@@ -1109,6 +1097,7 @@ Parser::parse_statement(TokenStream &_pos,
                      << '\n';
   }
 
+  // Delegate macro calls
   if (_pos.cur().text.size() > 1 &&
       _pos.cur().text.back() == '!') {
     if (_pos.cur() == "c!") {
@@ -1135,392 +1124,10 @@ Parser::parse_statement(TokenStream &_pos,
 
       return ASTNodes::Statement(
           {ASTNodes::OptBox<ASTNodes::Node>(out)});
-    } else if (_pos.cur() == "compile_time_error!") {
-      std::stringstream msg_strm;
-      msg_strm << _pos.cur().file.string() << ":"
-               << _pos.cur().line << "." << _pos.cur().col
-               << ">" << _pos.cur().text
-               << " Compile-time error:\n";
-      const auto args = Macros::get_macro_args(_pos);
-      for (const auto &arg : args) {
-        for (const auto &tok : arg) {
-          msg_strm << tok.text + " ";
-        }
-        msg_strm << " ";
-      }
-      msg_strm << '\n';
-
-      settings.ostream << msg_strm.str();
-      throw std::runtime_error(msg_strm.str());
-    } else if (_pos.cur() == "compile_time_warning!") {
-      std::stringstream msg_strm;
-      msg_strm << " Compile-time warning:\n";
-      const auto args = Macros::get_macro_args(_pos);
-      for (const auto &arg : args) {
-        for (const auto &tok : arg) {
-          msg_strm << tok.text + " ";
-        }
-        msg_strm << " ";
-      }
-      msg_strm << '\n';
-      settings.warn(_pos.cur().file, _pos.cur().line,
-                    _pos.cur().col, msg_strm.str());
-    } else if (_pos.cur() == "compile_time_print!") {
-      settings.ostream
-          << _pos.cur().file.string() << ":" << _pos.cur().line
-          << "." << _pos.cur().col << ">" << _pos.cur().text
-          << " Compile-time print:\n";
-      const auto args = Macros::get_macro_args(_pos);
-      for (const auto &arg : args) {
-        for (const auto &tok : arg) {
-          settings.ostream << tok.text + " ";
-        }
-        settings.ostream << " ";
-      }
-      settings.ostream << '\n';
-    } else if (_pos.cur() == "alias!") {
-      // In Oak: alias!(to, from);
-      // In C++: using to = from;
-      const auto args = Macros::get_macro_args(_pos);
-      if (args.size() != 2) {
-        throw std::runtime_error(
-            "'alias!' takes two arguments: to and from");
-      }
-      scope_manager.alias(concat(args.front()),
-                          concat(args.back()));
-    } else if (_pos.cur() == "erase!") {
-      const auto args = Macros::get_macro_args(_pos);
-      for (const auto &entry : args) {
-        scope_manager.erase(concat(entry));
-      }
-    } else if (_pos.cur() == "namespace_use!") {
-      // In Oak: namespace::use!("std");
-      // In C++: using namespace std;
-
-      const auto args = Macros::get_macro_args(_pos);
-      if (args.size() != 1) {
-        throw std::runtime_error(
-            "'namespace::use!' takes one "
-            "string argument: The prefix to "
-            "remove");
-      }
-      scope_manager.remove_prefix(concat(args.front()));
-    } else if (_pos.cur() == "include!") {
-      auto raw_args = Macros::get_macro_args(_pos);
-
-      std::list<Lexer::Token> args;
-      for (auto it = raw_args.begin(); it != raw_args.end();
-           ++it) {
-        TokenStream cur_arg(*it);
-        Lexer::Token to_add = cur_arg.cur();
-        for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
-          to_add.text += ' ';
-          to_add.text += cur_arg.cur().text;
-        }
-        to_add.text = Macros::strip_string_literal(to_add.text);
-        args.push_back(to_add);
-      }
-
-      for (const auto &f : args) {
-        do_file(f.text, f.file);
-      }
-    } else if (_pos.cur() == "link!") {
-      auto raw_args = Macros::get_macro_args(_pos);
-      std::list<Lexer::Token> args;
-      for (auto it = raw_args.begin(); it != raw_args.end();
-           ++it) {
-        TokenStream cur_arg(*it);
-        Lexer::Token to_add = cur_arg.cur();
-        for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
-          to_add.text += ' ';
-          to_add.text += cur_arg.cur().text;
-        }
-        args.push_back(to_add);
-      }
-
-      for (auto it = args.begin(); it != args.end(); ++it) {
-        it->text = Macros::strip_string_literal(it->text);
-      }
-
-      for (const auto &f : args) {
-        settings.compile_settings().objects.push_back(
-            resolve_path(f.text, f.file));
-      }
-    } else if (_pos.cur() == "flag!") {
-      auto raw_args = Macros::get_macro_args(_pos);
-      std::list<Lexer::Token> args;
-      for (auto it = raw_args.begin(); it != raw_args.end();
-           ++it) {
-        TokenStream cur_arg(*it);
-        Lexer::Token to_add = cur_arg.cur();
-        for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
-          to_add.text += ' ';
-          to_add.text += cur_arg.cur().text;
-        }
-        args.push_back(to_add);
-      }
-
-      for (auto it = args.begin(); it != args.end(); ++it) {
-        it->text = Macros::strip_string_literal(it->text);
-      }
-
-      for (const auto &f : args) {
-        settings.compile_settings().link_flags.push_back(
-            f.text);
-      }
-    } else if (_pos.cur() == "pragma!") {
-      auto raw_args = Macros::get_macro_args(_pos);
-      std::list<Lexer::Token> args;
-      for (auto it = raw_args.begin(); it != raw_args.end();
-           ++it) {
-        TokenStream cur_arg(*it);
-        Lexer::Token to_add = cur_arg.cur();
-        for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
-          to_add.text += ' ';
-          to_add.text += cur_arg.cur().text;
-        }
-        args.push_back(to_add);
-      }
-
-      for (auto it = args.begin(); it != args.end(); ++it) {
-        it->text = Macros::strip_string_literal(it->text);
-      }
-
-      if (args.size() == 1) {
-        args.push_back(Lexer::Token(args.front(), ""));
-      }
-
-      settings.compile_settings()
-          .pragmas[_pos.cur().file][args.front().text] =
-          std::next(args.begin())->text;
-    } else if (_pos.cur() == "rule_new!") {
-      auto raw_args = Macros::get_macro_args(_pos);
-      std::list<Lexer::Token> args;
-      for (auto it = raw_args.begin(); it != raw_args.end();
-           ++it) {
-        TokenStream cur_arg(*it);
-
-        Lexer::Token to_add = cur_arg.cur();
-        for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
-          to_add.text += ' ';
-          to_add.text += cur_arg.cur().text;
-        }
-        args.push_back(to_add);
-      }
-
-      for (auto it = args.begin(); it != args.end(); ++it) {
-        it->text = Macros::strip_string_literal(it->text);
-      }
-
-      if (args.size() < 3) {
-        throw std::runtime_error(
-            "Malformed rule::new! call: Arguments must "
-            "be "
-            "rule_name, input_rule, output_rule, "
-            "[engine_name], [prerequisites...]");
-      }
-
-      // Name, input, output (using sapling engine)
-      std::string name = args.front();
-      std::string engine = "sapling";
-      std::list<std::string> prereqs;
-      if (args.size() == 4) {
-        // Name, input, output, engine
-        engine = *std::next(args.begin(), 3);
-      } else if (args.size() > 4) {
-        // Name, input, output, engine, prerequisites
-        engine = *std::next(args.begin(), 3);
-        for (auto it = std::next(args.begin(), 4);
-             it != args.end(); ++it) {
-          prereqs.push_back(_pos.cur());
-        }
-      }
-
-      std::cerr << __FILE__ << ":" << __LINE__
-                << "> Unimplemented\n"
-                << std::flush;
-    } else if (_pos.cur() == "rule_use!") {
-      auto raw_args = Macros::get_macro_args(_pos);
-      std::list<Lexer::Token> args;
-      for (auto it = raw_args.begin(); it != raw_args.end();
-           ++it) {
-        TokenStream cur_arg(*it);
-
-        Lexer::Token to_add = cur_arg.cur();
-        for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
-          to_add.text += ' ';
-          to_add.text += cur_arg.cur().text;
-        }
-        args.push_back(to_add);
-      }
-
-      std::cerr << __FILE__ << ":" << __LINE__
-                << "> Unimplemented\n"
-                << std::flush;
-    } else if (_pos.cur() == "rule_remove!") {
-      auto raw_args = Macros::get_macro_args(_pos);
-      std::list<Lexer::Token> args;
-      for (auto it = raw_args.begin(); it != raw_args.end();
-           ++it) {
-        TokenStream cur_arg(*it);
-
-        Lexer::Token to_add = cur_arg.cur();
-        for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
-          to_add.text += ' ';
-          to_add.text += cur_arg.cur().text;
-        }
-        args.push_back(to_add);
-      }
-
-      for (const auto &_ : args) {
-        std::cerr << __FILE__ << ":" << __LINE__
-                  << "> Unimplemented\n"
-                  << std::flush;
-      }
-    } else if (_pos.cur() == "rule_bundle!") {
-      auto raw_args = Macros::get_macro_args(_pos);
-      std::list<Lexer::Token> args;
-      for (auto it = raw_args.begin(); it != raw_args.end();
-           ++it) {
-        TokenStream cur_arg(*it);
-
-        Lexer::Token to_add = cur_arg.cur();
-        for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
-          to_add.text += ' ';
-          to_add.text += cur_arg.cur().text;
-        }
-        args.push_back(to_add);
-      }
-
-      std::list<std::string> entails;
-      for (auto it = std::next(args.begin()); it != args.end();
-           ++it) {
-        entails.push_back(
-            Macros::strip_string_literal(it->text));
-      }
-
-      std::cerr << __FILE__ << ":" << __LINE__
-                << "> Unimplemented\n"
-                << std::flush;
-    } else if (_pos.cur() == "unstr!") {
-      Lexer::Token to_add(_pos.cur());
-      auto raw_args = Macros::get_macro_args(_pos);
-      to_add.text.clear();
-      for (auto it = raw_args.begin(); it != raw_args.end();
-           ++it) {
-        for (auto inner_it = it->begin(); inner_it != it->end();
-             ++inner_it) {
-          if (!to_add.text.empty()) {
-            to_add.text += ' ';
-          }
-          to_add.text += inner_it->text;
-        }
-      }
-
-      to_add.text = Macros::strip_string_literal(to_add.text);
-
-      uint64_t dummy_line = to_add.line, dummy_col = to_add.col;
-      auto to_insert = Lexer::lex(to_add.text, to_add.file,
-                                  dummy_line, dummy_col);
-      _pos.insert(_pos.tell(), to_insert);
-    } else if (_pos.cur() == "str!") {
-      Lexer::Token to_add(_pos.cur());
-      auto raw_args = Macros::get_macro_args(_pos);
-      to_add.text.clear();
-
-      for (auto it = raw_args.begin(); it != raw_args.end();
-           ++it) {
-        for (auto inner_it = it->begin(); inner_it != it->end();
-             ++inner_it) {
-          if (!to_add.text.empty()) {
-            to_add.text += ' ';
-          }
-          to_add.text += inner_it->text;
-        }
-      }
-
-      // Ensure exactly one set of enclosing quotes
-      to_add.text = Macros::make_string_literal(
-          Macros::strip_string_literal(to_add.text));
-      Lexer::classify_type(to_add);
-      _pos.insert(_pos.tell(), to_add);
-    } else if (_pos.cur() == "compile_time_system!") {
-      settings.ostream
-          << _pos.cur().file.string() << ":" << _pos.cur().line
-          << "." << _pos.cur().col
-          << ">\ncompile_time::system! asks to run `";
-      auto raw_args = Macros::get_macro_args(_pos);
-      std::list<Lexer::Token> args;
-      for (auto it = raw_args.begin(); it != raw_args.end();
-           ++it) {
-        TokenStream cur_arg(*it);
-
-        Lexer::Token to_add = cur_arg.cur();
-        for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
-          to_add.text += ' ';
-          to_add.text += cur_arg.cur().text;
-        }
-        args.push_back(to_add);
-      }
-
-      for (auto it = args.begin(); it != args.end(); ++it) {
-        it->text = Macros::strip_string_literal(it->text);
-      }
-
-      std::string cmd;
-      for (const auto &arg : args) {
-        if (!cmd.empty()) {
-          cmd.push_back(' ');
-        }
-        cmd += arg.text;
-      }
-
-      settings.ostream << cmd << "` at "
-                       << _pos.cur().file.parent_path() << "\n"
-                       << std::flush;
-
-      if (!settings.compile_settings().no_confirm) {
-        settings.ostream << "Allow? [N/y/a] ";
-        char choice = std::cin.get();
-
-        switch (choice) {
-        default:
-          throw std::runtime_error("Abort!");
-        case 'a':
-        case 'A':
-          settings.ostream << "Not asking again!\n";
-          settings.compile_settings().no_confirm = true;
-        case 'y':
-        case 'Y':
-          break;
-        }
-      } else {
-        settings.ostream
-            << "(no_confirm is enabled, so running "
-               "without asking)\n";
-      }
-
-      const auto old_cwd = std::filesystem::current_path();
-      std::filesystem::current_path(
-          _pos.cur().file.parent_path());
-
-      auto result = system(cmd.c_str());
-
-      std::filesystem::current_path(old_cwd);
-
-      if (result != 0) {
-        throw std::runtime_error(
-            "System call '" + cmd +
-            "' exited with nonzero exit code " +
-            std::to_string(result));
-      }
-    }
-
-    // Delegate for macro calls
-    else {
+    } else {
       replace_macro(_pos);
+      return ASTNodes::Statement();
     }
-    return ASTNodes::Statement();
   }
 
   else if (_pos.done() || _pos.cur() == ";") {
@@ -1603,14 +1210,13 @@ Parser::parse_statement(TokenStream &_pos,
         for (const auto &name : names) {
           out.names.push_back(name);
           scope_manager.add(name, t);
-          out.names.push_back(name);
-          scope_manager.add(name, t);
           const ASTNodes::Object upon(name, t);
 
           // Literal `New` call
           out.new_calls.push_back(
               get_function_call_node("New", {upon}));
         }
+        _pos.next();
 
         ASTNodes::Statement stmt_out(
             {ASTNodes::OptBox<ASTNodes::Node>(out)});
@@ -1701,7 +1307,6 @@ Parser::parse_statement(TokenStream &_pos,
     while (_pos.cur() != "}") {
       out.children.push_back(ASTNodes::OptBox<ASTNodes::Node>(
           parse_statement(_pos)));
-      _pos.next();
     }
 
     // Remove that scope frame
@@ -1885,6 +1490,7 @@ Parser::parse_statement(TokenStream &_pos,
     _pos.next();
     if (_pos.cur() != ";") {
       out.value = parse_object(_pos);
+      _pos.next();
 
       if (!settings.compile_settings()
                .cur_return_type.back()
@@ -1943,15 +1549,15 @@ ASTNodes::Node Parser::get_function_call_node(
     return out;
   }
 
-  // alloc!
-  else if (_unmangled_name == "alloc!") {
+  // alloc
+  else if (_unmangled_name == "alloc") {
     // 1-arg
     if (_args.size() == 1) {
       if (ASTNodes::type(_args.front()).nodes.empty() ||
           ASTNodes::type(_args.front()).nodes.front().type !=
               Type::TypeNode::POINTER) {
         throw std::runtime_error(
-            "Expected pointer type for alloc!(into), instead "
+            "Expected pointer type for alloc(into), instead "
             "saw '" +
             ASTNodes::type(_args.front()).oak_repr() + "'");
       }
@@ -1976,7 +1582,7 @@ ASTNodes::Node Parser::get_function_call_node(
           ASTNodes::type(_args.front()).nodes.front().type !=
               Type::TypeNode::UNSIZED_ARRAY) {
         throw std::runtime_error(
-            "Expected unsized array type for alloc!(into, "
+            "Expected unsized array type for alloc(into, "
             "size), instead saw '" +
             ASTNodes::type(_args.front()).oak_repr() + "'");
       }
@@ -1996,12 +1602,12 @@ ASTNodes::Node Parser::get_function_call_node(
 
     // Error case
     else {
-      throw std::runtime_error("alloc! takes 1 or 2 args.");
+      throw std::runtime_error("alloc takes 1 or 2 args.");
     }
   }
 
-  // free!
-  else if (_unmangled_name == "free!") {
+  // free
+  else if (_unmangled_name == "free") {
     if (_args.size() != 1 ||
         ASTNodes::type(_args.front()).nodes.empty() ||
         (ASTNodes::type(_args.front()).nodes.front().type !=
@@ -2010,7 +1616,7 @@ ASTNodes::Node Parser::get_function_call_node(
              Type::TypeNode::UNSIZED_ARRAY)) {
       throw std::runtime_error(
           "Expected pointer or unsized array type for "
-          "free!(to_free), instead saw '" +
+          "free(to_free), instead saw '" +
           ASTNodes::type(_args.front()).oak_repr() + "'");
     }
 
@@ -2770,7 +2376,7 @@ bool Parser::replace_macro(TokenStream &_pos) {
     settings.ostream << __FUNCTION__ << " at "
                      << _pos.cur().file.string() << ":"
                      << _pos.cur().line << "." << _pos.cur().col
-                     << '\n';
+                     << "> " << _pos.cur().text << '\n';
   }
 
   const auto name_tok = _pos.cur();
@@ -2816,10 +2422,400 @@ bool Parser::replace_macro(TokenStream &_pos) {
     return true;
   }
 
+  // Note: Still pointing to name
   if (Macros::reserved_macro_names.contains(name)) {
-    // Just skip it
-    Macros::get_macro_args(_pos);
-    return false;
+    if (name == "compile_time_error!") {
+      std::stringstream msg_strm;
+      msg_strm << _pos.cur().file.string() << ":"
+               << _pos.cur().line << "." << _pos.cur().col
+               << "> Compile-time error:\n";
+      const auto args = Macros::get_macro_args(_pos);
+      for (const auto &arg : args) {
+        for (const auto &tok : arg) {
+          msg_strm << tok.text + " ";
+        }
+        msg_strm << " ";
+      }
+      msg_strm << '\n';
+
+      settings.ostream << msg_strm.str();
+      throw std::runtime_error(msg_strm.str());
+    } else if (name == "compile_time_warning!") {
+      std::stringstream msg_strm;
+      msg_strm << " Compile-time warning:\n";
+      const auto args = Macros::get_macro_args(_pos);
+      for (const auto &arg : args) {
+        for (const auto &tok : arg) {
+          msg_strm << tok.text + " ";
+        }
+        msg_strm << " ";
+      }
+      msg_strm << '\n';
+      settings.warn(_pos.cur().file, _pos.cur().line,
+                    _pos.cur().col, msg_strm.str());
+    } else if (name == "compile_time_print!") {
+      settings.ostream
+          << _pos.cur().file.string() << ":" << _pos.cur().line
+          << "." << _pos.cur().col << "> Compile-time print:\n";
+      const auto args = Macros::get_macro_args(_pos);
+      for (const auto &arg : args) {
+        for (const auto &tok : arg) {
+          settings.ostream << tok.text + " ";
+        }
+        settings.ostream << " ";
+      }
+      settings.ostream << '\n';
+    } else if (name == "alias!") {
+      // In Oak: alias!(to, from);
+      // In C++: using to = from;
+      const auto args = Macros::get_macro_args(_pos);
+      if (args.size() != 2) {
+        throw std::runtime_error(
+            "'alias!' takes two arguments: to and from");
+      }
+      scope_manager.alias(concat(args.front()),
+                          concat(args.back()));
+    } else if (name == "erase!") {
+      const auto args = Macros::get_macro_args(_pos);
+      for (const auto &entry : args) {
+        scope_manager.erase(concat(entry));
+      }
+    } else if (name == "namespace_use!") {
+      // In Oak: namespace::use!("std");
+      // In C++: using namespace std;
+
+      const auto args = Macros::get_macro_args(_pos);
+      if (args.size() != 1) {
+        throw std::runtime_error(
+            "'namespace::use!' takes one "
+            "string argument: The prefix to "
+            "remove");
+      }
+      scope_manager.remove_prefix(concat(args.front()));
+    } else if (name == "include!") {
+      auto raw_args = Macros::get_macro_args(_pos);
+
+      std::list<Lexer::Token> args;
+      for (auto it = raw_args.begin(); it != raw_args.end();
+           ++it) {
+        TokenStream cur_arg(*it);
+        Lexer::Token to_add = cur_arg.cur();
+        for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
+          to_add.text += ' ';
+          to_add.text += cur_arg.cur().text;
+        }
+        to_add.text = Macros::strip_string_literal(to_add.text);
+        args.push_back(to_add);
+      }
+
+      for (const auto &f : args) {
+        do_file(f.text, f.file);
+      }
+    } else if (name == "link!") {
+      auto raw_args = Macros::get_macro_args(_pos);
+      std::list<Lexer::Token> args;
+      for (auto it = raw_args.begin(); it != raw_args.end();
+           ++it) {
+        TokenStream cur_arg(*it);
+        Lexer::Token to_add = cur_arg.cur();
+        for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
+          to_add.text += ' ';
+          to_add.text += cur_arg.cur().text;
+        }
+        args.push_back(to_add);
+      }
+
+      for (auto it = args.begin(); it != args.end(); ++it) {
+        it->text = Macros::strip_string_literal(it->text);
+      }
+
+      for (const auto &f : args) {
+        settings.compile_settings().objects.push_back(
+            resolve_path(f.text, f.file));
+      }
+    } else if (name == "flag!") {
+      auto raw_args = Macros::get_macro_args(_pos);
+      std::list<Lexer::Token> args;
+      for (auto it = raw_args.begin(); it != raw_args.end();
+           ++it) {
+        TokenStream cur_arg(*it);
+        Lexer::Token to_add = cur_arg.cur();
+        for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
+          to_add.text += ' ';
+          to_add.text += cur_arg.cur().text;
+        }
+        args.push_back(to_add);
+      }
+
+      for (auto it = args.begin(); it != args.end(); ++it) {
+        it->text = Macros::strip_string_literal(it->text);
+      }
+
+      for (const auto &f : args) {
+        settings.compile_settings().link_flags.push_back(
+            f.text);
+      }
+    } else if (name == "pragma!") {
+      auto raw_args = Macros::get_macro_args(_pos);
+      std::list<Lexer::Token> args;
+      for (auto it = raw_args.begin(); it != raw_args.end();
+           ++it) {
+        TokenStream cur_arg(*it);
+        Lexer::Token to_add = cur_arg.cur();
+        for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
+          to_add.text += ' ';
+          to_add.text += cur_arg.cur().text;
+        }
+        args.push_back(to_add);
+      }
+
+      for (auto it = args.begin(); it != args.end(); ++it) {
+        it->text = Macros::strip_string_literal(it->text);
+      }
+
+      if (args.size() == 1) {
+        args.push_back(Lexer::Token(args.front(), ""));
+      }
+
+      settings.compile_settings()
+          .pragmas[_pos.cur().file][args.front().text] =
+          std::next(args.begin())->text;
+    } else if (name == "rule_new!") {
+      auto raw_args = Macros::get_macro_args(_pos);
+      std::list<Lexer::Token> args;
+      for (auto it = raw_args.begin(); it != raw_args.end();
+           ++it) {
+        TokenStream cur_arg(*it);
+
+        Lexer::Token to_add = cur_arg.cur();
+        for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
+          to_add.text += ' ';
+          to_add.text += cur_arg.cur().text;
+        }
+        args.push_back(to_add);
+      }
+
+      for (auto it = args.begin(); it != args.end(); ++it) {
+        it->text = Macros::strip_string_literal(it->text);
+      }
+
+      if (args.size() < 3) {
+        throw std::runtime_error(
+            "Malformed rule::new! call: Arguments must "
+            "be "
+            "rule_name, input_rule, output_rule, "
+            "[engine_name], [prerequisites...]");
+      }
+
+      // Name, input, output (using sapling engine)
+      std::string name = args.front();
+      std::string engine = "sapling";
+      std::list<std::string> prereqs;
+      if (args.size() == 4) {
+        // Name, input, output, engine
+        engine = *std::next(args.begin(), 3);
+      } else if (args.size() > 4) {
+        // Name, input, output, engine, prerequisites
+        engine = *std::next(args.begin(), 3);
+        for (auto it = std::next(args.begin(), 4);
+             it != args.end(); ++it) {
+          prereqs.push_back(_pos.cur());
+        }
+      }
+
+      std::cerr << __FILE__ << ":" << __LINE__
+                << "> Unimplemented\n"
+                << std::flush;
+    } else if (name == "rule_use!") {
+      auto raw_args = Macros::get_macro_args(_pos);
+      std::list<Lexer::Token> args;
+      for (auto it = raw_args.begin(); it != raw_args.end();
+           ++it) {
+        TokenStream cur_arg(*it);
+
+        Lexer::Token to_add = cur_arg.cur();
+        for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
+          to_add.text += ' ';
+          to_add.text += cur_arg.cur().text;
+        }
+        args.push_back(to_add);
+      }
+
+      std::cerr << __FILE__ << ":" << __LINE__
+                << "> Unimplemented\n"
+                << std::flush;
+    } else if (name == "rule_remove!") {
+      auto raw_args = Macros::get_macro_args(_pos);
+      std::list<Lexer::Token> args;
+      for (auto it = raw_args.begin(); it != raw_args.end();
+           ++it) {
+        TokenStream cur_arg(*it);
+
+        Lexer::Token to_add = cur_arg.cur();
+        for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
+          to_add.text += ' ';
+          to_add.text += cur_arg.cur().text;
+        }
+        args.push_back(to_add);
+      }
+
+      for (const auto &_ : args) {
+        std::cerr << __FILE__ << ":" << __LINE__
+                  << "> Unimplemented\n"
+                  << std::flush;
+      }
+    } else if (name == "rule_bundle!") {
+      auto raw_args = Macros::get_macro_args(_pos);
+      std::list<Lexer::Token> args;
+      for (auto it = raw_args.begin(); it != raw_args.end();
+           ++it) {
+        TokenStream cur_arg(*it);
+
+        Lexer::Token to_add = cur_arg.cur();
+        for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
+          to_add.text += ' ';
+          to_add.text += cur_arg.cur().text;
+        }
+        args.push_back(to_add);
+      }
+
+      std::list<std::string> entails;
+      for (auto it = std::next(args.begin()); it != args.end();
+           ++it) {
+        entails.push_back(
+            Macros::strip_string_literal(it->text));
+      }
+
+      std::cerr << __FILE__ << ":" << __LINE__
+                << "> Unimplemented\n"
+                << std::flush;
+    } else if (name == "unstr!") {
+      const auto first_of_range = _pos.tell();
+      Lexer::Token to_add = _pos.cur(); // name
+      auto raw_args = Macros::get_macro_args(_pos);
+      const auto first_after_range = _pos.tell();
+
+      to_add.text.clear();
+      for (auto it = raw_args.begin(); it != raw_args.end();
+           ++it) {
+        for (auto inner_it = it->begin(); inner_it != it->end();
+             ++inner_it) {
+          if (!to_add.text.empty()) {
+            to_add.text += ' ';
+          }
+          to_add.text += inner_it->text;
+        }
+      }
+
+      to_add.text = Macros::strip_string_literal(to_add.text);
+
+      uint64_t dummy_line = to_add.line, dummy_col = to_add.col;
+      TokenStream to_insert = Lexer::lex(
+          to_add.text, to_add.file, dummy_line, dummy_col);
+
+      _pos.rangef(first_of_range, first_after_range,
+                  {to_insert});
+    } else if (name == "str!") {
+      Lexer::Token to_add(_pos.cur());
+
+      const auto first_of_range = _pos.tell();
+      auto raw_args = Macros::get_macro_args(_pos);
+      const auto first_after_range = _pos.tell();
+      to_add.text.clear();
+
+      for (auto it = raw_args.begin(); it != raw_args.end();
+           ++it) {
+        for (auto inner_it = it->begin(); inner_it != it->end();
+             ++inner_it) {
+          if (!to_add.text.empty()) {
+            to_add.text += ' ';
+          }
+          to_add.text += inner_it->text;
+        }
+      }
+
+      // Ensure exactly one set of enclosing quotes
+      to_add.text = Macros::make_string_literal(
+          Macros::strip_string_literal(to_add.text));
+      Lexer::classify_type(to_add);
+
+      _pos.rangef(first_of_range, first_after_range, {to_add});
+      _pos.seek(first_of_range);
+    } else if (name == "compile_time_system!") {
+      settings.ostream
+          << _pos.cur().file.string() << ":" << _pos.cur().line
+          << "." << _pos.cur().col
+          << ">\ncompile_time::system! asks to run `";
+      auto raw_args = Macros::get_macro_args(_pos);
+      std::list<Lexer::Token> args;
+      for (auto it = raw_args.begin(); it != raw_args.end();
+           ++it) {
+        TokenStream cur_arg(*it);
+
+        Lexer::Token to_add = cur_arg.cur();
+        for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
+          to_add.text += ' ';
+          to_add.text += cur_arg.cur().text;
+        }
+        args.push_back(to_add);
+      }
+
+      for (auto it = args.begin(); it != args.end(); ++it) {
+        it->text = Macros::strip_string_literal(it->text);
+      }
+
+      std::string cmd;
+      for (const auto &arg : args) {
+        if (!cmd.empty()) {
+          cmd.push_back(' ');
+        }
+        cmd += arg.text;
+      }
+
+      settings.ostream << cmd << "` at "
+                       << _pos.cur().file.parent_path() << "\n"
+                       << std::flush;
+
+      if (!settings.compile_settings().no_confirm) {
+        settings.ostream << "Allow? [N/y/a] ";
+        char choice = std::cin.get();
+
+        switch (choice) {
+        default:
+          throw std::runtime_error("Abort!");
+        case 'a':
+        case 'A':
+          settings.ostream << "Not asking again!\n";
+          settings.compile_settings().no_confirm = true;
+        case 'y':
+        case 'Y':
+          break;
+        }
+      } else {
+        settings.ostream
+            << "(no_confirm is enabled, so running "
+               "without asking)\n";
+      }
+
+      const auto old_cwd = std::filesystem::current_path();
+      std::filesystem::current_path(
+          _pos.cur().file.parent_path());
+
+      auto result = system(cmd.c_str());
+
+      std::filesystem::current_path(old_cwd);
+
+      if (result != 0) {
+        throw std::runtime_error(
+            "System call '" + cmd +
+            "' exited with nonzero exit code " +
+            std::to_string(result));
+      }
+    } else {
+      throw std::runtime_error(
+          "Unhandled special-case macro '" + name + "'");
+    }
+    return true;
   }
 
   const auto res = scope_manager.get(name);
@@ -2833,16 +2829,16 @@ bool Parser::replace_macro(TokenStream &_pos) {
     }
   } else if (std::holds_alternative<InlineMacro>(res.value())) {
     // Inline
-    const auto to_remove = _pos.tell();
-    for (const auto &item :
-         std::get<InlineMacro>(res.value()).contents) {
-      _pos.insert(to_remove, Lexer::Token(name_tok, item));
-    }
-    _pos.seek(to_remove - 1);
-    _pos.erase(to_remove);
+    auto first_of_range = _pos.tell();
+    _pos.rangef(first_of_range, first_of_range + 1,
+                {std::get<InlineMacro>(res.value()).contents});
+    _pos.seek(first_of_range);
   } else if (_pos.peek().text == "(") {
     // Functional
+    const auto first_of_range = _pos.tell();
+    _pos.next();
     auto args = Macros::get_macro_args(_pos);
+    const auto first_after_range = _pos.tell();
 
     const auto exe =
         std::get<CompiledMacro>(res.value()).executable;
@@ -2885,15 +2881,9 @@ bool Parser::replace_macro(TokenStream &_pos) {
         replacement, name_tok.file, junk_line, junk_col);
 
     // Do replacement
-    const size_t before_macro_guts = _pos.tell();
-    for (const auto &t : lexed_replacement) {
-      Lexer::Token to_insert = t;
-      to_insert.file = name_tok.file;
-      to_insert.line = name_tok.line;
-      to_insert.col = name_tok.col;
-      _pos.insert(_pos.tell(), to_insert);
-    }
-    _pos.seek(before_macro_guts);
+    _pos.rangef(first_of_range, first_after_range,
+                {lexed_replacement});
+    _pos.seek(first_of_range);
   } else {
     // Error
     throw std::runtime_error(

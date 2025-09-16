@@ -40,8 +40,8 @@ void print_region(TokenStream &_pos, std::ostream &_where,
   _pos.next();
 
   // Top delim
-  _where << "////////////////////////// In region: "
-            "//////////////////////////\n";
+  _where << "~~~~~~~~~~~~~~~~~~~~~~~~~~ In region: "
+            "~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
 
   // Print lines
   uint line = _pos.cur().line, col = 0;
@@ -77,13 +77,6 @@ void print_region(TokenStream &_pos, std::ostream &_where,
     _where << ' ';
   }
   _where << "^\n";
-
-  // Bottom indicator
-  for (uint i = 0; i < 64; ++i) {
-    _where << '/';
-  }
-  _where << '\n';
-
   _pos.seek(start_pos);
 }
 

@@ -5,7 +5,7 @@ Initial test of SDL2 interfacial package
 pragma!("no_run");
 include!(
   "std/std.oak",
-  "std/rules.oak",
+  // "std/rules.oak",
   "sdl/sdl.oak"
 );
 rule::use!("std");

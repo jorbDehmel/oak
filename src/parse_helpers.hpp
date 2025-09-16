@@ -72,7 +72,6 @@ std::string get_cmd_output(const std::string &_cmd);
 /// Internal oak macros
 const static std::set<std::string> reserved_macro_names = {
     "alias!",
-    "alloc!",
     "c!",
     "compile_time_error!",
     "compile_time_print!",
@@ -80,7 +79,6 @@ const static std::set<std::string> reserved_macro_names = {
     "compile_time_warning!",
     "erase!",
     "flag!",
-    "free!",
     "include!",
     "link!",
     "namespace_use!",

@@ -6,7 +6,7 @@ include!(
   "std/std.oak",
   "std/thread.oak",
   "std/printf.oak",
-  "std/rules.oak"
+  // "std/rules.oak"
 );
 rule::use!("std");
 

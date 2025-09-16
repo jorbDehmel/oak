@@ -297,6 +297,7 @@ fn_call_str(const std::string &_name,
 std::optional<ScopeManager::Value>
 ScopeManager::get(const std::string &_name) noexcept {
   debug_print();
+
   auto frame_it = frames.rbegin();
   auto capture_it = barrier_captures.rbegin();
   for (; frame_it != frames.rend() &&
@@ -358,60 +359,15 @@ ScopeManager::Value ScopeManager::dealias(ValueOrAlias &_what) {
     // Points to a reference
     debug_print();
     return std::get<
-        std::reference_wrapper<ScopeManager::Value>>(_what);
+               std::reference_wrapper<ScopeManager::Value>>(
+               _what)
+        .get();
   } else {
     // Points to a literal
     debug_print();
-    return std::ref(std::get<ScopeManager::Value>(_what));
+    return std::get<ScopeManager::Value>(_what);
   }
 }
-
-// std::optional<TemplateInfo::Substitution>
-// TemplateInfo::find_substitutions(
-//     const std::string &_name,
-//     const std::list<std::string> &_signature_to_provide)
-//     const {
-//   debug_print();
-
-//   // Check instance
-//   // For as long as we haven't finished the template
-//   // If literal on both sides that matches, advance
-//   // Else if template has generic, log what that template
-//   // needs to be
-//   std::map<std::string, uint> generic_indices;
-//   std::vector<std::list<std::string>> substitutions;
-//   for (const auto &item : generics) {
-//     generic_indices[item] = substitutions.size();
-//     substitutions.push_back({});
-//   }
-
-//   auto desired_it = _signature_to_provide.begin();
-//   auto templ_it = provides_block.begin();
-
-//   while (desired_it != _signature_to_provide.end() &&
-//          templ_it != provides_block.end()) {
-//     if (generic_indices.contains(*templ_it)) {
-//       do {
-//         substitutions.at(generic_indices.at(*templ_it))
-//             .push_back(*desired_it);
-//         ++desired_it;
-//       } while (desired_it != _signature_to_provide.end() &&
-//                *desired_it != *std::next(templ_it));
-//       ++templ_it;
-//     } else if (*desired_it == *templ_it) {
-//       ++desired_it;
-//       ++templ_it;
-//     } else {
-//       return {};
-//     }
-//   }
-
-//   TemplateInfo::Substitution out;
-//   for (uint j = 0; j < substitutions.size(); ++j) {
-//     out.push_back(substitutions.at(j));
-//   }
-//   return out;
-// }
 
 ASTNodes::Call
 ScopeManager::get_fn(const std::string &_name,

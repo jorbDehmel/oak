@@ -4,7 +4,7 @@ Tests the stl::List<T> class
 
 include!(
   "std/std.oak",
-  "std/rules.oak",
+  // "std/rules.oak",
   "std/printf.oak",
   "stl/list.oak"
 );

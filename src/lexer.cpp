@@ -5,6 +5,8 @@
 #include <iostream>
 #include <optional>
 #include <stdexcept>
+#include <variant>
+#include <vector>
 
 /**
  * @brief Avoid C keywords
@@ -591,30 +593,74 @@ size_t TokenStream::tell() noexcept {
   return cur_pos;
 }
 
+TokenStream TokenStream::copy_snippet(
+    const size_t &_start,
+    const size_t &_first_after) const noexcept {
+  std::list<Lexer::Token> out;
+  for (size_t i = _start;
+       i < _first_after && i < raw_stream.size(); ++i) {
+    out.push_back(raw_stream.at(i));
+  }
+  return out;
+}
+
+void TokenStream::rangef(
+    const size_t &_start, const size_t &_first_after,
+    const std::list<std::variant<Lexer::Token, TokenStream>>
+        &_fmt) {
+  if (_start >= _first_after || _start >= raw_stream.size() ||
+      _first_after > raw_stream.size()) {
+    throw std::runtime_error("Invalid range given to rangef");
+  }
+
+  // Construct copy
+  std::vector<Lexer::Token> copy;
+  for (const auto &item : _fmt) {
+    if (std::holds_alternative<Lexer::Token>(item)) {
+      copy.push_back(std::get<Lexer::Token>(item));
+    } else {
+      bool fix_fields = (!copy.empty());
+
+      for (const auto &tok : std::get<TokenStream>(item)) {
+        Lexer::Token t = tok;
+
+        // Fix line and col if desired
+        if (fix_fields) {
+          t.line = copy.back().line;
+          t.col = copy.back().col;
+          t.file = copy.back().file;
+        }
+
+        copy.push_back(t);
+      }
+    }
+  }
+
+  // Replace range
+  if (copy.size() > _first_after - _start) {
+    // Will need some insertion
+    // Note: This could be done much more efficiently
+    for (size_t i = 0;
+         i < (_first_after - _start) - copy.size(); ++i) {
+      raw_stream.insert(raw_stream.begin() + _first_after,
+                        Lexer::Token("", "", 0, 0));
+    }
+  } else if (copy.size() < _first_after - _start) {
+    // Will need some deletion
+    raw_stream.erase(raw_stream.begin() + _start + copy.size(),
+                     raw_stream.begin() + _first_after);
+  }
+
+  // Exact range match
+  for (size_t i = 0; i < copy.size(); ++i) {
+    raw_stream[_start + i] = copy[i];
+  }
+
+  seek(_start + copy.size());
+}
+
 void TokenStream::seek(const size_t &_where) noexcept {
   cur_pos = _where;
-}
-
-size_t TokenStream::erase(const size_t &_end) {
-  return std::distance(
-      raw_stream.begin(),
-      raw_stream.erase(raw_stream.begin() + _end));
-}
-
-void TokenStream::erase(const size_t &_begin,
-                        const size_t &_end) {
-  raw_stream.erase(raw_stream.begin() + _begin,
-                   raw_stream.begin() + _end);
-}
-
-void TokenStream::replace(const size_t &_begin,
-                          const size_t &_end,
-                          const TokenStream &_with) {
-  raw_stream.erase(raw_stream.begin() + _begin,
-                   raw_stream.begin() + _end);
-  raw_stream.insert(raw_stream.begin() + _end,
-                    _with.raw_stream.begin(),
-                    _with.raw_stream.end());
 }
 
 Lexer::Token TokenStream::peek(const int &_n) const noexcept {
@@ -627,16 +673,4 @@ Lexer::Token TokenStream::peek(const int &_n) const noexcept {
 
 bool TokenStream::at_beg() const noexcept {
   return cur_pos == 0;
-}
-
-void TokenStream::insert(const size_t &_end,
-                         const TokenStream &_with) {
-  raw_stream.insert(raw_stream.begin() + _end,
-                    _with.raw_stream.begin(),
-                    _with.raw_stream.end());
-}
-
-void TokenStream::insert(const size_t &_end,
-                         const Lexer::Token &_what) {
-  raw_stream.insert(raw_stream.begin() + _end, _what);
 }

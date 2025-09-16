@@ -2,7 +2,10 @@
 Tests std/rules.oak
 */
 
-include!("std/std.oak", "std/rules.oak");
+include!(
+  "std/std.oak",
+  // "std/rules.oak"
+);
 rule::use!("std");
 
 let Foo: struct {
