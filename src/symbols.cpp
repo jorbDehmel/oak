@@ -44,12 +44,12 @@ bool ScopeManager::empty() const noexcept {
   return frames.empty();
 }
 
-ASTNodes::Statement ScopeManager::pop_frame() {
+ASTNode ScopeManager::pop_frame() {
   debug_print();
   if (frames.size() <= 1) {
     throw std::runtime_error("Cannot pop final stack frame");
   } else {
-    ASTNodes::Statement destructors;
+    ASTNode destructors("statement");
 
     debug_print();
     const auto popped = frames.back();
@@ -68,9 +68,8 @@ ASTNodes::Statement ScopeManager::pop_frame() {
             std::get<Value>(entry.second);
         if (std::holds_alternative<Type>(non_ref_value)) {
           const auto instance = std::get<Type>(non_ref_value);
-          destructors.children.push_back(
-              ASTNodes::OptBox<ASTNodes::Node>(ASTNodes::Object(
-                  instance.get_destructor_call(entry.first))));
+          destructors.children.push_back(ASTNode(
+              instance.get_destructor_call(entry.first)));
         }
       }
     }
@@ -258,9 +257,8 @@ void ScopeManager::remove_prefix(const std::string &_prefix) {
   }
 }
 
-std::string
-fn_call_str(const std::string &_name,
-            const std::list<ASTNodes::Object> &_args) {
+std::string fn_call_str(const std::string &_name,
+                        const std::list<ASTNode> &_args) {
   debug_print();
   std::string call_text = _name + "(";
   bool first = true;
@@ -270,25 +268,7 @@ fn_call_str(const std::string &_name,
     } else {
       call_text += ", ";
     }
-    call_text += "_: " + arg.type.oak_repr();
-  }
-  call_text += ")";
-  return call_text;
-}
-
-std::string
-fn_call_str(const std::string &_name,
-            const std::list<ASTNodes::Node> &_args) {
-  debug_print();
-  std::string call_text = _name + "(";
-  bool first = true;
-  for (const auto &arg : _args) {
-    if (first) {
-      first = false;
-    } else {
-      call_text += ", ";
-    }
-    call_text += "_: " + ASTNodes::type(arg).oak_repr();
+    call_text += "_: " + Type(::type(arg)).oak_repr();
   }
   call_text += ")";
   return call_text;
@@ -369,13 +349,11 @@ ScopeManager::Value ScopeManager::dealias(ValueOrAlias &_what) {
   }
 }
 
-ASTNodes::Call
-ScopeManager::get_fn(const std::string &_name,
-                     const std::list<ASTNodes::Node> &_args) {
+ASTNode ScopeManager::get_fn(const std::string &_name,
+                             const std::list<ASTNode> &_args) {
   debug_print();
 
-  std::list<ASTNodes::Call> exact_matches, cast_matches,
-      ref_matches;
+  std::list<ASTNode> exact_matches, cast_matches, ref_matches;
 
   const auto fn_candidates = get(_name);
 
@@ -402,39 +380,45 @@ ScopeManager::get_fn(const std::string &_name,
         continue;
       }
 
-      ASTNodes::Call out;
       bool exact = true, ref = true, cast = true;
-      out.mangled_c_fn_name = instance.t.mangle(instance.name);
-      out.return_type = instance.t.fn_return_type();
+      const auto mangled_name =
+          instance.t.mangle(instance.name);
+      const auto return_type = instance.t.fn_return_type();
+      ASTNode args("_");
 
       auto args_at_j = _args.begin();
       for (uint j = 0;
            j < instance_args.size() && args_at_j != _args.end();
            ++j, ++args_at_j) {
-        ASTNodes::Call::Arg arg_to_add;
-        arg_to_add.name = *args_at_j;
-        arg_to_add.derefs = 0;
-        arg_to_add.type = ASTNodes::type(*args_at_j);
-
         if (exact &&
-            !ASTNodes::type(*args_at_j)
+            !Type(::type(*args_at_j))
                  .exact_match(instance_args[j].second)) {
           exact = false;
         }
 
-        if (ref && !ASTNodes::type(*args_at_j)
-                        .ref_match(instance_args[j].second,
-                                   arg_to_add.derefs)) {
+        int derefs = 0;
+        if (ref &&
+            !Type(::type(*args_at_j))
+                 .ref_match(instance_args[j].second, derefs)) {
           ref = false;
         }
 
-        if (cast && !ASTNodes::type(*args_at_j)
+        if (cast && !Type(::type(*args_at_j))
                          .cast_match(instance_args[j].second)) {
           cast = false;
         }
 
-        out.args.push_back(arg_to_add);
+        args.children.push_back(
+            ASTNode("_", {*args_at_j,
+                          ASTNode(std::to_string(derefs))}));
       }
+
+      /*
+      call format:
+      {mangled_name, return_type, args}
+      */
+      ASTNode out("@",
+                  {ASTNode(mangled_name), return_type, args});
 
       if (exact) {
         if (exact_matches.empty()) {
@@ -836,25 +820,36 @@ EnumInfo::get_wrappers(const Lexer::Token &_where) const {
     to_add.tags["col"] = std::to_string(_where.col);
 
     // Construct wrapper type
-    to_add.t.append_fn();
-    to_add.t.nodes.back().following_arg_name = "self";
-    to_add.t.append_ptr();
-    to_add.t.append_literal(name); // Enum name
-    to_add.t.append_join();
-    to_add.t.nodes.back().following_arg_name = "__data";
-    to_add.t.append_type(p.second);
-    to_add.t.append_maps();
-    to_add.t.append_literal("void");
+    to_add.t = Type(ASTNode(
+        "->",
+        {
+            ASTNode("_",
+                    {
+                        ASTNode("arg",
+                                {
+                                    ASTNode("self"),
+                                    ASTNode("^",
+                                            {
+                                                ASTNode(name),
+                                            }),
+                                }),
+                        ASTNode("arg",
+                                {
+                                    ASTNode("__data"),
+                                    p.second,
+                                }),
+                    }),
+            ASTNode("void"),
+        }));
 
     // Node
-    ASTNodes::RawCFormat child;
-
-    child.format_string = "{ self->__info = " + name + "_OPT_" +
-                          p.first + "; self->__data." +
-                          p.first + " = __data; }";
-
-    to_add.n.children = {ASTNodes::OptBox<ASTNodes::Node>(
-        ASTNodes::RawCFormat())};
+    ASTNode child(
+        "raw_c_format",
+        {ASTNode("{ self->__info = " + name + "_OPT_" +
+                 p.first + "; self->__data." + p.first +
+                 " = __data; }"),
+         ASTNode("void"), ASTNode("_", {})});
+    to_add.n = ASTNode("statement", {child});
     to_add.tags["autogen"] = "true";
 
     // Insert fn

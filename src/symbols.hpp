@@ -34,7 +34,7 @@ struct FnInfo {
   Type t;
 
   /// An AST node defining the behaviour
-  ASTNodes::Statement n;
+  ASTNode n;
 };
 
 /// Information about a single struct definition.
@@ -184,9 +184,8 @@ public:
  * @param _args The types of the arguments
  * @returns A string representing the fn call
  */
-std::string
-fn_call_str(const std::string &_name,
-            const std::list<ASTNodes::Object> &_args);
+std::string fn_call_str(const std::string &_name,
+                        const std::list<ASTNode> &_args);
 
 /// Manages the pushing and popping of variables, types,
 /// templates, macros, etc.
@@ -225,7 +224,7 @@ public:
   std::list<std::string> get_captures() const noexcept;
 
   /// Pops a scope off the stack and returns destructors
-  ASTNodes::Statement pop_frame();
+  ASTNode pop_frame();
 
   /// Returns whether there are no frames remaining
   bool empty() const noexcept;
@@ -279,8 +278,8 @@ public:
 
   /// Retrieves the fn closest to the given call spec WITHOUT
   /// doing any templates (we don't have a parser!)
-  ASTNodes::Call get_fn(const std::string &_name,
-                        const std::list<ASTNodes::Node> &_args);
+  ASTNode get_fn(const std::string &_name,
+                 const std::list<ASTNode> &_args);
 
   /// Drops any fn/templates with given name, type, key, and
   /// value

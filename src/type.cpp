@@ -5,13 +5,36 @@
 
 #include "type.hpp"
 #include "debug.hpp"
+#include <cassert>
 #include <csignal>
-#include <cstdint>
-#include <iostream>
 #include <map>
 #include <set>
 #include <stdexcept>
 #include <sys/types.h>
+
+bool Type::is_ptr() const noexcept {
+  return type_ast.text == "^";
+}
+
+bool Type::is_arr() const noexcept {
+  return type_ast.text == "[]";
+}
+
+bool Type::is_sized_arr() const noexcept {
+  return is_arr() && type_ast.children.size() == 2;
+}
+
+bool Type::is_unsized_arr() const noexcept {
+  return is_arr() && type_ast.children.size() == 1;
+}
+
+ASTNode Type::sized_arr_size() const {
+  if (!is_sized_arr()) {
+    throw std::runtime_error(
+        "Cannot get array size of non-sized-array type");
+  }
+  return type_ast.children.at(1);
+}
 
 // A higher number is more precise. The goal is not to lose
 // any precision in our casts.
@@ -29,11 +52,11 @@ const std::map<std::string, uint> Type::float_literals = {
 
 bool Type::is_built_in_type(const Type &_what) noexcept {
   debug_print();
-  if (_what.nodes.front().type != TypeNode::LITERAL) {
+  if (!_what.type_ast.children.empty()) {
     return false;
-  } else {
-    return is_built_in_type(_what.nodes.front().literal_name);
   }
+  const auto t = _what.type_ast.text;
+  return is_built_in_type(t);
 }
 
 bool Type::is_built_in_type(const std::string &_what) noexcept {
@@ -44,104 +67,9 @@ bool Type::is_built_in_type(const std::string &_what) noexcept {
          _what == "void";
 }
 
-void Type::process_next(const std::string &_symbol) {
-  debug_print();
-  if (_symbol == "^") {
-    append_ptr();
-  } else if (_symbol == ",") {
-    append_join();
-  } else if (_symbol == "->") {
-    append_maps();
-  } else if (_symbol == "(") {
-    append_fn();
-  } else if (_symbol == "[") {
-    enclosure.push(_symbol);
-  }
-
-  // Begining of 2-token "maps"
-  else if (_symbol == ")") {
-    while (!enclosure.empty() && enclosure.top() == "*") {
-      enclosure.pop();
-    }
-    if (enclosure.empty() || enclosure.top() != "(") {
-      throw std::runtime_error("Unexpected ')'.");
-    }
-    enclosure.pop();
-  }
-
-  // Unclosed array
-  else if (!enclosure.empty() && enclosure.top() == "[") {
-    if (_symbol == "]") {
-      append_arr();
-      enclosure.pop();
-    } else {
-      uint64_t size = 0;
-      try {
-        size = std::stoull(_symbol);
-      } catch (...) {
-        throw std::runtime_error(
-            "Array size must be a compile-time integer: "
-            "Instead, saw " +
-            _symbol + ".");
-      }
-      if (size == 0) {
-        throw std::runtime_error("Array size must be nonzero.");
-      }
-      append_sized_arr(size);
-      enclosure.top().push_back('*');
-    }
-  }
-
-  // Overclosed array
-  else if (_symbol == "]") {
-    if (enclosure.empty() || enclosure.top() != "[*") {
-      throw std::runtime_error("Unexpected '" + _symbol + "'.");
-    }
-    enclosure.pop();
-  }
-
-  // Type or arg name
-  else {
-    debug_print();
-    if (!enclosure.empty() && enclosure.top() == "*") {
-      debug_print();
-      if (!nodes.empty()) {
-        debug_print();
-        if (nodes.back().following_arg_name == "") {
-          debug_print();
-          nodes.back().following_arg_name = _symbol;
-        } else if (_symbol != ":") {
-          debug_print();
-          throw std::runtime_error(
-              "Expected ':'. Arguments must take the "
-              "form "
-              "'name: type' (even in implicit "
-              "declarations).");
-        }
-        debug_print();
-      }
-      enclosure.pop();
-      debug_print();
-    } else {
-      debug_print();
-      append_literal(_symbol);
-    }
-  }
-
-  debug_print();
-}
-
 bool Type::is_fn() const noexcept {
   debug_print();
-  return (nodes.size() >= 1 &&
-          nodes.front().type == TypeNode::FUNCTION);
-}
-
-void Type::append_type(const Type &_other) {
-  debug_print();
-  for (const auto &node : _other.nodes) {
-    nodes.push_back(node);
-  }
+  return type_ast.text == "->";
 }
 
 std::vector<std::pair<std::string, Type>>
@@ -153,52 +81,20 @@ Type::fn_args() const {
         oak_repr() + "'.");
   }
 
-  uint64_t depth = 0;
   std::vector<std::pair<std::string, Type>> out;
   std::set<std::string> used_names;
-  Type t;
-  std::string argname;
+  for (const auto &arg : type_ast.children.front().children) {
+    assert(arg.children.size() == 2);
+    const ASTNode type = arg.children.back();
+    std::string name = arg.children.front().text;
 
-  for (const auto &node : nodes) {
-    if (node.type == TypeNode::FUNCTION) {
-      ++depth;
-      if (depth == 1) {
-        argname = node.following_arg_name;
-        continue;
-      }
-    } else if (node.type == TypeNode::MAPS) {
-      --depth;
-      if (depth == 0) {
-        while (used_names.contains(argname)) {
-          argname = "_" + argname;
-        }
-        if (!t.nodes.empty()) {
-          out.push_back({argname, t});
-          used_names.insert(argname);
-        }
-        break;
-      }
+    while (used_names.contains(name)) {
+      name = "_" + name;
     }
 
-    if (depth == 0) {
-      continue;
-    } else {
-      if (depth == 1 && node.type == TypeNode::JOIN) {
-        while (used_names.contains(argname)) {
-          argname = "_" + argname;
-        }
-        if (!t.nodes.empty()) {
-          out.push_back({argname, t});
-          used_names.insert(argname);
-        }
-        argname = node.following_arg_name;
-        t = Type{};
-      } else {
-        t.nodes.push_back(node);
-      }
-    }
+    out.push_back({name, type});
+    used_names.insert(name);
   }
-
   return out;
 }
 
@@ -209,80 +105,50 @@ Type Type::fn_return_type() const {
         "Cannot get return type of non-function type '" +
         oak_repr() + "'.");
   }
-
-  Type out = *this;
-  int count = 0;
-  while (!out.nodes.empty()) {
-    if (out.nodes.front().type == TypeNode::FUNCTION) {
-      ++count;
-    } else if (out.nodes.front().type == TypeNode::MAPS) {
-      --count;
-      if (count == 0) {
-        out.nodes.pop_front();
-        break;
-      }
-    }
-    out.nodes.pop_front();
-  }
-  return out;
+  return type_ast.children.back();
 }
 
 std::string Type::oak_repr(const std::string &_var_name) const {
   debug_print();
-  std::string out;
-
   if (!_var_name.empty()) {
-    out = _var_name;
-    if (nodes.empty() ||
-        nodes.front().type != TypeNode::FUNCTION) {
-      out += ": ";
+    return _var_name + ": " + oak_repr();
+  } else if (is_ptr()) {
+    return "^" + deref().oak_repr();
+  } else if (is_arr()) {
+    if (is_sized_arr()) {
+      return "[" + sized_arr_size().text + "]" +
+             deref_allow_arrays().oak_repr();
+    } else {
+      return "[]" + deref_allow_arrays().oak_repr();
     }
+  } else if (is_fn()) {
+    std::string out = "(";
+    const auto args = fn_args();
+    const auto ret_type = fn_return_type();
+    bool first = true;
+    for (const auto &arg : args) {
+      if (first) {
+        first = false;
+      } else {
+        out += ", ";
+      }
+      out += arg.second.oak_repr(arg.first);
+    }
+    out += " -> " + ret_type.oak_repr();
+    return out;
+  } else {
+    return type_ast.text;
   }
-
-  for (const auto &node : nodes) {
-    switch (node.type) {
-    case TypeNode::POINTER:
-      out += "^";
-      break;
-    case TypeNode::UNSIZED_ARRAY:
-      out += "[]";
-      break;
-    case TypeNode::SIZED_ARRAY:
-      out += "[" + std::to_string(node.sized_array_size) + "]";
-      break;
-    case TypeNode::LITERAL:
-      out += node.literal_name;
-      break;
-    case TypeNode::FUNCTION:
-      out += "(";
-      break;
-    case TypeNode::JOIN:
-      out += ", ";
-      break;
-    case TypeNode::MAPS:
-      out += ") -> ";
-      break;
-    }
-    if (!node.following_arg_name.empty()) {
-      out += node.following_arg_name + ": ";
-    }
-  }
-  return out;
 }
 
 std::string Type::c_repr(const std::string &_var_name,
                          const bool &_no_mangle) const {
   debug_print();
-  // Dispatch based on type: Function pointers get one method,
-  // regular types get another.
-  std::string repr;
-  if (nodes.size() >= 2 &&
-      nodes.front().type == TypeNode::POINTER &&
-      std::next(nodes.begin())->type == TypeNode::FUNCTION) {
+  if (is_fn_ptr()) {
     // Function pointer
-    repr = deref().c_repr("(*" + _var_name + ")", true);
-  } else if (nodes.size() >= 1 &&
-             nodes.front().type == TypeNode::FUNCTION) {
+    return Type(type_ast.children.front())
+        .c_repr("(*" + _var_name + ")", true);
+  } else if (is_fn()) {
     // Regular function
     // Mangle
     std::string name = _var_name;
@@ -305,103 +171,81 @@ std::string Type::c_repr(const std::string &_var_name,
       out += arg.second.c_repr(arg.first);
     }
     out += ")";
-    repr = out;
-  } else {
-    // Normal type
-    std::string prefix, suffix;
-
-    for (const auto &node : nodes) {
-      switch (node.type) {
-      case TypeNode::POINTER:
-      case TypeNode::UNSIZED_ARRAY:
-        prefix += "*";
-        break;
-      case TypeNode::SIZED_ARRAY:
-        suffix +=
-            "[" + std::to_string(node.sized_array_size) + "]";
-        break;
-      case TypeNode::LITERAL:
-        if (!int_literals.contains(node.literal_name) &&
-            !uint_literals.contains(node.literal_name) &&
-            !float_literals.contains(node.literal_name) &&
-            node.literal_name != "bool" &&
-            node.literal_name != "void") {
-          prefix = "struct " + node.literal_name + prefix;
-        } else {
-          prefix = node.literal_name + prefix;
-        }
-        break;
-
-      default:
-        break;
-      }
+    return out;
+  } else if (is_sized_arr()) {
+    if (_var_name.empty()) {
+      throw std::runtime_error(
+          "Type '" + oak_repr() +
+          "' cannot be cast to C (illegal sized array)");
     }
 
-    repr = prefix + " " + _var_name + suffix;
+    return Type(type_ast.children.back()).c_repr("") + " " +
+           _var_name + "[" + type_ast.children.front().text +
+           "]";
+  } else if (!_var_name.empty()) {
+    return c_repr() + _var_name;
+  } else {
+    // Less weird types
+    if (is_ptr() || is_unsized_arr()) {
+      return Type(type_ast.children.front()).c_repr() + "*";
+    } else {
+      if (is_built_in_type(type_ast.text)) {
+        return type_ast.text + " ";
+      } else {
+        return "struct " + type_ast.text + " ";
+      }
+    }
   }
-
-  while (!repr.empty() && std::isspace(repr.back())) {
-    repr.pop_back();
-  }
-
-  return repr;
 }
 
 std::string Type::mangle(const std::string &_var_name) const {
   debug_print();
 
-  std::string name = _var_name;
-  for (const auto &node : nodes) {
-    switch (node.type) {
-    case TypeNode::POINTER:
-      name += "_PTR";
-      break;
-    case TypeNode::UNSIZED_ARRAY:
-    case TypeNode::SIZED_ARRAY:
-      name += "_ARR";
-      break;
-    case TypeNode::LITERAL:
-      name += "_" + node.literal_name;
-      break;
-    case TypeNode::FUNCTION:
-      name += "_FN";
-      break;
-    case TypeNode::JOIN:
-      name += "_JOIN";
-      break;
-    case TypeNode::MAPS:
-      name += "_MAPS";
-      break;
+  if (!_var_name.empty()) {
+    return _var_name + "_" + mangle("");
+  } else if (is_ptr()) {
+    return "PTR_" + deref().mangle();
+  } else if (is_arr()) {
+    if (is_sized_arr()) {
+      return "SIZED_ARR_" + sized_arr_size().text + "_" +
+             deref_allow_arrays().mangle();
+    } else {
+      return "ARR_" + deref_allow_arrays().mangle();
     }
+  } else if (is_fn()) {
+    std::string out = "FN";
+    const auto args = fn_args();
+    const auto ret_type = fn_return_type();
+    bool first = true;
+    for (const auto &arg : args) {
+      out += "_";
+      if (first) {
+        first = false;
+      } else {
+        out += "JOIN_";
+      }
+      out += arg.second.mangle();
+    }
+    out += "_MAPS_" + ret_type.mangle();
+    return out;
+  } else {
+    return type_ast.text;
   }
-  return name;
 }
 
 bool Type::exact_match(const Type &_other) const {
   debug_print();
-  if (nodes.size() != _other.nodes.size()) {
+  if (type_ast.text != _other.type_ast.text) {
+    return false;
+  } else if (type_ast.children.size() !=
+             _other.type_ast.children.size()) {
     return false;
   }
-  auto mine = nodes.begin();
-  auto theirs = _other.nodes.begin();
-  while (mine != nodes.end() && theirs != _other.nodes.end()) {
-    if (mine->type != theirs->type) {
-      if (!(mine->type == TypeNode::SIZED_ARRAY &&
-            theirs->type == TypeNode::UNSIZED_ARRAY) &&
-          !(mine->type == TypeNode::UNSIZED_ARRAY &&
-            theirs->type == TypeNode::SIZED_ARRAY)) {
-        return false;
-      }
-    } else if (mine->type == TypeNode::LITERAL &&
-               mine->literal_name != theirs->literal_name) {
-      return false;
-    } else if (mine->type == TypeNode::SIZED_ARRAY &&
-               theirs->type == TypeNode::SIZED_ARRAY &&
-               mine->sized_array_size !=
-                   theirs->sized_array_size) {
+  for (uint i = 0; i < type_ast.children.size(); ++i) {
+    if (!Type(type_ast.children.at(i))
+             .exact_match(_other.type_ast.children.at(i))) {
       return false;
     }
-    ++mine, ++theirs;
   }
   return true;
 }
@@ -410,74 +254,44 @@ bool Type::cast_match(const Type &_other) const {
   debug_print();
   // Special case: Void pointer casting
   // NOTE: This may cause some issues on C-side
-  if (_other.nodes.front().type == TypeNode::POINTER &&
-      exact_match(Type({"^", "void"}))) {
+  if (_other.is_ptr() &&
+      exact_match(ASTNode("^", {ASTNode("void")}))) {
     return true;
-  } else if (nodes.front().type == TypeNode::POINTER &&
-             _other.exact_match(Type({"^", "void"}))) {
+  } else if (is_ptr() && _other.exact_match(
+                             ASTNode("^", {ASTNode("void")}))) {
     return true;
+  } else if (is_arr() || is_fn_ptr() || is_fn() || is_ptr()) {
+    return exact_match(_other);
   }
 
-  debug_print();
-
-  if (nodes.size() != _other.nodes.size()) {
-    return false;
-  }
-
-  debug_print();
-
-  auto mine = nodes.begin();
-  auto theirs = _other.nodes.begin();
-  while (mine != nodes.end() && theirs != _other.nodes.end()) {
-    if (mine->type != theirs->type) {
-      if (!(mine->type == TypeNode::SIZED_ARRAY &&
-            theirs->type == TypeNode::UNSIZED_ARRAY) &&
-          !(mine->type == TypeNode::UNSIZED_ARRAY &&
-            theirs->type == TypeNode::SIZED_ARRAY)) {
-        return false;
-      }
-    } else if (mine->type == TypeNode::LITERAL &&
-               mine->literal_name != theirs->literal_name) {
-
-      // Possible casting case
-      const auto &my_type = mine->literal_name;
-      const auto &their_type = theirs->literal_name;
-      if (int_literals.contains(my_type) &&
-          int_literals.contains(their_type)) {
-        if (int_literals.at(my_type) >
-            int_literals.at(their_type)) {
-          return false;
-        }
-      } else if (uint_literals.contains(my_type) &&
-                 uint_literals.contains(their_type)) {
-        if (uint_literals.at(my_type) >
-            uint_literals.at(their_type)) {
-          return false;
-        }
-      } else if (float_literals.contains(my_type) &&
-                 float_literals.contains(their_type)) {
-        if (float_literals.at(my_type) >
-            float_literals.at(their_type)) {
-          return false;
-        }
-      } else {
-        // Do not share literal type genre, cannot be cast
-        return false;
-      }
-    } else if (mine->type == TypeNode::SIZED_ARRAY &&
-               theirs->type == TypeNode::SIZED_ARRAY &&
-               mine->sized_array_size !=
-                   theirs->sized_array_size) {
+  // Possible casting
+  const auto &my_type = type_ast.text;
+  const auto &their_type = _other.type_ast.text;
+  if (my_type == their_type) {
+    return true;
+  } else if (int_literals.contains(my_type) &&
+             int_literals.contains(their_type)) {
+    if (int_literals.at(my_type) >
+        int_literals.at(their_type)) {
       return false;
-    } else if (mine->type == TypeNode::UNSIZED_ARRAY) {
-      return exact_match(_other);
     }
-    ++mine, ++theirs;
+    return true;
+  } else if (uint_literals.contains(my_type) &&
+             uint_literals.contains(their_type)) {
+    if (uint_literals.at(my_type) >
+        uint_literals.at(their_type)) {
+      return false;
+    }
+    return true;
+  } else if (float_literals.contains(my_type) &&
+             float_literals.contains(their_type)) {
+    if (float_literals.at(my_type) >
+        float_literals.at(their_type)) {
+      return false;
+    }
+    return true;
   }
-
-  debug_print();
-
-  return mine == nodes.end() && theirs == _other.nodes.end();
+  return false;
 }
 
 bool Type::ref_match(const Type &_other,
@@ -490,13 +304,11 @@ bool Type::ref_match(const Type &_other,
   uint num_it_derefs = 0;
 
   // Fully deref both sides
-  while (!me.nodes.empty() &&
-         me.nodes.front().type == TypeNode::POINTER) {
+  while (me.is_ptr()) {
     me = me.deref();
     ++num_me_derefs;
   }
-  while (!it.nodes.empty() &&
-         it.nodes.front().type == TypeNode::POINTER) {
+  while (it.is_ptr()) {
     it = it.deref();
     ++num_it_derefs;
   }
@@ -512,137 +324,45 @@ bool Type::ref_match(const Type &_other,
   return (-1 == _num_deref || _num_deref == 0);
 }
 
-bool Type::valid() const noexcept {
-  debug_print();
-
-  if (nodes.empty()) {
-    return false;
-  } else if (nodes.back().type != TypeNode::LITERAL) {
-    return false;
-  }
-
-  int depth = 0;
-  for (const auto &node : nodes) {
-    if (node.type == TypeNode::FUNCTION) {
-      ++depth;
-    } else if (node.type == TypeNode::MAPS) {
-      if (depth == 0) {
-        return false;
-      }
-      --depth;
-    }
-  }
-
-  return depth == 0;
-}
-
-void Type::append_ptr() {
-  debug_print();
-  nodes.push_back({TypeNode::POINTER});
-}
-
-void Type::append_arr() {
-  debug_print();
-  nodes.push_back({TypeNode::UNSIZED_ARRAY});
-}
-
-void Type::append_sized_arr(const uint64_t &_size) {
-  debug_print();
-  if (_size == 0) {
-    throw std::runtime_error(
-        "Sized array cannot be of size zero!");
-  }
-  nodes.push_back({TypeNode::SIZED_ARRAY, {}, _size});
-}
-
-void Type::append_literal(const std::string &_name) {
-  debug_print();
-  nodes.push_back({TypeNode::LITERAL, _name});
-}
-
-void Type::append_fn() {
-  debug_print();
-  enclosure.push("(");
-
-  // Denote that the next two tokens should be ignored
-  // since they will be 'name :'
-  enclosure.push("*");
-  enclosure.push("*");
-
-  nodes.push_back({TypeNode::FUNCTION});
-}
-
-void Type::append_join() {
-  debug_print();
-  while (!enclosure.empty() && enclosure.top() == "*") {
-    enclosure.pop();
-  }
-
-  if (enclosure.empty() || enclosure.top() != "(") {
-    throw std::runtime_error(
-        "Cannot append 'join' to a non-function type '" +
-        oak_repr() + "'");
-  }
-  nodes.push_back({TypeNode::JOIN});
-
-  // Denote that the next two tokens should be ignored
-  // since they will be 'name :'
-  enclosure.push("*");
-  enclosure.push("*");
-}
-
-void Type::append_maps() {
-  debug_print();
-  if (nodes.back().type == TypeNode::JOIN) {
-    nodes.pop_back();
-  }
-  nodes.push_back({TypeNode::MAPS});
-}
-
 Type Type::deref() const {
-  debug_print();
-  if (nodes.size() < 2 ||
-      (nodes.front().type != TypeNode::POINTER &&
-       nodes.front().type != TypeNode::UNSIZED_ARRAY &&
-       nodes.front().type != TypeNode::SIZED_ARRAY)) {
+  if (!is_ptr()) {
     throw std::runtime_error("Cannot deref non-pointer type '" +
                              oak_repr() + "'");
   }
+  return type_ast.children.front();
+}
 
-  Type out = *this;
-  out.nodes.pop_front();
-  return out;
+Type Type::deref_allow_arrays() const {
+  if (!is_ptr() && !is_arr()) {
+    throw std::runtime_error(
+        "Cannot deref non-deref-able type '" + oak_repr() +
+        "'");
+  }
+  return type_ast.children.front();
 }
 
 Type Type::ref() const {
-  Type out = *this;
-  out.nodes.push_front(Type::TypeNode(Type::TypeNode::POINTER));
-  return out;
+  return Type(ASTNode("^", {type_ast}));
 }
 
 std::string Type::struct_name() const {
   debug_print();
-  if (nodes.empty() ||
-      nodes.front().type != TypeNode::LITERAL) {
+  if (!type_ast.children.empty()) {
     throw std::runtime_error(
         "Cannot get struct/enum name of non-terminal type '" +
         oak_repr() + "'");
   }
-  return nodes.front().literal_name;
+  return type_ast.text;
 }
 
 bool Type::is_fn_ptr() const noexcept {
   debug_print();
-  return (nodes.size() >= 2 &&
-          nodes.front().type == TypeNode::POINTER &&
-          std::next(nodes.begin())->type == TypeNode::FUNCTION);
+  return is_ptr() && Type(type_ast.children.front()).is_fn();
 }
 
 std::string Type::get_destructor_call(
     const std::string &_to_destruct) const {
-  if (is_fn_ptr() || is_fn() || is_built_in_type(*this)) {
-    // No destructor needed
-  } else if (nodes.front().type == TypeNode::POINTER) {
+  if (is_ptr() && !is_fn_ptr()) {
     // If non-nullptr, delete
     return "{if (" + _to_destruct + " != 0) free(" +
            _to_destruct + "); " + _to_destruct + " = 0;}";

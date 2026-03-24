@@ -1,200 +1,213 @@
 #include "ast_node.hpp"
+#include "type.hpp"
+#include <cassert>
+#include <iostream>
 #include <stdexcept>
-#include <variant>
 
-void ASTNodes::reconstruct(const ASTNodes::Node &_what,
-                           std::ostream &_where) {
-  if (std::holds_alternative<ASTNodes::If>(_what)) {
-    const auto d = std::get<ASTNodes::If>(_what);
+void reconstruct(const ASTNode &_what, std::ostream &_where) {
+  if (_what.text == "if") {
+    assert(_what.children.size() == 2 ||
+           _what.children.size() == 3);
+    const auto condition = _what.children.at(0);
+    const auto then_block = _what.children.at(1);
 
     _where << "if (";
-    reconstruct(d.condition.get(), _where);
+    reconstruct(condition, _where);
     _where << ")";
-    reconstruct(d.then_body.get(), _where);
-    if (d.else_body.has_value()) {
+    reconstruct(then_block, _where);
+
+    if (_what.children.size() == 2) {
+      const auto else_block = _what.children.at(2);
       _where << "else ";
-      reconstruct(d.else_body.get(), _where);
+      reconstruct(else_block, _where);
     }
   }
 
-  else if (std::holds_alternative<ASTNodes::While>(_what)) {
-    const auto d = std::get<ASTNodes::While>(_what);
+  else if (_what.text == "while") {
+    assert(_what.children.size() == 2);
+    const auto condition = _what.children.at(0);
+    const auto body = _what.children.at(1);
+
     _where << "while (";
-    reconstruct(d.condition.get(), _where);
+    reconstruct(condition, _where);
     _where << ")";
-    reconstruct(d.body.get(), _where);
+    reconstruct(body, _where);
   }
 
-  else if (std::holds_alternative<ASTNodes::Match>(_what)) {
-    const auto d = std::get<ASTNodes::Match>(_what);
+  else if (_what.text == "match") {
+    assert(_what.children.size() == 4);
+    const ASTNode upon = _what.children.at(0);
+    const ASTNode branches = _what.children.at(1);
+    const std::string enum_name = _what.children.at(2).text;
+    const bool is_mutable =
+        (_what.children.at(3).text == "true");
 
     _where << "switch ((";
-    reconstruct(d.upon.get(), _where);
+    reconstruct(upon, _where);
     _where << ").__info) {\n";
-    for (const auto &branch : d.branches) {
-      if (std::holds_alternative<ASTNodes::Statement>(
-              branch.get())) {
-        // 'else'
-        const auto branch_d =
-            std::get<ASTNodes::Statement>(branch.get());
+
+    for (const ASTNode &branch : branches.children) {
+      if (branch.text == "else") {
+        assert(branch.children.size() == 1);
         _where << "default: {";
-        reconstruct(branch_d, _where);
+        reconstruct(branch.children.front(), _where);
         _where << "} break;\n";
       } else {
-        // 'case'
-        const auto branch_d =
-            std::get<ASTNodes::Case>(branch.get());
-        _where << "case " << d.enum_name << "_OPT_"
-               << branch_d.case_name << ": {\n"
-               << branch_d.type.c_repr(branch_d.passed_name)
-               << " = " << (d.is_mutable ? "&" : "") << "(";
-        reconstruct(d.upon.get(), _where);
-        _where << ").__data." << branch_d.case_name << "; {";
-        reconstruct(branch_d.body.get(), _where);
+        // {case_name, passed_name, passed_type, statement}
+
+        const std::string case_name =
+            branch.children.at(0).text;
+        const std::string passed_name =
+            branch.children.at(1).text;
+        const Type passed_type = branch.children.at(2);
+        const ASTNode body = branch.children.at(3);
+
+        _where << "case " << enum_name << "_OPT_" << case_name
+               << ": {\n"
+               << passed_type.c_repr(passed_name) << " = "
+               << (is_mutable ? "&" : "") << "(";
+        reconstruct(upon, _where);
+        _where << ").__data." << case_name << "; {";
+        reconstruct(body, _where);
         _where << "}} break;\n";
       }
     }
     _where << "}\n";
   }
 
-  else if (std::holds_alternative<ASTNodes::RawCFormat>(
-               _what)) {
-    const auto d = std::get<ASTNodes::RawCFormat>(_what);
+  else if (_what.text == "raw_c_format") {
     // Literal C format string
+    assert(_what.children.size() == 3);
+    assert(_what.children.front().children.empty());
+    const std::string format_string = _what.children.at(0).text;
+    const ASTNode type = _what.children.at(1);
+    const ASTNode args = _what.children.at(2);
     uint cur_child = 0;
-    for (const char &c : d.format_string) {
-      if (c == '%' && cur_child < d.args.size()) {
+    for (const char &c : format_string) {
+      if (c == '%' && cur_child < args.children.size()) {
         // Format case
-        reconstruct(d.args.at(cur_child).get(), _where);
+        reconstruct(args.children.at(cur_child), _where);
         ++cur_child;
       } else {
-        // Literal C
+        // Literal C code
         _where << c;
       }
     }
   }
 
-  else if (std::holds_alternative<ASTNodes::Object>(_what)) {
-    const auto d = std::get<ASTNodes::Object>(_what);
+  else if (_what.text == "object") {
     // Literal or variable
-    _where << d.raw_text;
+    _where << _what.children.back().text;
   }
 
-  else if (std::holds_alternative<ASTNodes::Call>(_what)) {
-    const auto d = std::get<ASTNodes::Call>(_what);
-    _where << d.mangled_c_fn_name << "(";
+  else if (_what.text == "@") {
+    // mangled_name, return_type, {args}
+    // each arg is {arg_tree, derefs}
+    assert(_what.children.size() == 3);
+    const std::string mangled_name =
+        _what.children.front().text;
+    const Type ret_type = _what.children.at(1);
+    const ASTNode args = _what.children.at(2);
+
+    _where << mangled_name << "(";
     bool first = true;
-    for (const auto &arg : d.args) {
+    for (const auto &arg_info : args.children) {
+      const ASTNode arg = arg_info.children.front();
+      const int derefs =
+          std::stoi(arg_info.children.back().text);
+
       if (first) {
         first = false;
       } else {
         _where << ", ";
       }
 
-      if (arg.derefs > 0) {
-        for (int i = 0; i < arg.derefs; ++i) {
+      if (derefs > 0) {
+        for (int i = 0; i < derefs; ++i) {
           _where << "*";
         }
       } else {
-        for (int i = 0; i > arg.derefs; --i) {
+        for (int i = 0; i > derefs; --i) {
           _where << "&";
         }
       }
-      reconstruct(arg.name.get(), _where);
+      reconstruct(arg, _where);
     }
     _where << ")";
   }
 
-  else if (std::holds_alternative<ASTNodes::Declaration>(
-               _what)) {
-    const auto d = std::get<ASTNodes::Declaration>(_what);
+  else if (_what.text == "let") {
+    assert(_what.children.size() == 3);
+    const auto names = _what.children.at(0);
+    const auto new_calls = _what.children.at(1);
+    const auto type = Type(_what.children.at(2));
 
     // Variable declarations
-    for (const auto &name : d.names) {
-      _where << d.type.c_repr(name) << ";\n";
+    for (const auto &name : names.children) {
+      _where << type.c_repr(name.text) << ";\n";
     }
 
     // `New` calls
-    for (const auto &call : d.new_calls) {
-      reconstruct(call.get(), _where);
+    for (const auto &call : new_calls.children) {
+      reconstruct(call, _where);
       _where << "\n";
     }
   }
 
-  else if (std::holds_alternative<ASTNodes::Statement>(_what)) {
-    const auto d = std::get<ASTNodes::Statement>(_what);
-    if (d.children.size() > 1) {
+  else if (_what.text == "null") {
+    return;
+  }
+
+  else if (_what.text == "statement") {
+    if (_what.children.size() > 1) {
       // Scope
       _where << "{\n";
-      for (const auto &child : d.children) {
-        reconstruct(child.get(), _where);
-        _where << ";\n";
+      for (const auto &child : _what.children) {
+        reconstruct(child, _where);
       }
       _where << "}\n";
-    } else if (d.children.size() == 1) {
+    } else if (_what.children.size() == 1) {
       // Simple statement
-      reconstruct(d.children.front().get(), _where);
+      reconstruct(_what.children.front(), _where);
       _where << ";\n";
     }
   }
 
-  else if (std::holds_alternative<ASTNodes::Return>(_what)) {
-    const auto d = std::get<ASTNodes::Return>(_what);
+  else if (_what.text == "return") {
     _where << "return ";
-    if (d.value.has_value()) {
-      reconstruct(d.value.get(), _where);
+    if (!_what.children.empty()) {
+      reconstruct(_what.children.front(), _where);
     }
     _where << ";\n";
   }
 
-  else if (std::holds_alternative<ASTNodes::ArrAccess>(_what)) {
-    const auto d = std::get<ASTNodes::ArrAccess>(_what);
+  else if (_what.text == "[]") {
     // Array access: 2 children (var and index)
+    assert(_what.children.size() == 2);
     _where << "(";
-    reconstruct(d.upon.get(), _where);
+    reconstruct(_what.children.at(0), _where);
     _where << "[";
-    reconstruct(d.index.get(), _where);
+    reconstruct(_what.children.at(1), _where);
     _where << "])";
   }
 }
 
-Type ASTNodes::type(const ASTNodes::Node &_what) {
-  if (std::holds_alternative<ASTNodes::If>(_what) ||
-      std::holds_alternative<ASTNodes::While>(_what) ||
-      std::holds_alternative<ASTNodes::Match>(_what) ||
-      std::holds_alternative<ASTNodes::Case>(_what) ||
-      std::holds_alternative<ASTNodes::Declaration>(_what) ||
-      std::holds_alternative<ASTNodes::Statement>(_what) ||
-      std::holds_alternative<ASTNodes::Return>(_what)) {
+ASTNode type(const ASTNode &_what) {
+  if (_what.text == "object") {
+    return _what.children.front();
+  } else if (_what.text == "@") {
+    // Application, so only gives ret type
+    return _what.children.at(1);
+  } else if (_what.text == "[]") {
+    return _what.children.back();
+  } else if (_what.text == "raw_c_format") {
+    return _what.children.at(1);
+  }
+
+  else {
     // No type
     throw std::runtime_error(
         "Expected typed object, but found untyped statement, "
         "declaration, or conditional.");
-  }
-
-  else if (std::holds_alternative<ASTNodes::Object>(_what)) {
-    return std::get<ASTNodes::Object>(_what).type;
-  } else if (std::holds_alternative<ASTNodes::Call>(_what)) {
-    // RETURN TYPE ONLY
-    return std::get<ASTNodes::Call>(_what).return_type;
-  } else if (std::holds_alternative<ASTNodes::ArrAccess>(
-                 _what)) {
-    return std::get<ASTNodes::ArrAccess>(_what).return_type;
-  } else if (std::holds_alternative<ASTNodes::RawCFormat>(
-                 _what)) {
-    if (std::get<ASTNodes::RawCFormat>(_what)
-            .type.has_value()) {
-      return std::get<ASTNodes::RawCFormat>(_what).type.value();
-    }
-    throw std::runtime_error("RawCFormat AST node is missing "
-                             "type when one is expected");
-  }
-
-  else {
-    // Me-proofing for when I add another variant and forget
-    // to change this
-    throw std::runtime_error(__FILE__ ":" +
-                             std::to_string(__LINE__) +
-                             " Unreachable state reached!");
   }
 }

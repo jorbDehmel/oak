@@ -1,5 +1,6 @@
 #include "compiler.hpp"
 #include "lexer.hpp"
+#include "settings.hpp"
 #include "type.hpp"
 #include <cstdint>
 #include <cstring>
@@ -91,11 +92,8 @@ int main(int _c, char *_v[]) {
         lexed.next();
       }
 
-      Type t;
-      do {
-        t.process_next(lexed.cur());
-        lexed.next();
-      } while (!t.valid());
+      Settings s(std::cout);
+      Type t = Parser(s).parse_type(lexed);
 
       for (const auto &name : names) {
         std::cout << "// " << t.oak_repr(name) << "\n"

@@ -181,7 +181,6 @@ std::list<Lexer::Token> TemplateInfo::replace(
     if (substitution_map.contains(t)) {
       for (const auto &replacement : substitution_map.at(t)) {
         out.push_back(Lexer::Token(t, replacement));
-        Lexer::classify_type(out.back());
       }
     } else {
       out.push_back(t);

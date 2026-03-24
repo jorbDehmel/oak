@@ -13,7 +13,6 @@ extern "C" {
 
 struct TokenList {
   String text;
-  String type;
   String file;
   u64 line;
   u64 col;
@@ -30,12 +29,6 @@ void push_FN_PTR_TokenList_JOIN_TokenList_MAPS_void(
 // push(self: ^TokenList, other: String) -> void
 void push_FN_PTR_TokenList_JOIN_String_MAPS_void(
     struct TokenList *self, struct String other);
-
-// let push(self: ^TokenList, other: String, type: String) ->
-// void
-void push_FN_PTR_TokenList_JOIN_String_JOIN_String_MAPS_void(
-    struct TokenList *self, struct String other,
-    struct String type);
 
 // done(self: ^TokenList) -> bool
 bool done_FN_PTR_TokenList_MAPS_bool(struct TokenList *self);

@@ -16,11 +16,11 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
-#include <iostream>
 #include <iterator>
 #include <memory>
 #include <set>
 #include <sstream>
+#include <stack>
 #include <stdexcept>
 #include <string>
 #include <variant>
@@ -160,13 +160,13 @@ void Parser::reconstruct(std::ostream &_where) const noexcept {
                 settings.compile_settings().entry_point) {
           _where << info.t.c_repr(info.name, true);
           _where << "{";
-          ASTNodes::reconstruct(info.n, _where);
+          ::reconstruct(info.n, _where);
           _where << "}\n";
         }
       } else {
         _where << info.t.c_repr(info.name, false);
         _where << "{";
-        ASTNodes::reconstruct(info.n, _where);
+        ::reconstruct(info.n, _where);
         _where << "}\n";
       }
     }
@@ -258,7 +258,7 @@ void Parser::parse_function(
 
   // Finish parsing type
   Type t = parse_type(_pos);
-  _pos.next();
+  // _pos.next();
 
   // Special case type restrictions
   for (const auto &name : _names) {
@@ -272,8 +272,9 @@ void Parser::parse_function(
           throw std::runtime_error("If provided, " + name +
                                    "'s first argument (argc) "
                                    "should be of type i32");
-        } else if (!args.back().second.exact_match(
-                       Type({"[", "]", "[", "]", "i8"}))) {
+        } else if (!args.back().second.exact_match(Type(ASTNode(
+                       "[]",
+                       {ASTNode("[]", {ASTNode("i8")})})))) {
           throw std::runtime_error("If provided, " + name +
                                    "'s second argument (argv) "
                                    "should be of type [][]i8");
@@ -290,9 +291,7 @@ void Parser::parse_function(
         throw std::runtime_error(
             name + " must take only one argument: A pointer to "
                    "the object to act upon");
-      } else if (args.front().second.nodes.empty() ||
-                 args.front().second.nodes.front().type !=
-                     Type::TypeNode::POINTER) {
+      } else if (!args.front().second.is_ptr()) {
         throw std::runtime_error(
             name + " must take a pointer as its argument");
       } else if (!ret.exact_match(Type({"void"}))) {
@@ -482,9 +481,11 @@ Type Parser::parse_type(TokenStream &_pos) {
                      << '\n';
   }
 
+  const auto t = _pos.cur();
+  _pos.next();
+
   // Special case: type! macro
-  if (_pos.cur() == "type!") {
-    _pos.next();
+  if (t == "type!") {
     if (_pos.cur() != "(") {
       throw std::runtime_error(
           "Malformed type! macro: Expected '(', but saw '" +
@@ -505,26 +506,46 @@ Type Parser::parse_type(TokenStream &_pos) {
           _pos.cur().text + "'");
     }
 
-    return ASTNodes::type(tmp);
+    return ::type(tmp);
   }
 
-  Type out;
-  do {
-    if (_pos.cur().text == ";" || _pos.cur().text == "{") {
-      throw std::runtime_error("Missing function return type: "
-                               "Did you mean '-> void'?");
-    }
-
-    if (_pos.cur().type == "ID") {
-      out.process_next(parse_id(_pos));
-    } else {
-      out.process_next(_pos.cur());
+  if (t == "[") {
+    // arr
+    if (_pos.cur() == "]") {
+      // unsized arr
       _pos.next();
+      return ASTNode("[]", {parse_type(_pos)});
+    } else {
+      // sized arr
+      const auto s = parse_object(_pos);
+      return ASTNode("[]", {s, parse_type(_pos)});
     }
-  } while (!out.valid() && !_pos.done());
+  } else if (t == "^") {
+    return ASTNode("^", {parse_type(_pos)});
+  } else if (t == "(") {
+    // Function pointer
+    ASTNode args("_");
+    while (_pos.cur() != ")") {
+      const std::string name = _pos.cur();
+      _pos.next();
+      _pos.expect({":"});
+      const Type arg_type = parse_type(_pos);
+      args.children.push_back(
+          ASTNode("arg", {ASTNode(name), arg_type}));
+      while (_pos.cur() == ",") {
+        _pos.next();
+      }
+    }
+    _pos.expect({")"});
+    _pos.expect({"->"});
+    const Type ret_type = parse_type(_pos);
 
-  _pos.prev();
-  return out;
+    return ASTNode("->", {args, ret_type});
+  } else {
+    // type atomic
+    _pos.prev();
+    return ASTNode(parse_id(_pos));
+  }
 }
 
 std::string Parser::parse_id(TokenStream &_pos) {
@@ -681,9 +702,9 @@ void Parser::parse_struct(const std::list<std::string> &_names,
   }
 }
 
-std::variant<ASTNodes::Case, ASTNodes::Statement>
-Parser::parse_case(const EnumInfo &_enum_type,
-                   TokenStream &_pos, const bool &_is_mutable) {
+ASTNode Parser::parse_case(const EnumInfo &_enum_type,
+                           TokenStream &_pos,
+                           const bool &_is_mutable) {
   debug_print();
   if (settings.debug) {
     settings.ostream << __FUNCTION__ << " at "
@@ -768,32 +789,23 @@ Parser::parse_case(const EnumInfo &_enum_type,
     // Push frame to be popped
     scope_manager.push_frame();
 
-    ASTNodes::Case out;
-    out.case_name = case_name;
-    out.passed_name = passed_name;
-    out.type = passed_type;
-
     // Statement
     auto statement = parse_statement(_pos);
 
     // Pop frame, calling destructors
-    statement.children.push_back(
-        ASTNodes::OptBox<ASTNodes::Node>(
-            scope_manager.pop_frame()));
-    out.body = statement;
+    statement.children.push_back(scope_manager.pop_frame());
 
     // Pop from locals stack WITHOUT CALLING DESTRUCTOR ON
     // CAPTURE
     scope_manager.pop_frame();
 
-    return out;
+    return ASTNode("case",
+                   {ASTNode(case_name), ASTNode(passed_name),
+                    passed_type, statement});
   } else if (_pos.cur() == "else") {
     // Statement
     _pos.next();
-    ASTNodes::Statement out;
-    out.children = {ASTNodes::OptBox<ASTNodes::Node>(
-        parse_statement(_pos))};
-    return out;
+    return ASTNode("else", {ASTNode(parse_statement(_pos))});
   } else {
     throw std::runtime_error(
         "Error within match statement: Expected 'case' or "
@@ -868,7 +880,7 @@ void Parser::parse_enum(const std::list<std::string> &_names,
   }
 }
 
-ASTNodes::Node Parser::parse_function_call(TokenStream &_pos) {
+ASTNode Parser::parse_function_call(TokenStream &_pos) {
   debug_print();
   if (settings.debug) {
     settings.ostream << __FUNCTION__ << " at "
@@ -891,10 +903,11 @@ ASTNodes::Node Parser::parse_function_call(TokenStream &_pos) {
   // Special case: size!
   if (unmangled_name == "size!") {
     // One type argument
-    ASTNodes::RawCFormat out;
-    out.type = Type({"uint"});
-    out.format_string =
-        "sizeof(" + parse_type(_pos).c_repr() + ")";
+    ASTNode out("raw_c_format");
+    out.children.push_back(
+        ASTNode("sizeof(" + parse_type(_pos).c_repr() + ")"));
+    out.children.push_back(Type({"uint"}));
+    out.children.push_back(ASTNode("_", {}));
     _pos.next();
     if (_pos.cur() != ")") {
       throw std::runtime_error(
@@ -905,12 +918,13 @@ ASTNodes::Node Parser::parse_function_call(TokenStream &_pos) {
   }
 
   // Args
-  std::list<ASTNodes::Node> args;
+  std::list<ASTNode> args;
   while (_pos.cur() != ")") {
     if (_pos.cur() != ",") {
       args.push_back(parse_object(_pos));
+    } else {
+      _pos.next();
     }
-    _pos.next();
   }
   _pos.next();
 
@@ -918,7 +932,7 @@ ASTNodes::Node Parser::parse_function_call(TokenStream &_pos) {
   return get_function_call_node(unmangled_name, args);
 }
 
-ASTNodes::Node Parser::parse_object(TokenStream &_pos) {
+ASTNode Parser::parse_object(TokenStream &_pos) {
   debug_print();
   if (settings.debug) {
     settings.ostream << __FUNCTION__ << " at "
@@ -952,13 +966,12 @@ ASTNodes::Node Parser::parse_object(TokenStream &_pos) {
     scope_manager.pop_frame();
 
     // Return a fn pointer to that lambda
-    ASTNodes::Object out;
-    out.type =
+    const auto t =
         scope_manager.at<ScopeManager::FnValue>(lambda_name)
             .back()
             .t;
-    out.raw_text = out.type.mangle(lambda_name);
-    return out;
+    return ASTNode("object",
+                   {t, ASTNode(t.mangle(lambda_name))});
   }
 
   // Open parenthesis follows: Function call
@@ -966,18 +979,6 @@ ASTNodes::Node Parser::parse_object(TokenStream &_pos) {
     return parse_function_call(_pos);
   }
 
-  // Var instance
-  auto cur = _pos.cur();
-  const auto literal_type = Lexer::get_literal_type(cur);
-  if (literal_type.has_value()) {
-    // Literal
-    ASTNodes::Object out;
-    out.raw_text = cur;
-    out.type = literal_type.value();
-    return out;
-  }
-
-  // Name
   uint derefs = 0;
   while (!_pos.done() && _pos.cur() == "^") {
     ++derefs;
@@ -988,11 +989,20 @@ ASTNodes::Node Parser::parse_object(TokenStream &_pos) {
     }
   }
 
-  std::string name = _pos.cur();
+  Lexer::Token name = _pos.cur();
+  _pos.next();
+
+  const auto literal_type = Lexer::get_literal_type(name);
+  if (literal_type.has_value()) {
+    // Literal
+    return ASTNode("object",
+                   {literal_type.value(), ASTNode(name)});
+  }
+
   auto value = scope_manager.get(name);
   if (!value.has_value()) {
     throw std::runtime_error("Failed to resolve object '" +
-                             name + "'");
+                             name.text + "'");
   }
 
   // Variable instance: Not fn ptr
@@ -1002,11 +1012,10 @@ ASTNodes::Node Parser::parse_object(TokenStream &_pos) {
     // Derefs
     if (derefs > 0) {
       for (uint i = 0; i < derefs; ++i) {
-        name = "(*" + name + ")";
+        name.text = "(*" + name.text + ")";
 
-        if (!t.nodes.empty() &&
-            t.nodes.front().type == Type::TypeNode::POINTER) {
-          t.nodes.pop_front();
+        if (t.is_ptr()) {
+          t = t.deref();
         } else {
           throw std::runtime_error(
               "Cannot dereference non-pointer type '" +
@@ -1016,15 +1025,13 @@ ASTNodes::Node Parser::parse_object(TokenStream &_pos) {
     }
 
     // Member access
-    while (_pos.peek().text == ".") {
-      _pos.next(); // Pointing at .
+    while (_pos.cur().text == ".") {
       _pos.next(); // Pointing at member name
       const auto member_name = _pos.cur().text;
 
       // Auto-deref for member access
-      while (!t.nodes.empty() &&
-             t.nodes.front().type == Type::TypeNode::POINTER) {
-        name = "(*" + name + ")";
+      while (t.is_ptr()) {
+        name.text = "(*" + name.text + ")";
         t = t.deref();
       }
 
@@ -1054,20 +1061,17 @@ ASTNodes::Node Parser::parse_object(TokenStream &_pos) {
         t = enum_info.options.at(member_name);
       }
 
-      name += "." + member_name;
+      name.text += "." + member_name;
     }
 
-    ASTNodes::Object out;
-    out.raw_text = name;
-    out.type = t;
-    return out;
+    return ASTNode("object", {t, ASTNode(name)});
   }
 
-  // If we're out here, it should be a fn ptr
+  // If we're out here, it should be a fn
   if (!std::holds_alternative<ScopeManager::FnValue>(
           value.value())) {
     throw std::runtime_error(
-        "Symbol '" + name +
+        "Symbol '" + name.text +
         "' is not a variable instance or function");
   }
 
@@ -1080,15 +1084,15 @@ ASTNodes::Node Parser::parse_object(TokenStream &_pos) {
 
   // Fn ptr
   auto instance = l.front();
-  ASTNodes::Object out;
-  out.raw_text = "(&" + instance.t.mangle(name) + ")";
-  out.type = instance.t.ref();
-  return out;
+  return ASTNode(
+      "object",
+      {instance.t.ref(),
+       ASTNode("(&" + instance.t.mangle(name) + ")")});
 }
 
-ASTNodes::Statement
-Parser::parse_statement(TokenStream &_pos,
-                        const Type &_return_type) {
+ASTNode Parser::parse_statement(
+    TokenStream &_pos,
+    const std::optional<Type> &_return_type) {
   debug_print();
   if (settings.debug) {
     settings.ostream << __FUNCTION__ << " at "
@@ -1110,9 +1114,11 @@ Parser::parse_statement(TokenStream &_pos,
       _pos.next();
 
       // One string literal argument
-      ASTNodes::RawCFormat out;
-      out.format_string =
-          Macros::strip_string_literal(_pos.cur().text);
+      ASTNode out("raw_c_format");
+      out.children.push_back(ASTNode(
+          Macros::strip_string_literal(_pos.cur().text)));
+      out.children.push_back(ASTNode("void"));
+      out.children.push_back(ASTNode("_", {}));
 
       _pos.next();
       if (_pos.cur() != ")") {
@@ -1122,18 +1128,17 @@ Parser::parse_statement(TokenStream &_pos,
       }
       _pos.next();
 
-      return ASTNodes::Statement(
-          {ASTNodes::OptBox<ASTNodes::Node>(out)});
+      return ASTNode("statement", {out});
     } else {
       replace_macro(_pos);
-      return ASTNodes::Statement();
+      return ASTNode("null");
     }
   }
 
   else if (_pos.done() || _pos.cur() == ";") {
     // Unit statement
     _pos.next();
-    return ASTNodes::Statement();
+    return ASTNode("null");
   } else if (_pos.cur() == "let") {
     // Variable declaration
     // Collect names
@@ -1178,7 +1183,7 @@ Parser::parse_statement(TokenStream &_pos,
       parse_template(names, generics, _pos);
       _pos.next();
 
-      return ASTNodes::Statement();
+      return ASTNode("null");
     }
 
     // Explicitly typed declaration
@@ -1190,13 +1195,13 @@ Parser::parse_statement(TokenStream &_pos,
         _pos.next();
         parse_struct(names, _pos);
         _pos.next();
-        return ASTNodes::Statement({});
+        return ASTNode("null");
       } else if (_pos.cur() == "enum") {
         // enum
         _pos.next();
         parse_enum(names, _pos);
         _pos.next();
-        return ASTNodes::Statement({});
+        return ASTNode("null");
       } else {
         // Variable
 
@@ -1204,22 +1209,23 @@ Parser::parse_statement(TokenStream &_pos,
         Type t = parse_type(_pos);
         validate_type(t);
 
-        ASTNodes::Declaration out;
-        out.type = t;
-
+        ASTNode new_calls("_");
+        ASTNode names_node("_");
         for (const auto &name : names) {
-          out.names.push_back(name);
+          names_node.children.push_back(ASTNode(name));
           scope_manager.add(name, t);
-          const ASTNodes::Object upon(name, t);
+          const ASTNode upon("object", {t, ASTNode(name)});
 
           // Literal `New` call
-          out.new_calls.push_back(
+          new_calls.children.push_back(
               get_function_call_node("New", {upon}));
         }
         _pos.next();
 
-        ASTNodes::Statement stmt_out(
-            {ASTNodes::OptBox<ASTNodes::Node>(out)});
+        // auto decl = ASTNode("let", {names, new_calls, type})
+        ASTNode stmt_out(
+            "statement",
+            {ASTNode("let", {names_node, new_calls, t})});
 
         if (_pos.cur() == "=") {
           // Instantiation-assignment copy
@@ -1230,7 +1236,7 @@ Parser::parse_statement(TokenStream &_pos,
 
         return stmt_out;
       }
-      return ASTNodes::Statement({});
+      return ASTNode("null");
     }
 
     // Function or function-style macro declaration
@@ -1241,12 +1247,12 @@ Parser::parse_statement(TokenStream &_pos,
             settings.compile_settings().preprocess_pass_limit,
             names);
         _pos.prev();
-        return ASTNodes::Statement();
+        return ASTNode("null");
       } else {
         // Function
         parse_function(names, _pos);
         _pos.next();
-        return ASTNodes::Statement({});
+        return ASTNode("null");
       }
     }
 
@@ -1259,35 +1265,36 @@ Parser::parse_statement(TokenStream &_pos,
             settings.compile_settings().preprocess_pass_limit,
             names);
         _pos.prev();
-        return ASTNodes::Statement();
+        return ASTNode("null");
       } else {
         // let A = B;
         _pos.next();
         auto copy_from = parse_object(_pos);
 
-        Type t = ASTNodes::type(copy_from);
+        Type t = ::type(copy_from);
         validate_type(t);
 
-        ASTNodes::Declaration out;
-        out.type = t;
-
         // Instantiate
+        ASTNode names_node("_");
+        ASTNode new_calls("_");
         for (const auto &name : names) {
-          out.names.push_back(name);
+          names_node.children.push_back(ASTNode(name));
           scope_manager.add(name, t);
-          const ASTNodes::Object upon(name, t);
+          const ASTNode upon("object", {t, ASTNode(name)});
 
           // Literal `New` call
-          out.new_calls.push_back(
+          new_calls.children.push_back(
               get_function_call_node("New", {upon}));
 
           // Literal `Copy` call
-          out.new_calls.push_back(get_function_call_node(
+          new_calls.children.push_back(get_function_call_node(
               "Copy", {upon, copy_from}));
         }
 
-        return ASTNodes::Statement(
-            {ASTNodes::OptBox<ASTNodes::Node>(out)});
+        // auto decl = ASTNode("let", {names, new_calls, type})
+        return ASTNode(
+            "statement",
+            {ASTNode("let", {names_node, new_calls, t})});
       }
     }
 
@@ -1298,20 +1305,19 @@ Parser::parse_statement(TokenStream &_pos,
 
   // Scope
   else if (_pos.cur() == "{") {
-    ASTNodes::Statement out;
+    ASTNode out("statement");
 
     // Add a frame to the scope stack
     scope_manager.push_frame();
 
     _pos.next();
     while (_pos.cur() != "}") {
-      out.children.push_back(ASTNodes::OptBox<ASTNodes::Node>(
-          parse_statement(_pos)));
+      out.children.push_back(parse_statement(_pos));
     }
+    _pos.expect({"}"});
 
     // Remove that scope frame
-    out.children.push_back(ASTNodes::OptBox<ASTNodes::Node>(
-        scope_manager.pop_frame()));
+    out.children.push_back(scope_manager.pop_frame());
     return out;
   }
 
@@ -1326,15 +1332,15 @@ Parser::parse_statement(TokenStream &_pos,
     }
 
     // Condition is a single boolean object
-    ASTNodes::If out;
-    out.condition = parse_object(_pos);
+    ASTNode out("if");
+    out.children.push_back(parse_object(_pos));
 
     // Castable type check
-    if (!ASTNodes::type(out.condition.get())
-             .cast_match(Type({"bool"}))) {
+    if (!Type(::type(out.children.back()))
+             .cast_match(Type(ASTNode("bool")))) {
       throw std::runtime_error(
           "Statement condition type '" +
-          ASTNodes::type(out.condition.get()).oak_repr() +
+          Type(::type(out.children.back())).oak_repr() +
           "' is not castable to bool.");
     }
 
@@ -1349,22 +1355,19 @@ Parser::parse_statement(TokenStream &_pos,
     }
 
     // Body
-    out.then_body =
-        ASTNodes::OptBox<ASTNodes::Node>(parse_statement(_pos));
+    out.children.push_back(parse_statement(_pos));
 
     // Optional else clause
     _pos.next();
     if (!_pos.done() && _pos.cur() == "else") {
       // Else clause
       _pos.next();
-      out.else_body = ASTNodes::OptBox<ASTNodes::Node>(
-          parse_statement(_pos));
+      out.children.push_back(parse_statement(_pos));
     } else {
       _pos.prev();
     }
 
-    return ASTNodes::Statement(
-        {ASTNodes::OptBox<ASTNodes::Node>(out)});
+    return ASTNode("statement", {out});
   }
 
   // While loop
@@ -1378,15 +1381,15 @@ Parser::parse_statement(TokenStream &_pos,
     }
 
     // Condition is a single boolean object
-    ASTNodes::While out;
-    out.condition = parse_object(_pos);
+    ASTNode out("while");
+    out.children.push_back(parse_object(_pos));
 
     // Type check
-    if (!ASTNodes::type(out.condition.get())
-             .cast_match(Type({"bool"}))) {
+    if (!Type(::type(out.children.front()))
+             .cast_match(Type(ASTNode("bool")))) {
       throw std::runtime_error(
           "Statement condition type '" +
-          ASTNodes::type(out.condition.get()).oak_repr() +
+          Type(::type(out.children.front())).oak_repr() +
           "' is not castable to bool.");
     }
 
@@ -1401,11 +1404,8 @@ Parser::parse_statement(TokenStream &_pos,
     }
 
     // Body
-    ASTNodes::Statement body = parse_statement(_pos);
-
-    out.body = body;
-    return ASTNodes::Statement(
-        {ASTNodes::OptBox<ASTNodes::Node>(out)});
+    out.children.push_back(parse_statement(_pos));
+    return ASTNode("statement", {out});
   }
 
   // Match statement
@@ -1428,10 +1428,9 @@ Parser::parse_statement(TokenStream &_pos,
     // Target is an enum
     auto target = parse_object(_pos);
 
-    Type target_type = ASTNodes::type(target);
+    Type target_type = ::type(target);
 
-    const bool is_mutable = (target_type.nodes.front().type ==
-                             Type::TypeNode::POINTER);
+    const bool is_mutable = target_type.is_ptr();
     if (is_mutable) {
       target_type = target_type.deref();
     }
@@ -1449,18 +1448,11 @@ Parser::parse_statement(TokenStream &_pos,
       _pos.next();
     }
 
-    // 0th child is operand, rest are cases
-    ASTNodes::Match out;
-    out.enum_name = enum_name;
-    out.is_mutable = is_mutable;
-
     if (is_mutable) {
-      ASTNodes::RawCFormat new_target;
-      new_target.format_string = "(*%)";
-      new_target.args = {(target)};
-      target = new_target;
+      target = ASTNode("raw_c_format",
+                       {ASTNode("(*%)"), ASTNode(enum_name),
+                        ASTNode("_", {target})});
     }
-    out.upon = target;
 
     if (_pos.cur() != "{") {
       throw std::runtime_error("Missing opening curly brace "
@@ -1468,46 +1460,43 @@ Parser::parse_statement(TokenStream &_pos,
     }
     _pos.next();
 
+    ASTNode branches("_");
     while (_pos.cur() != "}") {
-      const auto res = parse_case(info, _pos, is_mutable);
-      if (std::holds_alternative<ASTNodes::Case>(res)) {
-        out.branches.push_back(ASTNodes::OptBox<ASTNodes::Node>(
-            std::get<ASTNodes::Case>(res)));
-      } else {
-        out.branches.push_back(ASTNodes::OptBox<ASTNodes::Node>(
-            std::get<ASTNodes::Statement>(res)));
-      }
-      _pos.next();
+      branches.children.push_back(
+          parse_case(info, _pos, is_mutable));
     }
 
-    return ASTNodes::Statement(
-        {ASTNodes::OptBox<ASTNodes::Node>(out)});
+    const ASTNode out("match",
+                      {target, branches, ASTNode(enum_name),
+                       ASTNode(is_mutable ? "true" : "false")});
+    return ASTNode("statement", {out});
   }
 
   // Return statement
   else if (_pos.cur() == "return") {
-    ASTNodes::Return out;
+    ASTNode out("return");
     _pos.next();
     if (_pos.cur() != ";") {
-      out.value = parse_object(_pos);
+      const ASTNode val = parse_object(_pos);
       _pos.next();
+
+      out.children.push_back(val);
 
       if (!settings.compile_settings()
                .cur_return_type.back()
-               .exact_match(ASTNodes::type(out.value.get()))) {
-        throw std::runtime_error(
-            "Invalid return type '" +
-            ASTNodes::type(out.value.get()).oak_repr() +
-            "' for fn w/ return "
-            "type '" +
-            settings.compile_settings()
-                .cur_return_type.back()
-                .oak_repr() +
-            "'");
+               .exact_match(::type(val))) {
+        throw std::runtime_error("Invalid return type '" +
+                                 Type(::type(val)).oak_repr() +
+                                 "' for fn w/ return "
+                                 "type '" +
+                                 settings.compile_settings()
+                                     .cur_return_type.back()
+                                     .oak_repr() +
+                                 "'");
       }
     } else if (!settings.compile_settings()
                     .cur_return_type.back()
-                    .exact_match({"void"})) {
+                    .exact_match(ASTNode("void"))) {
       throw std::runtime_error(
           "Invalid return type 'void' for fn w/ return type "
           "'" +
@@ -1516,88 +1505,67 @@ Parser::parse_statement(TokenStream &_pos,
               .oak_repr() +
           "'");
     }
-    return ASTNodes::Statement(
-        {ASTNodes::OptBox<ASTNodes::Node>(out)});
+    return ASTNode("statement", {(out)});
+  } else {
+    // Else, delegate as function call
+    return ASTNode("statement", {parse_function_call(_pos)});
   }
-
-  // Else, delegate as function call
-  return ASTNodes::Statement({parse_function_call(_pos)});
 }
 
-ASTNodes::Node Parser::get_function_call_node(
+ASTNode Parser::get_function_call_node(
     const std::string &_unmangled_name,
-    const std::list<ASTNodes::Node> &_args) {
+    const std::list<ASTNode> &_args) {
   //////////////////////////////////////////////////////////////
   // Special cases here
 
   // Array access via the 'Get' operator
   if (_unmangled_name == "Get" && _args.size() == 2 &&
-      (ASTNodes::type(_args.back())
-           .cast_match(Type({"u128"})) ||
-       ASTNodes::type(_args.back())
-           .cast_match(Type({"i128"}))) &&
-      (ASTNodes::type(_args.front()).nodes.front().type ==
-           Type::TypeNode::SIZED_ARRAY ||
-       ASTNodes::type(_args.front()).nodes.front().type ==
-           Type::TypeNode::UNSIZED_ARRAY)) {
-    // Only resolvable at reconstruction-time
-    ASTNodes::ArrAccess out;
-    out.upon = ASTNodes::OptBox<ASTNodes::Node>(_args.front());
-    out.index = ASTNodes::OptBox<ASTNodes::Node>(_args.back());
-    out.return_type = ASTNodes::type(out.upon.get());
-    out.return_type.nodes.pop_front();
-    return out;
+      (Type(::type(_args.back())).cast_match(Type({"u128"})) ||
+       Type(::type(_args.back())).cast_match(Type({"i128"}))) &&
+      Type(::type(_args.front())).is_arr()) {
+    return ASTNode("[]", {_args.front(), _args.back(),
+                          Type(::type(_args.front())).deref()});
   }
 
   // alloc
   else if (_unmangled_name == "alloc") {
     // 1-arg
     if (_args.size() == 1) {
-      if (ASTNodes::type(_args.front()).nodes.empty() ||
-          ASTNodes::type(_args.front()).nodes.front().type !=
-              Type::TypeNode::POINTER) {
+      if (!Type(::type(_args.front())).is_ptr()) {
         throw std::runtime_error(
             "Expected pointer type for alloc(into), instead "
             "saw '" +
-            ASTNodes::type(_args.front()).oak_repr() + "'");
+            Type(::type(_args.front())).oak_repr() + "'");
       }
 
-      ASTNodes::RawCFormat out;
-      out.type = Type({"void"});
-      out.args = {_args.front(), _args.front()};
-      out.format_string =
-          "% = (" +
-          ASTNodes::type(out.args.front().get()).c_repr() +
-          ") malloc(sizeof(" +
-          ASTNodes::type(out.args.front().get())
-              .deref()
-              .c_repr() +
-          ")); assert(% != NULL)";
-      return out;
+      const Type t = ::type(_args.front());
+      return ASTNode(
+          "raw_c_format",
+          {ASTNode("% = (" + t.c_repr() + ") malloc(sizeof(" +
+                   t.deref().c_repr() +
+                   ")); assert(% != NULL)"),
+           ASTNode("void"),
+           ASTNode("_", {_args.front(), _args.front()})});
     }
 
     // 2-arg
     else if (_args.size() == 2) {
-      if (ASTNodes::type(_args.front()).nodes.empty() ||
-          ASTNodes::type(_args.front()).nodes.front().type !=
-              Type::TypeNode::UNSIZED_ARRAY) {
+      const auto t = Type(::type(_args.front()));
+      if (!t.is_unsized_arr()) {
         throw std::runtime_error(
             "Expected unsized array type for alloc(into, "
             "size), instead saw '" +
-            ASTNodes::type(_args.front()).oak_repr() + "'");
+            t.oak_repr() + "'");
       }
 
-      ASTNodes::RawCFormat out;
-      out.type = Type({"void"});
-      out.args = {_args.front(), _args.back()};
-      out.args.push_back(_args.front());
-      out.format_string =
-          "% = (" +
-          ASTNodes::type(out.args.front().get()).c_repr() +
-          ") calloc(%, sizeof(" +
-          ASTNodes::type(out.args.front().get()).c_repr() +
-          ")); assert(% != NULL)";
-      return out;
+      return ASTNode(
+          "raw_c_format",
+          {ASTNode("% = (" + t.c_repr() +
+                   ") calloc(%, sizeof(" + t.c_repr() +
+                   ")); assert(% != NULL)"),
+           ASTNode("void"),
+           ASTNode("_", {_args.front(), _args.back(),
+                         _args.front()})});
     }
 
     // Error case
@@ -1608,54 +1576,46 @@ ASTNodes::Node Parser::get_function_call_node(
 
   // free
   else if (_unmangled_name == "free") {
+    const Type t = ::type(_args.front());
     if (_args.size() != 1 ||
-        ASTNodes::type(_args.front()).nodes.empty() ||
-        (ASTNodes::type(_args.front()).nodes.front().type !=
-             Type::TypeNode::POINTER &&
-         ASTNodes::type(_args.front()).nodes.front().type !=
-             Type::TypeNode::UNSIZED_ARRAY)) {
+        !(t.is_ptr() || t.is_unsized_arr())) {
       throw std::runtime_error(
           "Expected pointer or unsized array type for "
           "free(to_free), instead saw '" +
-          ASTNodes::type(_args.front()).oak_repr() + "'");
+          t.oak_repr() + "'");
     }
 
-    ASTNodes::RawCFormat out;
-    out.args = {_args.front()};
-    out.type = Type({"void"});
-    out.format_string = "free((void *)(%))";
-    return out;
+    return ASTNode("raw_c_format",
+                   {ASTNode("free((void *)(%))"),
+                    ASTNode("void"),
+                    ASTNode("_", {_args.front()})});
   }
 
   // New on pointer or unsized array types
   else if (_unmangled_name == "New" && _args.size() == 1 &&
-           (ASTNodes::type(_args.front()).nodes.front().type ==
-                Type::TypeNode::POINTER ||
-            ASTNodes::type(_args.front()).nodes.front().type ==
-                Type::TypeNode::UNSIZED_ARRAY)) {
-    ASTNodes::RawCFormat out;
-    out.args = {_args.front()};
-    out.type = Type({"void"});
-    out.format_string = "% = 0";
-    return out;
+           (Type(::type(_args.front())).is_ptr() ||
+            Type(::type(_args.front())).is_unsized_arr())) {
+    return ASTNode("raw_c_format",
+                   {ASTNode("% = 0"), ASTNode("void"),
+                    ASTNode("_", {_args.front()})});
   }
 
   // New on sized array types
   else if (_unmangled_name == "New" && _args.size() == 1 &&
-           ASTNodes::type(_args.front()).nodes.front().type ==
-               Type::TypeNode::SIZED_ARRAY) {
-    const auto size = ASTNodes::type(_args.front())
-                          .nodes.front()
-                          .sized_array_size;
+           Type(::type(_args.front())).is_sized_arr()) {
+    const auto size_node =
+        Type(::type(_args.front())).sized_arr_size();
+    assert(size_node.children.empty());
+    const uintmax_t size = std::stoull(size_node.text);
 
-    ASTNodes::Statement out;
+    ASTNode out("statement");
     for (uint i = 0; i < size; ++i) {
-      ASTNodes::RawCFormat arg;
-      arg.format_string = "(%)[" + std::to_string(i) + "]";
-      arg.args = {_args.front()};
-
-      arg.type = ASTNodes::type(_args.front());
-      arg.type->nodes.pop_front();
+      ASTNode arg("raw_c_format");
+      arg.children.push_back(
+          ASTNode("(%)[" + std::to_string(i) + "]"));
+      arg.children.push_back(
+          Type(::type(_args.front())).deref());
+      arg.children.push_back(ASTNode("_", {_args.front()}));
 
       out.children.push_back(
           get_function_call_node("New", {arg}));
@@ -1665,48 +1625,39 @@ ASTNodes::Node Parser::get_function_call_node(
 
   // New on atomic types
   else if (_unmangled_name == "New" && _args.size() == 1 &&
-           Type::is_built_in_type(
-               ASTNodes::type(_args.front()))) {
-    ASTNodes::RawCFormat out;
-    out.args = {_args.front()};
-    out.type = Type({"void"});
-    out.format_string = "% = 0;";
-    return out;
+           Type::is_built_in_type(::type(_args.front()))) {
+    return ASTNode("raw_c_format",
+                   {ASTNode("% = 0;"), ASTNode("void"),
+                    ASTNode("_", {_args.front()})});
   }
 
   // Del on atomic types
   else if (_unmangled_name == "Del" && _args.size() == 1 &&
-           Type::is_built_in_type(
-               ASTNodes::type(_args.front()))) {
-    return ASTNodes::Statement();
+           Type::is_built_in_type(::type(_args.front()))) {
+    return ASTNode("null");
   }
 
   // Del on pointer or unsized array types
   else if (_unmangled_name == "Del" && _args.size() == 1 &&
-           (ASTNodes::type(_args.front()).nodes.front().type ==
-                Type::TypeNode::POINTER ||
-            ASTNodes::type(_args.front()).nodes.front().type ==
-                Type::TypeNode::UNSIZED_ARRAY)) {
-    return ASTNodes::Statement();
+           (Type(::type(_args.front())).is_ptr() ||
+            Type(::type(_args.front())).is_unsized_arr())) {
+    return ASTNode("null");
   }
 
   // New on sized array types
   else if (_unmangled_name == "Del" && _args.size() == 1 &&
-           ASTNodes::type(_args.front()).nodes.front().type ==
-               Type::TypeNode::SIZED_ARRAY) {
-    const auto size = ASTNodes::type(_args.front())
-                          .nodes.front()
-                          .sized_array_size;
+           Type(::type(_args.front())).is_sized_arr()) {
+    const auto size_node =
+        Type(::type(_args.front())).sized_arr_size();
+    assert(size_node.children.empty());
+    const uintmax_t size = std::stoull(size_node.text);
 
-    ASTNodes::Statement out;
+    ASTNode out("statement");
     for (uint i = 0; i < size; ++i) {
-      ASTNodes::RawCFormat arg;
-      arg.format_string = "(%)[" + std::to_string(i) + "]";
-      arg.args = {_args.front()};
-
-      arg.type = ASTNodes::type(_args.front());
-      arg.type->nodes.pop_front();
-
+      ASTNode arg("raw_c_format",
+                  {ASTNode("(%)[" + std::to_string(i) + "]"),
+                   Type(::type(_args.front())).deref(),
+                   ASTNode("_", {_args.front()})});
       out.children.push_back(
           get_function_call_node("Del", {arg}));
     }
@@ -1715,15 +1666,13 @@ ASTNodes::Node Parser::get_function_call_node(
 
   // Pointer copy
   else if (_unmangled_name == "Copy" && _args.size() == 2 &&
-           ASTNodes::type(_args.back()).nodes.front().type ==
-               Type::TypeNode::POINTER &&
-           ASTNodes::type(_args.front())
-               .cast_match(ASTNodes::type(_args.back()))) {
-    ASTNodes::RawCFormat out;
-    out.args = {_args.front(), _args.back()};
-    out.type = Type({"void"});
-    out.format_string = "% = %";
-    return out;
+           Type(::type(_args.back())).is_ptr() &&
+           Type(::type(_args.front()))
+               .cast_match(::type(_args.back()))) {
+    return ASTNode(
+        "raw_c_format",
+        {ASTNode("% = %"), ASTNode("void"),
+         ASTNode("_", {_args.front(), _args.back()})});
   }
 
   // Special case: Local fn pointer
@@ -1749,42 +1698,39 @@ ASTNodes::Node Parser::get_function_call_node(
            i < needed_args.size() && args_at_i != _args.end();
            ++i, ++args_at_i) {
         if (!needed_args[i].second.exact_match(
-                ASTNodes::type(*args_at_i))) {
+                ::type(*args_at_i))) {
           throw std::runtime_error(
               "Expected type '" +
               needed_args[i].second.oak_repr() + "' for arg " +
               std::to_string(i) +
               " of fn pointer call, but saw type '" +
-              ASTNodes::type(*args_at_i).oak_repr() + "'");
+              Type(::type(*args_at_i)).oak_repr() + "'");
         }
       }
 
-      ASTNodes::Call out;
-      out.return_type = fn_type.fn_return_type();
-      out.mangled_c_fn_name = _unmangled_name;
-
+      ASTNode args("_");
       auto needed_arg = needed_args.begin();
       for (const auto &arg : _args) {
-        ASTNodes::Call::Arg to_add;
+        Type type = ::type(arg);
+        int derefs = 0;
 
-        to_add.name = ASTNodes::OptBox(arg);
-        to_add.type = ASTNodes::type(arg);
-        to_add.derefs = 0;
-
-        if (!to_add.type.cast_match(needed_arg->second)) {
-          to_add.derefs = -1;
-          for (Type t = to_add.type.ref();
+        if (!type.cast_match(needed_arg->second)) {
+          derefs = -1;
+          for (Type t = type.ref();
                !t.exact_match(needed_arg->second);
                t = t.deref()) {
-            ++to_add.derefs;
+            ++derefs;
           }
         }
 
-        out.args.push_back(to_add);
+        args.children.push_back(ASTNode(
+            "_", {arg, ASTNode(std::to_string(derefs))}));
         ++needed_arg;
       }
 
-      return out;
+      return ASTNode("@", {ASTNode(_unmangled_name),
+                           fn_type.fn_return_type(), args});
+      ;
     } else {
       throw std::runtime_error(
           "Cannot call variable with non-function-pointer "
@@ -1855,21 +1801,24 @@ bool Parser::instantiate(
 
 void Parser::validate_type(const Type &_t) {
   debug_print();
-  for (const auto &node : _t.nodes) {
-    if (node.type == Type::TypeNode::LITERAL) {
-      if (Type::is_built_in_type(node.literal_name)) {
-        continue;
-      }
+  if (_t.type_ast.children.empty()) {
+    const std::string type = _t.type_ast.text;
 
-      const auto entry = scope_manager.get(node.literal_name);
+    if (Type::is_built_in_type(type)) {
+      return;
+    }
 
-      if (!entry.has_value() ||
-          !(std::holds_alternative<StructInfo>(entry.value()) ||
-            std::holds_alternative<EnumInfo>(entry.value()))) {
-        throw std::runtime_error("Atomic type '" +
-                                 node.literal_name +
-                                 "' does not exist.");
-      }
+    const auto entry = scope_manager.get(type);
+
+    if (!entry.has_value() ||
+        !(std::holds_alternative<StructInfo>(entry.value()) ||
+          std::holds_alternative<EnumInfo>(entry.value()))) {
+      throw std::runtime_error("Atomic type '" + type +
+                               "' does not exist.");
+    }
+  } else {
+    for (const auto &child : _t.type_ast.children) {
+      validate_type(child);
     }
   }
 }
@@ -2392,23 +2341,18 @@ bool Parser::replace_macro(TokenStream &_pos) {
   if (name == "LINE!") {
     _pos.cur_mut().text =
         std::to_string(_pos.cur().line) + "u64";
-    Lexer::classify_type(_pos.cur_mut());
     return true;
   } else if (name == "COL!") {
     _pos.cur_mut().text =
         std::to_string(_pos.cur().col) + "u64";
-    Lexer::classify_type(_pos.cur_mut());
     return true;
   } else if (name == "FILE!") {
     _pos.cur_mut().text = '"' + _pos.cur().file.string() + '"';
-    Lexer::classify_type(_pos.cur_mut());
     return true;
   } else if (name == "oak_VERSION!") {
     _pos.cur_mut().text = '"' + acorn_version + '"';
-    Lexer::classify_type(_pos.cur_mut());
     return true;
   } else if (name == "SYSTEM!") {
-    _pos.cur_mut().type = "STRING";
 #if (defined(WIN32) || defined(WINNT))
     _pos.cur_mut().text = "\"WINDOWS\"";
 #elif (defined(unix) || defined(__unix__))
@@ -2418,7 +2362,6 @@ bool Parser::replace_macro(TokenStream &_pos) {
 #else
     _pos.cur_mut().text = "\"OTHER\"";
 #endif
-    Lexer::classify_type(_pos.cur_mut());
     return true;
   }
 
@@ -2737,7 +2680,6 @@ bool Parser::replace_macro(TokenStream &_pos) {
       // Ensure exactly one set of enclosing quotes
       to_add.text = Macros::make_string_literal(
           Macros::strip_string_literal(to_add.text));
-      Lexer::classify_type(to_add);
 
       _pos.rangef(first_of_range, first_after_range, {to_add});
       _pos.seek(first_of_range);
@@ -2822,7 +2764,6 @@ bool Parser::replace_macro(TokenStream &_pos) {
   if (!res.has_value()) {
     if (!nonexistence_replacement.empty()) {
       _pos.cur_mut().text = nonexistence_replacement;
-      Lexer::classify_type(_pos.cur_mut());
     } else {
       throw std::runtime_error("Macro '" + name +
                                "' has no definition");

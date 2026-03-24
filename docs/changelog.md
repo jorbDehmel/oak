@@ -5,6 +5,11 @@ Jordan Dehmel, jdehmel@outlook.com
 
 [Oak on GitHub](https://github.com/jorbDehmel/oak)
 
+## 0.8.1 (3/24/26)
+
+- Modified previous rewrite to be less trash
+- Working on getting fully functional rewrite
+
 ## 0.8.0 (2/26/25)
 
 - **Code before now will almost certainly not work**

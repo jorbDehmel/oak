@@ -1,8 +1,8 @@
 #include "lexer.hpp"
 #include "debug.hpp"
+#include <cctype>
 #include <cstdint>
 #include <cstring>
-#include <iostream>
 #include <optional>
 #include <stdexcept>
 #include <variant>
@@ -115,39 +115,25 @@ Lexer::raw_lex(const std::string &_text,
                 pos + 1 < _text.size() &&
                 _text.at(pos + 1) == '/')) {
       // Single-line comment
-      auto start_pos = pos;
       while (pos + 1 < _text.size() &&
              _text.at(pos + 1) != '\n') {
         ++pos, ++_col;
       }
-      out.push_back(Lexer::Token(
-          _text.substr(start_pos, pos - start_pos + 1), _path,
-          _line, _col));
       if (_text.at(pos) == '\n') {
         next_line();
       }
     } else if (_text.at(pos) == '/' && pos + 1 < _text.size() &&
                _text.at(pos + 1) == '*') {
       // Multi-line comment
-      auto start_pos = pos;
       while (
           pos + 1 < _text.size() &&
           !(_text.at(pos) == '*' && _text.at(pos + 1) == '/')) {
         if (_text.at(pos) == '\n') {
-          out.push_back(Lexer::Token(
-              _text.substr(start_pos, pos - start_pos), _path,
-              _line, _col));
-          out.back().type = "COMMENT";
-          start_pos = pos + 1;
           next_line();
         }
         ++pos, ++_col;
       }
       ++pos, ++_col;
-      out.push_back(Lexer::Token(
-          _text.substr(start_pos, pos - start_pos + 1), _path,
-          _line, _col));
-      out.back().type = "COMMENT";
     }
 
     // Multi-character non-IDs
@@ -337,16 +323,13 @@ Lexer::raw_lex(const std::string &_text,
   // Merge '.'s in float literals
   for (auto it = out.begin(); it != out.end(); ++it) {
     if (it->text == ".") {
-      if (it != out.begin() &&
-          std::prev(it)->type == "NUMBER" &&
-          !std::prev(it)->text.empty() &&
+      if (it != out.begin() && !std::prev(it)->text.empty() &&
           std::prev(it)->text.back() != '.') {
         std::prev(it)->text += ".";
         const auto to_erase = it;
         --it;
         out.erase(to_erase);
       } else if (std::next(it) != out.end() &&
-                 std::next(it)->type == "NUMBER" &&
                  !std::next(it)->text.empty() &&
                  std::next(it)->text.front() != '.') {
         std::next(it)->text = "." + std::next(it)->text;
@@ -357,25 +340,18 @@ Lexer::raw_lex(const std::string &_text,
     }
   }
 
-  // Distinguish between less-than/greater-than and templates
-  for (auto it = out.begin(); it != out.end(); ++it) {
-    if (it->text == "<") {
-      // Look ahead: If ">" occurs before ";", ")", "]", "}", it
-      // is templating.
-      for (auto t = std::next(it); t != out.end(); ++t) {
-        if (*t == ">") {
-          // Templating
-          t->type = it->type = "TEMPLATE";
-        } else if (*t == ";" || *t == ")" || *t == "]" ||
-                   *t == "}") {
-          // Not templating
-          break;
-        }
-      }
-    }
-  }
-
   return out;
+}
+
+inline bool isnum(const std::string &_s) {
+  if (_s.empty()) {
+    return false;
+  } else if ('0' <= _s.front() && _s.front() <= '9') {
+    return true;
+  } else if ('-' == _s.front()) {
+    return true;
+  }
+  return false;
 }
 
 class TokenStream Lexer::lex(const std::string &_text,
@@ -386,13 +362,18 @@ class TokenStream Lexer::lex(const std::string &_text,
 
   // Merge successive literals
   for (auto it = out.begin(); it != out.end(); ++it) {
-    if (it->type == "NUMBER" || it->type == "STRING") {
+    if (isnum(it->text)) {
       while (std::next(it) != out.end() &&
-             std::next(it)->type == it->type) {
-        if (it->type == "STRING") {
-          it->text.pop_back();
-          std::next(it)->text = std::next(it)->text.substr(1);
-        }
+             isnum(std::next(it)->text) == isnum(it->text)) {
+        it->text += std::next(it)->text;
+        out.erase(std::next(it));
+      }
+    } else if (it->text.starts_with('"')) {
+      while (std::next(it) != out.end() &&
+             std::next(it)->text.starts_with('"') ==
+                 it->text.starts_with('"')) {
+        it->text.pop_back();
+        std::next(it)->text = std::next(it)->text.substr(1);
         it->text += std::next(it)->text;
         out.erase(std::next(it));
       }
@@ -400,16 +381,15 @@ class TokenStream Lexer::lex(const std::string &_text,
   }
 
   // Remove comments
-  std::erase_if(out, [](const Lexer::Token tok) -> bool {
-    return tok.type == "COMMENT";
-  });
+  // std::erase_if(out, [](const Lexer::Token tok) -> bool {
+  //   return tok.type == "COMMENT";
+  // });
 
   // Replace '::'s with '_'s
   for (auto it = out.begin(); it != out.end(); ++it) {
-    while (it->type == "ID" && std::next(it) != out.end() &&
+    while (std::next(it) != out.end() &&
            std::next(it)->text == "::" &&
-           std::next(it, 2) != out.end() &&
-           std::next(it, 2)->type == "ID") {
+           std::next(it, 2) != out.end()) {
       it->text += "_" + std::next(it, 2)->text;
       out.erase(std::next(it));
       out.erase(std::next(it));
@@ -418,10 +398,8 @@ class TokenStream Lexer::lex(const std::string &_text,
 
   // For good measure
   for (auto it = out.begin(); it != out.end(); ++it) {
-    while (it->text == "::" && std::next(it) != out.end() &&
-           std::next(it)->type == "ID") {
+    while (it->text == "::" && std::next(it) != out.end()) {
       it->text = "_" + std::next(it)->text;
-      it->type = "ID";
       out.erase(std::next(it));
     }
   }
@@ -462,89 +440,51 @@ const static bool replace_suffix(std::string &_what,
  */
 std::optional<Type> Lexer::get_literal_type(Lexer::Token &_t) {
   debug_print();
-  if (_t.type == "STRING") {
+  if (_t.text.starts_with('"')) {
     _t.text = "((i8 *)" + _t.text + ")";
-    return Type({"[", "]", "i8"});
+    return Type(ASTNode("[]", {ASTNode("i8")}));
   } else if (_t.text == "true" || _t.text == "false") {
     return Type({"bool"});
   }
 
-  else if (_t.type == "NUMBER") {
-    if (replace_suffix(_t.text, "u8", "")) {
-      return Type({"u8"});
-    } else if (replace_suffix(_t.text, "u16", "")) {
-      return Type({"u16"});
-    } else if (replace_suffix(_t.text, "u32", "U")) {
-      return Type({"u32"});
-    } else if (replace_suffix(_t.text, "u64", "UL")) {
-      return Type({"u64"});
-    } else if (replace_suffix(_t.text, "u128", "ULL")) {
-      return Type({"u128"});
-    } else if (replace_suffix(_t.text, "uint", "")) {
-      return Type({"uint"});
-    }
+  if (replace_suffix(_t.text, "u8", "")) {
+    return Type({"u8"});
+  } else if (replace_suffix(_t.text, "u16", "")) {
+    return Type({"u16"});
+  } else if (replace_suffix(_t.text, "u32", "U")) {
+    return Type({"u32"});
+  } else if (replace_suffix(_t.text, "u64", "UL")) {
+    return Type({"u64"});
+  } else if (replace_suffix(_t.text, "u128", "ULL")) {
+    return Type({"u128"});
+  } else if (replace_suffix(_t.text, "uint", "")) {
+    return Type({"uint"});
+  }
 
-    else if (replace_suffix(_t.text, "i8", "")) {
-      return Type({"i8"});
-    } else if (replace_suffix(_t.text, "i16", "")) {
-      return Type({"i16"});
-    } else if (replace_suffix(_t.text, "i32", "")) {
-      return Type({"i32"});
-    } else if (replace_suffix(_t.text, "i64", "L")) {
-      return Type({"i64"});
-    } else if (replace_suffix(_t.text, "i128", "LL")) {
-      return Type({"i128"});
-    } else if (replace_suffix(_t.text, "int", "")) {
-      return Type({"int"});
-    }
+  else if (replace_suffix(_t.text, "i8", "")) {
+    return Type({"i8"});
+  } else if (replace_suffix(_t.text, "i16", "")) {
+    return Type({"i16"});
+  } else if (replace_suffix(_t.text, "i32", "")) {
+    return Type({"i32"});
+  } else if (replace_suffix(_t.text, "i64", "L")) {
+    return Type({"i64"});
+  } else if (replace_suffix(_t.text, "i128", "LL")) {
+    return Type({"i128"});
+  } else if (replace_suffix(_t.text, "int", "")) {
+    return Type({"int"});
+  }
 
-    else if (replace_suffix(_t.text, "f32", "F")) {
-      return Type({"f32"});
-    } else if (replace_suffix(_t.text, "f64", "")) {
-      return Type({"f64"});
-    } else if (replace_suffix(_t.text, "f128", "L")) {
-      return Type({"f128"});
-    }
-
-    throw std::runtime_error(
-        "Untyped number literal '" + _t.text + "' at " +
-        _t.file.string() + ":" + std::to_string(_t.line));
+  else if (replace_suffix(_t.text, "f32", "F")) {
+    return Type({"f32"});
+  } else if (replace_suffix(_t.text, "f64", "")) {
+    return Type({"f64"});
+  } else if (replace_suffix(_t.text, "f128", "L")) {
+    return Type({"f128"});
   }
 
   // The empty option
   return {};
-}
-
-void Lexer::classify_type(Lexer::Token &_t) {
-  if (_t.type == "COMMENT") {
-    ;
-  } else if (_t.text.empty() || _t.text.starts_with("//") ||
-             _t.text.starts_with("/*") ||
-             _t.text.starts_with("#")) {
-    _t.type = "COMMENT";
-  } else if (_t.text.front() == '"') {
-    _t.type = "STRING";
-  } else if (operators.contains(_t.text.at(0)) &&
-             !(_t.text.at(0) == '-' && 1 < _t.text.size() &&
-               '0' <= _t.text.at(1) && _t.text.at(1) <= '9')) {
-    _t.type = "OPERATOR";
-  } else if (singleton_operators.contains(_t.text.front())) {
-    _t.type = "OPERATOR";
-  } else if (('0' <= _t.text.front() &&
-              _t.text.front() <= '9') ||
-             (_t.text.size() > 1 && _t.text.front() == '-' &&
-              '0' <= _t.text[1] && _t.text[1] <= '9')) {
-    _t.type = "NUMBER";
-  } else if (Type::float_literals.contains(_t.text) ||
-             Type::int_literals.contains(_t.text) ||
-             Type::uint_literals.contains(_t.text)) {
-    _t.type = "NUMBER";
-  } else if (_t.text == "EOF" && _t.file == "N/A" &&
-             _t.line == 0 && _t.col == 0) {
-    _t.type = "EOF";
-  } else {
-    _t.type = "ID";
-  }
 }
 
 void TokenStream::next() noexcept {
@@ -560,16 +500,8 @@ void TokenStream::prev() noexcept {
 }
 
 bool TokenStream::done() const noexcept {
-  try {
-    // In some cases, forces checking for invalidated iterator
-    if (raw_stream.at(cur_pos).type == "EOF") {
-      return true;
-    }
-  } catch (...) {
-    // Invalid iterator
-    return true;
-  }
-  return cur_pos >= raw_stream.size();
+  return cur_pos >= raw_stream.size() ||
+         raw_stream.at(cur_pos) == "EOF";
 }
 
 const Lexer::Token TokenStream::cur() const noexcept {

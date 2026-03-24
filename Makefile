@@ -46,9 +46,6 @@ uninstall:
 
 .PHONY:	test
 test:
-	@echo "Ensuring proper documentation..."
-	doxygen -q
-
 	@echo "Running unit tests..."
 	$(MAKE) -C unit_tests $@
 

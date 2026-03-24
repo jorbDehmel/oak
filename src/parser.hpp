@@ -92,30 +92,30 @@ public:
 
   /// Assumes we are pointing to the first token in the
   /// statement Non-global (inside functions)
-  ASTNodes::Statement
+  ASTNode
   parse_statement(TokenStream &_pos,
-                  const Type &_return_type = {});
+                  const std::optional<Type> &_return_type = {});
 
   /// Assumes we are pointing to "case" or "else"
   /// Non-global (inside match statement)
-  std::variant<ASTNodes::Case, ASTNodes::Statement>
-  parse_case(const EnumInfo &_enum_type, TokenStream &_pos,
-             const bool &_is_mutable);
+  ASTNode parse_case(const EnumInfo &_enum_type,
+                     TokenStream &_pos,
+                     const bool &_is_mutable);
 
   /// Return the type spec at the specified location
   Type parse_type(TokenStream &_pos);
 
   /// Called by parse_function_call
-  ASTNodes::Node get_function_call_node(
-      const std::string &_unmangled_name,
-      const std::list<ASTNodes::Node> &_args);
+  ASTNode
+  get_function_call_node(const std::string &_unmangled_name,
+                         const std::list<ASTNode> &_args);
 
   /// Parses a single function call
-  ASTNodes::Node parse_function_call(TokenStream &_pos);
+  ASTNode parse_function_call(TokenStream &_pos);
 
   /// This is what you should call: The other one is called by
   /// this
-  ASTNodes::Node parse_object(TokenStream &_pos);
+  ASTNode parse_object(TokenStream &_pos);
 
   /// Parses a single or multi-token identifier, handling any
   /// template instantiations therein. Returns an UNMANGLED

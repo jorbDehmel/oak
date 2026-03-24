@@ -5,19 +5,10 @@
 
 #pragma once
 
-#include <cstdint>
-#include <initializer_list>
-#include <list>
+#include "ast_node.hpp"
 #include <map>
-#include <stack>
 #include <string>
 #include <vector>
-
-// Forward definitions
-namespace ASTNodes {
-struct Call;
-struct Object;
-} // namespace ASTNodes
 
 /**
  * @class Type
@@ -27,6 +18,10 @@ struct Object;
  */
 class Type {
 public:
+  /// Default constructor
+  Type(const ASTNode &_type_ast = {}) : type_ast(_type_ast) {
+  }
+
   /// A higher number is more precise. The goal is not to lose
   /// any precision in our casts. These are EG i32, i64, int
   const static std::map<std::string, uint> int_literals;
@@ -47,24 +42,6 @@ public:
   /// If the type is an array or pointer, this is always false.
   static bool
   is_built_in_type(const std::string &_what) noexcept;
-
-  /// Default constructor
-  Type() = default;
-
-  /**
-   * @brief Parse some series of tokens as a type
-   */
-  Type(const std::initializer_list<std::string> &_tokens) {
-    for (const auto &t : _tokens) {
-      process_next(t);
-    }
-  }
-
-  friend class Parser;
-
-  /// Process one token. This should be treated as consumptive.
-  /// O(1)
-  void process_next(const std::string &_symbol);
 
   /// Return this type in Oak notation
   /// O(n)
@@ -97,7 +74,7 @@ public:
 
   /// Helper that ignores the _num_deref arg, only giving a bool
   inline bool ref_match(const Type &_other) const {
-    int junk;
+    int junk = 0;
     return ref_match(_other, junk);
   }
 
@@ -106,13 +83,24 @@ public:
   /// enum
   std::string struct_name() const;
 
-  /// Returns whether or not this type is valid to instantiate
-  /// O(n)
-  bool valid() const noexcept;
-
   /// Returns true iff the first node is of type FUNCTION
   /// O(1)
   bool is_fn() const noexcept;
+
+  /// Returns true iff the type is a ptr (NOT an unsized array)
+  bool is_ptr() const noexcept;
+
+  /// Returns true iff the type is a array (sized or unsized)
+  bool is_arr() const noexcept;
+
+  /// Returns true iff the type is a sized array
+  bool is_sized_arr() const noexcept;
+
+  /// Returns true iff the type is an unsized array
+  bool is_unsized_arr() const noexcept;
+
+  /// Throws if not a sized array
+  ASTNode sized_arr_size() const;
 
   /// Returns true iff the first node is of type POINTER and the
   /// second node is of type FUNCTION
@@ -133,76 +121,20 @@ public:
   get_destructor_call(const std::string &_to_destruct) const;
 
   /// Returns a COPY of this type if it were to be dereferenced
-  /// once
+  /// once (throwing if this is not a dereferenceable type)
   Type deref() const;
+
+  /// Same as deref, but allows arrays (sized or unsized)
+  Type deref_allow_arrays() const;
 
   /// Returns a COPY of this type if it were to be referenced
   /// once
   Type ref() const;
 
-  /// Appends a pointer node to this type
-  void append_ptr();
-
-  /// Appends an unsized array node to this type
-  void append_arr();
-
-  /// Appends a size array node to this type
-  void append_sized_arr(const uint64_t &_size);
-
-  /// Appends a literal node ot this type WITHOUT checking its
-  /// existence or size.
-  void append_literal(const std::string &_name);
-
-  /// Appends a function open node to this type
-  void append_fn();
-
-  /// Appends a join node to this type
-  void append_join();
-
-  /// Appends a function close node ("maps") to this type
-  void append_maps();
-
-  /// Appends the entire other type (EG fn arg)
-  void append_type(const Type &_other);
-
-  /**
-   * @struct TypeNode
-   * @brief A single node in a type
-   */
-  struct TypeNode {
-    /**
-     * @enum TypeTag
-     * @brief The type of this typenode (EG pointer, literal,
-     * array)
-     */
-    enum TypeTag {
-      POINTER,
-      UNSIZED_ARRAY,
-      SIZED_ARRAY,
-      LITERAL,
-      FUNCTION,
-      JOIN,
-      MAPS,
-    };
-
-    /// The type of this typenode
-    TypeTag type = LITERAL;
-
-    /// Used only in literal nodes
-    std::string literal_name = "";
-
-    /// Used only in sized array nodes
-    uint64_t sized_array_size = 0;
-
-    /// Used in "function" and "join" nodes to list argument
-    /// names
-    std::string following_arg_name = "";
-  };
-
   /// Internal type representation
-  std::list<TypeNode> nodes;
+  ASTNode type_ast;
 
-protected:
-  /// Used for parsing types from token streams
-  std::stack<std::string> enclosure;
+  inline operator ASTNode() const noexcept {
+    return type_ast;
+  }
 };

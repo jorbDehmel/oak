@@ -13,6 +13,7 @@
 #include <list>
 #include <optional>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <variant>
 
@@ -48,8 +49,6 @@ public:
       Copy_FN_PTR_String_JOIN_ARR_i8_MAPS_PTR_String(
           &out.text, (i8 *)text.c_str());
       Copy_FN_PTR_String_JOIN_ARR_i8_MAPS_PTR_String(
-          &out.type, (i8 *)type.c_str());
-      Copy_FN_PTR_String_JOIN_ARR_i8_MAPS_PTR_String(
           &out.file, (i8 *)file.c_str());
 
       out.line = line;
@@ -60,9 +59,6 @@ public:
 
     /// The literal string value
     std::string text;
-
-    /// The category of symbol
-    std::string type = "ID";
 
     /// Where it came from
     std::filesystem::path file;
@@ -78,7 +74,6 @@ public:
           const std::filesystem::path &_file,
           const uint64_t &_line, const uint64_t &_col)
         : text(_text), file(_file), line(_line), col(_col) {
-      classify_type(*this);
     }
 
     /// Construct with the other as a 'template', but with some
@@ -87,7 +82,6 @@ public:
           const std::string &_new_text)
         : text(_new_text), file(_other.file), line(_other.line),
           col(_other.col) {
-      classify_type(*this);
     }
 
     /// Construct with the other as a 'template', but with some
@@ -96,7 +90,6 @@ public:
           const Lexer::Token &_new_text)
         : text(_new_text), file(_other.file), line(_other.line),
           col(_other.col) {
-      classify_type(*this);
     }
 
     /// Returns true iff the texts match
@@ -142,13 +135,6 @@ public:
    * @param _t The possible literal to examine.
    */
   static std::optional<Type> get_literal_type(Lexer::Token &_t);
-
-  /**
-   * @brief Set `_t.type` according to its contents. If it
-   * already has a type, overwrites it.
-   * @param _t The type to reclassify
-   */
-  static void classify_type(Lexer::Token &_t);
 };
 
 /**
@@ -200,6 +186,15 @@ public:
    * @returns The token or EOF
    */
   const Lexer::Token cur() const noexcept;
+
+  /// Assert that the cur token is in the given set and advance
+  inline void expect(const std::set<std::string> &_allowed) {
+    if (!_allowed.contains(cur())) {
+      throw std::runtime_error("Unexpected token '" +
+                               cur().text + "'");
+    }
+    next();
+  }
 
   /**
    * @brief

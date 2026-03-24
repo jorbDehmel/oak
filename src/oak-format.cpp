@@ -90,10 +90,9 @@ void canonicalize(std::ostream &_into,
       owed_newline = true;
     } else if (tok == "(") {
       ++tab_depth;
-    } else if (it->type == "OPERATOR" && tok != ")" &&
-               tok != "::" && tok != "." && tok != "^" &&
-               tok != "[" && tok != "]" && tok != "!" &&
-               tok != "++" && tok != "--") {
+    } else if (tok != ")" && tok != "::" && tok != "." &&
+               tok != "^" && tok != "[" && tok != "]" &&
+               tok != "!" && tok != "++" && tok != "--") {
       if (col != 2 * tab_depth) {
         tok = " " + tok;
       }
@@ -150,6 +149,8 @@ bool validate(const std::string &_original_text,
     } else if (l.cur().text != r.cur().text) {
       return false;
     }
+    l.next();
+    r.next();
   }
 
   return true;
