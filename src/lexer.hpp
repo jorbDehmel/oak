@@ -187,6 +187,17 @@ public:
    */
   const Lexer::Token cur() const noexcept;
 
+  /**
+   * @brief Get the current token and advance, returning EOF if
+   * we are beyond the end.
+   * @returns The token or EOF
+   */
+  inline const Lexer::Token cur_next() noexcept {
+    const auto out = cur();
+    next();
+    return out;
+  }
+
   /// Assert that the cur token is in the given set and advance
   inline void expect(const std::set<std::string> &_allowed) {
     if (!_allowed.contains(cur())) {

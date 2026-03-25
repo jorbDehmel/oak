@@ -16,7 +16,7 @@ void reconstruct(const ASTNode &_what, std::ostream &_where) {
     _where << ")";
     reconstruct(then_block, _where);
 
-    if (_what.children.size() == 2) {
+    if (_what.children.size() == 3) {
       const auto else_block = _what.children.at(2);
       _where << "else ";
       reconstruct(else_block, _where);

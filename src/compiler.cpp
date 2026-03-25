@@ -3,7 +3,6 @@
  */
 
 #include "compiler.hpp"
-#include "debug.hpp"
 #include "parse_helpers.hpp"
 #include "parser.hpp"
 #include "settings.hpp"
@@ -35,8 +34,6 @@
  */
 int strm_cmd_output(const std::string &_cmd,
                     std::ostream &_to) noexcept {
-  debug_print();
-
   auto cout_buffer = std::cout.rdbuf();
   std::stringstream cout_sstream;
   std::cerr.rdbuf(cout_sstream.rdbuf());
@@ -61,14 +58,11 @@ int strm_cmd_output(const std::string &_cmd,
 }
 
 void OakCompiler::print_version() noexcept {
-  debug_print();
   std::cout << "Acorn version " << acorn_version << "\n"
             << "MIT Licensed\n";
 }
 
 void OakCompiler::print_help_text() noexcept {
-  debug_print();
-
   /*
   Used:   AcCdDeEghilnoOpPqrRsStTuUvwxy
   Unused: abBfFGHIjJkKLmMNQVWXYzZ
@@ -154,7 +148,6 @@ void OakCompiler::print_help_text() noexcept {
 }
 
 void OakCompiler::print_size() noexcept {
-  debug_print();
   const static std::list<std::filesystem::path> files_to_check =
       {"/usr/bin/acorn", "/usr/bin/acorn-debug",
        "/usr/bin/oak2c", "/usr/bin/oak2c-debug",
@@ -228,9 +221,7 @@ void OakCompiler::print_size() noexcept {
 /// uninstalling. This can safely be run after object deletion
 /// (e.g. CLI closing)
 void internal_uninstall() {
-  debug_print();
   char choice = 'n';
-
   std::cout
       << "Are you sure you want to uninstall acorn? [y/N] ";
   std::cin >> choice;
@@ -262,12 +253,10 @@ void internal_uninstall() {
 }
 
 void OakCompiler::uninstall_acorn() noexcept {
-  debug_print();
   std::atexit(internal_uninstall);
 }
 
 void OakCompiler::clean() {
-  debug_print();
   std::list<std::filesystem::path> to_erase;
   for (const auto &path :
        std::filesystem::recursive_directory_iterator(
@@ -303,7 +292,6 @@ void OakCompiler::clean() {
 }
 
 void OakCompiler::new_package(const std::string &_name) {
-  debug_print();
   const std::filesystem::path path(_name);
 
   // Package dir
@@ -375,7 +363,6 @@ void OakCompiler::new_package(const std::string &_name) {
 }
 
 void OakCompiler::operator()() {
-  debug_print();
   bool did_fail = false;
   if (settings.is_compile()) {
     if (settings.debug) {
@@ -414,7 +401,6 @@ void OakCompiler::operator()() {
 }
 
 void OakCompiler::do_compilation() {
-  debug_print();
   // Variables needed by the entire process
   auto &csettings = settings.compile_settings();
   std::filesystem::path translated_file = "N/A";
@@ -482,10 +468,6 @@ void OakCompiler::do_compilation() {
 
   try {
     p.do_file(csettings.entry_point, csettings.entry_point);
-  } catch (OutOfPPPLError &e) {
-    throw OutOfPPPLError(
-        "Error occurred while loading entry point " +
-        csettings.entry_point.string() + ":\n" + e.what());
   } catch (std::runtime_error &e) {
     throw std::runtime_error(
         "Error occurred while loading entry point " +
@@ -673,7 +655,6 @@ void OakCompiler::do_compilation() {
 }
 
 void OakCompiler::do_testing() {
-  debug_print();
 
   // Variables needed by entire process
   auto &tsettings = settings.test_settings();
@@ -911,7 +892,7 @@ void OakCompiler::do_testing() {
   }
   settings.ostream << '\n';
 
-  db_assert(total_runs_tried <= total_compiles_succeeded);
+  assert(total_runs_tried <= total_compiles_succeeded);
 
   if (!compile_problems.empty() || !run_problems.empty()) {
     settings.ostream << "Errors:\n";

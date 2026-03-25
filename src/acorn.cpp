@@ -3,7 +3,6 @@
  */
 
 #include "compiler.hpp"
-#include "debug.hpp"
 #include "package.hpp"
 #include <chrono>
 #include <filesystem>
@@ -22,8 +21,6 @@ static_assert(__cplusplus >= 2020'00ULL);
  */
 bool parse_args(const int _c, const char *const _v[],
                 OakCompiler &_oakc) {
-  debug_print();
-
   if (_c == 1) {
     _oakc.print_help_text();
     return false;

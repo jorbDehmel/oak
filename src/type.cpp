@@ -4,7 +4,6 @@
  */
 
 #include "type.hpp"
-#include "debug.hpp"
 #include <cassert>
 #include <csignal>
 #include <map>
@@ -51,7 +50,6 @@ const std::map<std::string, uint> Type::float_literals = {
     {"float", sizeof(double)}};
 
 bool Type::is_built_in_type(const Type &_what) noexcept {
-  debug_print();
   if (!_what.type_ast.children.empty()) {
     return false;
   }
@@ -60,7 +58,6 @@ bool Type::is_built_in_type(const Type &_what) noexcept {
 }
 
 bool Type::is_built_in_type(const std::string &_what) noexcept {
-  debug_print();
   return int_literals.contains(_what) ||
          uint_literals.contains(_what) ||
          float_literals.contains(_what) || _what == "bool" ||
@@ -68,13 +65,11 @@ bool Type::is_built_in_type(const std::string &_what) noexcept {
 }
 
 bool Type::is_fn() const noexcept {
-  debug_print();
   return type_ast.text == "->";
 }
 
 std::vector<std::pair<std::string, Type>>
 Type::fn_args() const {
-  debug_print();
   if (!is_fn()) {
     throw std::runtime_error(
         "Cannot get arguments of non-function type '" +
@@ -99,7 +94,6 @@ Type::fn_args() const {
 }
 
 Type Type::fn_return_type() const {
-  debug_print();
   if (!is_fn()) {
     throw std::runtime_error(
         "Cannot get return type of non-function type '" +
@@ -109,7 +103,6 @@ Type Type::fn_return_type() const {
 }
 
 std::string Type::oak_repr(const std::string &_var_name) const {
-  debug_print();
   if (!_var_name.empty()) {
     return _var_name + ": " + oak_repr();
   } else if (is_ptr()) {
@@ -143,7 +136,6 @@ std::string Type::oak_repr(const std::string &_var_name) const {
 
 std::string Type::c_repr(const std::string &_var_name,
                          const bool &_no_mangle) const {
-  debug_print();
   if (is_fn_ptr()) {
     // Function pointer
     return Type(type_ast.children.front())
@@ -199,7 +191,6 @@ std::string Type::c_repr(const std::string &_var_name,
 }
 
 std::string Type::mangle(const std::string &_var_name) const {
-  debug_print();
 
   if (!_var_name.empty()) {
     return _var_name + "_" + mangle("");
@@ -234,7 +225,6 @@ std::string Type::mangle(const std::string &_var_name) const {
 }
 
 bool Type::exact_match(const Type &_other) const {
-  debug_print();
   if (type_ast.text != _other.type_ast.text) {
     return false;
   } else if (type_ast.children.size() !=
@@ -251,7 +241,6 @@ bool Type::exact_match(const Type &_other) const {
 }
 
 bool Type::cast_match(const Type &_other) const {
-  debug_print();
   // Special case: Void pointer casting
   // NOTE: This may cause some issues on C-side
   if (_other.is_ptr() &&
@@ -296,7 +285,6 @@ bool Type::cast_match(const Type &_other) const {
 
 bool Type::ref_match(const Type &_other,
                      int &_num_deref) const {
-  debug_print();
 
   Type me = *this;
   Type it = _other;
@@ -346,7 +334,6 @@ Type Type::ref() const {
 }
 
 std::string Type::struct_name() const {
-  debug_print();
   if (!type_ast.children.empty()) {
     throw std::runtime_error(
         "Cannot get struct/enum name of non-terminal type '" +
@@ -356,7 +343,6 @@ std::string Type::struct_name() const {
 }
 
 bool Type::is_fn_ptr() const noexcept {
-  debug_print();
   return is_ptr() && Type(type_ast.children.front()).is_fn();
 }
 

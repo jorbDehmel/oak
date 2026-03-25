@@ -1,6 +1,5 @@
 #include "symbols.hpp"
 #include "ast_node.hpp"
-#include "debug.hpp"
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -10,12 +9,10 @@
 #include <variant>
 
 ScopeManager::ScopeManager() {
-  debug_print();
   push_frame();
 }
 
 void ScopeManager::push_capture_frame() noexcept {
-  debug_print();
   frames.push_back(
       std::map<std::string, ScopeManager::ValueOrAlias>());
   barrier_captures.push_back(std::list<std::string>()); // Some
@@ -23,7 +20,6 @@ void ScopeManager::push_capture_frame() noexcept {
 
 std::list<std::string>
 ScopeManager::get_captures() const noexcept {
-  debug_print();
   if (barrier_captures.back().has_value()) {
     return barrier_captures.back().value();
   } else {
@@ -32,7 +28,6 @@ ScopeManager::get_captures() const noexcept {
 }
 
 void ScopeManager::push_frame() noexcept {
-  debug_print();
   frames.push_back(
       std::map<std::string, ScopeManager::ValueOrAlias>());
   barrier_captures.push_back(
@@ -40,28 +35,22 @@ void ScopeManager::push_frame() noexcept {
 }
 
 bool ScopeManager::empty() const noexcept {
-  debug_print();
   return frames.empty();
 }
 
 ASTNode ScopeManager::pop_frame() {
-  debug_print();
   if (frames.size() <= 1) {
     throw std::runtime_error("Cannot pop final stack frame");
   } else {
     ASTNode destructors("statement");
 
-    debug_print();
     const auto popped = frames.back();
 
-    debug_print();
-    db_assert(barrier_captures.size() == frames.size());
+    assert(barrier_captures.size() == frames.size());
     frames.pop_back();
 
-    debug_print();
     barrier_captures.pop_back();
 
-    debug_print();
     for (const auto &entry : popped) {
       if (std::holds_alternative<Value>(entry.second)) {
         const auto non_ref_value =
@@ -74,15 +63,12 @@ ASTNode ScopeManager::pop_frame() {
       }
     }
 
-    debug_print();
-
     return destructors;
   }
 }
 
 void ScopeManager::add(const std::string &_name,
                        const SingularValue &_value) {
-  debug_print();
   const auto real_name = add_prefix(_name);
   if (frames.back().contains(real_name)) {
     throw std::runtime_error(
@@ -91,17 +77,14 @@ void ScopeManager::add(const std::string &_name,
         "already exists");
   } else {
     if (std::holds_alternative<StructInfo>(_value)) {
-      debug_print();
       frames.back()[real_name] = std::get<StructInfo>(_value);
       in_order.push_back(std::get<StructInfo>(_value));
     } else if (std::holds_alternative<EnumInfo>(_value)) {
-      debug_print();
       frames.back()[real_name] = std::get<EnumInfo>(_value);
       in_order.push_back(std::get<EnumInfo>(_value));
     }
 
     else if (std::holds_alternative<Type>(_value)) {
-      debug_print();
 
       // No globals allowed
       if (frames.size() == 1) {
@@ -111,10 +94,8 @@ void ScopeManager::add(const std::string &_name,
 
       frames.back()[real_name] = std::get<Type>(_value);
     } else if (std::holds_alternative<InlineMacro>(_value)) {
-      debug_print();
       frames.back()[real_name] = std::get<InlineMacro>(_value);
     } else if (std::holds_alternative<CompiledMacro>(_value)) {
-      debug_print();
       frames.back()[real_name] =
           std::get<CompiledMacro>(_value);
     }
@@ -131,7 +112,6 @@ void ScopeManager::add(const std::string &_name,
 
 void ScopeManager::add(const std::string &_name,
                        const FnInfo &_value) {
-  debug_print();
   const auto real_name = add_prefix(_name);
 
   if (!frames.back().contains(real_name)) {
@@ -177,7 +157,6 @@ void ScopeManager::pop_prefix() {
 
 std::string
 ScopeManager::add_prefix(const std::string &_raw_name) const {
-  debug_print();
   std::string out = "";
   bool first = true;
   for (const auto &prefix : prefixes) {
@@ -193,7 +172,6 @@ ScopeManager::add_prefix(const std::string &_raw_name) const {
 
 void ScopeManager::add(const std::string &_key,
                        const TemplateInfo &_value) {
-  debug_print();
   const auto real_key = add_prefix(_key);
   if (frames.back().contains(real_key) &&
       std::holds_alternative<Value>(
@@ -201,7 +179,6 @@ void ScopeManager::add(const std::string &_key,
       std::holds_alternative<TemplValue>(
           dealias(frames.back().at(real_key)))) {
     // Already exists and is of right type
-    debug_print();
     std::get<TemplValue>(
         std::get<Value>(frames.back().at(real_key)))
         .push_back(std::shared_ptr<TemplateInfo>(
@@ -225,7 +202,6 @@ void ScopeManager::add(const std::string &_key,
 void ScopeManager::alias(
     const std::string &_name_of_alias,
     const std::string &_thing_that_exists) {
-  debug_print();
   const auto real_name_of_alias = add_prefix(_name_of_alias);
   // Resolve
   const auto target = get(_thing_that_exists);
@@ -241,7 +217,6 @@ void ScopeManager::alias(
 }
 
 void ScopeManager::remove_prefix(const std::string &_prefix) {
-  debug_print();
   // Find anything (in any scope) that has this prefix
   const auto real_prefix = _prefix + "_";
   for (auto scope_iter = frames.rbegin();
@@ -259,7 +234,6 @@ void ScopeManager::remove_prefix(const std::string &_prefix) {
 
 std::string fn_call_str(const std::string &_name,
                         const std::list<ASTNode> &_args) {
-  debug_print();
   std::string call_text = _name + "(";
   bool first = true;
   for (const auto &arg : _args) {
@@ -276,7 +250,6 @@ std::string fn_call_str(const std::string &_name,
 
 std::optional<ScopeManager::Value>
 ScopeManager::get(const std::string &_name) noexcept {
-  debug_print();
 
   auto frame_it = frames.rbegin();
   auto capture_it = barrier_captures.rbegin();
@@ -285,14 +258,12 @@ ScopeManager::get(const std::string &_name) noexcept {
        ++frame_it, ++capture_it) {
     if (frame_it->contains(_name)) {
       // Resolve any aliasing
-      debug_print();
       auto cur = frame_it->at(_name);
       return dealias(cur);
     }
 
     // Log any captures
     if (capture_it->has_value()) {
-      debug_print();
       capture_it->value().push_back(_name);
     }
   }
@@ -300,7 +271,6 @@ ScopeManager::get(const std::string &_name) noexcept {
 }
 
 void ScopeManager::erase(const std::string &_name) noexcept {
-  debug_print();
   auto frame_it = frames.rbegin();
   auto capture_it = barrier_captures.rbegin();
   for (; frame_it != frames.rend() &&
@@ -308,7 +278,6 @@ void ScopeManager::erase(const std::string &_name) noexcept {
        ++frame_it, ++capture_it) {
     if (frame_it->contains(_name)) {
       // Resolve any aliasing
-      debug_print();
       auto cur = frame_it->at(_name);
       frame_it->erase(_name);
       return;
@@ -323,7 +292,6 @@ void ScopeManager::erase(const std::string &_name) noexcept {
 
 bool ScopeManager::contains(
     const std::string &_name) const noexcept {
-  debug_print();
   for (auto it = frames.rbegin(); it != frames.rend(); ++it) {
     if (it->contains(_name)) {
       return true;
@@ -333,25 +301,21 @@ bool ScopeManager::contains(
 }
 
 ScopeManager::Value ScopeManager::dealias(ValueOrAlias &_what) {
-  debug_print();
   if (std::holds_alternative<
           std::reference_wrapper<ScopeManager::Value>>(_what)) {
     // Points to a reference
-    debug_print();
     return std::get<
                std::reference_wrapper<ScopeManager::Value>>(
                _what)
         .get();
   } else {
     // Points to a literal
-    debug_print();
     return std::get<ScopeManager::Value>(_what);
   }
 }
 
 ASTNode ScopeManager::get_fn(const std::string &_name,
                              const std::list<ASTNode> &_args) {
-  debug_print();
 
   std::list<ASTNode> exact_matches, cast_matches, ref_matches;
 
@@ -505,7 +469,6 @@ ASTNode ScopeManager::get_fn(const std::string &_name,
 }
 
 std::set<std::string> ScopeManager::names() const noexcept {
-  debug_print();
   std::set<std::string> out;
   for (const auto &frame : frames) {
     for (const auto &p : frame) {
@@ -519,7 +482,6 @@ void ScopeManager::drop_fn_with_tag(
     const std::string &_name, const Type &_to_match,
     const std::string &_key,
     const std::string &_value) noexcept {
-  debug_print();
 
   // Locate
   auto frame = frames.rbegin();
@@ -587,7 +549,6 @@ void ScopeManager::drop_fn_with_tag(
 void ScopeManager::tag_fn(const std::string &_name,
                           const std::string &_key,
                           const std::string &_value) noexcept {
-  debug_print();
 
   // Locate
   auto frame = frames.rbegin();
@@ -626,7 +587,6 @@ void ScopeManager::tag_fn(const std::string &_name,
 
 bool ScopeManager::contains_atomic_type(
     const std::string &_name) const noexcept {
-  debug_print();
   for (const auto &frame : frames) {
     if (frame.contains(_name)) {
       if (!std::holds_alternative<Value>(frame.at(_name))) {

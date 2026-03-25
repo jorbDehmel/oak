@@ -1,12 +1,9 @@
 #include "parse_helpers.hpp"
-#include "debug.hpp"
 #include <cstring>
 
 std::string build_generic_prefix(
     const std::string &_name,
     const TemplateInfo::Substitution &_substitutions) {
-  debug_print();
-
   std::string prefix = _name + "_GEN";
   bool first = true;
   for (const auto &substitution : _substitutions) {
@@ -25,7 +22,6 @@ std::string build_generic_prefix(
 
 void print_region(TokenStream &_pos, std::ostream &_where,
                   const uint &_n) {
-  debug_print();
   auto start_pos = _pos.tell();
 
   const auto start_line = _pos.cur().line;
@@ -124,7 +120,6 @@ void check_camelcase(Settings &_warn_into,
 }
 
 std::string get_cmd_output(const std::string &_cmd) {
-  debug_print();
   char buffer[128];
   std::string result;
   FILE *pipe = popen(_cmd.c_str(), "r");
@@ -154,7 +149,6 @@ std::list<Lexer::Token> TemplateInfo::replace(
     const std::list<Lexer::Token> &_to_augment,
     const std::list<std::string> &_generics,
     const std::list<std::list<std::string>> &_replacements) {
-  debug_print();
   // Ensure valid substitutions
   if (_generics.size() < _replacements.size()) {
     throw std::runtime_error(
@@ -191,7 +185,6 @@ std::list<Lexer::Token> TemplateInfo::replace(
 
 std::string
 Macros::strip_string_literal(const std::string &_str_lit) {
-  debug_print();
   const static std::set<char> str_chars = {'\'', '"', '`'};
 
   // Strip \" and the likes from within
@@ -227,8 +220,6 @@ Macros::make_string_literal(const std::string &_contents) {
 
 std::list<std::list<Lexer::Token>>
 Macros::get_macro_args(TokenStream &_pos) {
-  debug_print();
-
   uint depth = 0;
   std::list<std::list<Lexer::Token>> out;
   std::list<Lexer::Token> cur;

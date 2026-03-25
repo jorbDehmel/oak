@@ -167,6 +167,18 @@ public:
   void syntax_check(const std::filesystem::path &_fp,
                     const std::string &_text) const;
 
+  /// If debug, prints where we are. The provided text should be
+  /// the calling function
+  inline void debug_print_pos(const std::string &_caller,
+                              const TokenStream &_pos) const {
+    if (settings.debug) {
+      settings.ostream
+          << __FUNCTION__ << " at " << _pos.cur().file.string()
+          << ":" << _pos.cur().line << "." << _pos.cur().col
+          << '\n';
+    }
+  }
+
   /**
    * @brief Attempt to instantiate a template
    * @param _what Information about the template blocks

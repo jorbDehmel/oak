@@ -1,5 +1,4 @@
 #include "lexer.hpp"
-#include "debug.hpp"
 #include <cctype>
 #include <cstdint>
 #include <cstring>
@@ -88,13 +87,23 @@ const std::set<char> Lexer::operators = {
 const std::set<char> Lexer::singleton_operators = {
     '[', ']', '{', '}', '(', ')', ',', ';', '<', '>'};
 
+inline bool isnum(const std::string &_s,
+                  const bool &_or_type = false) {
+  if (_s.empty()) {
+    return false;
+  } else if ('0' <= _s.front() && _s.front() <= '9') {
+    return true;
+  } else if (_or_type && Type::is_built_in_type(_s)) {
+    return true;
+  }
+  return false;
+}
+
 std::list<Lexer::Token>
 Lexer::raw_lex(const std::string &_text,
                const std::filesystem::path &_path,
                uint64_t &_line, uint64_t &_col,
                const bool &_is_original) {
-  debug_print();
-
   const auto next_line = [&]() {
     ++_line;
     _col = 0;
@@ -340,38 +349,17 @@ Lexer::raw_lex(const std::string &_text,
     }
   }
 
-  return out;
-}
-
-inline bool isnum(const std::string &_s) {
-  if (_s.empty()) {
-    return false;
-  } else if ('0' <= _s.front() && _s.front() <= '9') {
-    return true;
-  } else if ('-' == _s.front()) {
-    return true;
-  }
-  return false;
-}
-
-class TokenStream Lexer::lex(const std::string &_text,
-                             const std::filesystem::path &_path,
-                             uint64_t &_line, uint64_t &_col,
-                             const bool &_is_original) {
-  auto out = raw_lex(_text, _path, _line, _col, _is_original);
-
   // Merge successive literals
   for (auto it = out.begin(); it != out.end(); ++it) {
     if (isnum(it->text)) {
       while (std::next(it) != out.end() &&
-             isnum(std::next(it)->text) == isnum(it->text)) {
+             isnum(std::next(it)->text, true)) {
         it->text += std::next(it)->text;
         out.erase(std::next(it));
       }
     } else if (it->text.starts_with('"')) {
       while (std::next(it) != out.end() &&
-             std::next(it)->text.starts_with('"') ==
-                 it->text.starts_with('"')) {
+             std::next(it)->text.starts_with('"')) {
         it->text.pop_back();
         std::next(it)->text = std::next(it)->text.substr(1);
         it->text += std::next(it)->text;
@@ -379,11 +367,6 @@ class TokenStream Lexer::lex(const std::string &_text,
       }
     }
   }
-
-  // Remove comments
-  // std::erase_if(out, [](const Lexer::Token tok) -> bool {
-  //   return tok.type == "COMMENT";
-  // });
 
   // Replace '::'s with '_'s
   for (auto it = out.begin(); it != out.end(); ++it) {
@@ -404,7 +387,15 @@ class TokenStream Lexer::lex(const std::string &_text,
     }
   }
 
-  return TokenStream(out);
+  return out;
+}
+
+TokenStream Lexer::lex(const std::string &_text,
+                       const std::filesystem::path &_path,
+                       uint64_t &_line, uint64_t &_col,
+                       const bool &_is_original) {
+  return TokenStream(
+      raw_lex(_text, _path, _line, _col, _is_original));
 }
 
 /**
@@ -417,7 +408,6 @@ class TokenStream Lexer::lex(const std::string &_text,
 const static bool replace_suffix(std::string &_what,
                                  const std::string &_suffix,
                                  const std::string &_with) {
-  debug_print();
   if (_what.size() < _suffix.size()) {
     return false;
   }
@@ -439,7 +429,6 @@ const static bool replace_suffix(std::string &_what,
  * @param _t The possible literal to examine.
  */
 std::optional<Type> Lexer::get_literal_type(Lexer::Token &_t) {
-  debug_print();
   if (_t.text.starts_with('"')) {
     _t.text = "((i8 *)" + _t.text + ")";
     return Type(ASTNode("[]", {ASTNode("i8")}));

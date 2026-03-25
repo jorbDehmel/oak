@@ -46,18 +46,6 @@ void check_camelcase(Settings &_warn_into,
  */
 std::string get_cmd_output(const std::string &_cmd);
 
-/**
- * @brief An error class thrown when we surpass the
- * PreProcessor Pass limit.
- */
-class OutOfPPPLError : public std::runtime_error {
-public:
-  /// Initialize
-  OutOfPPPLError(const std::string &_what)
-      : std::runtime_error(_what) {
-  }
-};
-
 /// Static functions for macro operations
 namespace Macros {
 

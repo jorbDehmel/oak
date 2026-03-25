@@ -5,7 +5,6 @@
 #include "parser.hpp"
 #include "ast_node.hpp"
 #include "compiler.hpp"
-#include "debug.hpp"
 #include "lexer.hpp"
 #include "parse_helpers.hpp"
 #include "settings.hpp"
@@ -26,19 +25,11 @@
 #include <variant>
 
 void Parser::parse_global(TokenStream &_pos) {
-  debug_print();
-  if (settings.debug) {
-    settings.ostream << __FUNCTION__ << " at "
-                     << _pos.cur().file.string() << ":"
-                     << _pos.cur().line << "." << _pos.cur().col
-                     << '\n';
-  }
+  debug_print_pos(__FUNCTION__, _pos);
 
   while (!_pos.done()) {
     try {
       parse_statement(_pos);
-    } catch (OutOfPPPLError &) {
-      throw;
     } catch (std::runtime_error &e) {
       throw std::runtime_error(
           "At " + _pos.cur().file.string() + ":" +
@@ -55,7 +46,6 @@ void Parser::parse_global(TokenStream &_pos) {
 }
 
 void Parser::reconstruct(std::ostream &_where) const noexcept {
-  debug_print();
 
   // Disclose generation and object inclusions
   _where << "/*\n"
@@ -175,7 +165,7 @@ void Parser::reconstruct(std::ostream &_where) const noexcept {
 
 void Parser::dump(std::ostream &_where,
                   TokenStream &_pos) const noexcept {
-  debug_print();
+  debug_print_pos(__FUNCTION__, _pos);
 
   _where << "// Lexed contents of file " << _pos.cur().file;
 
@@ -244,7 +234,8 @@ void Parser::dump(std::ostream &_where,
 
 void Parser::parse_function(
     const std::list<std::string> &_names, TokenStream &_pos) {
-  debug_print();
+  debug_print_pos(__FUNCTION__, _pos);
+
   if (settings.debug) {
     settings.ostream
         << __FUNCTION__ << " at " << _pos.cur().file.string()
@@ -311,6 +302,7 @@ void Parser::parse_function(
   if (_pos.cur() == ";") {
     // Signature
     to_add.tags["casual"] = "true";
+    _pos.next();
   } else {
     // Implementation
 
@@ -352,13 +344,7 @@ void Parser::parse_function(
 
 std::list<std::pair<std::string, Type>>
 Parser::parse_members(TokenStream &_pos) {
-  debug_print();
-  if (settings.debug) {
-    settings.ostream << __FUNCTION__ << " at "
-                     << _pos.cur().file.string() << ":"
-                     << _pos.cur().line << "." << _pos.cur().col
-                     << '\n';
-  }
+  debug_print_pos(__FUNCTION__, _pos);
 
   // Where to write output
   std::list<std::pair<std::string, Type>> out;
@@ -366,34 +352,24 @@ Parser::parse_members(TokenStream &_pos) {
   // For keeping track of used names
   std::set<std::string> all_names;
 
-  _pos.next();
+  _pos.expect({"{"});
 
   while (_pos.cur() != "}") {
     // One or more comma-separated names
     std::list<std::string> current_names;
 
     // Mandatory name
-    current_names.push_back(_pos.cur());
-    _pos.next();
+    current_names.push_back(_pos.cur_next());
 
     // Optional names
     while (_pos.cur() == ",") {
       _pos.next();
-      current_names.push_back(_pos.cur());
-      _pos.next();
+      current_names.push_back(_pos.cur_next());
     }
-
-    // Colon
-    if (_pos.cur() != ":") {
-      throw std::runtime_error("Invalid struct/enum body: "
-                               "Expected ':' or '.' but saw '" +
-                               _pos.cur().text + "'");
-    }
-    _pos.next();
 
     // Type
+    _pos.expect({":"});
     Type t = parse_type(_pos);
-    _pos.next();
 
     // Add these members
     for (const auto &name : current_names) {
@@ -412,8 +388,7 @@ Parser::parse_members(TokenStream &_pos) {
       _pos.next();
     }
   }
-
-  // Leave pointing to ending brace
+  _pos.expect({"}"});
   return out;
 }
 
@@ -421,32 +396,23 @@ void Parser::parse_template(
     const std::list<std::string> &_names,
     const std::list<std::string> &_suspensions,
     TokenStream &_pos) {
-  debug_print();
-  if (settings.debug) {
-    settings.ostream << __FUNCTION__ << " at "
-                     << _pos.cur().file.string() << ":"
-                     << _pos.cur().line << "." << _pos.cur().col
-                     << '\n';
-  }
+  debug_print_pos(__FUNCTION__, _pos);
 
   const auto start_tok = _pos.cur();
   std::list<Lexer::Token> guts;
 
-  // Now pointing to "{"
+  int count = 0;
   if (_pos.cur() != "{") {
     throw std::runtime_error(
         "Malformed template block: Expected '{', but saw '" +
         _pos.cur().text + "'");
   }
-
-  int count = 0;
   do {
     if (_pos.done()) {
       throw std::runtime_error(
           "Reached EOF before template '}'");
     } else if (_pos.cur() == "{") {
       ++count;
-
       if (count == 1) {
         _pos.next();
         continue;
@@ -457,12 +423,10 @@ void Parser::parse_template(
         break;
       }
     }
-
     guts.push_back(_pos.cur());
     _pos.next();
   } while (count != 0);
 
-  // Add entries
   for (const auto &name : _names) {
     TemplateInfo info(start_tok.file, start_tok.line,
                       start_tok.col, name);
@@ -473,43 +437,15 @@ void Parser::parse_template(
 }
 
 Type Parser::parse_type(TokenStream &_pos) {
-  debug_print();
-  if (settings.debug) {
-    settings.ostream << __FUNCTION__ << " at "
-                     << _pos.cur().file.string() << ":"
-                     << _pos.cur().line << "." << _pos.cur().col
-                     << '\n';
-  }
+  debug_print_pos(__FUNCTION__, _pos);
 
-  const auto t = _pos.cur();
-  _pos.next();
-
-  // Special case: type! macro
+  const auto t = _pos.cur_next();
   if (t == "type!") {
-    if (_pos.cur() != "(") {
-      throw std::runtime_error(
-          "Malformed type! macro: Expected '(', but saw '" +
-          _pos.cur().text + "'");
-    }
-    _pos.next();
-
-    // Fix math
-    // fix_math(_pos);
-
-    // Do the thing
-    auto tmp = parse_object(_pos);
-
-    _pos.next();
-    if (_pos.cur() != ")") {
-      throw std::runtime_error(
-          "Malformed type! macro: Expected ')', but saw '" +
-          _pos.cur().text + "'");
-    }
-
-    return ::type(tmp);
-  }
-
-  if (t == "[") {
+    _pos.expect({"("});
+    const auto to_get_type_of = parse_object(_pos);
+    _pos.expect({")"});
+    return ::type(to_get_type_of);
+  } else if (t == "[") {
     // arr
     if (_pos.cur() == "]") {
       // unsized arr
@@ -521,9 +457,10 @@ Type Parser::parse_type(TokenStream &_pos) {
       return ASTNode("[]", {s, parse_type(_pos)});
     }
   } else if (t == "^") {
+    // Pointer
     return ASTNode("^", {parse_type(_pos)});
   } else if (t == "(") {
-    // Function pointer
+    // Function
     ASTNode args("_");
     while (_pos.cur() != ")") {
       const std::string name = _pos.cur();
@@ -539,23 +476,16 @@ Type Parser::parse_type(TokenStream &_pos) {
     _pos.expect({")"});
     _pos.expect({"->"});
     const Type ret_type = parse_type(_pos);
-
     return ASTNode("->", {args, ret_type});
   } else {
-    // type atomic
+    // atomic
     _pos.prev();
     return ASTNode(parse_id(_pos));
   }
 }
 
 std::string Parser::parse_id(TokenStream &_pos) {
-  debug_print();
-  if (settings.debug) {
-    settings.ostream << __FUNCTION__ << " at "
-                     << _pos.cur().file.string() << ":"
-                     << _pos.cur().line << "." << _pos.cur().col
-                     << '\n';
-  }
+  debug_print_pos(__FUNCTION__, _pos);
 
   std::string name = _pos.cur().text;
   _pos.next();
@@ -635,21 +565,14 @@ std::string Parser::parse_id(TokenStream &_pos) {
 
     // These must always be followed by a true name
     name = build_generic_prefix(name, replacements) +
-           _pos.cur().text;
-    _pos.next();
+           _pos.cur_next().text;
   }
   return name;
 }
 
 void Parser::parse_struct(const std::list<std::string> &_names,
                           TokenStream &_pos) {
-  debug_print();
-  if (settings.debug) {
-    settings.ostream << __FUNCTION__ << " at "
-                     << _pos.cur().file.string() << ":"
-                     << _pos.cur().line << "." << _pos.cur().col
-                     << '\n';
-  }
+  debug_print_pos(__FUNCTION__, _pos);
 
   // The struct info to populate
   StructInfo to_add;
@@ -660,12 +583,12 @@ void Parser::parse_struct(const std::list<std::string> &_names,
   // Casual def
   if (_pos.cur() == ";") {
     to_add.tags["casual"] = "true";
+    _pos.next();
   }
 
   // Declaration
   else if (_pos.cur() == "{") {
     const auto members = parse_members(_pos);
-
     for (const auto &member : members) {
       to_add.member_order.push_back(member.first);
       to_add.members[member.first] = member.second;
@@ -705,92 +628,52 @@ void Parser::parse_struct(const std::list<std::string> &_names,
 ASTNode Parser::parse_case(const EnumInfo &_enum_type,
                            TokenStream &_pos,
                            const bool &_is_mutable) {
-  debug_print();
-  if (settings.debug) {
-    settings.ostream << __FUNCTION__ << " at "
-                     << _pos.cur().file.string() << ":"
-                     << _pos.cur().line << "." << _pos.cur().col
-                     << '\n';
-  }
+  debug_print_pos(__FUNCTION__, _pos);
+  const std::string case_type = _pos.cur_next();
+  if (case_type == "case") {
+    const std::string case_name = _pos.cur_next();
+    _pos.expect({"("});
+    const auto passed_name = _pos.cur_next();
+    _pos.expect({":"});
+    const Type observed_type = parse_type(_pos);
+    _pos.expect({")"});
 
-  if (_pos.cur() == "case") {
-    _pos.next();
-
-    // Case name
-    const auto case_name = _pos.cur().text;
     if (!_enum_type.options.contains(case_name)) {
       throw std::runtime_error("'" + case_name +
                                "' is not a valid enum option");
     }
-
-    // Open parenthesis
-    _pos.next();
-    if (_pos.cur() != "(") {
-      throw std::runtime_error("Malformed 'case' statement: "
-                               "Expected '(', but saw '" +
-                               _pos.cur().text + "'");
-    }
-    _pos.next();
-
-    // Arg name
-    const auto passed_name = _pos.cur();
-    _pos.next();
-
-    // Colon
-    if (_pos.cur() != ":") {
-      throw std::runtime_error("Malformed 'case' statement: "
-                               "Expected ':', but saw '" +
-                               _pos.cur().text + "'");
-    }
-    _pos.next();
-
-    // Arg type
-    Type passed_type = parse_type(_pos);
+    const Type expected_type = _enum_type.options.at(case_name);
 
     // Arg type check
     if (_is_mutable) {
       // Pointer or exact allowed
-      if (!passed_type.exact_match(
-              _enum_type.options.at(case_name)) &&
-          !passed_type.deref().exact_match(
-              _enum_type.options.at(case_name))) {
+      if (!observed_type.exact_match(expected_type) &&
+          !observed_type.deref().exact_match(expected_type)) {
         throw std::runtime_error(
             "Invalid type for mutable case '" + case_name +
-            "': Expected '" +
-            _enum_type.options.at(case_name).oak_repr() +
+            "': Expected '" + expected_type.oak_repr() +
             "' (or a pointer to that), but saw '" +
-            passed_type.oak_repr() + "'");
+            observed_type.oak_repr() + "'");
       }
     } else {
       // Only exact allowed
-      if (!passed_type.exact_match(
-              _enum_type.options.at(case_name))) {
+      if (!observed_type.exact_match(expected_type)) {
         throw std::runtime_error(
             "Invalid type for immutable case '" + case_name +
-            "': Expected '" +
-            _enum_type.options.at(case_name).oak_repr() +
-            "', but saw '" + passed_type.oak_repr() + "'");
+            "': Expected '" + expected_type.oak_repr() +
+            "', but saw '" + observed_type.oak_repr() + "'");
       }
     }
 
-    // End parenthesis
-    _pos.next();
-    if (_pos.cur() != ")") {
-      throw std::runtime_error("Malformed 'case' statement: "
-                               "Expected ')', but saw '" +
-                               _pos.cur().text + "'");
-    }
-    _pos.next();
-
     // Push to locals stack
     scope_manager.push_frame();
-    scope_manager.add(passed_name, passed_type);
+    scope_manager.add(passed_name, observed_type);
 
     // Push frame to be popped
     scope_manager.push_frame();
 
     // Statement
-    auto statement = parse_statement(_pos);
+    ASTNode statement = parse_statement(_pos);
 
     // Pop frame, calling destructors
     statement.children.push_back(scope_manager.pop_frame());
@@ -801,28 +684,20 @@ ASTNode Parser::parse_case(const EnumInfo &_enum_type,
 
     return ASTNode("case",
                    {ASTNode(case_name), ASTNode(passed_name),
-                    passed_type, statement});
-  } else if (_pos.cur() == "else") {
-    // Statement
-    _pos.next();
+                    observed_type, statement});
+  } else if (case_type == "else") {
     return ASTNode("else", {ASTNode(parse_statement(_pos))});
   } else {
     throw std::runtime_error(
         "Error within match statement: Expected 'case' or "
         "'else', but saw '" +
-        _pos.cur().text + "'");
+        case_type + "'");
   }
 }
 
 void Parser::parse_enum(const std::list<std::string> &_names,
                         TokenStream &_pos) {
-  debug_print();
-  if (settings.debug) {
-    settings.ostream << __FUNCTION__ << " at "
-                     << _pos.cur().file.string() << ":"
-                     << _pos.cur().line << "." << _pos.cur().col
-                     << '\n';
-  }
+  debug_print_pos(__FUNCTION__, _pos);
 
   // The enum info to populate
   EnumInfo to_add;
@@ -833,12 +708,12 @@ void Parser::parse_enum(const std::list<std::string> &_names,
   // Casual def
   if (_pos.cur() == ";") {
     to_add.tags["casual"] = "true";
+    _pos.next();
   }
 
   // Declaration
   else if (_pos.cur() == "{") {
     const auto members = parse_members(_pos);
-
     for (const auto &member : members) {
       to_add.option_order.push_back(member.first);
       to_add.options[member.first] = member.second;
@@ -881,24 +756,10 @@ void Parser::parse_enum(const std::list<std::string> &_names,
 }
 
 ASTNode Parser::parse_function_call(TokenStream &_pos) {
-  debug_print();
-  if (settings.debug) {
-    settings.ostream << __FUNCTION__ << " at "
-                     << _pos.cur().file.string() << ":"
-                     << _pos.cur().line << "." << _pos.cur().col
-                     << '\n';
-  }
+  debug_print_pos(__FUNCTION__, _pos);
 
-  // Function to be called: Leaves pointing to first after
   const std::string unmangled_name = parse_id(_pos);
-
-  // Opening paren for args
-  if (_pos.cur() != "(") {
-    throw std::runtime_error(
-        "Expected function call on '" + unmangled_name +
-        "': Saw '" + _pos.cur().text + "' instead of '('");
-  }
-  _pos.next();
+  _pos.expect({"("});
 
   // Special case: size!
   if (unmangled_name == "size!") {
@@ -908,12 +769,7 @@ ASTNode Parser::parse_function_call(TokenStream &_pos) {
         ASTNode("sizeof(" + parse_type(_pos).c_repr() + ")"));
     out.children.push_back(Type({"uint"}));
     out.children.push_back(ASTNode("_", {}));
-    _pos.next();
-    if (_pos.cur() != ")") {
-      throw std::runtime_error(
-          "Invalid size! macro: Expected ')', but saw '" +
-          _pos.cur().text + "'");
-    }
+    _pos.expect({")"});
     return out;
   }
 
@@ -926,20 +782,14 @@ ASTNode Parser::parse_function_call(TokenStream &_pos) {
       _pos.next();
     }
   }
-  _pos.next();
+  _pos.expect({")"});
 
   // Return resolved fn node
   return get_function_call_node(unmangled_name, args);
 }
 
 ASTNode Parser::parse_object(TokenStream &_pos) {
-  debug_print();
-  if (settings.debug) {
-    settings.ostream << __FUNCTION__ << " at "
-                     << _pos.cur().file.string() << ":"
-                     << _pos.cur().line << "." << _pos.cur().col
-                     << '\n';
-  }
+  debug_print_pos(__FUNCTION__, _pos);
 
   // Open parenthesis immediately: No-capture lambda
   if (_pos.cur() == "(") {
@@ -989,17 +839,17 @@ ASTNode Parser::parse_object(TokenStream &_pos) {
     }
   }
 
-  Lexer::Token name = _pos.cur();
-  _pos.next();
+  Lexer::Token name = _pos.cur_next();
 
+  // Literal check
   const auto literal_type = Lexer::get_literal_type(name);
   if (literal_type.has_value()) {
-    // Literal
     return ASTNode("object",
                    {literal_type.value(), ASTNode(name)});
   }
 
-  auto value = scope_manager.get(name);
+  // Variable check
+  const auto value = scope_manager.get(name);
   if (!value.has_value()) {
     throw std::runtime_error("Failed to resolve object '" +
                              name.text + "'");
@@ -1008,12 +858,9 @@ ASTNode Parser::parse_object(TokenStream &_pos) {
   // Variable instance: Not fn ptr
   if (std::holds_alternative<Type>(value.value())) {
     Type t = std::get<Type>(value.value());
-
-    // Derefs
     if (derefs > 0) {
       for (uint i = 0; i < derefs; ++i) {
         name.text = "(*" + name.text + ")";
-
         if (t.is_ptr()) {
           t = t.deref();
         } else {
@@ -1028,42 +875,32 @@ ASTNode Parser::parse_object(TokenStream &_pos) {
     while (_pos.cur().text == ".") {
       _pos.next(); // Pointing at member name
       const auto member_name = _pos.cur().text;
-
-      // Auto-deref for member access
       while (t.is_ptr()) {
         name.text = "(*" + name.text + ")";
         t = t.deref();
       }
-
       const auto info =
           scope_manager.get(t.struct_name()).value();
-
       if (std::holds_alternative<StructInfo>(info)) {
         const StructInfo struct_info =
             std::get<StructInfo>(info);
-
         if (!struct_info.members.contains(member_name)) {
           throw std::runtime_error(
               "Struct '" + t.struct_name() +
               "' has no member '" + member_name + "'");
         }
-
         t = struct_info.members.at(member_name);
       } else {
         const EnumInfo enum_info = std::get<EnumInfo>(info);
-
         if (!enum_info.options.contains(member_name)) {
           throw std::runtime_error("Enum '" + t.struct_name() +
                                    "' has no option '" +
                                    member_name + "'");
         }
-
         t = enum_info.options.at(member_name);
       }
-
       name.text += "." + member_name;
     }
-
     return ASTNode("object", {t, ASTNode(name)});
   }
 
@@ -1093,53 +930,30 @@ ASTNode Parser::parse_object(TokenStream &_pos) {
 ASTNode Parser::parse_statement(
     TokenStream &_pos,
     const std::optional<Type> &_return_type) {
-  debug_print();
-  if (settings.debug) {
-    settings.ostream << __FUNCTION__ << " at "
-                     << _pos.cur().file.string() << ":"
-                     << _pos.cur().line << "." << _pos.cur().col
-                     << '\n';
-  }
+  debug_print_pos(__FUNCTION__, _pos);
 
   // Delegate macro calls
-  if (_pos.cur().text.size() > 1 &&
-      _pos.cur().text.back() == '!') {
-    if (_pos.cur() == "c!") {
+  const auto name = _pos.cur().text;
+  if (name.ends_with('!')) {
+    if (name == "c!") {
       _pos.next();
-      if (_pos.cur() != "(") {
-        throw std::runtime_error(
-            "Invalid c! macro: Expected '(', but saw '" +
-            _pos.cur().text + "'");
-      }
-      _pos.next();
-
-      // One string literal argument
-      ASTNode out("raw_c_format");
-      out.children.push_back(ASTNode(
-          Macros::strip_string_literal(_pos.cur().text)));
-      out.children.push_back(ASTNode("void"));
-      out.children.push_back(ASTNode("_", {}));
-
-      _pos.next();
-      if (_pos.cur() != ")") {
-        throw std::runtime_error(
-            "Invalid c! macro: Expected ')', but saw '" +
-            _pos.cur().text + "'");
-      }
-      _pos.next();
-
-      return ASTNode("statement", {out});
+      _pos.expect({"("});
+      const auto arg = ASTNode(
+          Macros::strip_string_literal(_pos.cur_next().text));
+      _pos.expect({")"});
+      return ASTNode(
+          "statement",
+          {ASTNode("raw_c_format",
+                   {arg, ASTNode("void"), ASTNode("_", {})})});
     } else {
       replace_macro(_pos);
       return ASTNode("null");
     }
-  }
-
-  else if (_pos.done() || _pos.cur() == ";") {
+  } else if (name == ";") {
     // Unit statement
     _pos.next();
     return ASTNode("null");
-  } else if (_pos.cur() == "let") {
+  } else if (name == "let") {
     // Variable declaration
     // Collect names
     std::list<std::string> names;
@@ -1149,63 +963,48 @@ ASTNode Parser::parse_statement(
     do {
       // Get past 'let' or ','
       _pos.next();
-
-      names.push_back(_pos.cur());
-      if (names.back().ends_with("!")) {
+      const std::string name = _pos.cur_next();
+      names.push_back(name);
+      if (name.ends_with("!")) {
         is_macro = true;
       }
-      _pos.next();
-    } while (_pos.cur() == ",");
+    } while (!_pos.done() && _pos.cur() == ",");
 
     // Generic declaration
-    if (_pos.cur() == "<") {
+    const std::string first_after_name = _pos.cur();
+    if (first_after_name == "<") {
       // Zero or more comma-separated generics
       std::list<std::string> generics;
       if (is_macro) {
         throw std::runtime_error("Macros cannot be templated");
       }
-
       do {
         _pos.next();
-        check_camelcase(settings, "Generic", _pos.cur().text,
-                        _pos.cur());
-        generics.push_back(_pos.cur());
-        _pos.next();
-      } while (_pos.cur() == ",");
-
-      if (_pos.cur() != ">") {
-        throw std::runtime_error(
-            "Malformed generic: Expected '>', but saw '" +
-            _pos.cur().text + "'");
-      }
-
-      _pos.next();
+        const auto t = _pos.cur_next();
+        check_camelcase(settings, "Generic", t.text, t);
+        generics.push_back(t);
+      } while (!_pos.done() && _pos.cur() == ",");
+      _pos.expect({">"});
       parse_template(names, generics, _pos);
-      _pos.next();
-
       return ASTNode("null");
     }
 
     // Explicitly typed declaration
-    else if (_pos.cur() == ":") {
+    else if (first_after_name == ":") {
       // Variables, structs, and enums
       _pos.next();
       if (_pos.cur() == "struct") {
         // Struct
         _pos.next();
         parse_struct(names, _pos);
-        _pos.next();
         return ASTNode("null");
       } else if (_pos.cur() == "enum") {
         // enum
         _pos.next();
         parse_enum(names, _pos);
-        _pos.next();
         return ASTNode("null");
       } else {
         // Variable
-
-        // Get type
         Type t = parse_type(_pos);
         validate_type(t);
 
@@ -1216,14 +1015,13 @@ ASTNode Parser::parse_statement(
           scope_manager.add(name, t);
           const ASTNode upon("object", {t, ASTNode(name)});
 
-          // Literal `New` call
+          // Add `New` call
           new_calls.children.push_back(
               get_function_call_node("New", {upon}));
         }
-        _pos.next();
 
         // auto decl = ASTNode("let", {names, new_calls, type})
-        ASTNode stmt_out(
+        const ASTNode stmt_out(
             "statement",
             {ASTNode("let", {names_node, new_calls, t})});
 
@@ -1237,41 +1035,33 @@ ASTNode Parser::parse_statement(
         return stmt_out;
       }
       return ASTNode("null");
-    }
-
-    // Function or function-style macro declaration
-    else if (_pos.cur() == "(") {
+    } else if (first_after_name == "(") {
+      // Function or function-style macro declaration
       if (is_macro) {
         parse_macro(
             _pos,
             settings.compile_settings().preprocess_pass_limit,
             names);
-        _pos.prev();
         return ASTNode("null");
       } else {
         // Function
         parse_function(names, _pos);
-        _pos.next();
         return ASTNode("null");
       }
-    }
-
-    // Inline macro or implicitly typed declaration
-    else if (_pos.cur().text == "=") {
+    } else if (first_after_name == "=") {
+      // Inline macro or implicitly typed declaration
       if (is_macro) {
         // Inline macro definition
         parse_macro(
             _pos,
             settings.compile_settings().preprocess_pass_limit,
             names);
-        _pos.prev();
         return ASTNode("null");
       } else {
         // let A = B;
         _pos.next();
-        auto copy_from = parse_object(_pos);
-
-        Type t = ::type(copy_from);
+        const auto copy_from = parse_object(_pos);
+        const Type t = ::type(copy_from);
         validate_type(t);
 
         // Instantiate
@@ -1298,31 +1088,22 @@ ASTNode Parser::parse_statement(
       }
     }
 
-    throw std::runtime_error("Unexpected token '" +
-                             _pos.cur().text +
-                             "' (expected statement)");
-  }
-
-  // Scope
-  else if (_pos.cur() == "{") {
+    throw std::runtime_error(
+        "Unexpected token '" + first_after_name +
+        "' after name(s) in 'let' statement");
+  } else if (name == "{") {
+    // Scope
     ASTNode out("statement");
-
-    // Add a frame to the scope stack
     scope_manager.push_frame();
-
     _pos.next();
-    while (_pos.cur() != "}") {
+    while (!_pos.done() && _pos.cur() != "}") {
       out.children.push_back(parse_statement(_pos));
     }
     _pos.expect({"}"});
-
-    // Remove that scope frame
     out.children.push_back(scope_manager.pop_frame());
     return out;
-  }
-
-  // If statement
-  else if (_pos.cur() == "if") {
+  } else if (name == "if") {
+    // If statement
     _pos.next();
     bool has_parenthesis = true;
     if (_pos.cur() != "(") {
@@ -1331,47 +1112,33 @@ ASTNode Parser::parse_statement(
       _pos.next();
     }
 
-    // Condition is a single boolean object
     ASTNode out("if");
-    out.children.push_back(parse_object(_pos));
+    const ASTNode condition = parse_object(_pos);
+    out.children.push_back(condition);
 
     // Castable type check
-    if (!Type(::type(out.children.back()))
-             .cast_match(Type(ASTNode("bool")))) {
-      throw std::runtime_error(
-          "Statement condition type '" +
-          Type(::type(out.children.back())).oak_repr() +
-          "' is not castable to bool.");
+    const Type condition_type = ::type(condition);
+    if (!condition_type.cast_match(Type(ASTNode("bool")))) {
+      throw std::runtime_error("Statement condition type '" +
+                               condition_type.oak_repr() +
+                               "' is not castable to bool.");
     }
 
-    // Closing parenthesis
-    _pos.next();
     if (has_parenthesis) {
-      if (_pos.cur() != ")") {
-        throw std::runtime_error(
-            "Missing ending parenthesis in 'if' statement.");
-      }
-      _pos.next();
+      _pos.expect({")"});
     }
 
     // Body
     out.children.push_back(parse_statement(_pos));
 
     // Optional else clause
-    _pos.next();
     if (!_pos.done() && _pos.cur() == "else") {
-      // Else clause
       _pos.next();
       out.children.push_back(parse_statement(_pos));
-    } else {
-      _pos.prev();
     }
-
     return ASTNode("statement", {out});
-  }
-
-  // While loop
-  else if (_pos.cur() == "while") {
+  } else if (name == "while") {
+    // While loop
     _pos.next();
     bool has_parenthesis = true;
     if (_pos.cur() != "(") {
@@ -1380,43 +1147,26 @@ ASTNode Parser::parse_statement(
       _pos.next();
     }
 
-    // Condition is a single boolean object
     ASTNode out("while");
-    out.children.push_back(parse_object(_pos));
+    const ASTNode condition = parse_object(_pos);
+    out.children.push_back(condition);
 
     // Type check
-    if (!Type(::type(out.children.front()))
-             .cast_match(Type(ASTNode("bool")))) {
-      throw std::runtime_error(
-          "Statement condition type '" +
-          Type(::type(out.children.front())).oak_repr() +
-          "' is not castable to bool.");
+    const Type condition_type = ::type(condition);
+    if (!condition_type.cast_match(Type(ASTNode("bool")))) {
+      throw std::runtime_error("Statement condition type '" +
+                               condition_type.oak_repr() +
+                               "' is not castable to bool.");
     }
 
-    // Closing parenthesis
-    _pos.next();
     if (has_parenthesis) {
-      if (_pos.cur() != ")") {
-        throw std::runtime_error("Missing ending parenthesis "
-                                 "in 'while' statement.");
-      }
-      _pos.next();
+      _pos.expect({")"});
     }
 
-    // Body
     out.children.push_back(parse_statement(_pos));
     return ASTNode("statement", {out});
-  }
-
-  // Match statement
-  else if (_pos.cur() == "match") {
-    /*
-    match (NAME) {
-        case first(a: foo) {}
-        case second(b: fizz) {}
-        else {}
-    }
-    */
+  } else if (_pos.cur() == "match") {
+    // Match statement
     _pos.next();
     bool has_parenthesis = true;
     if (_pos.cur() != "(") {
@@ -1426,8 +1176,7 @@ ASTNode Parser::parse_statement(
     }
 
     // Target is an enum
-    auto target = parse_object(_pos);
-
+    ASTNode target = parse_object(_pos);
     Type target_type = ::type(target);
 
     const bool is_mutable = target_type.is_ptr();
@@ -1438,72 +1187,49 @@ ASTNode Parser::parse_statement(
     const std::string enum_name = target_type.struct_name();
     const EnumInfo info = scope_manager.at<EnumInfo>(enum_name);
 
-    // Closing parenthesis
-    _pos.next();
     if (has_parenthesis) {
-      if (_pos.cur() != ")") {
-        throw std::runtime_error("Missing ending parenthesis "
-                                 "in 'match' statement.");
-      }
-      _pos.next();
+      _pos.expect({")"});
     }
-
     if (is_mutable) {
       target = ASTNode("raw_c_format",
                        {ASTNode("(*%)"), ASTNode(enum_name),
                         ASTNode("_", {target})});
     }
 
-    if (_pos.cur() != "{") {
-      throw std::runtime_error("Missing opening curly brace "
-                               "in 'match' statement.");
-    }
-    _pos.next();
-
+    _pos.expect({"{"});
     ASTNode branches("_");
     while (_pos.cur() != "}") {
       branches.children.push_back(
           parse_case(info, _pos, is_mutable));
     }
-
+    _pos.expect({"}"});
     const ASTNode out("match",
                       {target, branches, ASTNode(enum_name),
                        ASTNode(is_mutable ? "true" : "false")});
     return ASTNode("statement", {out});
-  }
-
-  // Return statement
-  else if (_pos.cur() == "return") {
+  } else if (_pos.cur() == "return") {
+    // Return statement
     ASTNode out("return");
     _pos.next();
+    const Type expected_return_type =
+        settings.compile_settings().cur_return_type.back();
     if (_pos.cur() != ";") {
       const ASTNode val = parse_object(_pos);
-      _pos.next();
-
       out.children.push_back(val);
-
-      if (!settings.compile_settings()
-               .cur_return_type.back()
-               .exact_match(::type(val))) {
-        throw std::runtime_error("Invalid return type '" +
-                                 Type(::type(val)).oak_repr() +
-                                 "' for fn w/ return "
-                                 "type '" +
-                                 settings.compile_settings()
-                                     .cur_return_type.back()
-                                     .oak_repr() +
-                                 "'");
+      const Type val_type = ::type(val);
+      if (!expected_return_type.exact_match(val_type)) {
+        throw std::runtime_error(
+            "Invalid return type '" + val_type.oak_repr() +
+            "' for fn w/ return "
+            "type '" +
+            expected_return_type.oak_repr() + "'");
       }
-    } else if (!settings.compile_settings()
-                    .cur_return_type.back()
-                    .exact_match(ASTNode("void"))) {
+    } else if (!expected_return_type.exact_match(
+                   ASTNode("void"))) {
       throw std::runtime_error(
           "Invalid return type 'void' for fn w/ return type "
           "'" +
-          settings.compile_settings()
-              .cur_return_type.back()
-              .oak_repr() +
-          "'");
+          expected_return_type.oak_repr() + "'");
     }
     return ASTNode("statement", {(out)});
   } else {
@@ -1749,7 +1475,7 @@ bool Parser::instantiate(
     TemplateInfo &_what,
     const std::list<std::list<std::string>> &_substitutions,
     std::string &_err_msg) {
-  debug_print();
+
   // Check for existing instances
   if (_what.existing_instances.contains(_substitutions)) {
     return true;
@@ -1800,7 +1526,6 @@ bool Parser::instantiate(
 }
 
 void Parser::validate_type(const Type &_t) {
-  debug_print();
   if (_t.type_ast.children.empty()) {
     const std::string type = _t.type_ast.text;
 
@@ -1826,69 +1551,51 @@ void Parser::validate_type(const Type &_t) {
 void Parser::parse_macro(
     TokenStream &_pos, const uint64_t &_preproc_passes_allowed,
     const std::list<std::string> &_names) {
-  debug_print();
-  if (settings.debug) {
-    settings.ostream << __FUNCTION__ << " at "
-                     << _pos.cur().file.string() << ":"
-                     << _pos.cur().line << "." << _pos.cur().col
-                     << '\n';
-  }
+  debug_print_pos(__FUNCTION__, _pos);
 
   // Either '=' or '('
   if (_pos.cur().text == "=") {
+    _pos.next();
+
     // Scan until ;
     InlineMacro info;
-
-    _pos.next();
     while (!_pos.done() && _pos.cur().text != ";") {
-      info.contents.push_back(_pos.cur());
-      _pos.next();
+      info.contents.push_back(_pos.cur_next());
     }
-
+    _pos.expect({";"});
     for (const auto &name : _names) {
       scope_manager.add(name, info);
     }
   } else if (_pos.cur().text == "(") {
+    // Scrape definition
+    std::list<Lexer::Token> contents;
+    contents.push_back(Lexer::Token(_pos.cur(), "let"));
+    contents.push_back(Lexer::Token(_pos.cur(), "main"));
+
+    // Until first "{"
+    while (_pos.cur().text != "{") {
+      contents.push_back(_pos.cur_next());
+      if (_pos.done()) {
+        throw std::runtime_error(
+            "Functional macro definition '" + _names.front() +
+            "' must be followed by body");
+      }
+    }
+
+    contents.push_back(_pos.cur_next());
+
+    uint count = 1;
+    while (count != 0) {
+      if (_pos.cur().text == "{") {
+        ++count;
+      } else if (_pos.cur().text == "}") {
+        --count;
+      }
+
+      contents.push_back(_pos.cur_next());
+    }
+
     for (const auto &name : _names) {
-      // Scrape definition
-      std::list<Lexer::Token> contents;
-      contents.push_back(Lexer::Token(_pos.cur(), "let"));
-      contents.push_back(Lexer::Token(_pos.cur(), "main"));
-
-      // Until first "{"
-      while (_pos.cur().text != "{") {
-        contents.push_back(_pos.cur());
-        _pos.next();
-
-        if (_pos.done()) {
-          throw std::runtime_error(
-              "Functional macro definition '" + _names.front() +
-              "' must be followed by body");
-        }
-      }
-
-      contents.push_back(_pos.cur());
-      _pos.next();
-
-      uint count = 1;
-      while (count != 0) {
-        if (_pos.cur().text == "{") {
-          ++count;
-        } else if (_pos.cur().text == "}") {
-          --count;
-        }
-
-        contents.push_back(_pos.cur());
-        if (_pos.done()) {
-          throw std::runtime_error(
-              "Functional macro '" + _names.front() +
-              "' has no ending curly brace");
-        }
-
-        _pos.next();
-      }
-      _pos.prev();
-
       // Write to file
       const std::filesystem::path source_path =
           _pos.cur().file.string() + "." +
@@ -1911,8 +1618,8 @@ void Parser::parse_macro(
 
       if (do_compile) {
         if (_preproc_passes_allowed == 0) {
-          throw OutOfPPPLError("Cannot compile " +
-                               source_path.string());
+          throw std::runtime_error("Cannot compile " +
+                                   source_path.string());
         }
 
         std::ofstream f(source_path);
@@ -1957,11 +1664,6 @@ void Parser::parse_macro(
 
         try {
           oc();
-        } catch (OutOfPPPLError &e) {
-          throw OutOfPPPLError(
-              "During compilation of macro '" + name +
-              "': Surpassed preprocessor pass limit! "
-              "Self-referential macro is likely");
         } catch (std::runtime_error &e) {
           throw std::runtime_error(
               "From macro compiler:\n" +
@@ -1989,14 +1691,10 @@ void Parser::parse_macro(
         ": Expected '=' or '(', but saw '" + _pos.cur().text +
         "'");
   }
-
-  // Leave pointing to first after
-  _pos.next();
 }
 
 void Parser::syntax_check(const std::filesystem::path &_fp,
                           const std::string &_text) const {
-  debug_print();
   // All detected errors: line, col, message
   std::list<std::tuple<uint64_t, uint64_t, std::string>> errors;
 
@@ -2161,7 +1859,6 @@ void Parser::syntax_check(const std::filesystem::path &_fp,
 
 void Parser::load_dialect_file(
     const std::filesystem::path &_path) {
-  debug_print();
 
   // Parse that file
   OakCompiler c(settings.ostream);
@@ -2221,7 +1918,6 @@ Parser::resolve_path(const std::string &_requested,
 
 void Parser::do_file(const std::string &_path,
                      const std::filesystem::path &_cur_file) {
-  debug_print();
 
   const auto path = resolve_path(_path, _cur_file);
 
@@ -2320,13 +2016,8 @@ void Parser::do_file(const std::string &_path,
 }
 
 bool Parser::replace_macro(TokenStream &_pos) {
-  debug_print();
-  if (settings.debug) {
-    settings.ostream << __FUNCTION__ << " at "
-                     << _pos.cur().file.string() << ":"
-                     << _pos.cur().line << "." << _pos.cur().col
-                     << "> " << _pos.cur().text << '\n';
-  }
+
+  debug_print_pos(__FUNCTION__, _pos);
 
   const auto name_tok = _pos.cur();
   if (name_tok.text.find("!") == std::string::npos) {

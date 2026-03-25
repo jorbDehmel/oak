@@ -1,6 +1,5 @@
 #include "package.hpp"
 #include "compiler.hpp"
-#include "debug.hpp"
 #include "lexer.hpp"
 #include "parse_helpers.hpp"
 #include "symbols.hpp"
@@ -129,7 +128,6 @@ PackageManager::Version::Version(const std::string &from) {
 std::map<std::string, std::string>
 PackageManager::load_package_spec(
     const std::filesystem::path &_path, Settings &_settings) {
-  debug_print();
   if (_settings.debug) {
     _settings.ostream << "Loading package spec " << _path
                       << '\n';
@@ -192,7 +190,6 @@ PackageManager::load_package_spec(
 void PackageManager::install_package(
     const std::filesystem::path &_package,
     Settings &_settings) {
-  debug_print();
   if (!std::filesystem::exists(_package)) {
     throw std::runtime_error(_package.string() +
                              " does not exist.");
@@ -233,9 +230,6 @@ void PackageManager::install_package(
 
     try {
       c();
-    } catch (OutOfPPPLError &e) {
-      throw OutOfPPPLError("Error while building package " +
-                           spec.at("name") + ":\n" + e.what());
     } catch (std::runtime_error &e) {
       throw std::runtime_error("Error while building package " +
                                spec.at("name") + ":\n" +
@@ -277,7 +271,6 @@ void PackageManager::uninstall_package(
     const std::string &_name,
     const std::filesystem::path &_oak_include,
     Settings &_settings, const Version &_version) {
-  debug_print();
   const auto path =
       _oak_include / (_name + _version.package_suffix());
 
