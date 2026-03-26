@@ -28,9 +28,10 @@ std::string concat(const std::list<Lexer::Token> &_what);
 
 /**
  * @brief Determines if a name is valid for a struct/enum
- * @param _warn_info Where to write a warning if invalid
+ * @param _warn_into Where to write a warning if invalid
  * @param _type_str EG "Struct", "Enum", "Generic", etc
  * @param _name The name to analyze
+ * @param _where The token, used for file location
  */
 void check_camelcase(Settings &_warn_into,
                      const std::string &_type_str,

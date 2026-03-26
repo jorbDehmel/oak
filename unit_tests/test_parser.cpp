@@ -82,7 +82,7 @@ int main() {
 
       assert(args[0].second.exact_match(Type({"i32"})));
       assert(args[1].second.exact_match(
-          Type({"[", "]", "^", "bool"})));
+          ASTNode("[]", {ASTNode("^", {ASTNode("bool")})})));
     }
   }
 

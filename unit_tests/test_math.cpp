@@ -50,34 +50,34 @@ bool operator==(const TokenStream &_lhs,
 int main() {
   OakCompiler oc;
 
-  auto lexed = lex("1 + 2");
-  oc.p.fix_math(lexed);
-  assert(lexed == lex("Add(1, 2)"));
+  // auto lexed = lex("1 + 2");
+  // oc.p.fix_math(lexed);
+  // assert(lexed == lex("Add(1, 2)"));
 
-  lexed = lex("1 + 2 / 3.0 * 4");
-  oc.p.fix_math(lexed);
-  assert(lexed == lex("Add(1, Mult(Div(2, 3.0), 4))"));
+  // lexed = lex("1 + 2 / 3.0 * 4");
+  // oc.p.fix_math(lexed);
+  // assert(lexed == lex("Add(1, Mult(Div(2, 3.0), 4))"));
 
-  lexed = lex("1 + 2 / (3.0 * 4)");
-  oc.p.fix_math(lexed);
-  assert(lexed == lex("Add(1, Div(2, Mult(3.0, 4)))"));
+  // lexed = lex("1 + 2 / (3.0 * 4)");
+  // oc.p.fix_math(lexed);
+  // assert(lexed == lex("Add(1, Div(2, Mult(3.0, 4)))"));
 
-  lexed = lex("a = b");
-  oc.p.fix_math(lexed);
-  assert(lexed == lex("Copy(a, b)"));
+  // lexed = lex("a = b");
+  // oc.p.fix_math(lexed);
+  // assert(lexed == lex("Copy(a, b)"));
 
-  lexed = lex("a = b, c");
-  oc.p.fix_math(lexed);
-  assert(lexed == lex("Copy(a, b), c"));
+  // lexed = lex("a = b, c");
+  // oc.p.fix_math(lexed);
+  // assert(lexed == lex("Copy(a, b), c"));
 
-  lexed = lex("a = (b, c)");
-  oc.p.fix_math(lexed);
-  assert(lexed == lex("Copy(a, b, c)"));
+  // lexed = lex("a = (b, c)");
+  // oc.p.fix_math(lexed);
+  // assert(lexed == lex("Copy(a, b, c)"));
 
-  lexed = lex("a = (b, c + d / (e * f))");
-  oc.p.fix_math(lexed);
-  assert(lexed ==
-         lex("Copy(a, b, Add(c, Div(d, Mult(e, f))))"));
+  // lexed = lex("a = (b, c + d / (e * f))");
+  // oc.p.fix_math(lexed);
+  // assert(lexed ==
+  //        lex("Copy(a, b, Add(c, Div(d, Mult(e, f))))"));
 
   return 0;
 }

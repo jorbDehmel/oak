@@ -4,7 +4,7 @@
  */
 
 #include "../src/lexer.hpp"
-#include "../src/parser.hpp"
+#include "../src/parse_helpers.hpp"
 #include <cassert>
 #include <iostream>
 #include <stdexcept>

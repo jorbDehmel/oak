@@ -182,8 +182,8 @@ void reconstruct(const ASTNode &_what, std::ostream &_where) {
   }
 
   else if (_what.text == "[]") {
-    // Array access: 2 children (var and index)
-    assert(_what.children.size() == 2);
+    // Array access: 3 children (var, index, return type)
+    assert(_what.children.size() == 3);
     _where << "(";
     reconstruct(_what.children.at(0), _where);
     _where << "[";

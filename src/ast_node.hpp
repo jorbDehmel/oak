@@ -12,10 +12,14 @@
 
 /// An AST node
 struct ASTNode {
+  /// The text of the node
   std::string text;
+
+  /// Arguments to the node
   std::vector<ASTNode> children;
 };
 
+/// Print an AST node as an S-expr
 inline std::ostream &operator<<(std::ostream &_into,
                                 const ASTNode &_what) {
   _into << "(" << _what.text;

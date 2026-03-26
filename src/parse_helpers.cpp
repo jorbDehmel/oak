@@ -42,29 +42,32 @@ void print_region(TokenStream &_pos, std::ostream &_where,
   // Print lines
   uint line = _pos.cur().line, col = 0;
   while (!_pos.done() && _pos.cur().line <= start_line) {
+    const auto tok = _pos.cur_next();
+
     // Get to correct line
-    while (line < _pos.cur().line) {
-      _where << '\n';
-      ++line;
-      col = 0;
+    if (line > tok.line) {
+      line = tok.line;
+    } else {
+      while (line < tok.line) {
+        _where << '\n';
+        ++line;
+        col = 0;
+      }
     }
 
     // Get to correct column
-    if (col > _pos.cur().col) {
+    if (col > tok.col) {
       _where << ' ';
-      col = _pos.cur().col;
-    }
-    while (col < _pos.cur().col) {
-      _where << ' ';
-      ++col;
+      col = tok.col;
+    } else {
+      while (col < tok.col) {
+        _where << ' ';
+        ++col;
+      }
     }
 
-    // Print text
-    _where << _pos.cur().text;
-
-    // Advance
-    col = _pos.cur().col + _pos.cur().text.size();
-    _pos.next();
+    _where << tok.text;
+    col += tok.text.size();
   }
 
   // Print indicator

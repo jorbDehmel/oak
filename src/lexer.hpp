@@ -64,10 +64,10 @@ public:
     std::filesystem::path file;
 
     /// The line it comes from
-    uint64_t line;
+    intmax_t line;
 
     /// The column it started in
-    uint64_t col;
+    intmax_t col;
 
     /// Construct with all parameters specified
     Token(const std::string &_text,
@@ -168,7 +168,7 @@ public:
   void next() noexcept;
 
   /// Get the token _n ahead (.cur() is 0, default is 1)
-  Lexer::Token peek(const int &_n = 1) const noexcept;
+  Lexer::Token peek(const int &_n = 1) const;
 
   /// Go to the previous token, never advancing past the
   /// beginning
@@ -185,7 +185,7 @@ public:
    * beyond the end.
    * @returns The token or EOF
    */
-  const Lexer::Token cur() const noexcept;
+  const Lexer::Token cur() const;
 
   /**
    * @brief Get the current token and advance, returning EOF if
@@ -201,8 +201,18 @@ public:
   /// Assert that the cur token is in the given set and advance
   inline void expect(const std::set<std::string> &_allowed) {
     if (!_allowed.contains(cur())) {
-      throw std::runtime_error("Unexpected token '" +
-                               cur().text + "'");
+      std::string msg = "Unexpected token: Expected one of {";
+      bool first = true;
+      for (const auto &t : _allowed) {
+        if (first) {
+          first = false;
+        } else {
+          msg += ", ";
+        }
+        msg += "'" + t + "'";
+      }
+      msg += "}, but saw '" + cur().text + "'";
+      throw std::runtime_error(msg);
     }
     next();
   }
@@ -253,3 +263,6 @@ public:
     return raw_stream.end();
   }
 };
+
+/// Returns a copy with the math fixed
+TokenStream fix_math(const TokenStream &_ts);

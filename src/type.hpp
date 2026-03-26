@@ -134,6 +134,7 @@ public:
   /// Internal type representation
   ASTNode type_ast;
 
+  /// Cast to the underlying AST
   inline operator ASTNode() const noexcept {
     return type_ast;
   }

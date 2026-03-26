@@ -3,7 +3,6 @@
  */
 
 #include "compiler.hpp"
-#include "parse_helpers.hpp"
 #include "parser.hpp"
 #include "settings.hpp"
 #include "symbols.hpp"
@@ -58,8 +57,8 @@ int strm_cmd_output(const std::string &_cmd,
 }
 
 void OakCompiler::print_version() noexcept {
-  std::cout << "Acorn version " << acorn_version << "\n"
-            << "MIT Licensed\n";
+  std::cout << "Version " << acorn_version << "\n"
+            << "MIT License\n";
 }
 
 void OakCompiler::print_help_text() noexcept {
@@ -74,20 +73,20 @@ void OakCompiler::print_help_text() noexcept {
          "Translator for the Oak programming language\n"
          "github.com/jorbDehmel/oak\n"
          "\n"
-         "-------------------------------------------------------------\n"
-         "\n"
-         "Compilation mode"
-         "\n"
-         "Compilation mode is the default Acorn mode. Any non-flags\n"
-         "will replace the entry point (an Oak file). Acorn takes in\n"
-         "exactly one entry point and produces exactly one target: This\n"
-         "target may be a C file (translation mode), an object file\n"
-         "(translate and call gcc), or an executable file (produce an\n"
-         "object, then link via g++). It can also optionally run the\n"
-         "produced executable.\n"
-         "\n"
-         "1.1. List of all flags\n"
-         "\n"
+         //  "-------------------------------------------------------------\n"
+         //  "\n"
+         //  "Compilation mode"
+         //  "\n"
+         //  "Compilation mode is the default Acorn mode. Any non-flags\n"
+         //  "will replace the entry point (an Oak file). Acorn takes in\n"
+         //  "exactly one entry point and produces exactly one target: This\n"
+         //  "target may be a C file (translation mode), an object file\n"
+         //  "(translate and call gcc), or an executable file (produce an\n"
+         //  "object, then link via g++). It can also optionally run the\n"
+         //  "produced executable.\n"
+         //  "\n"
+         //  "1.1. List of all flags\n"
+         //  "\n"
          "    | Verbose      |Arg| Description\n"
          "----|--------------|---|-------------------------------------\n"
          " -A | --uninstall  |   | Uninstall Acorn\n"
@@ -124,25 +123,26 @@ void OakCompiler::print_help_text() noexcept {
          " -x | --syntax     |   | Toggle syntax checks (default on)\n"
          " -y | --no_confirm |   | Always allow compile_time::system!\n"
          "\n"
-         "1.2. Compilation Examples\n"
-         "\n"
-         "Compile 'a.oak' to 'a.out':\n"
-         "\t`acorn a.oak -o a.out`\n"
-         "Link 'foo.oak' to 'fizz.o' with debugging and optimization:\n"
-         "\t`acorn -o fizz.o foo.oak -g -O`\n"
-         "\tOR `acorn -gOo fizz.o foo.oak`\n"
-         "Translate 'foo.oak' to 'foo.c' without syntax checking:\n"
-         "\t`acorn --translate --output foo.c foo.oak --syntax`\n"
-         "\tOR `acorn -t -o foo.c foo.oak -x`\n"
-         "\tOR `acorn -tox foo.c foo.oak`\n"
-         "Compile and execute 'a.oak' using dialect './foo.oakd':\n"
-         "\t`acorn -E -D foo.oak -o a.oak`\n"
-         "\tOR `acorn -DoE foo.oak a.oak`\n"
-         "\n"
-         "-------------------------------------------------------------\n"
-         "\n"
-         "Version and License\n"
-         "\n";
+         //  "1.2. Compilation Examples\n"
+         //  "\n"
+         //  "Compile 'a.oak' to 'a.out':\n"
+         //  "\t`acorn a.oak -o a.out`\n"
+         //  "Link 'foo.oak' to 'fizz.o' with debugging and optimization:\n"
+         //  "\t`acorn -o fizz.o foo.oak -g -O`\n"
+         //  "\tOR `acorn -gOo fizz.o foo.oak`\n"
+         //  "Translate 'foo.oak' to 'foo.c' without syntax checking:\n"
+         //  "\t`acorn --translate --output foo.c foo.oak --syntax`\n"
+         //  "\tOR `acorn -t -o foo.c foo.oak -x`\n"
+         //  "\tOR `acorn -tox foo.c foo.oak`\n"
+         //  "Compile and execute 'a.oak' using dialect './foo.oakd':\n"
+         //  "\t`acorn -E -D foo.oak -o a.oak`\n"
+         //  "\tOR `acorn -DoE foo.oak a.oak`\n"
+         //  "\n"
+         //  "-------------------------------------------------------------\n"
+         //  "\n"
+         //  "Version and License\n"
+         //  "\n"
+  ;
   // clang-format on
   print_version();
 }
@@ -185,19 +185,13 @@ void OakCompiler::print_size() noexcept {
     const static uintmax_t KiB = 1024;
     const static uintmax_t MiB = KiB * KiB;
     const static uintmax_t GiB = KiB * MiB;
-    const static uintmax_t TiB = KiB * GiB;
-    const static uintmax_t PiB = KiB * TiB;
 
     if (_bytes <= MiB) {
       std::cout << (double)_bytes / KiB << " KiB\n";
     } else if (_bytes <= GiB) {
       std::cout << (double)_bytes / MiB << " MiB\n";
-    } else if (_bytes <= TiB) {
-      std::cout << (double)_bytes / GiB << " GiB\n";
-    } else if (_bytes <= PiB) {
-      std::cout << (double)_bytes / TiB << " TiB\n";
     } else {
-      std::cout << (double)_bytes / PiB << " PiB\n";
+      std::cout << (double)_bytes / GiB << " GiB\n";
     }
   };
 

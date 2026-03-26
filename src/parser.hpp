@@ -147,11 +147,6 @@ public:
    */
   void load_dialect_file(const std::filesystem::path &_file);
 
-  //   /**
-  //    * @brief Parse and turn all math into operator calls
-  //    */
-  //   void fix_math(TokenStream &_token_stream);
-
   /**
    * @brief Load the given file, following any includes found
    * within and doing any preprocessor rules as expected. This
@@ -169,13 +164,14 @@ public:
 
   /// If debug, prints where we are. The provided text should be
   /// the calling function
-  inline void debug_print_pos(const std::string &_caller,
-                              const TokenStream &_pos) const {
+  void debug_print_pos(const std::string &_caller,
+                       const TokenStream &_pos) const {
     if (settings.debug) {
       settings.ostream
-          << __FUNCTION__ << " at " << _pos.cur().file.string()
+          << _caller << " at " << _pos.cur().file.string()
           << ":" << _pos.cur().line << "." << _pos.cur().col
-          << '\n';
+          << '\n'
+          << std::flush;
     }
   }
 

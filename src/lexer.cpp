@@ -2,6 +2,8 @@
 #include <cctype>
 #include <cstdint>
 #include <cstring>
+#include <functional>
+#include <iostream>
 #include <optional>
 #include <stdexcept>
 #include <variant>
@@ -394,8 +396,8 @@ TokenStream Lexer::lex(const std::string &_text,
                        const std::filesystem::path &_path,
                        uint64_t &_line, uint64_t &_col,
                        const bool &_is_original) {
-  return TokenStream(
-      raw_lex(_text, _path, _line, _col, _is_original));
+  return fix_math(TokenStream(
+      raw_lex(_text, _path, _line, _col, _is_original)));
 }
 
 /**
@@ -493,9 +495,10 @@ bool TokenStream::done() const noexcept {
          raw_stream.at(cur_pos) == "EOF";
 }
 
-const Lexer::Token TokenStream::cur() const noexcept {
+const Lexer::Token TokenStream::cur() const {
   if (done()) {
-    return Lexer::Token("EOF", "N/A", 0, 0);
+    throw std::runtime_error(
+        "Cannot get current token past EOF");
   } else {
     return raw_stream.at(cur_pos);
   }
@@ -584,9 +587,9 @@ void TokenStream::seek(const size_t &_where) noexcept {
   cur_pos = _where;
 }
 
-Lexer::Token TokenStream::peek(const int &_n) const noexcept {
+Lexer::Token TokenStream::peek(const int &_n) const {
   if (cur_pos + _n < 0 || cur_pos + _n >= raw_stream.size()) {
-    return Lexer::Token("EOF", "N/A", 0, 0);
+    throw std::runtime_error("Cannot peek past EOF");
   } else {
     return raw_stream.at(cur_pos + _n);
   }
@@ -594,4 +597,141 @@ Lexer::Token TokenStream::peek(const int &_n) const noexcept {
 
 bool TokenStream::at_beg() const noexcept {
   return cur_pos == 0;
+}
+
+struct TokenAST {
+  Lexer::Token text;
+  std::vector<TokenAST> children;
+};
+
+std::ostream &operator<<(std::ostream &_into,
+                         const TokenAST &_what) {
+  _into << '(' << _what.text.text;
+  for (const auto &child : _what.children) {
+    _into << ' ' << child;
+  }
+  _into << ')';
+  return _into;
+}
+
+TokenStream fix_math(const TokenStream &_ts) {
+  /// An AST but maintaining token-hood
+
+  std::list<TokenAST> stream;
+  std::list<TokenAST> next_stream;
+  for (const auto &tok : _ts) {
+    stream.push_back(TokenAST(tok));
+  }
+
+  // Prefix unaries (!, ~, ++, --)
+  const std::list<std::pair<std::string, std::string>>
+      prefix_unaries = {
+          {"~", "Flip"},
+          {"++", "Incr"},
+          {"--", "Decr"},
+          {"!", "Not"},
+      };
+  for (const auto &p : prefix_unaries) {
+    const auto op = p.first;
+    const auto fn = p.second;
+    for (const auto &t : stream) {
+      if (!next_stream.empty() &&
+          next_stream.back().text == op) {
+        const auto obs_op = next_stream.back();
+        next_stream.pop_back();
+        const auto operand = t;
+        next_stream.push_back(
+            TokenAST(Lexer::Token(obs_op.text, fn), {operand}));
+      } else {
+        next_stream.push_back(t);
+      }
+    }
+    stream = next_stream;
+    next_stream.clear();
+  }
+
+  // Infix binaries (looks gnarly, but is colinear-time)
+  const std::list<
+      std::list<std::pair<std::string, std::string>>>
+      infix_binaries = {
+          {{"*", "Mult"}, {"/", "Div"}, {"%", "Mod"}},
+          {{"+", "Add"}, {"-", "Sub"}},
+          {{"<", "Less"},
+           {">", "Great"},
+           {"<=", "Leq"},
+           {">=", "Greq"},
+           {"==", "Eq"},
+           {"!=", "Neq"}},
+          {{"&&", "Andd"}, {"||", "Orr"}},
+          {{"=", "Copy"},
+           {"+=", "PlusEq"},
+           {"-=", "SubEq"},
+           {"*=", "MultEq"},
+           {"/=", "DivEq"},
+           {"%=", "ModEq"}},
+      };
+  for (const auto &precedence_level : infix_binaries) {
+    for (const auto &t : stream) {
+      bool did_op = false;
+      for (const auto &p : precedence_level) {
+        const auto op = p.first;
+        const auto fn = p.second;
+
+        if (next_stream.size() >= 2 &&
+            next_stream.back().text == op) {
+          const auto obs_op = next_stream.back();
+          next_stream.pop_back(); // Get rid of operator
+          const auto lhs = next_stream.back();
+          next_stream.pop_back();
+
+          // Special case: Inline macros
+          if (op == "=" && lhs.text.text.ends_with('!')) {
+            // Replace what we took off
+            next_stream.push_back(lhs);
+            next_stream.push_back(obs_op);
+            continue;
+          }
+
+          const auto rhs = t;
+          did_op = true;
+          next_stream.push_back(TokenAST(
+              Lexer::Token(obs_op.text, fn), {lhs, rhs}));
+          break;
+        }
+      }
+
+      if (!did_op) {
+        next_stream.push_back(t);
+      }
+    }
+
+    stream = next_stream;
+    next_stream.clear();
+  }
+
+  // Flatten trees
+  std::list<Lexer::Token> tokens;
+  std::function<void(const TokenAST &)> smoosh =
+      [&](const TokenAST &_t) {
+        tokens.push_back(_t.text);
+        if (!_t.children.empty()) {
+          tokens.push_back(Lexer::Token(tokens.back(), "("));
+          bool first = true;
+          for (const auto &arg : _t.children) {
+            if (first) {
+              first = false;
+            } else {
+              tokens.push_back(
+                  Lexer::Token(tokens.back(), ","));
+            }
+            smoosh(arg);
+          }
+          tokens.push_back(Lexer::Token(tokens.back(), ")"));
+        }
+      };
+  for (const auto &item : stream) {
+    smoosh(item);
+  }
+
+  return TokenStream(tokens);
 }
