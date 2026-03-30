@@ -2666,7 +2666,6 @@ Parser::get_default_destructor(const EnumInfo &_what,
                     {ASTNode("self"),
                      ASTNode("^", {ASTNode(_what.name)})})}),
        ASTNode("void")});
-  out.tags["autogen"] = "true";
 
   ASTNode branches("_");
   for (const auto &option : _what.option_order) {
@@ -2737,7 +2736,6 @@ Parser::get_wrappers(const EnumInfo &_what,
                  " = __data; }"),
          ASTNode("void"), ASTNode("_", {})});
     to_add.n = ASTNode("statement", {child});
-    to_add.tags["autogen"] = "true";
 
     // Insert fn
     out.push_back(to_add);

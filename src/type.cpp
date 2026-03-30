@@ -127,7 +127,7 @@ std::string Type::oak_repr(const std::string &_var_name) const {
       }
       out += arg.second.oak_repr(arg.first);
     }
-    out += " -> " + ret_type.oak_repr();
+    out += ") -> " + ret_type.oak_repr();
     return out;
   } else {
     return type_ast.text;

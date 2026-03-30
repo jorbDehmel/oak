@@ -540,6 +540,24 @@ void ScopeManager::drop_fn_with_tag(
           });
     }
   }
+
+  // Part 2: Erase from `in_order`
+  std::erase_if(
+      in_order, [&](const std::variant<FnInfo, StructInfo,
+                                       EnumInfo> &_entry) {
+        if (!std::holds_alternative<FnInfo>(_entry)) {
+          return false;
+        } else {
+          const FnInfo unwrapped = std::get<FnInfo>(_entry);
+          if (!_to_match.exact_match(unwrapped.t)) {
+            return false;
+          }
+          if (unwrapped.tags.contains(_key)) {
+            return unwrapped.tags.at(_key) == _value;
+          }
+          return _value == "";
+        }
+      });
 }
 
 bool ScopeManager::contains_atomic_type(

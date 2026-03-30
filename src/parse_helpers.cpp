@@ -33,7 +33,9 @@ void print_region(TokenStream &_pos, std::ostream &_where,
   }
 
   // Go to first token OF our region
-  _pos.next();
+  if (!_pos.at_beg()) {
+    _pos.next();
+  }
 
   // Top delim
   _where << "~~~~~~~~~~~~~~~~~~~~~~~~~~ In region: "
