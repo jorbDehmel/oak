@@ -308,7 +308,7 @@ Lexer::raw_lex(const std::string &_text,
       out.push_back(
           Lexer::Token(to_append, _path, _line, _col));
     }
-  } // End main loop
+  }
 
   // Merge <=, >=, and -> operators
   for (auto it = out.begin(); std::next(it) != out.end();
@@ -599,6 +599,7 @@ bool TokenStream::at_beg() const noexcept {
   return cur_pos == 0;
 }
 
+/// An AST but maintaining token-hood
 struct TokenAST {
   Lexer::Token text;
   std::vector<TokenAST> children;
@@ -615,13 +616,24 @@ std::ostream &operator<<(std::ostream &_into,
 }
 
 TokenStream fix_math(const TokenStream &_ts) {
-  /// An AST but maintaining token-hood
-
   std::list<TokenAST> stream;
-  std::list<TokenAST> next_stream;
-  for (const auto &tok : _ts) {
-    stream.push_back(TokenAST(tok));
+
+  // Member access
+  for (const auto &t : _ts) {
+    if (stream.size() >= 2 && stream.back().text == ".") {
+      const auto obs_op = stream.back();
+      stream.pop_back(); // Get rid of operator
+      const auto lhs = stream.back();
+      stream.pop_back();
+      const auto rhs = TokenAST(t);
+      stream.push_back(TokenAST(Lexer::Token(obs_op.text, "_"),
+                                {lhs, obs_op, rhs}));
+    } else {
+      stream.push_back(TokenAST(t));
+    }
   }
+
+  std::list<TokenAST> next_stream;
 
   // Prefix unaries (!, ~, ++, --)
   const std::list<std::pair<std::string, std::string>>
@@ -684,8 +696,9 @@ TokenStream fix_math(const TokenStream &_ts) {
           const auto lhs = next_stream.back();
           next_stream.pop_back();
 
-          // Special case: Inline macros
-          if (op == "=" && lhs.text.text.ends_with('!')) {
+          // Special case: Inline macros and decl-inst combos
+          if (op == "=" &&
+              next_stream.back().text.text == "let") {
             // Replace what we took off
             next_stream.push_back(lhs);
             next_stream.push_back(obs_op);
@@ -711,9 +724,11 @@ TokenStream fix_math(const TokenStream &_ts) {
 
   // Flatten trees
   std::list<Lexer::Token> tokens;
-  std::function<void(const TokenAST &)> smoosh =
+  std::function<void(const TokenAST &)> flatten =
       [&](const TokenAST &_t) {
-        tokens.push_back(_t.text);
+        if (_t.text != "_" || _t.children.empty()) {
+          tokens.push_back(_t.text);
+        }
         if (!_t.children.empty()) {
           tokens.push_back(Lexer::Token(tokens.back(), "("));
           bool first = true;
@@ -724,13 +739,13 @@ TokenStream fix_math(const TokenStream &_ts) {
               tokens.push_back(
                   Lexer::Token(tokens.back(), ","));
             }
-            smoosh(arg);
+            flatten(arg);
           }
           tokens.push_back(Lexer::Token(tokens.back(), ")"));
         }
       };
   for (const auto &item : stream) {
-    smoosh(item);
+    flatten(item);
   }
 
   return TokenStream(tokens);

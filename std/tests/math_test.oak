@@ -1,13 +1,9 @@
 include!("std/std.oak");
 
 let main() -> i32 {
-  let x: f64;
-  Copy(x, 2.0f64);
+  let x = 2.0f64;
 
   print(sin(x));
-  endl();
-
-  print(3.14159265f64);
   endl();
 
   print(math::e!);

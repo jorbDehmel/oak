@@ -38,12 +38,11 @@ bool ScopeManager::empty() const noexcept {
   return frames.empty();
 }
 
-ASTNode ScopeManager::pop_frame() {
+std::list<ASTNode> ScopeManager::pop_frame() {
   if (frames.size() <= 1) {
     throw std::runtime_error("Cannot pop final stack frame");
   } else {
-    ASTNode destructors("statement");
-
+    std::list<ASTNode> out;
     const auto popped = frames.back();
 
     assert(barrier_captures.size() == frames.size());
@@ -52,18 +51,20 @@ ASTNode ScopeManager::pop_frame() {
     barrier_captures.pop_back();
 
     for (const auto &entry : popped) {
+      const std::string name = entry.first;
+      // entry is a name, value pair
       if (std::holds_alternative<Value>(entry.second)) {
         const auto non_ref_value =
             std::get<Value>(entry.second);
         if (std::holds_alternative<Type>(non_ref_value)) {
-          const auto instance = std::get<Type>(non_ref_value);
-          destructors.children.push_back(ASTNode(
-              instance.get_destructor_call(entry.first)));
+          const auto type = std::get<Type>(non_ref_value);
+          out.push_back(
+              ASTNode("object", {type, ASTNode(entry.first)}));
         }
       }
     }
 
-    return destructors;
+    return out;
   }
 }
 
@@ -486,102 +487,58 @@ void ScopeManager::drop_fn_with_tag(
   // Locate
   auto frame = frames.rbegin();
   for (; frame != frames.rend(); ++frame) {
-    if (frame->contains(_name)) {
-      break;
+    if (!frame->contains(_name)) {
+      continue;
     }
-  }
 
-  // No results!
-  if (frame == frames.rend() || !frame->contains(_name)) {
-    return;
-  }
-
-  auto &entry = frame->at(_name);
-  if (std::holds_alternative<Value>(entry)) { // Value
-    if (!std::holds_alternative<FnValue>(
-            std::get<Value>(entry))) {
-      return;
-    }
-    std::erase_if(
-        std::get<FnValue>(std::get<Value>(entry)),
-        [&](const std::variant<
-            FnInfo, std::shared_ptr<TemplateInfo>> &_entry) {
-          if (std::holds_alternative<
-                  std::shared_ptr<TemplateInfo>>(_entry)) {
-            return false;
-          } else {
-            const FnInfo unwrapped = std::get<FnInfo>(_entry);
-            if (!_to_match.exact_match(unwrapped.t)) {
+    auto &entry = frame->at(_name);
+    if (std::holds_alternative<Value>(entry)) { // Value
+      if (!std::holds_alternative<FnValue>(
+              std::get<Value>(entry))) {
+        continue;
+      }
+      std::erase_if(
+          std::get<FnValue>(std::get<Value>(entry)),
+          [&](const std::variant<
+              FnInfo, std::shared_ptr<TemplateInfo>> &_entry) {
+            if (std::holds_alternative<
+                    std::shared_ptr<TemplateInfo>>(_entry)) {
               return false;
+            } else {
+              const FnInfo unwrapped = std::get<FnInfo>(_entry);
+              if (!_to_match.exact_match(unwrapped.t)) {
+                return false;
+              }
+              if (unwrapped.tags.contains(_key)) {
+                return unwrapped.tags.at(_key) == _value;
+              }
+              return _value == "";
             }
-            if (unwrapped.tags.contains(_key)) {
-              return unwrapped.tags.at(_key) == _value;
+          });
+    } else { // Alias
+      if (!std::holds_alternative<FnValue>(
+              std::get<std::reference_wrapper<Value>>(entry)
+                  .get())) {
+        continue;
+      }
+      std::erase_if(
+          std::get<FnValue>(
+              std::get<std::reference_wrapper<Value>>(entry)
+                  .get()),
+          [&](const std::variant<
+              FnInfo, std::shared_ptr<TemplateInfo>> &_entry) {
+            if (std::holds_alternative<
+                    std::shared_ptr<TemplateInfo>>(_entry)) {
+              return false;
+            } else {
+              const FnInfo unwrapped = std::get<FnInfo>(_entry);
+              if (unwrapped.tags.contains(_key)) {
+                return unwrapped.tags.at(_key) == _value;
+              }
+              return _value == "";
             }
-            return _value == "";
-          }
-        });
-  } else { // Alias
-    if (!std::holds_alternative<FnValue>(
-            std::get<std::reference_wrapper<Value>>(entry)
-                .get())) {
-      return;
+          });
     }
-    std::erase_if(
-        std::get<FnValue>(
-            std::get<std::reference_wrapper<Value>>(entry)
-                .get()),
-        [&](const std::variant<
-            FnInfo, std::shared_ptr<TemplateInfo>> &_entry) {
-          if (std::holds_alternative<
-                  std::shared_ptr<TemplateInfo>>(_entry)) {
-            return false;
-          } else {
-            const FnInfo unwrapped = std::get<FnInfo>(_entry);
-            if (unwrapped.tags.contains(_key)) {
-              return unwrapped.tags.at(_key) == _value;
-            }
-            return _value == "";
-          }
-        });
-  }
-}
-
-void ScopeManager::tag_fn(const std::string &_name,
-                          const std::string &_key,
-                          const std::string &_value) noexcept {
-
-  // Locate
-  auto frame = frames.rbegin();
-  for (; frame != frames.rend(); ++frame) {
-    if (frame->contains(_name)) {
-      break;
-    }
-  }
-
-  // No results!
-  if (frame == frames.rend() || !frame->contains(_name)) {
-    return;
-  }
-
-  auto &entry = frame->at(_name);
-  if (std::holds_alternative<Value>(entry)) { // Value
-    if (!std::holds_alternative<FnValue>(
-            std::get<Value>(entry))) {
-      return;
-    }
-    std::get<ScopeManager::FnValue>(std::get<Value>(entry))
-        .back()
-        .tags[_key] = _value;
-  } else { // Alias
-    if (!std::holds_alternative<FnValue>(
-            std::get<std::reference_wrapper<Value>>(entry)
-                .get())) {
-      return;
-    }
-    std::get<ScopeManager::FnValue>(
-        std::get<std::reference_wrapper<Value>>(entry).get())
-        .back()
-        .tags[_key] = _value;
   }
 }
 
@@ -599,7 +556,7 @@ bool ScopeManager::contains_atomic_type(
     }
   }
 
-  // None exist, even in shadow form
+  // None exist
   return false;
 }
 
@@ -710,110 +667,4 @@ void ScopeManager::dump(std::ostream &_into) const noexcept {
   }
 
   _into << "^--------------End--------------^\n";
-}
-
-TokenStream StructInfo::get_default_constructor(
-    const Lexer::Token &_where) const {
-  std::string to_lex = "(self: ^" + name + ") -> void { ";
-  for (const auto &member : member_order) {
-    to_lex += "New(self." + member + "); ";
-  }
-  to_lex += "}";
-  uint64_t line = _where.line, col = _where.col;
-  return Lexer::lex(to_lex, _where.file, line, col);
-}
-
-TokenStream StructInfo::get_default_destructor(
-    const Lexer::Token &_where) const {
-  std::string to_lex = "(self: ^" + name + ") -> void {";
-  for (auto it = member_order.rbegin();
-       it != member_order.rend(); ++it) {
-    to_lex += "Del(self." + *it + ");";
-  }
-  to_lex += "}";
-  uint64_t line = _where.line, col = _where.col;
-  return Lexer::lex(to_lex, _where.file, line, col);
-}
-
-/// Returns a constructor definition, ready to be parsed
-TokenStream EnumInfo::get_default_constructor(
-    const Lexer::Token &_where) const {
-  const std::string op = option_order.front();
-  const std::string text = "(self: ^" + name +
-                           ") -> void {"
-                           "let __data: " +
-                           options.at(op).oak_repr() +
-                           "; wrap_" + op +
-                           "(self, __data);"
-                           "}";
-  uint64_t line = _where.line, col = _where.col;
-  return Lexer::lex(text, _where.file, line, col);
-}
-
-TokenStream EnumInfo::get_default_destructor(
-    const Lexer::Token &_where) const {
-  std::string to_lex = "(self: ^" + name +
-                       ") -> void {\n"
-                       "match (self) {\n";
-  for (const auto &option : option_order) {
-    to_lex += "case " + option + "(" +
-              options.at(option).ref().oak_repr("data") +
-              ") {\n"
-              "Del(data);\n"
-              "}\n";
-  }
-  to_lex.append("}\n}");
-  uint64_t line = _where.line, col = _where.col;
-  return Lexer::lex(to_lex, _where.file, line, col);
-}
-
-std::list<FnInfo>
-EnumInfo::get_wrappers(const Lexer::Token &_where) const {
-  std::list<FnInfo> out;
-  for (const auto &p : options) {
-    const auto wrapper_name = "wrap_" + p.first;
-    FnInfo to_add;
-    to_add.name = wrapper_name;
-
-    to_add.tags["file"] = _where.file;
-    to_add.tags["line"] = std::to_string(_where.line);
-    to_add.tags["col"] = std::to_string(_where.col);
-
-    // Construct wrapper type
-    to_add.t = Type(ASTNode(
-        "->",
-        {
-            ASTNode("_",
-                    {
-                        ASTNode("arg",
-                                {
-                                    ASTNode("self"),
-                                    ASTNode("^",
-                                            {
-                                                ASTNode(name),
-                                            }),
-                                }),
-                        ASTNode("arg",
-                                {
-                                    ASTNode("__data"),
-                                    p.second,
-                                }),
-                    }),
-            ASTNode("void"),
-        }));
-
-    // Node
-    ASTNode child(
-        "raw_c_format",
-        {ASTNode("{ self->__info = " + name + "_OPT_" +
-                 p.first + "; self->__data." + p.first +
-                 " = __data; }"),
-         ASTNode("void"), ASTNode("_", {})});
-    to_add.n = ASTNode("statement", {child});
-    to_add.tags["autogen"] = "true";
-
-    // Insert fn
-    out.push_back(to_add);
-  }
-  return out;
 }

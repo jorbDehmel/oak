@@ -231,13 +231,20 @@ bool Type::exact_match(const Type &_other) const {
              _other.type_ast.children.size()) {
     return false;
   }
-  for (uint i = 0; i < type_ast.children.size(); ++i) {
-    if (!Type(type_ast.children.at(i))
-             .exact_match(_other.type_ast.children.at(i))) {
-      return false;
+
+  if (type_ast.text == "arg") {
+    // name, type
+    return Type(type_ast.children.back())
+        .exact_match(_other.type_ast.children.back());
+  } else {
+    for (uint i = 0; i < type_ast.children.size(); ++i) {
+      if (!Type(type_ast.children.at(i))
+               .exact_match(_other.type_ast.children.at(i))) {
+        return false;
+      }
     }
+    return true;
   }
-  return true;
 }
 
 bool Type::cast_match(const Type &_other) const {
@@ -344,14 +351,4 @@ std::string Type::struct_name() const {
 
 bool Type::is_fn_ptr() const noexcept {
   return is_ptr() && Type(type_ast.children.front()).is_fn();
-}
-
-std::string Type::get_destructor_call(
-    const std::string &_to_destruct) const {
-  if (is_ptr() && !is_fn_ptr()) {
-    // If non-nullptr, delete
-    return "{if (" + _to_destruct + " != 0) free(" +
-           _to_destruct + "); " + _to_destruct + " = 0;}";
-  }
-  return "";
 }

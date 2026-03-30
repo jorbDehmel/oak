@@ -193,5 +193,27 @@ public:
   /// stream location. Returns whether or not anything changed
   bool replace_macro(TokenStream &_pos);
 
+  /// Returns a constructor definition function body,
+  /// with _where being a sample to copy file/line/col from
+  FnInfo get_default_constructor(const StructInfo &_what,
+                                 const Lexer::Token &_where);
+
+  /// Returns a destructor definition
+  FnInfo get_default_destructor(const StructInfo &_what,
+                                const Lexer::Token &_where);
+
+  /// Returns a constructor definition
+  FnInfo get_default_constructor(const EnumInfo &_what,
+                                 const Lexer::Token &_where);
+
+  /// Returns a destructor definition
+  FnInfo get_default_destructor(const EnumInfo &_what,
+                                const Lexer::Token &_where);
+
+  /// Returns a list of implementations for each of the wrap_*
+  /// functions.
+  std::list<FnInfo> get_wrappers(const EnumInfo &_what,
+                                 const Lexer::Token &_where);
+
   friend class OakCompiler;
 };

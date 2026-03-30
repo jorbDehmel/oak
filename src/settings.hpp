@@ -226,8 +226,17 @@ public:
     case NO_WARNINGS:
       break;
     case NORMAL_WARNINGS:
-      ostream << _f.string() << ":" << _line << "." << _col
-              << "> Warning: " << _msg << '\n';
+      if (std::filesystem::exists(_f)) {
+        ostream << _f.string();
+        if (_line > 0) {
+          ostream << ":" << _line;
+          if (_col > 0) {
+            ostream << "." << _col;
+          }
+        }
+        ostream << "> ";
+      }
+      ostream << "Warning: " << _msg << '\n';
       break;
     case ERROR_WARNINGS:
       throw std::runtime_error("Warning: " + _msg +

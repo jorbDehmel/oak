@@ -19,7 +19,7 @@ check:
 	@echo "Installation (make install) should succeed. If it does not, please submit a bug report!"
 
 .PHONY:	install
-install: check
+install:
 	@echo "Compiling and installing acorn..."
 	$(MAKE) -C src $@
 

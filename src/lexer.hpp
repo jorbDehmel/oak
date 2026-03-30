@@ -22,7 +22,7 @@
  */
 class Lexer {
 public:
-  /// Disallow normal instantation: This is a static class
+  /// Disallow normal instantiation: This is a static class
   Lexer() = delete;
 
   /// Whitespace characters for lexing

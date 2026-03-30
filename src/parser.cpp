@@ -138,39 +138,26 @@ void Parser::reconstruct(std::ostream &_where) const noexcept {
       } else if (info.tags.contains("autogen") &&
                  info.tags.at("autogen") == "true") {
         _where << "// autogen\n";
+      } else if (info.name == "main" &&
+                 info.tags.contains("file") &&
+                 info.tags.at("file") !=
+                     settings.compile_settings().entry_point) {
+        continue;
       }
 
       _where << "// " << info.tags["file"] << ":"
              << info.tags["line"] << "\n";
-
-      if (info.name == "main") {
-        if (!info.tags.contains("file") ||
-            info.tags.at("file") ==
-                settings.compile_settings().entry_point) {
-          _where << info.t.c_repr(info.name, true);
-          if (info.n.children.size() == 1) {
-            // Single statement
-            _where << "{";
-            ::reconstruct(info.n, _where);
-            _where << "}";
-          } else {
-            // Scope
-            ::reconstruct(info.n, _where);
-          }
-          _where << "\n";
-        }
+      _where << info.t.c_repr(info.name, info.name == "main");
+      if (info.n.children.size() == 1) {
+        // Single statement
+        _where << "{";
+        ::reconstruct(info.n, _where);
+        _where << "}";
       } else {
-        _where << info.t.c_repr(info.name, false);
-        if (info.n.children.size() == 1) {
-          // Single statement
-          _where << "{";
-          ::reconstruct(info.n, _where);
-          _where << "}";
-        } else {
-          // Scope
-          ::reconstruct(info.n, _where);
-        }
+        // Scope
+        ::reconstruct(info.n, _where);
       }
+      _where << "\n";
     }
   }
 }
@@ -616,17 +603,13 @@ void Parser::parse_struct(const std::list<std::string> &_names,
 
     // Constructor and destructor autogen
     auto default_constructor =
-        to_add.get_default_constructor(_pos.cur());
+        get_default_constructor(to_add, _pos.cur());
     auto default_destructor =
-        to_add.get_default_destructor(_pos.cur());
+        get_default_destructor(to_add, _pos.cur());
 
     // Add the autogen constructors
-    parse_function({"New"}, default_constructor);
-    parse_function({"Del"}, default_destructor);
-
-    // Get the constructors as autogen
-    scope_manager.tag_fn("New", "autogen", "true");
-    scope_manager.tag_fn("Del", "autogen", "true");
+    scope_manager.add("New", default_constructor);
+    scope_manager.add("Del", default_destructor);
   }
 }
 
@@ -680,8 +663,19 @@ ASTNode Parser::parse_case(const EnumInfo &_enum_type,
     // Statement
     ASTNode statement = parse_statement(_pos);
 
-    // Pop frame, calling destructors
-    statement.children.push_back(scope_manager.pop_frame());
+    // Pop frame
+    const auto to_destroy = scope_manager.pop_frame();
+
+    // Prepare destructor block
+    ASTNode destructor_block = ASTNode("statement");
+    for (const auto &obj : to_destroy) {
+      assert(obj.text == "object");
+      destructor_block.children.push_back(ASTNode(
+          "statement", {get_function_call_node("Del", {obj})}));
+    }
+
+    // Insert destructor block
+    statement.children.push_back(destructor_block);
 
     // Pop from locals stack WITHOUT CALLING DESTRUCTOR ON
     // CAPTURE
@@ -741,22 +735,22 @@ void Parser::parse_enum(const std::list<std::string> &_names,
     scope_manager.add(name, to_add);
 
     // Wrappers
-    for (const auto &p : to_add.get_wrappers(_pos.cur())) {
+    for (const auto &p : get_wrappers(to_add, _pos.cur())) {
       scope_manager.add(p.name, p);
     }
 
     // Constructor
     auto default_constructor =
-        to_add.get_default_constructor(_pos.cur());
+        get_default_constructor(to_add, _pos.cur());
 
     // Create destructor
     auto default_destructor =
-        to_add.get_default_destructor(_pos.cur());
+        get_default_destructor(to_add, _pos.cur());
 
     // Note: Enum new and del cannot be overloaded, so they
     // aren't marked autogen
-    parse_function({"New"}, default_constructor);
-    parse_function({"Del"}, default_destructor);
+    scope_manager.add("New", default_constructor);
+    scope_manager.add("Del", default_destructor);
   }
 }
 
@@ -879,7 +873,7 @@ ASTNode Parser::parse_object(TokenStream &_pos) {
     // Member access
     while (_pos.cur().text == ".") {
       _pos.next(); // Pointing at member name
-      const auto member_name = _pos.cur().text;
+      const auto member_name = _pos.cur_next().text;
       while (t.is_ptr()) {
         name.text = "(*" + name.text + ")";
         t = t.deref();
@@ -1105,7 +1099,21 @@ ASTNode Parser::parse_statement(
       out.children.push_back(parse_statement(_pos));
     }
     _pos.expect({"}"});
-    out.children.push_back(scope_manager.pop_frame());
+
+    // Pop frame
+    const auto to_destroy = scope_manager.pop_frame();
+
+    // Prepare destructor block
+    ASTNode destructor_block = ASTNode("statement");
+    for (const auto &obj : to_destroy) {
+      assert(obj.text == "object");
+      destructor_block.children.push_back(ASTNode(
+          "statement", {get_function_call_node("Del", {obj})}));
+    }
+
+    // Insert destructor block
+    out.children.push_back(destructor_block);
+
     return out;
   } else if (name == "if") {
     // If statement
@@ -1461,6 +1469,7 @@ ASTNode Parser::get_function_call_node(
         ++needed_arg;
       }
 
+      assert(!_unmangled_name.empty());
       return ASTNode("@", {ASTNode(_unmangled_name),
                            fn_type.fn_return_type(), args});
       ;
@@ -1548,10 +1557,32 @@ void Parser::validate_type(const Type &_t) {
       throw std::runtime_error("Atomic type '" + type +
                                "' does not exist.");
     }
-  } else {
-    for (const auto &child : _t.type_ast.children) {
-      validate_type(child);
+
+    return;
+  }
+
+  const auto t = _t.type_ast.text;
+  const auto c = _t.type_ast.children;
+
+  if (t == "[]") {
+    validate_type(c.back());
+  } else if (t == "^") {
+    // Deref
+    validate_type(c.back());
+  } else if (t == "->") {
+    // Fn
+    const auto args = c.at(0);
+    const auto ret_type = c.at(1);
+    for (const auto &arg : args.children) {
+      validate_type(arg.children.back());
     }
+    validate_type(ret_type);
+  }
+
+  else {
+    std::cout << __FILE__ << ":" << __LINE__ << "> "
+              << "Special case " << _t.type_ast << "\n";
+    throw std::runtime_error("UNIMPLEMENTED");
   }
 }
 
@@ -1910,7 +1941,7 @@ Parser::resolve_path(const std::string &_requested,
     if (global_exists &&
         std::filesystem::canonical(global) !=
             std::filesystem::canonical(local)) {
-      settings.warn(_cur_file, 0, 0,
+      settings.warn(_requested, 0, 0,
                     "Choosing local file " + _requested +
                         " over package file of same name");
     }
@@ -2537,4 +2568,179 @@ bool Parser::replace_macro(TokenStream &_pos) {
         "' must be invoked as a function call.");
   }
   return true;
+}
+
+FnInfo
+Parser::get_default_constructor(const StructInfo &_what,
+                                const Lexer::Token &_where) {
+  assert(!_what.name.empty());
+  FnInfo out;
+  out.name = "New";
+  out.t = ASTNode(
+      "->",
+      {ASTNode(
+           "_",
+           {ASTNode("arg",
+                    {ASTNode("self"),
+                     ASTNode("^", {ASTNode(_what.name)})})}),
+       ASTNode("void")});
+  out.tags["autogen"] = "true";
+  out.n = ASTNode("statement", {});
+  for (const auto &member : _what.member_order) {
+    out.n.children.push_back(ASTNode(
+        "statement",
+        {get_function_call_node(
+            "New", {ASTNode("object",
+                            {_what.members.at(member).ref(),
+                             ASTNode("self." + member)})})}));
+  }
+  return out;
+}
+
+FnInfo
+Parser::get_default_destructor(const StructInfo &_what,
+                               const Lexer::Token &_where) {
+  assert(!_what.name.empty());
+  FnInfo out;
+  out.name = "Del";
+  out.t = ASTNode(
+      "->",
+      {ASTNode(
+           "_",
+           {ASTNode("arg",
+                    {ASTNode("self"),
+                     ASTNode("^", {ASTNode(_what.name)})})}),
+       ASTNode("void")});
+  out.tags["autogen"] = "true";
+  out.n = ASTNode("statement", {});
+  for (auto it = _what.member_order.rbegin();
+       it != _what.member_order.rend(); ++it) {
+    out.n.children.push_back(ASTNode(
+        "statement",
+        {get_function_call_node(
+            "Del",
+            {ASTNode("object", {_what.members.at(*it).ref(),
+                                ASTNode("self." + *it)})})}));
+  }
+  return out;
+}
+
+FnInfo
+Parser::get_default_constructor(const EnumInfo &_what,
+                                const Lexer::Token &_where) {
+  const std::string op = _what.option_order.front();
+  assert(!_what.name.empty());
+  FnInfo out;
+  out.name = "New";
+  out.t = ASTNode(
+      "->",
+      {ASTNode(
+           "_",
+           {ASTNode("arg",
+                    {ASTNode("self"),
+                     ASTNode("^", {ASTNode(_what.name)})})}),
+       ASTNode("void")});
+  out.tags["autogen"] = "true";
+  out.n = ASTNode(
+      "statement",
+      {ASTNode("statement",
+               {get_function_call_node(
+                   "New", {ASTNode("object",
+                                   {_what.options.at(op).ref(),
+                                    ASTNode("self->__data." +
+                                            op)})})})});
+  return out;
+}
+
+FnInfo
+Parser::get_default_destructor(const EnumInfo &_what,
+                               const Lexer::Token &_where) {
+  assert(!_what.name.empty());
+  FnInfo out;
+  out.name = "Del";
+  out.t = ASTNode(
+      "->",
+      {ASTNode(
+           "_",
+           {ASTNode("arg",
+                    {ASTNode("self"),
+                     ASTNode("^", {ASTNode(_what.name)})})}),
+       ASTNode("void")});
+  out.tags["autogen"] = "true";
+
+  ASTNode branches("_");
+  for (const auto &option : _what.option_order) {
+    assert(!option.empty());
+    const auto option_type = _what.options.at(option);
+    const auto delete_call = get_function_call_node(
+        "Del", {ASTNode("object",
+                        {option_type.ref(), ASTNode("data")})});
+    branches.children.push_back(
+        ASTNode("case", {ASTNode(option), ASTNode("data"),
+                         option_type.ref(), delete_call}));
+  }
+
+  out.n = ASTNode(
+      "statement",
+      {ASTNode(
+          "match",
+          {ASTNode("object", {Type(ASTNode(_what.name)).ref(),
+                              ASTNode("self")}),
+           branches, ASTNode(_what.name), ASTNode("true")})});
+
+  return out;
+}
+
+std::list<FnInfo>
+Parser::get_wrappers(const EnumInfo &_what,
+                     const Lexer::Token &_where) {
+  assert(!_what.name.empty());
+  std::list<FnInfo> out;
+  for (const auto &p : _what.options) {
+    const auto wrapper_name = "wrap_" + p.first;
+    FnInfo to_add;
+    to_add.name = wrapper_name;
+
+    to_add.tags["file"] = _where.file;
+    to_add.tags["line"] = std::to_string(_where.line);
+    to_add.tags["col"] = std::to_string(_where.col);
+
+    // Construct wrapper type
+    to_add.t = Type(ASTNode(
+        "->",
+        {
+            ASTNode(
+                "_",
+                {
+                    ASTNode("arg",
+                            {
+                                ASTNode("self"),
+                                ASTNode("^",
+                                        {
+                                            ASTNode(_what.name),
+                                        }),
+                            }),
+                    ASTNode("arg",
+                            {
+                                ASTNode("__data"),
+                                p.second,
+                            }),
+                }),
+            ASTNode("void"),
+        }));
+
+    // Node
+    ASTNode child(
+        "raw_c_format",
+        {ASTNode("{ self->__info = " + _what.name + "_OPT_" +
+                 p.first + "; self->__data." + p.first +
+                 " = __data; }"),
+         ASTNode("void"), ASTNode("_", {})});
+    to_add.n = ASTNode("statement", {child});
+    to_add.tags["autogen"] = "true";
+
+    // Insert fn
+    out.push_back(to_add);
+  }
+  return out;
 }

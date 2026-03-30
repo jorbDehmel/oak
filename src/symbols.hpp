@@ -27,7 +27,7 @@ struct FnInfo {
   std::map<std::string, std::string> tags;
 
   /// The function's birth name (might be different from the
-  /// key used to find it!)
+  /// key used to find it!). Unmangled
   std::string name;
 
   /// The fn's FULL type (not just return type)
@@ -52,15 +52,6 @@ public:
 
   /// The types of the members
   std::map<std::string, Type> members;
-
-  /// Returns a constructor definition (struct-name-agnostic),
-  /// with _where being a sample to copy file/line/col from
-  TokenStream
-  get_default_constructor(const Lexer::Token &_where) const;
-
-  /// Returns a destructor definition (struct-name-agnostic)
-  TokenStream
-  get_default_destructor(const Lexer::Token &_where) const;
 };
 
 /// Information about a single enum definition
@@ -78,19 +69,6 @@ public:
 
   /// The types of the options
   std::map<std::string, Type> options;
-
-  /// Returns a constructor definition, ready to be parsed
-  TokenStream
-  get_default_constructor(const Lexer::Token &_where) const;
-
-  /// Returns a destructor definition, ready to be parsed
-  TokenStream
-  get_default_destructor(const Lexer::Token &_where) const;
-
-  /// Returns a list of implementations for each of the wrap_*
-  /// functions.
-  std::list<FnInfo>
-  get_wrappers(const Lexer::Token &_where) const;
 };
 
 /// Information about a single template block
@@ -223,8 +201,9 @@ public:
   /// captures which have been caught
   std::list<std::string> get_captures() const noexcept;
 
-  /// Pops a scope off the stack and returns destructors
-  ASTNode pop_frame();
+  /// Pops a scope off the stack and returns a list of OBJECTS
+  /// to destroy
+  std::list<ASTNode> pop_frame();
 
   /// Returns whether there are no frames remaining
   bool empty() const noexcept;
@@ -287,11 +266,6 @@ public:
                         const Type &_to_match,
                         const std::string &_key,
                         const std::string &_value) noexcept;
-
-  /// Marks the most recent fn entry of some name with some tag
-  /// info
-  void tag_fn(const std::string &_name, const std::string &_key,
-              const std::string &_value) noexcept;
 
   /// Gets all valid names
   std::set<std::string> names() const noexcept;

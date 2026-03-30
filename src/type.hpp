@@ -115,11 +115,6 @@ public:
   /// O(n)
   Type fn_return_type() const;
 
-  /// Returns a destructor call for a named item of this type.
-  /// The result is C code.
-  std::string
-  get_destructor_call(const std::string &_to_destruct) const;
-
   /// Returns a COPY of this type if it were to be dereferenced
   /// once (throwing if this is not a dereferenceable type)
   Type deref() const;
