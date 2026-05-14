@@ -25,7 +25,7 @@ int main() {
         "let var, var2: int; } "
         "let a(b: i32, c: []^bool) -> void;";
 
-    auto lexed = Lexer::lex(text, file, line, col);
+    auto lexed = lex(text, file, line, col);
 
     p.parse_global(lexed);
     // p.reconstruct(std::cout, settings.compile_settings());
@@ -98,7 +98,7 @@ int main() {
                              "let main()->i32{let "
                              "a:foo;}";
 
-    auto lexed = Lexer::lex(text, file, line, col);
+    auto lexed = lex(text, file, line, col);
 
     p.parse_global(lexed);
     // p.reconstruct(std::cout, settings.compile_settings());
@@ -115,7 +115,7 @@ int main() {
     const std::string text = "let fizz:enum{a:int,b,c:bool,}"
                              "let main()->i32{let a: fizz;}";
 
-    auto lexed = Lexer::lex(text, file, line, col);
+    auto lexed = lex(text, file, line, col);
 
     p.parse_global(lexed);
     // p.reconstruct(std::cout, settings.compile_settings());
@@ -131,7 +131,7 @@ int main() {
 
     const std::string text = "let main()->i32{let a:foo;}";
 
-    auto lexed = Lexer::lex(text, file, line, col);
+    auto lexed = lex(text, file, line, col);
 
     bool did_throw = false;
     try {
@@ -158,7 +158,7 @@ int main() {
         "}\n";
     // clang-format on
 
-    auto lexed = Lexer::lex(text, file, line, col);
+    auto lexed = lex(text, file, line, col);
 
     p.parse_global(lexed);
     // p.reconstruct(std::cout, settings.compile_settings());
@@ -184,7 +184,7 @@ int main() {
         "}\n";
     // clang-format on
 
-    auto lexed = Lexer::lex(text, file, line, col);
+    auto lexed = lex(text, file, line, col);
 
     p.parse_global(lexed);
     // p.reconstruct(std::cout, settings.compile_settings());
@@ -212,7 +212,7 @@ int main() {
         "}\n";
     // clang-format on
 
-    auto lexed = Lexer::lex(text, file, line, col);
+    auto lexed = lex(text, file, line, col);
 
     p.parse_global(lexed);
     // p.reconstruct(std::cout, settings.compile_settings());

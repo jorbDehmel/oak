@@ -13,7 +13,6 @@
 #include <functional>
 #include <list>
 #include <map>
-#include <memory>
 #include <optional>
 #include <ostream>
 #include <stdexcept>
@@ -86,6 +85,8 @@ public:
       : path(_p), line(_l), col(_c), name(_name) {
   }
 
+  TemplateInfo(const TemplateInfo &_other) = default;
+
   /// The filepath it came from
   const std::filesystem::path path;
 
@@ -101,8 +102,8 @@ public:
   /// Returns a list of tokens based on _to_augment wherein
   /// all occurrences of generics are replaced with their
   /// corresponding replacements
-  static std::list<Lexer::Token>
-  replace(const std::list<Lexer::Token> &_to_augment,
+  static std::list<Token>
+  replace(const std::list<Token> &_to_augment,
           const std::list<std::string> &_generics,
           const Substitution &_replacements);
 
@@ -110,10 +111,7 @@ public:
   std::list<std::string> generics;
 
   /// The body of the template
-  std::list<Lexer::Token> instantiate_block;
-
-  /// Instances which already exist
-  std::set<Substitution> existing_instances;
+  std::list<Token> instantiate_block;
 };
 
 /**
@@ -122,7 +120,7 @@ public:
  */
 struct InlineMacro {
   /// The thing the macro should be replaced with
-  std::list<Lexer::Token> contents;
+  std::list<Token> contents;
 };
 
 /**
@@ -140,17 +138,6 @@ struct CompiledMacro {
  */
 class Rule {
 public:
-  /// If returns false, write the input. Else if output_size
-  /// is 0 (default), don't write anything. If output_size is
-  /// nonzero, put the first `output_size` items of `output`.
-  using DeltaFn = bool (*)(::TokenList input[],
-                           ::TokenList output[],
-                           uint *output_size);
-
-  /// The delta function for the quasi-FST, probably externally
-  /// loaded
-  const DeltaFn delta_fn;
-
   /// Rules that must be done first: Externally handled
   const std::list<std::string> prereqs;
 };
@@ -176,7 +163,7 @@ public:
   using FnValue = std::list<FnInfo>;
 
   /// A list of overloadable template entries
-  using TemplValue = std::list<std::shared_ptr<TemplateInfo>>;
+  using TemplValue = std::list<TemplateInfo>;
 
   /// A single value in the lookup table. `Type` is for
   /// variable instances.
@@ -278,7 +265,7 @@ public:
   /// returns a COPY of it. This is not mutable because it is
   /// meant to be an external function, and references to
   /// variants get weird.
-  template <typename T> T at(const std::string &_name) {
+  template <typename T> inline T at(const std::string &_name) {
     const auto gotten = get(_name);
     if (!gotten.has_value() ||
         !std::holds_alternative<T>(gotten.value())) {
@@ -292,13 +279,11 @@ public:
   std::list<std::variant<FnInfo, StructInfo, EnumInfo>>
       in_order;
 
-protected:
   /// A value or an alias to one: Used internally
-  using ValueOrAlias =
-      std::variant<Value, std::reference_wrapper<Value>>;
+  using ValueOrAlias = std::variant<Value, std::string>;
 
-  /// Resolves aliases
-  static Value dealias(ValueOrAlias &_what);
+  /// Resolves aliases. Try not to use externally.
+  Value dealias(ValueOrAlias &_what);
 
   /// A stack of frames: Back is most recent
   std::list<std::map<std::string, ValueOrAlias>> frames;

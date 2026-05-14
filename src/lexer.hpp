@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include "../std/token.h"
 #include "type.hpp"
 #include <cstdint>
 #include <filesystem>
@@ -18,124 +17,84 @@
 #include <variant>
 
 /**
- * @brief Takes a block of text and yields a token stream
+ * @struct Token
+ * @brief A single token in a token stream
  */
-class Lexer {
-public:
-  /// Disallow normal instantiation: This is a static class
-  Lexer() = delete;
+struct Token {
+  /// The literal string value
+  std::string text;
 
-  /// Whitespace characters for lexing
-  const static std::set<char> whitespace;
+  /// Where it came from
+  std::filesystem::path file;
 
-  /// Conjoinable operator characters for lexing
-  const static std::set<char> operators;
+  /// The line it comes from
+  intmax_t line;
 
-  /// Operator characters which are always alone (or at least
-  /// have to be handled by an addition pass, e.g. >>) for
-  /// lexing
-  const static std::set<char> singleton_operators;
+  /// The column it started in
+  intmax_t col;
 
-  /**
-   * @struct Lexer::Token
-   * @brief A single token in a token stream
-   */
-  struct Token {
-    /// Returns the Oak interfacial version
-    inline ::TokenList as_oak() {
-      ::TokenList out;
+  /// Construct with all parameters specified
+  Token(const std::string &_text,
+        const std::filesystem::path &_file,
+        const uint64_t &_line, const uint64_t &_col)
+      : text(_text), file(_file), line(_line), col(_col) {
+  }
 
-      // Deep copies
-      Copy_FN_PTR_String_JOIN_ARR_i8_MAPS_PTR_String(
-          &out.text, (i8 *)text.c_str());
-      Copy_FN_PTR_String_JOIN_ARR_i8_MAPS_PTR_String(
-          &out.file, (i8 *)file.c_str());
+  /// Construct with the other as a 'template', but with some
+  /// new text
+  Token(const Token &_other, const std::string &_new_text)
+      : text(_new_text), file(_other.file), line(_other.line),
+        col(_other.col) {
+  }
 
-      out.line = line;
-      out.col = col;
+  /// Construct with the other as a 'template', but with some
+  /// new text
+  Token(const Token &_other, const Token &_new_text)
+      : text(_new_text), file(_other.file), line(_other.line),
+        col(_other.col) {
+  }
 
-      return out;
-    }
+  /// Returns true iff the texts match
+  inline bool operator==(const std::string &_o) const {
+    return text == _o;
+  }
 
-    /// The literal string value
-    std::string text;
+  /// Returns true iff the texts don't match
+  inline bool operator!=(const std::string &_o) const {
+    return text != _o;
+  }
 
-    /// Where it came from
-    std::filesystem::path file;
-
-    /// The line it comes from
-    intmax_t line;
-
-    /// The column it started in
-    intmax_t col;
-
-    /// Construct with all parameters specified
-    Token(const std::string &_text,
-          const std::filesystem::path &_file,
-          const uint64_t &_line, const uint64_t &_col)
-        : text(_text), file(_file), line(_line), col(_col) {
-    }
-
-    /// Construct with the other as a 'template', but with some
-    /// new text
-    Token(const Lexer::Token &_other,
-          const std::string &_new_text)
-        : text(_new_text), file(_other.file), line(_other.line),
-          col(_other.col) {
-    }
-
-    /// Construct with the other as a 'template', but with some
-    /// new text
-    Token(const Lexer::Token &_other,
-          const Lexer::Token &_new_text)
-        : text(_new_text), file(_other.file), line(_other.line),
-          col(_other.col) {
-    }
-
-    /// Returns true iff the texts match
-    inline bool operator==(const std::string &_o) const {
-      return text == _o;
-    }
-
-    /// Returns true iff the texts don't match
-    inline bool operator!=(const std::string &_o) const {
-      return text != _o;
-    }
-
-    /// Casts to a normal std::string
-    inline operator std::string() const {
-      return text;
-    }
-  };
-
-  /**
-   * @brief Breaks some input file text into a token stream
-   * without merging or removing comments. Still does type
-   * classification.
-   */
-  static std::list<Lexer::Token>
-  raw_lex(const std::string &_text,
-          const std::filesystem::path &_path, uint64_t &_line,
-          uint64_t &_col, const bool &_is_original = false);
-
-  /**
-   * @brief Breaks some input file text
-   * into a token stream
-   */
-  static class TokenStream
-  lex(const std::string &_text,
-      const std::filesystem::path &_path, uint64_t &_line,
-      uint64_t &_col, const bool &_is_original = false);
-
-  /**
-   * @brief Gets the type of a given literal, given that it is
-   * one. If not, returns nothing and does not modify _t. If it
-   * is, the literal will be adjusted into C form (EG u64 ->
-   * UL).
-   * @param _t The possible literal to examine.
-   */
-  static std::optional<Type> get_literal_type(Lexer::Token &_t);
+  /// Casts to a normal std::string
+  inline operator std::string() const {
+    return text;
+  }
 };
+
+/**
+ * @brief Breaks some input file text
+ * into a token stream
+ */
+class TokenStream lex(const std::string &_text,
+                      const std::filesystem::path &_path,
+                      uint64_t &_line, uint64_t &_col,
+                      const bool &_is_original = false);
+
+/**
+ * @brief Like ::lex, but doesn't fix math symbols.
+ */
+std::list<Token> raw_lex(const std::string &_text,
+                         const std::filesystem::path &_path,
+                         uint64_t &_line, uint64_t &_col,
+                         const bool &_is_original);
+
+/**
+ * @brief Gets the type of a given literal, given that it is
+ * one. If not, returns nothing and does not modify _t. If it
+ * is, the literal will be adjusted into C form (EG u64 ->
+ * UL).
+ * @param _t The possible literal to examine.
+ */
+std::optional<Type> get_literal_type(Token &_t);
 
 /**
  * @brief Error handling wrapper for iterating over token
@@ -143,21 +102,20 @@ public:
  */
 class TokenStream {
 private:
-  std::vector<Lexer::Token> raw_stream;
+  std::vector<Token> raw_stream;
   size_t cur_pos;
 
   friend class Lexer;
 
 public:
-  /// @param _binding The Lexer::Token iterable to bind to
-  TokenStream(const std::list<Lexer::Token> &_binding)
-      : cur_pos(0) {
+  /// @param _binding The Token iterable to bind to
+  TokenStream(const std::list<Token> &_binding) : cur_pos(0) {
     for (const auto &tok : _binding) {
       raw_stream.push_back(tok);
     }
   }
 
-  /// @param _binding The Lexer::Token iterable to bind to
+  /// @param _binding The Token iterable to bind to
   TokenStream(const TokenStream &_binding) : cur_pos(0) {
     for (const auto &tok : _binding) {
       raw_stream.push_back(tok);
@@ -168,7 +126,7 @@ public:
   void next() noexcept;
 
   /// Get the token _n ahead (.cur() is 0, default is 1)
-  Lexer::Token peek(const int &_n = 1) const;
+  Token peek(const int &_n = 1) const;
 
   /// Go to the previous token, never advancing past the
   /// beginning
@@ -185,14 +143,14 @@ public:
    * beyond the end.
    * @returns The token or EOF
    */
-  const Lexer::Token cur() const;
+  const Token cur() const;
 
   /**
    * @brief Get the current token and advance, returning EOF if
    * we are beyond the end.
    * @returns The token or EOF
    */
-  inline const Lexer::Token cur_next() noexcept {
+  inline const Token cur_next() noexcept {
     const auto out = cur();
     next();
     return out;
@@ -221,7 +179,7 @@ public:
    * @brief
    * @returns
    */
-  Lexer::Token &cur_mut();
+  Token &cur_mut();
 
   /// Low-level position access. Be very careful with these!
   /// They are indices into the internal array, so you won't end
@@ -245,21 +203,19 @@ public:
   /// col will be overwritten with the most recent values.
   void rangef(
       const size_t &_start, const size_t &_first_after,
-      const std::list<std::variant<Lexer::Token, TokenStream>>
-          &_fmt);
+      const std::list<std::variant<Token, TokenStream>> &_fmt);
 
   /// Low-level position control. Be very careful! See `tell`
   /// for more details.
   void seek(const size_t &_where) noexcept;
 
   /// Begin iteration
-  inline std::vector<Lexer::Token>::const_iterator
-  begin() const {
+  inline std::vector<Token>::const_iterator begin() const {
     return raw_stream.begin();
   }
 
   /// End iteration
-  inline std::vector<Lexer::Token>::const_iterator end() const {
+  inline std::vector<Token>::const_iterator end() const {
     return raw_stream.end();
   }
 };

@@ -25,7 +25,7 @@ Many valid Oak files -> 1 token stream
  * stream to the given stream
  */
 void canonicalize(std::ostream &_into,
-                  const std::list<Lexer::Token> &_lexed) {
+                  const std::list<Token> &_lexed) {
   uint col = 0;
   uint line = 1;
   uint tab_depth = 0;
@@ -138,10 +138,10 @@ void print_help() {
 bool validate(const std::string &_original_text,
               const std::string &_transformed_text) {
   uint64_t dummy_line = 1, dummy_col = 0;
-  auto l = Lexer::lex(_original_text, __FILE__, dummy_line,
-                      dummy_col, true);
-  auto r = Lexer::lex(_transformed_text, __FILE__, dummy_line,
-                      dummy_col, true);
+  auto l = lex(_original_text, __FILE__, dummy_line, dummy_col,
+               true);
+  auto r = lex(_transformed_text, __FILE__, dummy_line,
+               dummy_col, true);
 
   for (; !(l.done() && r.done());) {
     if (l.done() || r.done()) {
@@ -286,7 +286,7 @@ int main(int c, char *v[]) {
   }
   text.assign(std::istreambuf_iterator<char>(input_file),
               std::istreambuf_iterator<char>());
-  auto lexed = Lexer::raw_lex(text, file, line, col, true);
+  auto lexed = raw_lex(text, file, line, col, true);
   input_file.close();
 
   // Create canonical text

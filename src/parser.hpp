@@ -167,11 +167,23 @@ public:
   void debug_print_pos(const std::string &_caller,
                        const TokenStream &_pos) const {
     if (settings.debug) {
-      settings.ostream
-          << _caller << " at " << _pos.cur().file.string()
-          << ":" << _pos.cur().line << "." << _pos.cur().col
-          << '\n'
-          << std::flush;
+      if (_pos.done()) {
+        settings.ostream << _caller << '\n' << std::flush;
+      } else {
+        settings.ostream
+            << _caller << " at " << _pos.cur().file.string()
+            << ":" << _pos.cur().line << "." << _pos.cur().col
+            << " (" << _pos.cur().text << ")\n"
+            << std::flush;
+      }
+    }
+  }
+
+  /// If debug, prints where we are. The provided text should be
+  /// the calling function
+  void debug_print_pos(const std::string &_caller) const {
+    if (settings.debug) {
+      settings.ostream << _caller << '\n' << std::flush;
     }
   }
 
@@ -196,24 +208,22 @@ public:
   /// Returns a constructor definition function body,
   /// with _where being a sample to copy file/line/col from
   FnInfo get_default_constructor(const StructInfo &_what,
-                                 const Lexer::Token &_where);
+                                 const Token &_where);
 
   /// Returns a destructor definition
   FnInfo get_default_destructor(const StructInfo &_what,
-                                const Lexer::Token &_where);
+                                const Token &_where);
 
   /// Returns a constructor definition
   FnInfo get_default_constructor(const EnumInfo &_what,
-                                 const Lexer::Token &_where);
+                                 const Token &_where);
 
   /// Returns a destructor definition
   FnInfo get_default_destructor(const EnumInfo &_what,
-                                const Lexer::Token &_where);
+                                const Token &_where);
 
   /// Returns a list of implementations for each of the wrap_*
   /// functions.
   std::list<FnInfo> get_wrappers(const EnumInfo &_what,
-                                 const Lexer::Token &_where);
-
-  friend class OakCompiler;
+                                 const Token &_where);
 };

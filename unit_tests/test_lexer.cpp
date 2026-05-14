@@ -73,7 +73,7 @@ int main() {
         "    0\n"
         "}\n";
 
-    const auto observed = Lexer::lex(text, path, line, col);
+    const auto observed = lex(text, path, line, col);
     assert(line == 9);
   }
 
@@ -83,7 +83,7 @@ int main() {
         "include!(/*fizz buzz*/\"std/io.oak\");\n"
         "let main() -> i32//hi there\n";
 
-    const auto observed = Lexer::lex(text, path, line, col);
+    const auto observed = lex(text, path, line, col);
     assert_match(path,
                  {"include!", "(", "\"std/io.oak\"", ")", ";",
                   "let", "main", "(", ")", "->", "i32"},
@@ -91,20 +91,18 @@ int main() {
   }
 
   { // Test string literal operations
-    assert_match(Macros::make_string_literal("Hello, world!"),
+    assert_match(make_string_literal("Hello, world!"),
                  "\"Hello, world!\"");
+    assert_match(make_string_literal("Hello, \"world\"!"),
+                 "\"Hello, \\\"world\\\"!\"");
     assert_match(
-        Macros::make_string_literal("Hello, \"world\"!"),
-        "\"Hello, \\\"world\\\"!\"");
-    assert_match(Macros::make_string_literal(
-                     "\"Hello, \\\"world\\\"!\""),
-                 "\"\\\"Hello, \\\\\\\"world\\\\\\\"!\\\"\"");
+        make_string_literal("\"Hello, \\\"world\\\"!\""),
+        "\"\\\"Hello, \\\\\\\"world\\\\\\\"!\\\"\"");
 
+    assert_match(strip_string_literal("Hello, \"world\"!"),
+                 "Hello, \"world\"!");
     assert_match(
-        Macros::strip_string_literal("Hello, \"world\"!"),
-        "Hello, \"world\"!");
-    assert_match(
-        Macros::strip_string_literal(
+        strip_string_literal(
             "\"\\\"Hello, \\\\\\\"hamburger\\\\\\\"!\\\"\""),
         "Hello, \"hamburger\"!");
   }
@@ -114,8 +112,8 @@ int main() {
                       "\"lazy \\\"dogs\\\"\"";
 
     for (uint i = 1; i < 8; ++i) {
-      std::string next = Macros::make_string_literal(cur);
-      assert_match(Macros::strip_string_literal(next), cur);
+      std::string next = make_string_literal(cur);
+      assert_match(strip_string_literal(next), cur);
       std::cout << "Passed iteration " << i << " w/ string:\n"
                 << next << "\n"
                 << std::flush;

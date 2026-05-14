@@ -32,7 +32,8 @@ ASTNode Type::sized_arr_size() const {
     throw std::runtime_error(
         "Cannot get array size of non-sized-array type");
   }
-  return type_ast.children.at(1);
+  assert(type_ast.children.at(0).text == "object");
+  return type_ast.children.at(0).children.at(1);
 }
 
 // A higher number is more precise. The goal is not to lose

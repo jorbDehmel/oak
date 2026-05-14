@@ -12,12 +12,6 @@
 #include <string>
 
 /**
- * @namespace PackageManager
- * @brief Provides resources for loading and managing packages
- */
-namespace PackageManager {
-
-/**
  * @brief A package version
  */
 struct Version {
@@ -80,5 +74,3 @@ void list_packages(std::ostream &_to,
 std::map<std::string, std::string>
 load_package_spec(const std::filesystem::path &_path,
                   Settings &_settings);
-
-}; // namespace PackageManager

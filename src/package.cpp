@@ -14,10 +14,10 @@
  * versioning symlinks
  */
 void add_symlinks(const std::string &_name,
-                  const PackageManager::Version &_full_version,
+                  const Version &_full_version,
                   const std::filesystem::path &_real_path,
                   const std::filesystem::path &_include_path) {
-  PackageManager::Version v = _full_version;
+  Version v = _full_version;
 
   while (!v.version.empty()) {
     v.version.pop_back();
@@ -43,7 +43,7 @@ void add_symlinks(const std::string &_name,
       }
 
       const auto candidate_version =
-          PackageManager::Version(d.path().string().substr(
+          Version(d.path().string().substr(
               d.path().string().find(".") + 1));
 
       // If it is larger than the symlink's target,
@@ -65,7 +65,7 @@ void add_symlinks(const std::string &_name,
   }
 }
 
-std::string PackageManager::Version::package_suffix() const {
+std::string Version::package_suffix() const {
   std::string out;
   for (const auto &i : version) {
     out += "." + std::to_string(i);
@@ -73,8 +73,8 @@ std::string PackageManager::Version::package_suffix() const {
   return out;
 }
 
-std::strong_ordering PackageManager::Version::operator<=>(
-    const Version &_other) const {
+std::strong_ordering
+Version::operator<=>(const Version &_other) const {
   std::list<uintmax_t> lhs_version = version;
   std::list<uintmax_t> rhs_version = _other.version;
 
@@ -99,7 +99,7 @@ std::strong_ordering PackageManager::Version::operator<=>(
   return std::strong_ordering::equal;
 }
 
-PackageManager::Version::Version(const std::string &from) {
+Version::Version(const std::string &from) {
   for (unsigned long pos = 0, next = from.find(".", pos + 1);
        pos != std::string::npos;
        pos = next, next = from.find(".", pos + 1)) {
@@ -126,8 +126,8 @@ PackageManager::Version::Version(const std::string &from) {
 }
 
 std::map<std::string, std::string>
-PackageManager::load_package_spec(
-    const std::filesystem::path &_path, Settings &_settings) {
+load_package_spec(const std::filesystem::path &_path,
+                  Settings &_settings) {
   if (_settings.debug) {
     _settings.ostream << "Loading package spec " << _path
                       << '\n';
@@ -163,8 +163,7 @@ PackageManager::load_package_spec(
     if (name.starts_with(package_name + "_") &&
         name.ends_with("!")) {
 
-      TokenStream contents(
-          {Lexer::Token(name, spec_file, 0, 0)});
+      TokenStream contents({Token(name, spec_file, 0, 0)});
 
       bool keep_going = true;
       while (keep_going) {
@@ -180,16 +179,15 @@ PackageManager::load_package_spec(
       }
 
       out[name.substr(package_name.size() + 1)] =
-          Macros::strip_string_literal(to_add);
+          strip_string_literal(to_add);
     }
   }
 
   return out;
 }
 
-void PackageManager::install_package(
-    const std::filesystem::path &_package,
-    Settings &_settings) {
+void install_package(const std::filesystem::path &_package,
+                     Settings &_settings) {
   if (!std::filesystem::exists(_package)) {
     throw std::runtime_error(_package.string() +
                              " does not exist.");
@@ -208,8 +206,7 @@ void PackageManager::install_package(
         " include path is not a directory.");
   }
 
-  const auto spec =
-      PackageManager::load_package_spec(_package, _settings);
+  const auto spec = load_package_spec(_package, _settings);
 
   // Validate / build
   if (spec.contains("INSTALL!")) {
@@ -267,7 +264,7 @@ void PackageManager::install_package(
 /**
  * @brief Erases some package from the system
  */
-void PackageManager::uninstall_package(
+void uninstall_package(
     const std::string &_name,
     const std::filesystem::path &_oak_include,
     Settings &_settings, const Version &_version) {
@@ -288,8 +285,7 @@ void PackageManager::uninstall_package(
   for (const auto &f :
        std::filesystem::directory_iterator{_oak_include}) {
     if (std::filesystem::is_directory(f)) {
-      const auto spec =
-          PackageManager::load_package_spec(f, _settings);
+      const auto spec = load_package_spec(f, _settings);
       if (!spec.contains("VERSION!")) {
         throw std::runtime_error("Package '" + spec.at("name") +
                                  "' has no version!");
@@ -306,9 +302,8 @@ void PackageManager::uninstall_package(
 /**
  * @brief List all installed packages
  */
-void PackageManager::list_packages(
-    std::ostream &_to,
-    const std::filesystem::path &_oak_include) {
+void list_packages(std::ostream &_to,
+                   const std::filesystem::path &_oak_include) {
   for (const auto &d :
        std::filesystem::directory_iterator{_oak_include}) {
     if (std::filesystem::is_symlink(d)) {

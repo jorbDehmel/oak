@@ -1,11 +1,16 @@
 #include "lexer.hpp"
+#include "type.hpp"
 #include <cctype>
 #include <cstdint>
 #include <cstring>
+#include <filesystem>
 #include <functional>
 #include <iostream>
+#include <list>
 #include <optional>
+#include <set>
 #include <stdexcept>
+#include <string>
 #include <variant>
 #include <vector>
 
@@ -14,8 +19,7 @@
  * @param _raw The symbol name to KWA-mangle
  * @return The KWA-mangled symbol name (usually the same as inp)
  */
-inline std::string
-kwa_mangle(const std::string &_raw) noexcept {
+std::string kwa_mangle(const std::string &_raw) noexcept {
   // Reserved symbols by C, with any that are also reserved Oak
   // removed
   const static std::set<std::string> reserved = {
@@ -79,18 +83,24 @@ kwa_mangle(const std::string &_raw) noexcept {
       "_Static_assert",
       "_Thread_local",
   };
-  return (reserved.contains(_raw) ? _raw + "_KWA" : _raw);
+  if (reserved.contains(_raw)) {
+    std::cerr << "Warning: C keyword '" << _raw
+              << "' will be mangled\n";
+    return _raw + "_KWA";
+  } else {
+    return _raw;
+  }
 }
 
-const std::set<char> Lexer::whitespace = {' ', '\t', '\n'};
-const std::set<char> Lexer::operators = {
-    '~', '@', '$', '%', '^', '&', '*', '-',
-    '+', '=', '|', ':', '.', '/', '?', '!'};
-const std::set<char> Lexer::singleton_operators = {
+const std::set<char> whitespace = {' ', '\t', '\n'};
+const std::set<char> operators = {'~', '@', '$', '%', '^', '&',
+                                  '*', '-', '+', '=', '|', ':',
+                                  '.', '/', '?', '!'};
+const std::set<char> singleton_operators = {
     '[', ']', '{', '}', '(', ')', ',', ';', '<', '>'};
 
-inline bool isnum(const std::string &_s,
-                  const bool &_or_type = false) {
+bool isnum(const std::string &_s,
+           const bool &_or_type = false) {
   if (_s.empty()) {
     return false;
   } else if ('0' <= _s.front() && _s.front() <= '9') {
@@ -101,17 +111,16 @@ inline bool isnum(const std::string &_s,
   return false;
 }
 
-std::list<Lexer::Token>
-Lexer::raw_lex(const std::string &_text,
-               const std::filesystem::path &_path,
-               uint64_t &_line, uint64_t &_col,
-               const bool &_is_original) {
-  const auto next_line = [&]() {
+std::list<Token> raw_lex(const std::string &_text,
+                         const std::filesystem::path &_path,
+                         uint64_t &_line, uint64_t &_col,
+                         const bool &_is_original) {
+  auto next_line = [&]() {
     ++_line;
     _col = 0;
   };
 
-  std::list<Lexer::Token> out;
+  std::list<Token> out;
 
   for (size_t pos = 0; pos < _text.size(); ++pos, ++_col) {
     // Ignored cases
@@ -168,8 +177,7 @@ Lexer::raw_lex(const std::string &_text,
         ++pos, ++_col;
       }
       to_append.push_back(_text.at(pos));
-      out.push_back(
-          Lexer::Token(to_append, _path, _line, _col));
+      out.push_back(Token(to_append, _path, _line, _col));
     } else if (_text.at(pos) == '\'') {
       // Single string literal
       std::string to_append;
@@ -203,8 +211,8 @@ Lexer::raw_lex(const std::string &_text,
         to_append.push_back(_text.at(pos));
         ++pos, ++_col;
       }
-      out.push_back(Lexer::Token('"' + to_append + '"', _path,
-                                 _line, _col));
+      out.push_back(
+          Token('"' + to_append + '"', _path, _line, _col));
     } else if (_text.at(pos) == '"') {
       // Double string literal
       std::string to_append;
@@ -236,8 +244,8 @@ Lexer::raw_lex(const std::string &_text,
         to_append.push_back(_text.at(pos));
         ++pos, ++_col;
       }
-      out.push_back(Lexer::Token('"' + to_append + '"', _path,
-                                 _line, _col));
+      out.push_back(
+          Token('"' + to_append + '"', _path, _line, _col));
     } else if (_text.at(pos) == '`') {
       // Backtick string: Can be single or triple
       if (pos + 2 < _text.size() && _text.at(pos + 1) == '`' &&
@@ -279,15 +287,14 @@ Lexer::raw_lex(const std::string &_text,
           to_append.push_back(_text.at(pos));
           ++pos, ++_col;
         }
-        out.push_back(Lexer::Token('"' + to_append + '"', _path,
-                                   _line, _col));
+        out.push_back(
+            Token('"' + to_append + '"', _path, _line, _col));
       }
     }
 
     // Singleton operators
     else if (singleton_operators.contains(_text.at(pos))) {
-      out.push_back(
-          Lexer::Token({_text.at(pos)}, _path, _line, _col));
+      out.push_back(Token({_text.at(pos)}, _path, _line, _col));
     }
 
     // Everything else: IDs and numbers
@@ -305,8 +312,7 @@ Lexer::raw_lex(const std::string &_text,
         ++pos, ++_col;
       }
       to_append.push_back(_text.at(pos));
-      out.push_back(
-          Lexer::Token(to_append, _path, _line, _col));
+      out.push_back(Token(to_append, _path, _line, _col));
     }
   }
 
@@ -392,10 +398,10 @@ Lexer::raw_lex(const std::string &_text,
   return out;
 }
 
-TokenStream Lexer::lex(const std::string &_text,
-                       const std::filesystem::path &_path,
-                       uint64_t &_line, uint64_t &_col,
-                       const bool &_is_original) {
+TokenStream lex(const std::string &_text,
+                const std::filesystem::path &_path,
+                uint64_t &_line, uint64_t &_col,
+                const bool &_is_original) {
   return fix_math(TokenStream(
       raw_lex(_text, _path, _line, _col, _is_original)));
 }
@@ -407,9 +413,9 @@ TokenStream Lexer::lex(const std::string &_text,
  * @param _suffix The suffix desired
  * @param _with The item to replace the suffix with, if present
  */
-const static bool replace_suffix(std::string &_what,
-                                 const std::string &_suffix,
-                                 const std::string &_with) {
+const bool replace_suffix(std::string &_what,
+                          const std::string &_suffix,
+                          const std::string &_with) {
   if (_what.size() < _suffix.size()) {
     return false;
   }
@@ -430,7 +436,7 @@ const static bool replace_suffix(std::string &_what,
  * one. If not, returns nothing.
  * @param _t The possible literal to examine.
  */
-std::optional<Type> Lexer::get_literal_type(Lexer::Token &_t) {
+std::optional<Type> get_literal_type(Token &_t) {
   if (_t.text.starts_with('"')) {
     _t.text = "((i8 *)" + _t.text + ")";
     return Type(ASTNode("[]", {ASTNode("i8")}));
@@ -495,7 +501,7 @@ bool TokenStream::done() const noexcept {
          raw_stream.at(cur_pos) == "EOF";
 }
 
-const Lexer::Token TokenStream::cur() const {
+const Token TokenStream::cur() const {
   if (done()) {
     throw std::runtime_error(
         "Cannot get current token past EOF");
@@ -504,7 +510,7 @@ const Lexer::Token TokenStream::cur() const {
   }
 }
 
-Lexer::Token &TokenStream::cur_mut() {
+Token &TokenStream::cur_mut() {
   if (done()) {
     throw std::runtime_error(
         "Cannot set token on overrun token stream");
@@ -520,7 +526,7 @@ size_t TokenStream::tell() noexcept {
 TokenStream TokenStream::copy_snippet(
     const size_t &_start,
     const size_t &_first_after) const noexcept {
-  std::list<Lexer::Token> out;
+  std::list<Token> out;
   for (size_t i = _start;
        i < _first_after && i < raw_stream.size(); ++i) {
     out.push_back(raw_stream.at(i));
@@ -530,23 +536,22 @@ TokenStream TokenStream::copy_snippet(
 
 void TokenStream::rangef(
     const size_t &_start, const size_t &_first_after,
-    const std::list<std::variant<Lexer::Token, TokenStream>>
-        &_fmt) {
+    const std::list<std::variant<Token, TokenStream>> &_fmt) {
   if (_start >= _first_after || _start >= raw_stream.size() ||
       _first_after > raw_stream.size()) {
     throw std::runtime_error("Invalid range given to rangef");
   }
 
   // Construct copy
-  std::vector<Lexer::Token> copy;
+  std::vector<Token> copy;
   for (const auto &item : _fmt) {
-    if (std::holds_alternative<Lexer::Token>(item)) {
-      copy.push_back(std::get<Lexer::Token>(item));
+    if (std::holds_alternative<Token>(item)) {
+      copy.push_back(std::get<Token>(item));
     } else {
       bool fix_fields = (!copy.empty());
 
       for (const auto &tok : std::get<TokenStream>(item)) {
-        Lexer::Token t = tok;
+        Token t = tok;
 
         // Fix line and col if desired
         if (fix_fields) {
@@ -567,7 +572,7 @@ void TokenStream::rangef(
     for (size_t i = 0;
          i < (_first_after - _start) - copy.size(); ++i) {
       raw_stream.insert(raw_stream.begin() + _first_after,
-                        Lexer::Token("", "", 0, 0));
+                        Token("", "", 0, 0));
     }
   } else if (copy.size() < _first_after - _start) {
     // Will need some deletion
@@ -587,7 +592,7 @@ void TokenStream::seek(const size_t &_where) noexcept {
   cur_pos = _where;
 }
 
-Lexer::Token TokenStream::peek(const int &_n) const {
+Token TokenStream::peek(const int &_n) const {
   if (cur_pos + _n < 0 || cur_pos + _n >= raw_stream.size()) {
     throw std::runtime_error("Cannot peek past EOF");
   } else {
@@ -601,7 +606,7 @@ bool TokenStream::at_beg() const noexcept {
 
 /// An AST but maintaining token-hood
 struct TokenAST {
-  Lexer::Token text;
+  Token text;
   std::vector<TokenAST> children;
 };
 
@@ -626,7 +631,7 @@ TokenStream fix_math(const TokenStream &_ts) {
       const auto lhs = stream.back();
       stream.pop_back();
       const auto rhs = TokenAST(t);
-      stream.push_back(TokenAST(Lexer::Token(obs_op.text, "_"),
+      stream.push_back(TokenAST(Token(obs_op.text, "_"),
                                 {lhs, obs_op, rhs}));
     } else {
       stream.push_back(TokenAST(t));
@@ -653,7 +658,7 @@ TokenStream fix_math(const TokenStream &_ts) {
         next_stream.pop_back();
         const auto operand = t;
         next_stream.push_back(
-            TokenAST(Lexer::Token(obs_op.text, fn), {operand}));
+            TokenAST(Token(obs_op.text, fn), {operand}));
       } else {
         next_stream.push_back(t);
       }
@@ -707,8 +712,8 @@ TokenStream fix_math(const TokenStream &_ts) {
 
           const auto rhs = t;
           did_op = true;
-          next_stream.push_back(TokenAST(
-              Lexer::Token(obs_op.text, fn), {lhs, rhs}));
+          next_stream.push_back(
+              TokenAST(Token(obs_op.text, fn), {lhs, rhs}));
           break;
         }
       }
@@ -723,25 +728,24 @@ TokenStream fix_math(const TokenStream &_ts) {
   }
 
   // Flatten trees
-  std::list<Lexer::Token> tokens;
+  std::list<Token> tokens;
   std::function<void(const TokenAST &)> flatten =
       [&](const TokenAST &_t) {
         if (_t.text != "_" || _t.children.empty()) {
           tokens.push_back(_t.text);
         }
         if (!_t.children.empty()) {
-          tokens.push_back(Lexer::Token(tokens.back(), "("));
+          tokens.push_back(Token(tokens.back(), "("));
           bool first = true;
           for (const auto &arg : _t.children) {
             if (first) {
               first = false;
             } else {
-              tokens.push_back(
-                  Lexer::Token(tokens.back(), ","));
+              tokens.push_back(Token(tokens.back(), ","));
             }
             flatten(arg);
           }
-          tokens.push_back(Lexer::Token(tokens.back(), ")"));
+          tokens.push_back(Token(tokens.back(), ")"));
         }
       };
   for (const auto &item : stream) {

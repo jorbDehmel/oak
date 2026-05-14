@@ -144,7 +144,7 @@ bool parse_args(const int _c, const char *const _v[],
 
       // Query packages
       else if (arg == "--query") {
-        PackageManager::list_packages(
+        list_packages(
             _oakc.settings.ostream,
             _oakc.settings.compile_settings().include_path);
         out = false;
@@ -163,12 +163,11 @@ bool parse_args(const int _c, const char *const _v[],
               "'" + arg + "' must be followed by an argument");
         }
         auto package = _v[++i];
-        PackageManager::uninstall_package(
+        uninstall_package(
             package,
             _oakc.settings.compile_settings().include_path,
             _oakc.settings);
-        PackageManager::install_package(package,
-                                        _oakc.settings);
+        install_package(package, _oakc.settings);
         out = false;
       }
 
@@ -178,7 +177,7 @@ bool parse_args(const int _c, const char *const _v[],
           throw std::runtime_error(
               "'" + arg + "' must be followed by an argument");
         }
-        PackageManager::uninstall_package(
+        uninstall_package(
             _v[++i],
             _oakc.settings.compile_settings().include_path,
             _oakc.settings);
@@ -197,8 +196,7 @@ bool parse_args(const int _c, const char *const _v[],
           throw std::runtime_error(
               "'" + arg + "' must be followed by an argument");
         }
-        PackageManager::install_package(_v[++i],
-                                        _oakc.settings);
+        install_package(_v[++i], _oakc.settings);
         out = false;
       }
 
@@ -379,7 +377,7 @@ bool parse_args(const int _c, const char *const _v[],
         case 'q': // Quit immediately
           return false;
         case 'Q': // Query packages
-          PackageManager::list_packages(
+          list_packages(
               _oakc.settings.ostream,
               _oakc.settings.compile_settings().include_path);
           out = false;
@@ -391,12 +389,11 @@ bool parse_args(const int _c, const char *const _v[],
                 "' must be followed by an argument");
           }
           auto package = _v[++i];
-          PackageManager::uninstall_package(
+          uninstall_package(
               package,
               _oakc.settings.compile_settings().include_path,
               _oakc.settings);
-          PackageManager::install_package(package,
-                                          _oakc.settings);
+          install_package(package, _oakc.settings);
           out = false;
           break;
         }
@@ -406,7 +403,7 @@ bool parse_args(const int _c, const char *const _v[],
                 "'-" + std::string{flag} +
                 "' must be followed by an argument");
           }
-          PackageManager::uninstall_package(
+          uninstall_package(
               _v[++i],
               _oakc.settings.compile_settings().include_path,
               _oakc.settings);
@@ -475,8 +472,7 @@ bool parse_args(const int _c, const char *const _v[],
                 "'-" + std::string{flag} +
                 "' must be followed by an argument");
           }
-          PackageManager::install_package(_v[++i],
-                                          _oakc.settings);
+          install_package(_v[++i], _oakc.settings);
           out = false;
           break;
 
@@ -546,9 +542,6 @@ int main(int _c, char *_v[]) {
   } catch (std::runtime_error &e) {
     std::cerr << "Compiler error:\n" << e.what() << '\n';
     exit_code = 2;
-  } catch (...) {
-    std::cerr << "An unknown compiler error occurred.\n";
-    exit_code = 3;
   }
 
   if (oakc.settings.do_time) {

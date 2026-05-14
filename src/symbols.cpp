@@ -1,5 +1,6 @@
 #include "symbols.hpp"
 #include "ast_node.hpp"
+#include <cassert>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -182,15 +183,13 @@ void ScopeManager::add(const std::string &_key,
     // Already exists and is of right type
     std::get<TemplValue>(
         std::get<Value>(frames.back().at(real_key)))
-        .push_back(std::shared_ptr<TemplateInfo>(
-            new TemplateInfo(_value)));
+        .push_back(TemplateInfo(_value));
   } else if (!frames.back().contains(real_key)) {
     // Does not exist yet
     frames.back()[real_key] = TemplValue({});
     std::get<TemplValue>(
         std::get<Value>(frames.back().at(real_key)))
-        .push_back(std::shared_ptr<TemplateInfo>(
-            new TemplateInfo(_value)));
+        .push_back(TemplateInfo(_value));
   } else {
     // Exists, but as wrong type
     throw std::runtime_error(
@@ -213,8 +212,7 @@ void ScopeManager::alias(
   }
 
   // Add pointer
-  frames.back().insert_or_assign(real_name_of_alias,
-                                 std::ref(target.value()));
+  frames.back()[real_name_of_alias] = _thing_that_exists;
 }
 
 void ScopeManager::remove_prefix(const std::string &_prefix) {
@@ -302,13 +300,9 @@ bool ScopeManager::contains(
 }
 
 ScopeManager::Value ScopeManager::dealias(ValueOrAlias &_what) {
-  if (std::holds_alternative<
-          std::reference_wrapper<ScopeManager::Value>>(_what)) {
+  if (std::holds_alternative<std::string>(_what)) {
     // Points to a reference
-    return std::get<
-               std::reference_wrapper<ScopeManager::Value>>(
-               _what)
-        .get();
+    return get(std::get<std::string>(_what)).value();
   } else {
     // Points to a literal
     return std::get<ScopeManager::Value>(_what);
@@ -517,18 +511,14 @@ void ScopeManager::drop_fn_with_tag(
           });
     } else { // Alias
       if (!std::holds_alternative<FnValue>(
-              std::get<std::reference_wrapper<Value>>(entry)
-                  .get())) {
+              std::get<Value>(entry))) {
         continue;
       }
       std::erase_if(
-          std::get<FnValue>(
-              std::get<std::reference_wrapper<Value>>(entry)
-                  .get()),
-          [&](const std::variant<
-              FnInfo, std::shared_ptr<TemplateInfo>> &_entry) {
-            if (std::holds_alternative<
-                    std::shared_ptr<TemplateInfo>>(_entry)) {
+          std::get<FnValue>(std::get<Value>(entry)),
+          [&](const std::variant<FnInfo, TemplateInfo>
+                  &_entry) {
+            if (std::holds_alternative<TemplateInfo>(_entry)) {
               return false;
             } else {
               const FnInfo unwrapped = std::get<FnInfo>(_entry);
@@ -584,11 +574,8 @@ void ScopeManager::dump(std::ostream &_into) const noexcept {
     _into << "(";
 
     // Print the type of this symbol
-    if (std::holds_alternative<std::reference_wrapper<Value>>(
-            p)) {
-      _into << "Alias of ";
-      print_entry(
-          std::get<std::reference_wrapper<Value>>(p).get());
+    if (std::holds_alternative<std::string>(p)) {
+      _into << "Alias of " << std::get<std::string>(p);
     } else {
       const auto &d = std::get<Value>(p);
 

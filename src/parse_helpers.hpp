@@ -24,7 +24,7 @@ std::string build_generic_prefix(
     const TemplateInfo::Substitution &_substitutions);
 
 /// Concatenates a token list to a string
-std::string concat(const std::list<Lexer::Token> &_what);
+std::string concat(const std::list<Token> &_what);
 
 /**
  * @brief Determines if a name is valid for a struct/enum
@@ -36,7 +36,7 @@ std::string concat(const std::list<Lexer::Token> &_what);
 void check_camelcase(Settings &_warn_into,
                      const std::string &_type_str,
                      const std::string &_name,
-                     const Lexer::Token &_where) noexcept;
+                     const Token &_where) noexcept;
 
 /**
  * @brief Runs a command (asserting that it succeeded),
@@ -47,9 +47,6 @@ void check_camelcase(Settings &_warn_into,
  */
 std::string get_cmd_output(const std::string &_cmd);
 
-/// Static functions for macro operations
-namespace Macros {
-
 /**
  * @brief Runs a command, asserts it succeeded, and captures
  * its stdout.
@@ -58,38 +55,8 @@ namespace Macros {
  */
 std::string get_cmd_output(const std::string &_cmd);
 
-/// Internal oak macros
-const static std::set<std::string> reserved_macro_names = {
-    "alias!",
-    "c!",
-    "compile_time_error!",
-    "compile_time_print!",
-    "compile_time_system!",
-    "compile_time_warning!",
-    "erase!",
-    "flag!",
-    "include!",
-    "link!",
-    "namespace_use!",
-    "pragma!",
-    "rule_bundle!",
-    "rule_new!",
-    "rule_remove!",
-    "rule_use!",
-    "size!",
-    "str!",
-    "type!",
-    "unstr!",
-    "LINE!",
-    "COL!",
-    "FILE!",
-    "oak_VERSION!",
-    "SYSTEM!",
-};
-
 /// Goes past and returns a macro occurrence's arguments
-std::list<std::list<Lexer::Token>>
-get_macro_args(TokenStream &_pos);
+std::list<std::list<Token>> get_macro_args(TokenStream &_pos);
 
 /**
  * @brief Strips string literal delimiters off a string
@@ -105,5 +72,3 @@ std::string strip_string_literal(const std::string &_str_lit);
  * @returns The string literal
  */
 std::string make_string_literal(const std::string &_contents);
-
-}; // namespace Macros

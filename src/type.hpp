@@ -7,6 +7,7 @@
 
 #include "ast_node.hpp"
 #include <map>
+#include <stdexcept>
 #include <string>
 #include <vector>
 

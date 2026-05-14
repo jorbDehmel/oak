@@ -7,7 +7,7 @@ Tests fix_math in preprocessing
 
 TokenStream lex(const std::string &_text) {
   uint64_t line = 0, col = 0;
-  return Lexer::lex(_text, __FILE__, line, col);
+  return lex(_text, __FILE__, line, col);
 }
 
 bool operator==(const TokenStream &_lhs,

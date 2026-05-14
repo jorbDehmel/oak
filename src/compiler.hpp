@@ -50,8 +50,6 @@ public:
       : settings(_strm), p(settings) {
   }
 
-  //////////////////////////////////////////////////////////////
-
   /// Print the version of Acorn
   static void print_version() noexcept;
 
@@ -61,8 +59,8 @@ public:
   /// Print the total disk usage of Oak
   static void print_size() noexcept;
 
-  /// Register some uninstallation lambda to run after this
-  /// process has ceased
+  /// Register an uninstallation lambda to uninstall acorn after
+  /// this process has ceased
   static void uninstall_acorn() noexcept;
 
   /// Purge all temporary files
@@ -70,8 +68,6 @@ public:
 
   /// Create a new template package with the given name
   void new_package(const std::string &_name);
-
-  //////////////////////////////////////////////////////////////
 
   /// The settings to run after argument parsing
   Settings settings;

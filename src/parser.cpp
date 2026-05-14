@@ -24,6 +24,35 @@
 #include <string>
 #include <variant>
 
+/// Internal oak macros
+const static std::set<std::string> reserved_macro_names = {
+    "alias!",
+    "c!",
+    "compile_time_error!",
+    "compile_time_print!",
+    "compile_time_system!",
+    "compile_time_warning!",
+    "erase!",
+    "flag!",
+    "include!",
+    "link!",
+    "namespace_use!",
+    "pragma!",
+    "rule_bundle!",
+    "rule_new!",
+    "rule_remove!",
+    "rule_use!",
+    "size!",
+    "str!",
+    "type!",
+    "unstr!",
+    "LINE!",
+    "COL!",
+    "FILE!",
+    "oak_VERSION!",
+    "SYSTEM!",
+};
+
 void Parser::parse_global(TokenStream &_pos) {
   debug_print_pos(__FUNCTION__, _pos);
 
@@ -35,13 +64,14 @@ void Parser::parse_global(TokenStream &_pos) {
           "At " + _pos.cur().file.string() + ":" +
           std::to_string(_pos.cur().line) + "." +
           std::to_string(_pos.cur().col) + "\n" + e.what());
-    } catch (...) {
-      throw std::runtime_error(
-          "At " + _pos.cur().file.string() + ":" +
-          std::to_string(_pos.cur().line) + "." +
-          std::to_string(_pos.cur().col) +
-          "\nUnknown error during global-scope parsing");
     }
+    // catch (...) {
+    //   throw std::runtime_error(
+    //       "At " + _pos.cur().file.string() + ":" +
+    //       std::to_string(_pos.cur().line) + "." +
+    //       std::to_string(_pos.cur().col) +
+    //       "\nUnknown error during global-scope parsing");
+    // }
   }
 }
 
@@ -387,7 +417,7 @@ void Parser::parse_template(
   debug_print_pos(__FUNCTION__, _pos);
 
   const auto start_tok = _pos.cur();
-  std::list<Lexer::Token> guts;
+  std::list<Token> guts;
 
   int count = 0;
   if (_pos.cur() != "{") {
@@ -527,13 +557,12 @@ std::string Parser::parse_id(TokenStream &_pos) {
         std::get<ScopeManager::TemplValue>(res.value());
 
     bool instantiated = false;
-    std::vector<
-        std::pair<std::string, std::shared_ptr<TemplateInfo>>>
+    std::vector<std::pair<std::string, TemplateInfo>>
         failure_log;
     for (auto it = templates.rbegin(); it != templates.rend();
          ++it) {
       std::string err_msg;
-      instantiated = instantiate(**it, replacements, err_msg);
+      instantiated = instantiate(*it, replacements, err_msg);
       if (instantiated) {
         break;
       }
@@ -543,10 +572,10 @@ std::string Parser::parse_id(TokenStream &_pos) {
       for (uint i = 0; i < failure_log.size(); ++i) {
         settings.ostream
             << "Failure " << i << " ("
-            << failure_log.at(i).second->name << " from "
-            << failure_log.at(i).second->path << ":"
-            << failure_log.at(i).second->line << "."
-            << failure_log.at(i).second->col << "):\n"
+            << failure_log.at(i).second.name << " from "
+            << failure_log.at(i).second.path << ":"
+            << failure_log.at(i).second.line << "."
+            << failure_log.at(i).second.col << "):\n"
             << failure_log.at(i).first << "\n"
             << "End failure " << i << "\n";
       }
@@ -838,10 +867,10 @@ ASTNode Parser::parse_object(TokenStream &_pos) {
     }
   }
 
-  Lexer::Token name = _pos.cur_next();
+  Token name = _pos.cur_next();
 
   // Literal check
-  const auto literal_type = Lexer::get_literal_type(name);
+  const auto literal_type = get_literal_type(name);
   if (literal_type.has_value()) {
     return ASTNode("object",
                    {literal_type.value(), ASTNode(name)});
@@ -937,15 +966,29 @@ ASTNode Parser::parse_statement(
     if (name == "c!") {
       _pos.next();
       _pos.expect({"("});
-      const auto arg = ASTNode(
-          Macros::strip_string_literal(_pos.cur_next().text));
+      const auto arg =
+          ASTNode(strip_string_literal(_pos.cur_next().text));
       _pos.expect({")"});
-      return ASTNode(
+
+      const ASTNode out = ASTNode(
           "statement",
           {ASTNode("raw_c_format",
                    {arg, ASTNode("void"), ASTNode("_", {})})});
+
+      if (settings.debug) {
+        std::cout << __FILE__ << ":" << __LINE__
+                  << "> Parsed statement " << out << '\n';
+        debug_print_pos(__FUNCTION__, _pos);
+      }
+
+      return out;
     } else {
       replace_macro(_pos);
+      if (settings.debug) {
+        std::cout << __FILE__ << ":" << __LINE__
+                  << "> Parsed null statement\n";
+        debug_print_pos(__FUNCTION__, _pos);
+      }
       return ASTNode("null");
     }
   } else if (name == ";") {
@@ -1031,6 +1074,13 @@ ASTNode Parser::parse_statement(
               "(let A: B = C;) is unimplemented");
         }
 
+        if (settings.debug) {
+          std::cout << __FILE__ << ":" << __LINE__
+                    << "> Parsed statement " << stmt_out
+                    << '\n';
+          debug_print_pos(__FUNCTION__, _pos);
+        }
+
         return stmt_out;
       }
       return ASTNode("null");
@@ -1081,9 +1131,17 @@ ASTNode Parser::parse_statement(
         }
 
         // auto decl = ASTNode("let", {names, new_calls, type})
-        return ASTNode(
+        const auto out = ASTNode(
             "statement",
             {ASTNode("let", {names_node, new_calls, t})});
+
+        if (settings.debug) {
+          std::cout << __FILE__ << ":" << __LINE__
+                    << "> Parsed statement " << out << '\n';
+          debug_print_pos(__FUNCTION__, _pos);
+        }
+
+        return out;
       }
     }
 
@@ -1113,6 +1171,12 @@ ASTNode Parser::parse_statement(
 
     // Insert destructor block
     out.children.push_back(destructor_block);
+
+    if (settings.debug) {
+      std::cout << __FILE__ << ":" << __LINE__
+                << "> Parsed statement " << out << '\n';
+      debug_print_pos(__FUNCTION__, _pos);
+    }
 
     return out;
   } else if (name == "if") {
@@ -1149,7 +1213,16 @@ ASTNode Parser::parse_statement(
       _pos.next();
       out.children.push_back(parse_statement(_pos));
     }
-    return ASTNode("statement", {out});
+
+    const auto true_out = ASTNode("statement", {out});
+
+    if (settings.debug) {
+      std::cout << __FILE__ << ":" << __LINE__
+                << "> Parsed statement " << true_out << '\n';
+      debug_print_pos(__FUNCTION__, _pos);
+    }
+
+    return true_out;
   } else if (name == "while") {
     // While loop
     _pos.next();
@@ -1177,7 +1250,15 @@ ASTNode Parser::parse_statement(
     }
 
     out.children.push_back(parse_statement(_pos));
-    return ASTNode("statement", {out});
+
+    const auto true_out = ASTNode("statement", {out});
+    if (settings.debug) {
+      std::cout << __FILE__ << ":" << __LINE__
+                << "> Parsed statement " << true_out << '\n';
+      debug_print_pos(__FUNCTION__, _pos);
+    }
+
+    return true_out;
   } else if (_pos.cur() == "match") {
     // Match statement
     _pos.next();
@@ -1219,7 +1300,15 @@ ASTNode Parser::parse_statement(
     const ASTNode out("match",
                       {target, branches, ASTNode(enum_name),
                        ASTNode(is_mutable ? "true" : "false")});
-    return ASTNode("statement", {out});
+
+    const auto true_out = ASTNode("statement", {out});
+    if (settings.debug) {
+      std::cout << __FILE__ << ":" << __LINE__
+                << "> Parsed statement " << true_out << '\n';
+      debug_print_pos(__FUNCTION__, _pos);
+    }
+
+    return true_out;
   } else if (_pos.cur() == "return") {
     // Return statement
     ASTNode out("return");
@@ -1244,18 +1333,33 @@ ASTNode Parser::parse_statement(
           "'" +
           expected_return_type.oak_repr() + "'");
     }
-    return ASTNode("statement", {(out)});
+
+    const auto true_out = ASTNode("statement", {out});
+
+    if (settings.debug) {
+      std::cout << __FILE__ << ":" << __LINE__
+                << "> Parsed statement " << true_out << '\n';
+      debug_print_pos(__FUNCTION__, _pos);
+    }
+
+    return true_out;
   } else {
     // Else, delegate as function call
-    return ASTNode("statement", {parse_function_call(_pos)});
+    const auto out =
+        ASTNode("statement", {parse_function_call(_pos)});
+    if (settings.debug) {
+      std::cout << __FILE__ << ":" << __LINE__
+                << "> Parsed statement " << out << '\n';
+      debug_print_pos(__FUNCTION__, _pos);
+    }
+    return out;
   }
 }
 
 ASTNode Parser::get_function_call_node(
     const std::string &_unmangled_name,
     const std::list<ASTNode> &_args) {
-  //////////////////////////////////////////////////////////////
-  // Special cases here
+  debug_print_pos(__FUNCTION__);
 
   // Array access via the 'Get' operator
   if (_unmangled_name == "Get" && _args.size() == 2 &&
@@ -1344,10 +1448,12 @@ ASTNode Parser::get_function_call_node(
   // New on sized array types
   else if (_unmangled_name == "New" && _args.size() == 1 &&
            Type(::type(_args.front())).is_sized_arr()) {
-    const auto size_node =
-        Type(::type(_args.front())).sized_arr_size();
-    assert(size_node.children.empty());
-    const uintmax_t size = std::stoull(size_node.text);
+
+    std::cout << __FILE__ << ":" << __LINE__ << "> "
+              << _args.front() << '\n';
+
+    const auto size = std::stoull(
+        Type(::type(_args.front())).sized_arr_size().text);
 
     ASTNode out("statement");
     for (uint i = 0; i < size; ++i) {
@@ -1385,13 +1491,11 @@ ASTNode Parser::get_function_call_node(
     return ASTNode("null");
   }
 
-  // New on sized array types
+  // Del on sized array types
   else if (_unmangled_name == "Del" && _args.size() == 1 &&
            Type(::type(_args.front())).is_sized_arr()) {
-    const auto size_node =
-        Type(::type(_args.front())).sized_arr_size();
-    assert(size_node.children.empty());
-    const uintmax_t size = std::stoull(size_node.text);
+    const auto size = std::stoull(
+        Type(::type(_args.front())).sized_arr_size().text);
 
     ASTNode out("statement");
     for (uint i = 0; i < size; ++i) {
@@ -1492,11 +1596,6 @@ bool Parser::instantiate(
     const std::list<std::list<std::string>> &_substitutions,
     std::string &_err_msg) {
 
-  // Check for existing instances
-  if (_what.existing_instances.contains(_substitutions)) {
-    return true;
-  }
-
   // Replace the instantiation block
   TokenStream replaced_instantiation_block =
       TemplateInfo::replace(_what.instantiate_block,
@@ -1534,9 +1633,6 @@ bool Parser::instantiate(
     return false;
   }
   scope_manager.pop_prefix();
-
-  // Log any success
-  _what.existing_instances.insert(_substitutions);
 
   return true;
 }
@@ -1606,9 +1702,9 @@ void Parser::parse_macro(
     }
   } else if (_pos.cur().text == "(") {
     // Scrape definition
-    std::list<Lexer::Token> contents;
-    contents.push_back(Lexer::Token(_pos.cur(), "let"));
-    contents.push_back(Lexer::Token(_pos.cur(), "main"));
+    std::list<Token> contents;
+    contents.push_back(Token(_pos.cur(), "let"));
+    contents.push_back(Token(_pos.cur(), "main"));
 
     // Until first "{"
     while (_pos.cur().text != "{") {
@@ -2007,7 +2103,7 @@ void Parser::do_file(const std::string &_path,
 
   // Lex
   try {
-    token_stream = Lexer::lex(text, path, line, col, true);
+    token_stream = lex(text, path, line, col, true);
     if (settings.debug) {
       std::cout << "Lexed token stream (after fixing math):\n";
       for (const auto &tok : token_stream) {
@@ -2102,13 +2198,13 @@ bool Parser::replace_macro(TokenStream &_pos) {
   }
 
   // Note: Still pointing to name
-  if (Macros::reserved_macro_names.contains(name)) {
+  if (reserved_macro_names.contains(name)) {
     if (name == "compile_time_error!") {
       std::stringstream msg_strm;
       msg_strm << _pos.cur().file.string() << ":"
                << _pos.cur().line << "." << _pos.cur().col
                << "> Compile-time error:\n";
-      const auto args = Macros::get_macro_args(_pos);
+      const auto args = get_macro_args(_pos);
       for (const auto &arg : args) {
         for (const auto &tok : arg) {
           msg_strm << tok.text + " ";
@@ -2122,7 +2218,7 @@ bool Parser::replace_macro(TokenStream &_pos) {
     } else if (name == "compile_time_warning!") {
       std::stringstream msg_strm;
       msg_strm << " Compile-time warning:\n";
-      const auto args = Macros::get_macro_args(_pos);
+      const auto args = get_macro_args(_pos);
       for (const auto &arg : args) {
         for (const auto &tok : arg) {
           msg_strm << tok.text + " ";
@@ -2136,7 +2232,7 @@ bool Parser::replace_macro(TokenStream &_pos) {
       settings.ostream
           << _pos.cur().file.string() << ":" << _pos.cur().line
           << "." << _pos.cur().col << "> Compile-time print:\n";
-      const auto args = Macros::get_macro_args(_pos);
+      const auto args = get_macro_args(_pos);
       for (const auto &arg : args) {
         for (const auto &tok : arg) {
           settings.ostream << tok.text + " ";
@@ -2147,7 +2243,7 @@ bool Parser::replace_macro(TokenStream &_pos) {
     } else if (name == "alias!") {
       // In Oak: alias!(to, from);
       // In C++: using to = from;
-      const auto args = Macros::get_macro_args(_pos);
+      const auto args = get_macro_args(_pos);
       if (args.size() != 2) {
         throw std::runtime_error(
             "'alias!' takes two arguments: to and from");
@@ -2155,7 +2251,7 @@ bool Parser::replace_macro(TokenStream &_pos) {
       scope_manager.alias(concat(args.front()),
                           concat(args.back()));
     } else if (name == "erase!") {
-      const auto args = Macros::get_macro_args(_pos);
+      const auto args = get_macro_args(_pos);
       for (const auto &entry : args) {
         scope_manager.erase(concat(entry));
       }
@@ -2163,7 +2259,7 @@ bool Parser::replace_macro(TokenStream &_pos) {
       // In Oak: namespace::use!("std");
       // In C++: using namespace std;
 
-      const auto args = Macros::get_macro_args(_pos);
+      const auto args = get_macro_args(_pos);
       if (args.size() != 1) {
         throw std::runtime_error(
             "'namespace::use!' takes one "
@@ -2172,18 +2268,18 @@ bool Parser::replace_macro(TokenStream &_pos) {
       }
       scope_manager.remove_prefix(concat(args.front()));
     } else if (name == "include!") {
-      auto raw_args = Macros::get_macro_args(_pos);
+      auto raw_args = get_macro_args(_pos);
 
-      std::list<Lexer::Token> args;
+      std::list<Token> args;
       for (auto it = raw_args.begin(); it != raw_args.end();
            ++it) {
         TokenStream cur_arg(*it);
-        Lexer::Token to_add = cur_arg.cur();
+        Token to_add = cur_arg.cur();
         for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
           to_add.text += ' ';
           to_add.text += cur_arg.cur().text;
         }
-        to_add.text = Macros::strip_string_literal(to_add.text);
+        to_add.text = strip_string_literal(to_add.text);
         args.push_back(to_add);
       }
 
@@ -2191,12 +2287,12 @@ bool Parser::replace_macro(TokenStream &_pos) {
         do_file(f.text, f.file);
       }
     } else if (name == "link!") {
-      auto raw_args = Macros::get_macro_args(_pos);
-      std::list<Lexer::Token> args;
+      auto raw_args = get_macro_args(_pos);
+      std::list<Token> args;
       for (auto it = raw_args.begin(); it != raw_args.end();
            ++it) {
         TokenStream cur_arg(*it);
-        Lexer::Token to_add = cur_arg.cur();
+        Token to_add = cur_arg.cur();
         for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
           to_add.text += ' ';
           to_add.text += cur_arg.cur().text;
@@ -2205,7 +2301,7 @@ bool Parser::replace_macro(TokenStream &_pos) {
       }
 
       for (auto it = args.begin(); it != args.end(); ++it) {
-        it->text = Macros::strip_string_literal(it->text);
+        it->text = strip_string_literal(it->text);
       }
 
       for (const auto &f : args) {
@@ -2213,12 +2309,12 @@ bool Parser::replace_macro(TokenStream &_pos) {
             resolve_path(f.text, f.file));
       }
     } else if (name == "flag!") {
-      auto raw_args = Macros::get_macro_args(_pos);
-      std::list<Lexer::Token> args;
+      auto raw_args = get_macro_args(_pos);
+      std::list<Token> args;
       for (auto it = raw_args.begin(); it != raw_args.end();
            ++it) {
         TokenStream cur_arg(*it);
-        Lexer::Token to_add = cur_arg.cur();
+        Token to_add = cur_arg.cur();
         for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
           to_add.text += ' ';
           to_add.text += cur_arg.cur().text;
@@ -2227,7 +2323,7 @@ bool Parser::replace_macro(TokenStream &_pos) {
       }
 
       for (auto it = args.begin(); it != args.end(); ++it) {
-        it->text = Macros::strip_string_literal(it->text);
+        it->text = strip_string_literal(it->text);
       }
 
       for (const auto &f : args) {
@@ -2235,12 +2331,12 @@ bool Parser::replace_macro(TokenStream &_pos) {
             f.text);
       }
     } else if (name == "pragma!") {
-      auto raw_args = Macros::get_macro_args(_pos);
-      std::list<Lexer::Token> args;
+      auto raw_args = get_macro_args(_pos);
+      std::list<Token> args;
       for (auto it = raw_args.begin(); it != raw_args.end();
            ++it) {
         TokenStream cur_arg(*it);
-        Lexer::Token to_add = cur_arg.cur();
+        Token to_add = cur_arg.cur();
         for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
           to_add.text += ' ';
           to_add.text += cur_arg.cur().text;
@@ -2249,24 +2345,24 @@ bool Parser::replace_macro(TokenStream &_pos) {
       }
 
       for (auto it = args.begin(); it != args.end(); ++it) {
-        it->text = Macros::strip_string_literal(it->text);
+        it->text = strip_string_literal(it->text);
       }
 
       if (args.size() == 1) {
-        args.push_back(Lexer::Token(args.front(), ""));
+        args.push_back(Token(args.front(), ""));
       }
 
       settings.compile_settings()
           .pragmas[_pos.cur().file][args.front().text] =
           std::next(args.begin())->text;
     } else if (name == "rule_new!") {
-      auto raw_args = Macros::get_macro_args(_pos);
-      std::list<Lexer::Token> args;
+      auto raw_args = get_macro_args(_pos);
+      std::list<Token> args;
       for (auto it = raw_args.begin(); it != raw_args.end();
            ++it) {
         TokenStream cur_arg(*it);
 
-        Lexer::Token to_add = cur_arg.cur();
+        Token to_add = cur_arg.cur();
         for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
           to_add.text += ' ';
           to_add.text += cur_arg.cur().text;
@@ -2275,7 +2371,7 @@ bool Parser::replace_macro(TokenStream &_pos) {
       }
 
       for (auto it = args.begin(); it != args.end(); ++it) {
-        it->text = Macros::strip_string_literal(it->text);
+        it->text = strip_string_literal(it->text);
       }
 
       if (args.size() < 3) {
@@ -2306,13 +2402,13 @@ bool Parser::replace_macro(TokenStream &_pos) {
                 << "> Unimplemented\n"
                 << std::flush;
     } else if (name == "rule_use!") {
-      auto raw_args = Macros::get_macro_args(_pos);
-      std::list<Lexer::Token> args;
+      auto raw_args = get_macro_args(_pos);
+      std::list<Token> args;
       for (auto it = raw_args.begin(); it != raw_args.end();
            ++it) {
         TokenStream cur_arg(*it);
 
-        Lexer::Token to_add = cur_arg.cur();
+        Token to_add = cur_arg.cur();
         for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
           to_add.text += ' ';
           to_add.text += cur_arg.cur().text;
@@ -2324,13 +2420,13 @@ bool Parser::replace_macro(TokenStream &_pos) {
                 << "> Unimplemented\n"
                 << std::flush;
     } else if (name == "rule_remove!") {
-      auto raw_args = Macros::get_macro_args(_pos);
-      std::list<Lexer::Token> args;
+      auto raw_args = get_macro_args(_pos);
+      std::list<Token> args;
       for (auto it = raw_args.begin(); it != raw_args.end();
            ++it) {
         TokenStream cur_arg(*it);
 
-        Lexer::Token to_add = cur_arg.cur();
+        Token to_add = cur_arg.cur();
         for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
           to_add.text += ' ';
           to_add.text += cur_arg.cur().text;
@@ -2344,13 +2440,13 @@ bool Parser::replace_macro(TokenStream &_pos) {
                 << std::flush;
       // }
     } else if (name == "rule_bundle!") {
-      auto raw_args = Macros::get_macro_args(_pos);
-      std::list<Lexer::Token> args;
+      auto raw_args = get_macro_args(_pos);
+      std::list<Token> args;
       for (auto it = raw_args.begin(); it != raw_args.end();
            ++it) {
         TokenStream cur_arg(*it);
 
-        Lexer::Token to_add = cur_arg.cur();
+        Token to_add = cur_arg.cur();
         for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
           to_add.text += ' ';
           to_add.text += cur_arg.cur().text;
@@ -2361,8 +2457,7 @@ bool Parser::replace_macro(TokenStream &_pos) {
       std::list<std::string> entails;
       for (auto it = std::next(args.begin()); it != args.end();
            ++it) {
-        entails.push_back(
-            Macros::strip_string_literal(it->text));
+        entails.push_back(strip_string_literal(it->text));
       }
 
       std::cerr << __FILE__ << ":" << __LINE__
@@ -2370,8 +2465,8 @@ bool Parser::replace_macro(TokenStream &_pos) {
                 << std::flush;
     } else if (name == "unstr!") {
       const auto first_of_range = _pos.tell();
-      Lexer::Token to_add = _pos.cur(); // name
-      auto raw_args = Macros::get_macro_args(_pos);
+      Token to_add = _pos.cur(); // name
+      auto raw_args = get_macro_args(_pos);
       const auto first_after_range = _pos.tell();
 
       to_add.text.clear();
@@ -2386,19 +2481,19 @@ bool Parser::replace_macro(TokenStream &_pos) {
         }
       }
 
-      to_add.text = Macros::strip_string_literal(to_add.text);
+      to_add.text = strip_string_literal(to_add.text);
 
       uint64_t dummy_line = to_add.line, dummy_col = to_add.col;
-      TokenStream to_insert = Lexer::lex(
-          to_add.text, to_add.file, dummy_line, dummy_col);
+      TokenStream to_insert =
+          lex(to_add.text, to_add.file, dummy_line, dummy_col);
 
       _pos.rangef(first_of_range, first_after_range,
                   {to_insert});
     } else if (name == "str!") {
-      Lexer::Token to_add(_pos.cur());
+      Token to_add(_pos.cur());
 
       const auto first_of_range = _pos.tell();
-      auto raw_args = Macros::get_macro_args(_pos);
+      auto raw_args = get_macro_args(_pos);
       const auto first_after_range = _pos.tell();
       to_add.text.clear();
 
@@ -2414,8 +2509,8 @@ bool Parser::replace_macro(TokenStream &_pos) {
       }
 
       // Ensure exactly one set of enclosing quotes
-      to_add.text = Macros::make_string_literal(
-          Macros::strip_string_literal(to_add.text));
+      to_add.text = make_string_literal(
+          strip_string_literal(to_add.text));
 
       _pos.rangef(first_of_range, first_after_range, {to_add});
       _pos.seek(first_of_range);
@@ -2424,13 +2519,13 @@ bool Parser::replace_macro(TokenStream &_pos) {
           << _pos.cur().file.string() << ":" << _pos.cur().line
           << "." << _pos.cur().col
           << ">\ncompile_time::system! asks to run `";
-      auto raw_args = Macros::get_macro_args(_pos);
-      std::list<Lexer::Token> args;
+      auto raw_args = get_macro_args(_pos);
+      std::list<Token> args;
       for (auto it = raw_args.begin(); it != raw_args.end();
            ++it) {
         TokenStream cur_arg(*it);
 
-        Lexer::Token to_add = cur_arg.cur();
+        Token to_add = cur_arg.cur();
         for (cur_arg.next(); !cur_arg.done(); cur_arg.next()) {
           to_add.text += ' ';
           to_add.text += cur_arg.cur().text;
@@ -2439,7 +2534,7 @@ bool Parser::replace_macro(TokenStream &_pos) {
       }
 
       for (auto it = args.begin(); it != args.end(); ++it) {
-        it->text = Macros::strip_string_literal(it->text);
+        it->text = strip_string_literal(it->text);
       }
 
       std::string cmd;
@@ -2514,7 +2609,7 @@ bool Parser::replace_macro(TokenStream &_pos) {
     // Functional
     const auto first_of_range = _pos.tell();
     _pos.next();
-    auto args = Macros::get_macro_args(_pos);
+    auto args = get_macro_args(_pos);
     const auto first_after_range = _pos.tell();
 
     const auto exe =
@@ -2536,7 +2631,7 @@ bool Parser::replace_macro(TokenStream &_pos) {
         }
         arg_text += tok;
       }
-      command += " " + Macros::make_string_literal(arg_text);
+      command += " " + make_string_literal(arg_text);
     }
 
     if (settings.debug) {
@@ -2554,8 +2649,8 @@ bool Parser::replace_macro(TokenStream &_pos) {
 
     // Lex replacement
     uint64_t junk_line = 0, junk_col = 0;
-    auto lexed_replacement = Lexer::lex(
-        replacement, name_tok.file, junk_line, junk_col);
+    auto lexed_replacement =
+        lex(replacement, name_tok.file, junk_line, junk_col);
 
     // Do replacement
     _pos.rangef(first_of_range, first_after_range,
@@ -2570,9 +2665,8 @@ bool Parser::replace_macro(TokenStream &_pos) {
   return true;
 }
 
-FnInfo
-Parser::get_default_constructor(const StructInfo &_what,
-                                const Lexer::Token &_where) {
+FnInfo Parser::get_default_constructor(const StructInfo &_what,
+                                       const Token &_where) {
   assert(!_what.name.empty());
   FnInfo out;
   out.name = "New";
@@ -2597,9 +2691,8 @@ Parser::get_default_constructor(const StructInfo &_what,
   return out;
 }
 
-FnInfo
-Parser::get_default_destructor(const StructInfo &_what,
-                               const Lexer::Token &_where) {
+FnInfo Parser::get_default_destructor(const StructInfo &_what,
+                                      const Token &_where) {
   assert(!_what.name.empty());
   FnInfo out;
   out.name = "Del";
@@ -2625,9 +2718,8 @@ Parser::get_default_destructor(const StructInfo &_what,
   return out;
 }
 
-FnInfo
-Parser::get_default_constructor(const EnumInfo &_what,
-                                const Lexer::Token &_where) {
+FnInfo Parser::get_default_constructor(const EnumInfo &_what,
+                                       const Token &_where) {
   const std::string op = _what.option_order.front();
   assert(!_what.name.empty());
   FnInfo out;
@@ -2652,9 +2744,8 @@ Parser::get_default_constructor(const EnumInfo &_what,
   return out;
 }
 
-FnInfo
-Parser::get_default_destructor(const EnumInfo &_what,
-                               const Lexer::Token &_where) {
+FnInfo Parser::get_default_destructor(const EnumInfo &_what,
+                                      const Token &_where) {
   assert(!_what.name.empty());
   FnInfo out;
   out.name = "Del";
@@ -2690,9 +2781,8 @@ Parser::get_default_destructor(const EnumInfo &_what,
   return out;
 }
 
-std::list<FnInfo>
-Parser::get_wrappers(const EnumInfo &_what,
-                     const Lexer::Token &_where) {
+std::list<FnInfo> Parser::get_wrappers(const EnumInfo &_what,
+                                       const Token &_where) {
   assert(!_what.name.empty());
   std::list<FnInfo> out;
   for (const auto &p : _what.options) {

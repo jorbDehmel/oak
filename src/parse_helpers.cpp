@@ -81,7 +81,7 @@ void print_region(TokenStream &_pos, std::ostream &_where,
   _pos.seek(start_pos);
 }
 
-std::string concat(const std::list<Lexer::Token> &_what) {
+std::string concat(const std::list<Token> &_what) {
   std::string out = "";
   bool first = true;
   for (const auto &tok : _what) {
@@ -98,7 +98,7 @@ std::string concat(const std::list<Lexer::Token> &_what) {
 void check_camelcase(Settings &_warn_into,
                      const std::string &_type_str,
                      const std::string &_name,
-                     const Lexer::Token &_where) noexcept {
+                     const Token &_where) noexcept {
   // The final chunk after any underscores/namespace operators
   const auto end = std::min(_name.find("_GEN"), _name.size());
   const auto pos = _name.find_last_of('_', end);
@@ -150,8 +150,8 @@ std::string get_cmd_output(const std::string &_cmd) {
   return result;
 }
 
-std::list<Lexer::Token> TemplateInfo::replace(
-    const std::list<Lexer::Token> &_to_augment,
+std::list<Token> TemplateInfo::replace(
+    const std::list<Token> &_to_augment,
     const std::list<std::string> &_generics,
     const std::list<std::list<std::string>> &_replacements) {
   // Ensure valid substitutions
@@ -175,11 +175,11 @@ std::list<Lexer::Token> TemplateInfo::replace(
   }
 
   // Replace
-  std::list<Lexer::Token> out;
+  std::list<Token> out;
   for (const auto &t : _to_augment) {
     if (substitution_map.contains(t)) {
       for (const auto &replacement : substitution_map.at(t)) {
-        out.push_back(Lexer::Token(t, replacement));
+        out.push_back(Token(t, replacement));
       }
     } else {
       out.push_back(t);
@@ -188,8 +188,7 @@ std::list<Lexer::Token> TemplateInfo::replace(
   return out;
 }
 
-std::string
-Macros::strip_string_literal(const std::string &_str_lit) {
+std::string strip_string_literal(const std::string &_str_lit) {
   const static std::set<char> str_chars = {'\'', '"', '`'};
 
   // Strip \" and the likes from within
@@ -208,8 +207,7 @@ Macros::strip_string_literal(const std::string &_str_lit) {
   return out;
 }
 
-std::string
-Macros::make_string_literal(const std::string &_contents) {
+std::string make_string_literal(const std::string &_contents) {
   std::string out = "\"";
 
   for (uint i = 0; i < _contents.size(); ++i) {
@@ -223,11 +221,10 @@ Macros::make_string_literal(const std::string &_contents) {
   return out;
 }
 
-std::list<std::list<Lexer::Token>>
-Macros::get_macro_args(TokenStream &_pos) {
+std::list<std::list<Token>> get_macro_args(TokenStream &_pos) {
   uint depth = 0;
-  std::list<std::list<Lexer::Token>> out;
-  std::list<Lexer::Token> cur;
+  std::list<std::list<Token>> out;
+  std::list<Token> cur;
 
   do {
     _pos.next();
